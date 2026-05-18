@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #eef2f6;
+            border-radius: 8px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #64748b;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .header h2 {
+            color: #64748b;
+            margin: 0;
+        }
+
+        .footer {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 30px;
+            text-align: center;
+            border-top: 1px solid #eef2f6;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Account Successfully Deleted</h2>
+        </div>
+        <p>Hello {{name}},</p>
+        <p>This email confirms that your <strong>SAP Security Expert</strong> account has been successfully deleted as
+            per your request.</p>
+
+        <p>Your personal information (email, phone, company details) has been removed from our active records. Please
+            note that any blogs or comments you authored remain on the platform to maintain community knowledge, but are
+            no longer associated with your personal identity.</p>
+
+        <p>We're sorry to see you go. If you ever wish to join us again, you can always create a new account.</p>
+
+        <div class="footer">
+            &copy; {{year}} SAP Security Expert. The leading community for SAP Security Professionals.<br>
+            <a href="https://sapsecurityexpert.com" style="color: #94a3b8;">sapsecurityexpert.com</a>
+        </div>
+    </div>
+</body>
+
+</html>

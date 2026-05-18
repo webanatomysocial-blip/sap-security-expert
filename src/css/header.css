@@ -260,6 +260,43 @@
   background: #fef2f2;
 }
 
+/* Submenu Styles */
+.member-dropdown-submenu {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.submenu-trigger {
+  justify-content: space-between;
+}
+
+.submenu-arrow {
+  margin-left: auto;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.submenu-content {
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 4px 0;
+}
+
+.submenu-content .member-dropdown-item {
+  padding-left: 44px;
+  font-size: 0.8rem;
+}
+
+.delete-account-btn {
+  color: #dc2626 !important;
+}
+
+.delete-account-btn:hover {
+  background: #fef2f2 !important;
+}
+
 /* Header Login Buttons */
 .btn-header-login {
   background-color: transparent;

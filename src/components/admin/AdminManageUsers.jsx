@@ -60,7 +60,7 @@ const AdminManageUsers = () => {
 
     const confirmMsg =
       action === "delete"
-        ? "Are you sure you want to PERMANENTLY delete this member?"
+        ? "Are you sure you want to delete this member? This will deactivate their account and move them to the Deleted section."
         : `Are you sure you want to ${action} this member?`;
 
     openConfirm({
@@ -135,8 +135,8 @@ const AdminManageUsers = () => {
   const filteredMembers = members.filter(
     (m) =>
       (filterStatus === "all" || m.status === filterStatus) &&
-      (m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.email.toLowerCase().includes(searchTerm.toLowerCase())),
+      ((m.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (m.email || "").toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   const handleExport = () => {
@@ -195,6 +195,12 @@ const AdminManageUsers = () => {
           >
             Rejected
           </button>
+          <button
+            className={filterStatus === "deleted" ? "active" : ""}
+            onClick={() => setFilterStatus("deleted")}
+          >
+            Deleted
+          </button>
         </div>
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           <div className="search-box">
@@ -229,10 +235,21 @@ const AdminManageUsers = () => {
                 <tr>
                   <th className="col-lg text-left">Name</th>
                   <th className="col-lg text-left">Email</th>
-                  <th className="col-md text-left">Phone</th>
-                  <th className="col-md text-left">Company</th>
-                  <th className="col-md text-left">Position</th>
-                  <th className="col-md text-left">Location</th>
+                  {filterStatus === "deleted" ? (
+                    <>
+                      <th className="col-md text-left">Deleted At</th>
+                      <th className="col-md text-left">IP Address</th>
+                      <th className="col-md text-left">Method</th>
+                      <th className="col-md text-left">Confirmation</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="col-md text-left">Phone</th>
+                      <th className="col-md text-left">Company</th>
+                      <th className="col-md text-left">Position</th>
+                      <th className="col-md text-left">Location</th>
+                    </>
+                  )}
                   <th className="col-sm text-center">Status</th>
                   <th className="col-sm text-left">Reg. Date</th>
                   <th className="col-actions text-center">Actions</th>
@@ -254,40 +271,59 @@ const AdminManageUsers = () => {
                       <td className="col-lg text-left no-wrap">
                         <div style={{ fontSize: "0.8rem" }}>{m.email}</div>
                       </td>
-                      <td className="col-md text-left no-wrap">
-                        {m.phone ? (
-                          <div style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                            {m.phone}
-                          </div>
-                        ) : (
-                          <span style={{ color: "#cbd5e1" }}>—</span>
-                        )}
-                      </td>
-                      <td className="col-md text-left wrap-text">
-                        <div
-                          className="truncate-2"
-                          style={{
-                            fontWeight: 600,
-                            color: "var(--slate-900)",
-                            fontSize: "0.85rem",
-                          }}
-                        >
-                          {m.company_name || "—"}
-                        </div>
-                      </td>
-                      <td className="col-md text-left wrap-text">
-                        <div
-                          className="truncate-2"
-                          style={{ fontSize: "0.8rem", color: "#64748b" }}
-                        >
-                          {m.job_role || "—"}
-                        </div>
-                      </td>
-                      <td className="col-md text-left wrap-text">
-                        <div className="truncate-2" style={{ fontSize: "0.80rem" }}>
-                          {m.location || "—"}
-                        </div>
-                      </td>
+                      {filterStatus === "deleted" ? (
+                        <>
+                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
+                            {m.deleted_at ? new Date(m.deleted_at).toLocaleString() : "—"}
+                          </td>
+                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
+                            {m.deletion_ip || "—"}
+                          </td>
+                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
+                            {m.deletion_method || "—"}
+                          </td>
+                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
+                            {m.deletion_confirmation_method || "—"}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="col-md text-left no-wrap">
+                            {m.phone ? (
+                              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                                {m.phone}
+                              </div>
+                            ) : (
+                              <span style={{ color: "#cbd5e1" }}>—</span>
+                            )}
+                          </td>
+                          <td className="col-md text-left wrap-text">
+                            <div
+                              className="truncate-2"
+                              style={{
+                                fontWeight: 600,
+                                color: "var(--slate-900)",
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              {m.company_name || "—"}
+                            </div>
+                          </td>
+                          <td className="col-md text-left wrap-text">
+                            <div
+                              className="truncate-2"
+                              style={{ fontSize: "0.8rem", color: "#64748b" }}
+                            >
+                              {m.job_role || "—"}
+                            </div>
+                          </td>
+                          <td className="col-md text-left wrap-text">
+                            <div className="truncate-2" style={{ fontSize: "0.80rem" }}>
+                              {m.location || "—"}
+                            </div>
+                          </td>
+                        </>
+                      )}
                       <td className="col-sm text-center">
                         <span className={`status-badge status-${m.status}`}>
                           {m.status === "approved" ? "Active" : m.status}
@@ -351,12 +387,14 @@ const AdminManageUsers = () => {
                           )}
 
                           <div className="action-menu-separator"></div>
-                          <button
-                            className="action-menu-item danger"
-                            onClick={() => handleAction(m.id, "delete")}
-                          >
-                            <i className="bi bi-trash"></i> Delete
-                          </button>
+                          {m.status !== "deleted" && (
+                            <button
+                              className="action-menu-item danger"
+                              onClick={() => handleAction(m.id, "delete")}
+                            >
+                              <i className="bi bi-trash"></i> Delete
+                            </button>
+                          )}
                         </ActionMenu>
                       </td>
                     </tr>
@@ -636,6 +674,30 @@ const AdminManageUsers = () => {
                     {selectedMember.job_role || "Not Provided"}
                   </div>
                 </div>
+
+                {selectedMember.is_deleted == 1 && (
+                  <>
+                    <div className="detail-item" style={{ gridColumn: 'span 2', padding: '15px 0', borderTop: '1px solid #e2e8f0', marginTop: '10px' }}>
+                      <strong style={{ color: '#ee5e42' }}>Account Deletion Metadata</strong>
+                    </div>
+                    <div className="detail-item">
+                      <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--slate-500)", textTransform: "uppercase", marginBottom: "4px" }}>Deleted At</label>
+                      <div style={{ fontSize: "1rem", fontWeight: "600", color: "var(--slate-900)" }}>{selectedMember.deleted_at ? new Date(selectedMember.deleted_at).toLocaleString() : "—"}</div>
+                    </div>
+                    <div className="detail-item">
+                      <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--slate-500)", textTransform: "uppercase", marginBottom: "4px" }}>IP Address</label>
+                      <div style={{ fontSize: "1rem", fontWeight: "600", color: "var(--slate-900)" }}>{selectedMember.deletion_ip || "—"}</div>
+                    </div>
+                    <div className="detail-item">
+                      <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--slate-500)", textTransform: "uppercase", marginBottom: "4px" }}>Method</label>
+                      <div style={{ fontSize: "1rem", fontWeight: "600", color: "var(--slate-900)" }}>{selectedMember.deletion_method || "—"}</div>
+                    </div>
+                    <div className="detail-item">
+                      <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "var(--slate-500)", textTransform: "uppercase", marginBottom: "4px" }}>Confirmation Method</label>
+                      <div style={{ fontSize: "1rem", fontWeight: "600", color: "var(--slate-900)" }}>{selectedMember.deletion_confirmation_method || "—"}</div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

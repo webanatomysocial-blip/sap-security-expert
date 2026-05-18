@@ -51,16 +51,28 @@ try {
                 $plainPassword = bin2hex(random_bytes(8));
                 $passwordHash = password_hash($plainPassword, PASSWORD_BCRYPT);
                 
-                // Generate a unique username
-                $baseUsername = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', explode('@', $userEmail)[0]));
+                // Generate a unique username (compatible with members)
+                $baseUsername = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $fullName));
+                if (empty($baseUsername)) {
+                    $baseUsername = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', explode('@', $userEmail)[0]));
+                }
+                
                 $username = $baseUsername;
-                $stmtCheck = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+                $isUnique = false;
                 $tries = 0;
-                while ($tries < 5) {
-                    $stmtCheck->execute([$username]);
-                    if (!$stmtCheck->fetch()) break;
-                    $username = $baseUsername . rand(1000, 9999);
-                    $tries++;
+                while (!$isUnique && $tries < 10) {
+                    $uCheck1 = $pdo->prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1");
+                    $uCheck1->execute([$username]);
+                    
+                    $uCheck2 = $pdo->prepare("SELECT id FROM members WHERE LOWER(username) = LOWER(?) LIMIT 1");
+                    $uCheck2->execute([$username]);
+                    
+                    if ($uCheck1->fetch() || $uCheck2->fetch()) {
+                        $username = $baseUsername . rand(100, 999);
+                        $tries++;
+                    } else {
+                        $isUnique = true;
+                    }
                 }
 
                 $stmtInsertUser = $pdo->prepare("
@@ -106,10 +118,9 @@ try {
             $ns->notifyContributorApproved($userEmail, $fullName, $credentials);
 
         } elseif ($status === 'rejected') {
-            if ($member) {
-                $pdo->prepare("UPDATE members SET status = 'rejected', rejection_reason = ? WHERE id = ?")
-                    ->execute([$reason, $member['id']]);
-            }
+            // NOTE: We do NOT update the member status to 'rejected' here.
+            // If they were already an approved member, they should remain an approved member.
+            // Rejecting their contributor application only affects their contributor status.
             require_once 'services/NotificationService.php';
             $ns = new NotificationService();
             $ns->notifyContributorRejected($userEmail, $fullName, $reason ?: 'Does not meet our current requirements.');

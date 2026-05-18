@@ -175,10 +175,19 @@ export default function DynamicBlog() {
           The article you are looking for does not exist or has been removed.
         </p>
         <Link
-          to="/blogs"
-          style={{ textDecoration: "underline", color: "blue" }}
+          to="/"
+          style={{
+            display: "inline-block",
+            marginTop: "20px",
+            padding: "12px 30px",
+            background: "#1e293b",
+            color: "white",
+            borderRadius: "8px",
+            textDecoration: "none",
+            fontWeight: "600",
+          }}
         >
-          Back to Blogs
+          Go Back Home
         </Link>
       </div>
     );

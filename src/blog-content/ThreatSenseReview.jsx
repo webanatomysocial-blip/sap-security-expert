@@ -465,7 +465,7 @@ const ThreatSenseReview = () => {
             }}
           >
             <strong>Disclaimer:</strong> ThreatSense AI Data Security (TADS) is
-            not affiliated with SAPSecurityExpert.com. This independent review
+            not affiliated with sapsecurityexpert.com. This independent review
             is provided for informational purposes only and does not constitute
             an endorsement. Enterprises should conduct their own evaluation
             before engaging with any vendor.

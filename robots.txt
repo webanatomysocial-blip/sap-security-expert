@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+
+# Explicitly allow ClaudeBot
+User-agent: ClaudeBot
+Allow: /
+
+Sitemap: https://sapsecurityexpert.com/sitemap.xml

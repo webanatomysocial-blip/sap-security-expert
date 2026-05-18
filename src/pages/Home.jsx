@@ -7,7 +7,6 @@ import {
   LuFileCheck,
   LuCloud,
   LuKeyRound,
-  // LuCheckCircle,
   LuAward,
   LuTarget,
 } from "react-icons/lu";

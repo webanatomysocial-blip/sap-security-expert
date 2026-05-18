@@ -8,10 +8,11 @@ import "../../css/admin-profile.css";
 
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
-import { LuChevronDown, LuUser, LuKey, LuLogOut, LuGlobe } from "react-icons/lu";
+import { LuChevronDown, LuUser, LuKey, LuLogOut, LuGlobe, LuShieldCheck, LuTrash2 } from "react-icons/lu";
 import { Link } from "react-router-dom";
 import ProfileEditModal from "./ProfileEditModal";
 import ResetPasswordModal from "./ResetPasswordModal";
+import DeleteAccountModal from "../DeleteAccountModal";
 import {
   getAdminProfile,
   getAdminStats,
@@ -38,6 +39,8 @@ const AdminLayout = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+  const [showSecuritySubmenu, setShowSecuritySubmenu] = useState(false);
 
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -60,6 +63,7 @@ const AdminLayout = () => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
+        setShowSecuritySubmenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -289,51 +293,103 @@ const AdminLayout = () => {
                 className="profile-dropdown-menu"
                 onClick={(e) => e.stopPropagation()}
               >
-                {isAuthenticated && (
-                  <button
-                    className="dropdown-item"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDropdown(false);
-                      setShowProfileModal(true);
-                    }}
-                    style={{
-                      border: "none",
-                      background: "none",
-                      padding: "10px 16px",
-                      width: "100%",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      fontFamily: "inherit",
-                      fontSize: "0.875rem",
-                      color: "#475569",
-                    }}
-                  >
-                    <LuUser /> Profile
-                  </button>
-                )}
-                <button
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDropdown(false);
-                    setShowPasswordModal(true);
-                  }}
-                >
-                  <LuKey /> Reset Password
-                </button>
-                <button
-                  className="dropdown-item logout"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLogout();
-                  }}
-                >
-                  <LuLogOut /> Logout
-                </button>
+                 {isAuthenticated && (
+                   <button
+                     className="dropdown-item"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       setShowDropdown(false);
+                       setShowProfileModal(true);
+                     }}
+                     style={{
+                       border: "none",
+                       background: "none",
+                       padding: "10px 16px",
+                       width: "100%",
+                       textAlign: "left",
+                       cursor: "pointer",
+                       display: "flex",
+                       alignItems: "center",
+                       gap: "8px",
+                       fontFamily: "inherit",
+                       fontSize: "0.875rem",
+                       color: "#475569",
+                     }}
+                   >
+                     <LuUser /> Profile
+                   </button>
+                 )}
+
+                 <div className="dropdown-divider" style={{ margin: '4px 0', borderTop: '1px solid #f1f5f9' }}></div>
+
+                 <div className="security-submenu-wrapper">
+                    <button
+                      className={`dropdown-item ${showSecuritySubmenu ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowSecuritySubmenu(!showSecuritySubmenu);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <LuShieldCheck /> Security & Privacy
+                      </div>
+                      <LuChevronDown style={{ 
+                        fontSize: '0.8rem', 
+                        transition: 'transform 0.2s',
+                        transform: showSecuritySubmenu ? 'rotate(180deg)' : 'rotate(-90deg)' 
+                      }} />
+                    </button>
+
+                    {showSecuritySubmenu && (
+                      <div className="dropdown-submenu-content" style={{ background: '#f8fafc', padding: '4px 0' }}>
+                        <button
+                          className="dropdown-item"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDropdown(false);
+                            setShowSecuritySubmenu(false);
+                            setShowPasswordModal(true);
+                          }}
+                          style={{ paddingLeft: '32px', fontSize: '0.8rem' }}
+                        >
+                          <LuKey /> Reset Password
+                        </button>
+
+                        {role === 'contributor' && (
+                          <button
+                            className="dropdown-item logout"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowDropdown(false);
+                              setShowSecuritySubmenu(false);
+                              setIsDeleteAccountOpen(true);
+                            }}
+                            style={{ paddingLeft: '32px', fontSize: '0.8rem', color: '#dc2626' }}
+                          >
+                            <LuTrash2 /> Delete Account
+                          </button>
+                        )}
+                      </div>
+                    )}
+                 </div>
+
+                 <div className="dropdown-divider" style={{ margin: '4px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                 
+                 <button
+                   className="dropdown-item logout"
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     handleLogout();
+                   }}
+                 >
+                   <LuLogOut /> Logout
+                 </button>
               </div>
             )}
           </div>
@@ -354,6 +410,10 @@ const AdminLayout = () => {
       <ResetPasswordModal
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
+      />
+      <DeleteAccountModal
+        isOpen={isDeleteAccountOpen}
+        onClose={() => setIsDeleteAccountOpen(false)}
       />
     </div>
   );

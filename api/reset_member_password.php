@@ -44,8 +44,20 @@ try {
     $newPass = 'Sap@' . $suffix;
 
     $hashed = password_hash($newPass, PASSWORD_BCRYPT);
-    $stmt   = $pdo->prepare("UPDATE members SET password_hash = ? WHERE id = ?");
+    
+    $pdo->beginTransaction();
+
+    // 1. Update members table
+    $stmt = $pdo->prepare("UPDATE members SET password_hash = ? WHERE id = ?");
     $stmt->execute([$hashed, $memberId]);
+
+    // 2. Sync to users table if same email exists
+    if (!empty($member['email'])) {
+        $stmtSync = $pdo->prepare("UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)");
+        $stmtSync->execute([$hashed, $member['email']]);
+    }
+
+    $pdo->commit();
 
     echo json_encode([
         'status'      => 'success',

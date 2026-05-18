@@ -46,13 +46,13 @@ if ($type === 'signup') {
     }
 }
 
-// 2. If it's for reset, check if email exists
-if ($type === 'reset') {
-    $check = $pdo->prepare("SELECT id FROM members WHERE email = ? LIMIT 1");
+// 2. If it's for reset or delete, check if email exists
+if ($type === 'reset' || $type === 'delete_account') {
+    $check = $pdo->prepare("SELECT id FROM members WHERE email = ? AND is_deleted = 0 LIMIT 1");
     $check->execute([$email]);
     if (!$check->fetch()) {
         http_response_code(404);
-        echo json_encode(['status' => 'error', 'message' => 'No account found with this email address.']);
+        echo json_encode(['status' => 'error', 'message' => 'No active account found with this email address.']);
         exit;
     }
 }
@@ -62,9 +62,23 @@ try {
     $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     $code = $otpService->generateOTP($email, $type, $ip);
     
-    $subject = ($type === 'reset') ? "Password Reset Verification Code" : "Signup Verification Code";
+    $subject = "Verification Code";
+    $template = "member/otp_verification";
+
+    if ($type === 'reset') {
+        $subject = "Password Reset Verification Code";
+    } elseif ($type === 'delete_account') {
+        $subject = "Account Deletion Verification Code";
+        $template = "member/account_deletion_otp";
+    }
     
-    $success = $mailService->send($email, $subject, "member/otp_verification", [
+    // Fetch name for personalization
+    $nameStmt = $pdo->prepare("SELECT name FROM members WHERE email = ? LIMIT 1");
+    $nameStmt->execute([$email]);
+    $name = $nameStmt->fetchColumn() ?: 'Member';
+
+    $success = $mailService->send($email, $subject, $template, [
+        'name' => $name,
         'code' => $code,
         'year' => date('Y')
     ]);

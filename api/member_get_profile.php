@@ -19,7 +19,7 @@ if (!isset($_SESSION['member_logged_in']) || $_SESSION['member_logged_in'] !== t
 
 try {
     $email = $_SESSION['member_email'];
-    $stmt = $pdo->prepare("SELECT id, name, email, phone, location, profile_image, company_name, job_role FROM members WHERE email = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, name, email, username, phone, location, profile_image, company_name, job_role FROM members WHERE email = ? LIMIT 1");
     $stmt->execute([$email]);
     $member = $stmt->fetch();
 

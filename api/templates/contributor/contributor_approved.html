@@ -1,17 +1,66 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eef2f6; border-radius: 8px; }
-        .header { text-align: center; border-bottom: 2px solid #3b5998; padding-bottom: 15px; margin-bottom: 20px; }
-        .header h2 { color: #3b5998; margin: 0; }
-        .footer { font-size: 12px; color: #94a3b8; margin-top: 30px; text-align: center; border-top: 1px solid #eef2f6; padding-top: 15px; }
-        .btn { display: inline-block; background: #3b5998; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 600; margin: 20px 0; }
-        ul { padding-left: 20px; }
-        li { margin-bottom: 8px; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #eef2f6;
+            border-radius: 8px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #3b5998;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .header h2 {
+            color: #3b5998;
+            margin: 0;
+        }
+
+        .footer {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 30px;
+            text-align: center;
+            border-top: 1px solid #eef2f6;
+            padding-top: 15px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #3b5998;
+            color: #ffffff !important;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -20,26 +69,29 @@
         <p>Hello <strong>{{name}}</strong>,</p>
         <p>Congratulations! Your application to become a contributor has been <strong>approved</strong>.</p>
         <p>You can now log in to your contributor dashboard to write, manage, and submit your blogs for review.</p>
-        
+
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin: 25px 0;">
             <p style="margin-top: 0; font-weight: 700; color: #1e293b;">Your Login Details:</p>
             <p style="margin-bottom: 8px;"><strong>Username/Email:</strong> {{username}}</p>
             <p style="margin-bottom: 0;"><strong>Password:</strong> {{password}}</p>
-            <p style="font-size: 13px; color: #64748b; margin-top: 10px;"><em>Note: For security, we recommend changing your password after your first login.</em></p>
+            <p style="font-size: 13px; color: #64748b; margin-top: 10px;"><em>Note: For security, we recommend changing
+                    your password after your first login.</em></p>
         </div>
-        
+
         <div style="text-align: center;">
             <a href="{{login_url}}" class="btn">Contributor Login</a>
         </div>
-        
-        <p>If you have any questions about the contribution process, please reach out to us at <a href="mailto:hello@sapsecurityexpert.com">hello@sapsecurityexpert.com</a>.</p>
-        
+
+        <p>If you have any questions about the contribution process, please reach out to us at <a
+                href="mailto:hello@sapsecurityexpert.com">hello@sapsecurityexpert.com</a>.</p>
+
         <p>We look forward to reading your insights!</p>
-        
+
         <div class="footer">
             &copy; 2026 SAP Security Expert. The leading community for SAP Security Professionals.<br>
             <a href="{{site_url}}" style="color: #94a3b8;">{{site_domain}}</a>
         </div>
     </div>
 </body>
+
 </html>

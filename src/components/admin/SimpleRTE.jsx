@@ -90,7 +90,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     html = html.replace(/ class="([^"]*)"/gi, (match, classes) => {
       const allowed = classes
         .split(" ")
-        .filter((c) => c.startsWith("align-") || c.startsWith("text-"))
+        .filter((c) => c.startsWith("align-") || c.startsWith("text-") || c.startsWith("language-"))
         .join(" ");
       return allowed ? ` class="${allowed}"` : "";
     });
@@ -107,6 +107,42 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     editorRef.current.focus();
     document.execCommand(command, false, value);
     cleanAndDispatch();
+  };
+
+  const formatHTML = (html) => {
+    let formatted = "";
+    let indent = 0;
+    const tokens = html.split(/(<[^>]*>)/);
+    
+    tokens.forEach((token) => {
+      if (token.startsWith("</")) {
+        indent--;
+        formatted += "\n" + "  ".repeat(Math.max(0, indent)) + token;
+      } else if (token.startsWith("<") && !token.startsWith("<!") && !token.endsWith("/>")) {
+        const tagName = token.match(/<([a-zA-Z0-9]+)/)?.[1]?.toLowerCase();
+        formatted += "\n" + "  ".repeat(Math.max(0, indent)) + token;
+        if (!["img", "br", "hr", "input", "meta", "link"].includes(tagName)) {
+          indent++;
+        }
+      } else if (token.trim()) {
+        formatted += "\n" + "  ".repeat(Math.max(0, indent)) + token.trim();
+      }
+    });
+    
+    return formatted.trim();
+  };
+
+  const handleFormat = () => {
+    if (isSourceView) {
+      const formatted = formatHTML(value);
+      onChange(formatted);
+    } else {
+      // In visual mode, we can try to clean the innerHTML
+      cleanAndDispatch();
+      const currentHTML = editorRef.current.innerHTML;
+      editorRef.current.innerHTML = formatHTML(currentHTML);
+      cleanAndDispatch();
+    }
   };
 
   const handleChange = () => {
@@ -186,6 +222,8 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
         "A",
         "BLOCKQUOTE",
         "IMG",
+        "PRE",
+        "CODE",
       ];
 
       const sanitizeNode = (node) => {
@@ -466,6 +504,33 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
           >
             <u>U</u>
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (isSourceView) return;
+              const selection = window.getSelection();
+              if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const content = range.extractContents();
+                const pre = document.createElement("pre");
+                const code = document.createElement("code");
+                code.appendChild(content);
+                pre.appendChild(code);
+                range.insertNode(pre);
+                
+                // If it's empty, add a placeholder
+                if (pre.textContent.trim() === "") {
+                  code.innerHTML = "// Paste your code here";
+                }
+                
+                cleanAndDispatch();
+              }
+            }}
+            title="Code Block"
+            disabled={isSourceView}
+          >
+            <i className="bi bi-code-square"></i>
+          </button>
         </div>
 
         <div className="rte-divider"></div>
@@ -569,6 +634,16 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
             </>
           )}
         </button>
+
+        <button
+          type="button"
+          onClick={handleFormat}
+          title="Format Code / Content"
+          className="format-btn"
+          style={{ marginLeft: "4px" }}
+        >
+          <i className="bi bi-magic"></i> Format
+        </button>
       </div>
 
       {isSourceView ? (
@@ -669,6 +744,19 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
             font-size: 13px !important;
             gap: 6px;
         }
+        .format-btn {
+            background: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            color: #64748b !important;
+            padding: 0 12px !important;
+            font-size: 13px !important;
+            gap: 6px;
+        }
+        .format-btn:hover {
+            background: #f1f5f9 !important;
+            color: #1e293b !important;
+            border-color: #cbd5e1 !important;
+        }
         .rte-content {
             min-height: 400px;
             overflow-y: auto;
@@ -746,6 +834,32 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
         .rte-content .text-left { text-align: left !important; }
         .rte-content .text-center { text-align: center !important; }
         .rte-content .text-right { text-align: right !important; }
+
+        /* Code Block Styling in Editor */
+        .rte-content pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        .rte-content code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            color: #e11d48;
+        }
+        .rte-content pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+            border: none;
+        }
       `}</style>
     </div>
   );

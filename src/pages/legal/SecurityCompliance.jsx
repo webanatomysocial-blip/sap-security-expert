@@ -29,7 +29,8 @@ const SecurityCompliance = () => {
           compliance. Security policies and procedures are reviewed periodically
           and updated to reflect evolving threats, regulatory requirements, and
           industry best practices.
-          <br />
+        </p>
+        <p>
           Access to systems and data is granted strictly on a need-to-know
           basis, supported by role-based access controls and segregation of
           duties.
@@ -43,7 +44,8 @@ const SecurityCompliance = () => {
           secure coding standards, controlled use of third-party components,
           environment segregation, and review processes designed to identify and
           mitigate security risks early.
-          <br />
+        </p>
+        <p>
           Changes to production systems follow defined approval and deployment
           procedures to maintain stability, traceability, and integrity.
         </p>
@@ -55,7 +57,8 @@ const SecurityCompliance = () => {
           We process data in accordance with applicable global data protection
           laws, including GDPR, UK GDPR, DPDPA (India), Singapore PDPA, and
           relevant US privacy regulations.
-          <br />
+        </p>
+        <p>
           We apply appropriate safeguards to protect data confidentiality,
           integrity, and availability. Personal and customer data is processed
           only for legitimate business purposes and in accordance with
@@ -71,7 +74,8 @@ const SecurityCompliance = () => {
           oversight. Security incidents are handled through defined response
           procedures designed to assess impact, contain risk, and support timely
           remediation.
-          <br />
+        </p>
+        <p>
           In the event of a confirmed data breach, we follow established
           notification and cooperation obligations as required by applicable law
           and contractual commitments.
@@ -85,7 +89,8 @@ const SecurityCompliance = () => {
           to support service delivery. Such parties are subject to contractual
           security, confidentiality, and data protection obligations aligned
           with our own standards.
-          <br />
+        </p>
+        <p>
           We remain accountable for the security and compliance posture of
           services delivered through approved sub processors.
         </p>

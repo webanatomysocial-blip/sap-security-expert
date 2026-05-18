@@ -14,6 +14,7 @@ try {
         name TEXT NOT NULL,
         phone TEXT,
         email TEXT NOT NULL UNIQUE,
+        username TEXT,
         location TEXT,
         company_name TEXT,
         job_role TEXT,

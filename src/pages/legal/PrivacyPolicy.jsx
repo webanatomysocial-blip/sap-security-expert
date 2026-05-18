@@ -22,7 +22,8 @@ const PrivacyPolicy = () => {
           communications. We may also collect technical data, including IP
           address, browser type, device information, pages visited, and usage
           patterns, collected automatically when you interact with our Website.
-          <br />
+        </p>
+        <p>
           We do not knowingly collect sensitive personal data or information
           relating to children.
         </p>
@@ -80,7 +81,8 @@ const PrivacyPolicy = () => {
           analytics, communications, marketing platforms, CRM systems, and
           service delivery. Such parties are contractually obligated to protect
           personal data and use it only for authorized purposes.
-          <br />
+        </p>
+        <p>
           Personal data may also be disclosed where required by law, regulation,
           legal process, or to protect SAP Security Expert’s rights and
           interests.
@@ -99,6 +101,51 @@ const PrivacyPolicy = () => {
       </section>
 
       <section>
+        <h3>Account Deletion and Data Retention</h3>
+        <p>
+          Users may request deletion of their account and associated personal
+          data at any time through their{" "}
+          <button
+            onClick={() => {
+              const event = new CustomEvent("open-profile-settings");
+              window.dispatchEvent(event);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#ee5e42",
+              padding: 0,
+              font: "inherit",
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            Account Settings
+          </button>
+          , where available, or by contacting us at{" "}
+          <a className="legal-links" href="mailto:hello@sapsecurityexpert.com">
+            hello@sapsecurityexpert.com
+          </a>
+          .
+        </p>
+        <p>
+          Upon receiving a valid request, SAP Security Expert will disable
+          access to the account and initiate deletion of personal data within a
+          reasonable timeframe, in accordance with applicable legal and
+          regulatory requirements.
+        </p>
+        <p>
+          Certain information may be retained for a limited period where
+          required for compliance with legal obligations, dispute resolution,
+          fraud prevention, or enforcement of agreements.
+        </p>
+        <p>
+          Once the retention period expires, such data will be securely deleted
+          or anonymized.
+        </p>
+      </section>
+
+      <section>
         <h3>Data Breach Notification</h3>
         <p>
           In the event of a confirmed personal data breach, SAP Security Expert
@@ -110,17 +157,11 @@ const PrivacyPolicy = () => {
       <section>
         <h3>Contact</h3>
         <p>
-          For any privacy inquiries, please contact us at{" "}
+          For privacy, data protection, or account-related requests (including
+          data access or deletion), please contact us at{" "}
           <a className="legal-links" href="mailto:hello@sapsecurityexpert.com">
             hello@sapsecurityexpert.com
           </a>
-        </p>
-        <p>
-          Visit us at:{" "}
-          <a className="legal-links" href="https://sapsecurityexpert.com">
-            sapsecurityexpert.com
-          </a>
-          .
         </p>
       </section>
     </LegalLayout>

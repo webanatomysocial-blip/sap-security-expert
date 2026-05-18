@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from "react";
+import React, { useState, useContext, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../css/header.css";
 import logo from "../assets/sapsecurityexpert-black.png";
@@ -7,9 +7,10 @@ import { FaChevronDown } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 
-import { LuSettings, LuUser, LuKey, LuLogOut } from "react-icons/lu";
+import { LuSettings, LuUser, LuKey, LuLogOut, LuShieldCheck, LuChevronRight, LuChevronDown, LuX, LuTrash2 } from "react-icons/lu";
 import MemberProfileModal from "./MemberProfileModal";
 import ResetPasswordModal from "./admin/ResetPasswordModal";
+import DeleteAccountModal from "./DeleteAccountModal";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -19,7 +20,7 @@ const Header = () => {
     resources: false,
   });
 
-  const { isLoggedIn, role, user } = useAuth();
+  const { isAuthenticated: isLoggedIn, role, user } = useAuth();
   const {
     isLoggedIn: isMemberLoggedIn,
     member,
@@ -38,7 +39,46 @@ const Header = () => {
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+  const [isSecuritySubmenuOpen, setIsSecuritySubmenuOpen] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState("profile");
   const memberDropdownRef = useRef(null);
+  
+  useEffect(() => {
+    const handleOpenProfile = (e) => {
+      if (isMemberLoggedIn) {
+        setProfileInitialTab(e.detail?.tab || "profile");
+        setIsProfileModalOpen(true);
+      } else {
+        navigate("/member/login");
+      }
+    };
+
+    const handleOpenResetPassword = () => setIsResetPasswordOpen(true);
+    const handleOpenDeleteAccount = () => setIsDeleteAccountOpen(true);
+
+    window.addEventListener('open-profile-settings', handleOpenProfile);
+    window.addEventListener('open-reset-password', handleOpenResetPassword);
+    window.addEventListener('open-delete-account', handleOpenDeleteAccount);
+
+    return () => {
+      window.removeEventListener('open-profile-settings', handleOpenProfile);
+      window.removeEventListener('open-reset-password', handleOpenResetPassword);
+      window.removeEventListener('open-delete-account', handleOpenDeleteAccount);
+    };
+  }, [isMemberLoggedIn, navigate]);
+
+  // Close member dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target)) {
+        setIsMemberDropdownOpen(false);
+        setIsSecuritySubmenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const closeMenu = () => {
     setMenuOpen(false);
@@ -179,15 +219,64 @@ const Header = () => {
                         <LuSettings className="dropdown-icon" /> Dashboard
                       </button>
                     )}
-                    <button
-                      className="member-dropdown-item"
-                      onClick={() => {
-                        setIsResetPasswordOpen(true);
-                        setIsMemberDropdownOpen(false);
-                      }}
-                    >
-                      <LuKey className="dropdown-icon" /> Reset Password
-                    </button>
+
+                    <div className="dropdown-divider"></div>
+
+                    <div className="security-submenu-wrapper">
+                      <button
+                        className={`member-dropdown-item ${isSecuritySubmenuOpen ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsSecuritySubmenuOpen(!isSecuritySubmenuOpen);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          width: '100%'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <LuShieldCheck className="dropdown-icon" /> Security & Privacy
+                        </div>
+                        <LuChevronDown style={{ 
+                          fontSize: '0.8rem', 
+                          transition: 'transform 0.2s',
+                          transform: isSecuritySubmenuOpen ? 'rotate(180deg)' : 'rotate(-90deg)' 
+                        }} />
+                      </button>
+
+                      {isSecuritySubmenuOpen && (
+                        <div className="dropdown-submenu-content" style={{ background: '#f8fafc', padding: '4px 0' }}>
+                          <button
+                            className="member-dropdown-item"
+                            onClick={() => {
+                              setIsResetPasswordOpen(true);
+                              setIsMemberDropdownOpen(false);
+                              setIsSecuritySubmenuOpen(false);
+                            }}
+                            style={{ paddingLeft: '32px', fontSize: '0.85rem' }}
+                          >
+                            <LuKey className="dropdown-icon" size={14} /> Change Password
+                          </button>
+
+                          <button
+                            className="member-dropdown-item logout"
+                            onClick={() => {
+                              setIsDeleteAccountOpen(true);
+                              setIsMemberDropdownOpen(false);
+                              setIsSecuritySubmenuOpen(false);
+                            }}
+                            style={{ paddingLeft: '32px', fontSize: '0.85rem', color: '#dc2626' }}
+                          >
+                            <LuTrash2 className="dropdown-icon" size={14} /> Delete Account
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="dropdown-divider"></div>
+                    
                     <button
                       className="member-dropdown-item logout"
                       onClick={() => {
@@ -250,11 +339,22 @@ const Header = () => {
                 <button
                   className="mobile-profile-btn"
                   onClick={() => {
+                    setProfileInitialTab("profile");
                     setIsProfileModalOpen(true);
                     closeMenu();
                   }}
                 >
                   <LuUser size={18} /> Profile Settings
+                </button>
+                <button
+                  className="mobile-profile-btn"
+                  onClick={() => {
+                    setProfileInitialTab("security");
+                    setIsProfileModalOpen(true);
+                    closeMenu();
+                  }}
+                >
+                  <LuShieldCheck size={18} /> Security & Privacy
                 </button>
                 {isContributor && (
                   <button
@@ -267,15 +367,10 @@ const Header = () => {
                     <LuSettings size={18} /> Dashboard
                   </button>
                 )}
-                <button
-                  className="mobile-profile-btn"
-                  onClick={() => {
-                    setIsResetPasswordOpen(true);
-                    closeMenu();
-                  }}
-                >
-                  <LuKey size={18} /> Reset Password
-                </button>
+                
+
+                <div className="dropdown-divider"></div>
+
                 <button
                   className="mobile-profile-btn logout"
                   onClick={() => {
@@ -427,10 +522,17 @@ const Header = () => {
       <MemberProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
+        initialTab={profileInitialTab}
       />
+
       <ResetPasswordModal
         isOpen={isResetPasswordOpen}
         onClose={() => setIsResetPasswordOpen(false)}
+      />
+
+      <DeleteAccountModal
+        isOpen={isDeleteAccountOpen}
+        onClose={() => setIsDeleteAccountOpen(false)}
       />
     </header>
   );

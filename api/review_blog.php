@@ -25,9 +25,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'PUT' && $_SERVER['REQUEST_METHOD'] !== 'POST
 }
 
 // Accept id from URL path or query param
-$id    = $_GET['id'] ?? null;
+$id = $_GET['id'] ?? null;
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
-if (!$id) $id = $input['id'] ?? null;
+if (!$id)
+    $id = $input['id'] ?? null;
 $action = strtolower(trim($input['action'] ?? ''));
 
 if (!$id || !in_array($action, ['approve', 'reject', 'save_as_draft'], true)) {
@@ -81,9 +82,9 @@ try {
             );
             $stmt->execute([$id]);
         }
-        
+
         $audit->log($_SESSION['admin_id'], 'blog_approve', 'blog', $id, "Status: " . $blog['submission_status']);
-        
+
         // Notify Author
         $stmtAuthor = $pdo->prepare("
             SELECT c.email 
@@ -100,19 +101,27 @@ try {
             $siteUrl = rtrim(getenv('SITE_URL') ?: 'https://sapsecurityexpert.com', '/');
             $categorySlug = strtolower(str_replace(' ', '-', $blog['category'] ?? 'others'));
             $postUrl = "$siteUrl/$categorySlug/{$blog['slug']}";
-            
+
             $ns->notifyBlogApproved($author['email'], $blog['title'], $postUrl);
+        }
+
+        // Trigger immediate queuing for member notifications
+        try {
+            require_once 'services/MailService.php';
+            MailService::getInstance()->queuePendingBlogNotifications();
+        } catch (Exception $e) {
+            error_log("Error in instant queuing: " . $e->getMessage());
         }
 
         echo json_encode(['status' => 'success', 'message' => 'Blog approved and published']);
     } elseif ($action === 'save_as_draft') {
         $feedback = trim($input['rejection_reason'] ?? ''); // Use same field for feedback
-        
+
         $stmt = $pdo->prepare(
             "UPDATE blogs SET submission_status = 'draft', status = 'draft', rejection_feedback = ? WHERE id = ?"
         );
         $stmt->execute([$feedback, $id]);
-        
+
         $audit->log($_SESSION['admin_id'], 'blog_draft', 'blog', $id, "Admin moved back to draft. Feedback: " . $feedback);
 
         // Notify Author

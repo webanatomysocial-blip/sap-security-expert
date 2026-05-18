@@ -10,7 +10,7 @@ const RegainedSapSecurityExpert = () => {
       date="January 5, 2026"
       author="Raghu Boddu"
       image={featuredImage}
-      description="We regained our domain! SAPSecurityExpert.com is back. Read about our journey and what to expect from the community moving forward."
+      description="We regained our domain! sapsecurityexpert.com is back. Read about our journey and what to expect from the community moving forward."
       content={
         <>
           <p>

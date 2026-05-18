@@ -23,6 +23,7 @@ $email    = trim($input['email']    ?? '');
 $location = trim($input['location'] ?? '');
 $company  = trim($input['company_name'] ?? '');
 $role     = trim($input['job_role'] ?? '');
+$username = trim($input['username'] ?? '');
 $password = $input['password'] ?? '';
 
 // Basic validation
@@ -72,7 +73,7 @@ try {
         exit;
     }
 
-    // NEW: Check if this is an existing contributor/admin in the users table
+    // 1. Check if this is an existing contributor/admin in the users table
     $userCheck = $pdo->prepare("SELECT id FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1");
     $userCheck->execute([$email]);
     if ($userCheck->fetch()) {
@@ -81,13 +82,38 @@ try {
         exit;
     }
 
+    // 2. Check duplicate username or generate fallback
+    if (!$username) {
+        $username = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $name));
+    }
+    
+    // Ensure username is globally unique (check both members and users tables)
+    $isUnique = false;
+    $tempUsername = $username;
+    $attempts = 0;
+    while (!$isUnique && $attempts < 5) {
+        $uCheck1 = $pdo->prepare("SELECT id FROM members WHERE LOWER(username) = LOWER(?) LIMIT 1");
+        $uCheck1->execute([$tempUsername]);
+        
+        $uCheck2 = $pdo->prepare("SELECT id FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1");
+        $uCheck2->execute([$tempUsername]);
+        
+        if ($uCheck1->fetch() || $uCheck2->fetch()) {
+            $tempUsername = $username . rand(100, 999);
+            $attempts++;
+        } else {
+            $isUnique = true;
+            $username = $tempUsername;
+        }
+    }
+
     $hash = password_hash($password, PASSWORD_DEFAULT);
 
     $stmt = $pdo->prepare("
-        INSERT INTO members (name, phone, email, location, company_name, job_role, password_hash, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
+        INSERT INTO members (name, phone, email, username, location, company_name, job_role, password_hash, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
     ");
-    $stmt->execute([$name, $phone, $email, $location, $company, $role, $hash]);
+    $stmt->execute([$name, $phone, $email, $username, $location, $company, $role, $hash]);
 
     // 2. Send Notifications
     $notificationService = new NotificationService();

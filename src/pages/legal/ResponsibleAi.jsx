@@ -5,7 +5,12 @@ const ResponsibleAi = () => {
   return (
     <LegalLayout title="Responsible AI & Automation Statement">
       <p style={{ color: "#666", marginBottom: "40px" }}>
-        Last updated: {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+        Last updated:{" "}
+        {new Date().toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })}
       </p>
 
       <section>

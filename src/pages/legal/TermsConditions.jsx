@@ -23,7 +23,8 @@ const TermsConditions = () => {
           attempt to gain unauthorized access, introduce malicious code,
           interfere with system operations, or misrepresent affiliation with SAP
           Security Expert is strictly prohibited.
-          <br />
+        </p>
+        <p>
           SAP Security Expert reserves the right to suspend or restrict access
           to the Website or Services where continued use poses legal, security,
           or compliance risks.
@@ -38,7 +39,8 @@ const TermsConditions = () => {
           AI-enabled products, cybersecurity and data protection solutions, as
           well as consulting, implementation, managed services, and support in
           SAP and other technologies.
-          <br />
+        </p>
+        <p>
           The information provided on this Website is for general informational
           purposes only and does not constitute a binding commercial offer. Any
           engagement for Services shall be governed by written agreements such
@@ -58,7 +60,8 @@ const TermsConditions = () => {
           or Services are the exclusive intellectual property of SAP Security
           Expert or its licensors. Nothing in these Terms grants you ownership
           or any proprietary interest in such intellectual property.
-          <br />
+        </p>
+        <p>
           Subject to contractual agreement, clients are granted a limited,
           non-exclusive, non-transferable right to use deliverables solely for
           their internal business purposes. Any copying, modification, reverse
@@ -76,7 +79,8 @@ const TermsConditions = () => {
           Regulation (GDPR), UK GDPR, the Digital Personal Data Protection Act
           (India), the Singapore PDPA, and relevant United States privacy
           regulations where applicable.
-          <br />
+        </p>
+        <p>
           Depending on the nature of the engagement, SAP Security Expert may act
           as a data processor, service provider, or data controller. Personal
           data is processed only for lawful purposes, based on contractual
@@ -84,17 +88,20 @@ const TermsConditions = () => {
           where required. We implement reasonable technical and organizational
           safeguards designed to protect data against unauthorized access, loss,
           or misuse; however, no system can guarantee absolute security.
-          <br />
+        </p>
+        <p>
           Where required, SAP Security Expert supports data subject rights,
           including access, correction, deletion, restriction, objection, and
           grievance redressal, in accordance with applicable law. In the event
           of a confirmed personal data breach, we will notify affected clients
           without undue delay and provide reasonable cooperation to support
           regulatory or statutory obligations.
-          <br />
+        </p>
+        <p>
           Cross-border data transfers, where applicable, are conducted using
           legally recognized transfer mechanisms and safeguards.
-          <br />
+        </p>
+        <p>
           Further details regarding personal data processing are available in
           our Privacy Policy and applicable Data Processing Agreements.
         </p>
@@ -108,7 +115,8 @@ const TermsConditions = () => {
           for ensuring that such parties are contractually bound to appropriate
           confidentiality, security, and data protection obligations consistent
           with these Terms and applicable law.
-          <br />
+        </p>
+        <p>
           The Website may contain links to third-party websites or resources.
           SAP Security Expert does not control or endorse such third-party
           content and is not responsible for their practices.

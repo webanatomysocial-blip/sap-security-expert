@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $memberId = $_SESSION['member_id'];
 $name     = trim($_POST['name'] ?? '');
+$username = trim($_POST['username'] ?? '');
 $phone    = trim($_POST['phone'] ?? '');
 $location = trim($_POST['location'] ?? '');
 $company  = trim($_POST['company_name'] ?? '');
@@ -36,6 +37,16 @@ if (empty($name)) {
     http_response_code(400);
     echo json_encode(['status' => 'error', 'message' => 'Name is required']);
     exit;
+}
+
+if (!empty($username)) {
+    $uCheck = $pdo->prepare("SELECT id FROM members WHERE LOWER(username) = LOWER(?) AND id != ? LIMIT 1");
+    $uCheck->execute([$username, $memberId]);
+    if ($uCheck->fetch()) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Username is already taken']);
+        exit;
+    }
 }
 
 try {
@@ -102,8 +113,8 @@ try {
     }
 
     // Update Database
-    $updates = ["name = ?", "phone = ?", "location = ?", "company_name = ?", "job_role = ?"];
-    $params  = [$name, $phone, $location, $company, $jobRole];
+    $updates = ["name = ?", "username = ?", "phone = ?", "location = ?", "company_name = ?", "job_role = ?"];
+    $params  = [$name, $username, $phone, $location, $company, $jobRole];
 
     if ($profileImage) {
         $updates[] = "profile_image = ?";
@@ -177,6 +188,7 @@ try {
         'member'  => [
             'id'            => $memberId,
             'name'          => $name,
+            'username'      => $username,
             'email'         => $_SESSION['member_email'],
             'phone'         => $phone,
             'location'      => $location,

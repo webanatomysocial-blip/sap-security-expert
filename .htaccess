@@ -5,6 +5,9 @@
   # Redirect sitemap.xml to api/sitemap.php
   RewriteRule ^sitemap\.xml$ api/sitemap.php [L]
 
+  # Public content API for AI crawlers (must come before other api rules)
+  RewriteRule ^api/content\.php$ - [L]
+
   # Security: Disable directory listing
   Options -Indexes
 

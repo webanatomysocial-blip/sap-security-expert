@@ -70,7 +70,7 @@ const TheMagicianAndMachine = () => {
             ISBN, and Jay Thoden van Velzen.
           </p>
 
-          <h2>Why We're Featuring This on SAPSecurityExpert.com?</h2>
+          <h2>Why We're Featuring This on sapsecurityexpert.com?</h2>
           <p>
             As SAP landscapes become increasingly intelligent and autonomous,
             security conversations must evolve beyond traditional controls. This

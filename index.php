@@ -20,8 +20,34 @@ $request_uri = $_SERVER['REQUEST_URI'];
 $path = parse_url($request_uri, PHP_URL_PATH);
 
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-$host = $_SERVER['HTTP_HOST'] ?? 'sapsecurityexpert.com'; // Fallback to production if host is missing
+$host = $_SERVER['HTTP_HOST'] ?? 'sapsecurityexpert.com';
 $baseUrl = $protocol . $host;
+
+// ============================================================
+// PLAINTEXT / AI CRAWLER MODE
+// When ?plaintext=1 is appended to any article URL, bypass the
+// React SPA entirely and serve a clean, server-rendered HTML page.
+// Example: /sap-grc/my-article-slug?plaintext=1
+// This is the preferred URL for AI tools to read full content.
+// ============================================================
+if (isset($_GET['plaintext']) && $_GET['plaintext'] === '1') {
+    // Extract slug from path: /category/slug or /blogs/slug
+    $segments = explode('/', trim($path, '/'));
+    $slug = '';
+    if (count($segments) >= 2) {
+        $slug = end($segments); // last segment is always the slug
+    } elseif (count($segments) === 1 && !empty($segments[0])) {
+        $slug = $segments[0];
+    }
+    if (!empty($slug)) {
+        // Redirect to the dedicated content API endpoint
+        $format = isset($_GET['format']) ? '&format=' . urlencode($_GET['format']) : '';
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Location: ' . $baseUrl . '/api/content.php?slug=' . urlencode($slug) . $format);
+        exit;
+    }
+}
+
 
 // If we are on localhost, og:image might not load in preview tools unless we use a public tunnel or production fallback.
 // However, for pure SEO correctness, we should use the current host.
@@ -221,6 +247,7 @@ else
     $cleanPath = "/" . $cleanPath; // normalize
 $found = false;
 $type = "website";
+$fullContent = ""; // Initialize for bot crawling
 
 // DYNAMIC BLOG SEO (SAFE ROUTING)
 // Matches BOTH /blogs/{slug} AND /{category}/{slug} patterns
@@ -245,7 +272,7 @@ if (empty($cleanSlug)) {
 if ($cleanSlug) {
     try {
         $stmt = $pdo->prepare("
-            SELECT title, meta_title, meta_description, meta_keywords, image, slug, excerpt, author, date, is_members_only, faqs
+            SELECT title, meta_title, meta_description, meta_keywords, image, slug, excerpt, content, author, date, is_members_only, faqs
             FROM blogs
             WHERE slug = ? AND status IN ('approved', 'published')
             LIMIT 1
@@ -333,6 +360,9 @@ if ($cleanSlug) {
             }
 
             $jsonLd = "\n    <script type=\"application/ld+json\">" . json_encode($schemas, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "</script>\n";
+
+            // Store full content for bot crawling
+            $fullContent = $blog['content'] ?? '';
         }
     } catch (Exception $e) {
         // Silently fail to default
@@ -414,8 +444,9 @@ $ogTags = "
     <meta name=\"description\" content=\"" . htmlspecialchars($description) . "\">
     <meta name=\"keywords\" content=\"" . htmlspecialchars($keywords) . "\">
     <meta name=\"author\" content=\"" . htmlspecialchars($authorName ?? "SAP Security Expert") . "\">
-    <meta name=\"robots\" content=\"index, follow\">
+    <meta name=\"robots\" content=\"index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1\">
     <link rel=\"canonical\" href=\"" . htmlspecialchars($url) . "\">
+    <link rel=\"sitemap\" type=\"application/xml\" title=\"Sitemap\" href=\"" . htmlspecialchars($baseUrl) . "/sitemap.xml\">
 
     <meta property=\"og:title\" content=\"" . htmlspecialchars($title) . "\">
     <meta property=\"og:description\" content=\"" . htmlspecialchars($description) . "\">
@@ -436,6 +467,26 @@ $ogTags = "
 // Inject before </head>
 $debugInfo = "<!-- SEO Debug: URL=" . htmlspecialchars($url) . " | Found=" . ($found ? "YES" : "NO") . " | Cat=" . (isset($catKey) ? $catKey : "N/A") . " -->";
 $html = str_replace($headEnd, $ogTags . "\n" . $debugInfo . "\n" . $headEnd, $html);
+
+// 5. Inject Content into #root for Crawlers
+// This allows bots (and AI fetch tools) to read the content without executing JS.
+// React will replace this content once it hydrates.
+$injectedContent = "
+    <article style=\"padding: 20px; max-width: 800px; margin: 0 auto; font-family: sans-serif;\">
+        <h1>" . htmlspecialchars($title) . "</h1>
+        " . (!empty($fullContent) ? "<div class=\"article-body\">" . $fullContent . "</div>" : "<p>" . htmlspecialchars($description) . "</p>") . "
+        <hr>
+        <p><em>You are viewing the static version of this page. For the full interactive experience, please enable JavaScript.</em></p>
+        <p>Explore more at <a href=\"" . htmlspecialchars($baseUrl) . "\">SAP Security Expert</a>.</p>
+    </article>
+";
+
+if (strpos($html, '<div id="root"></div>') !== false) {
+    $html = str_replace('<div id="root"></div>', '<div id="root">' . $injectedContent . '</div>', $html);
+} elseif (preg_match('/(<div\s+id=["\']root["\'][^>]*>)/i', $html, $matches)) {
+    // Fallback for different quote types or attributes
+    $html = preg_replace('/(<div\s+id=["\']root["\'][^>]*>)/i', '$1' . $injectedContent, $html);
+}
 
 echo $html;
 ?>

@@ -29,10 +29,10 @@ try {
         $status = $_GET['status'] ?? 'all';
 
         if ($status === 'all') {
-            $stmt = $pdo->prepare("SELECT id, name, phone, email, location, company_name, job_role, profile_image, status, rejection_reason, created_at, approved_at FROM members ORDER BY created_at DESC");
+            $stmt = $pdo->prepare("SELECT id, name, phone, email, location, company_name, job_role, profile_image, status, rejection_reason, created_at, approved_at, is_deleted, deleted_at, deletion_ip, deletion_method, deletion_confirmation_method FROM members ORDER BY created_at DESC");
             $stmt->execute();
         } else {
-            $stmt = $pdo->prepare("SELECT id, name, phone, email, location, company_name, job_role, profile_image, status, rejection_reason, created_at, approved_at FROM members WHERE status = ? ORDER BY created_at DESC");
+            $stmt = $pdo->prepare("SELECT id, name, phone, email, location, company_name, job_role, profile_image, status, rejection_reason, created_at, approved_at, is_deleted, deleted_at, deletion_ip, deletion_method, deletion_confirmation_method FROM members WHERE status = ? ORDER BY created_at DESC");
             $stmt->execute([$status]);
         }
 
@@ -97,21 +97,59 @@ try {
 
             echo json_encode(['status' => 'success', 'message' => 'Member rejected.']);
         } elseif ($action === 'delete') {
-            // Optional: When deleting a member, should we delete their contributor record?
-            // To be safe and clean, let's at least try if they are linked.
             $stmtUser = $pdo->prepare("SELECT email FROM members WHERE id = ?");
             $stmtUser->execute([$id]);
             $memberEmail = $stmtUser->fetchColumn();
 
-            $stmt = $pdo->prepare("DELETE FROM members WHERE id = ?");
-            $stmt->execute([$id]);
-            
+            $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
             if ($memberEmail) {
-                $pdo->prepare("DELETE FROM contributors WHERE LOWER(email) = LOWER(?)")
-                    ->execute([$memberEmail]);
+                $randomId = mt_rand(100000, 999999);
+                $deletedEmail = "deleted_user_" . $randomId . "_" . $memberEmail;
+
+                // 1. Soft delete member (Anonymize email, keep other details)
+                $stmt = $pdo->prepare("
+                    UPDATE members 
+                    SET email = ?,
+                        is_deleted = 1, 
+                        status = 'deleted',
+                        deleted_at = CURRENT_TIMESTAMP,
+                        deletion_ip = ?,
+                        deletion_method = 'admin_action',
+                        deletion_confirmation_method = 'admin_confirmed'
+                    WHERE id = ?
+                ");
+                $stmt->execute([$deletedEmail, $ipAddress, $id]);
+
+                // 2. Soft delete contributor profile
+                $pdo->prepare("
+                    UPDATE contributors 
+                    SET email = ?,
+                        is_deleted = 1, 
+                        status = 'deleted',
+                        deleted_at = CURRENT_TIMESTAMP,
+                        deletion_ip = ?,
+                        deletion_method = 'admin_action',
+                        deletion_confirmation_method = 'admin_confirmed'
+                    WHERE LOWER(email) = LOWER(?)
+                ")->execute([$deletedEmail, $ipAddress, $memberEmail]);
+
+                // 3. Soft delete dashboard user
+                $pdo->prepare("
+                    UPDATE users 
+                    SET email = ?,
+                        username = ?,
+                        is_deleted = 1,
+                        is_active = 0,
+                        deleted_at = CURRENT_TIMESTAMP,
+                        deletion_ip = ?,
+                        deletion_method = 'admin_action',
+                        deletion_confirmation_method = 'admin_confirmed'
+                    WHERE LOWER(email) = LOWER(?)
+                ")->execute([$deletedEmail, $deletedEmail, $ipAddress, $memberEmail]);
             }
             
-            echo json_encode(['status' => 'success', 'message' => 'Member deleted.']);
+            echo json_encode(['status' => 'success', 'message' => 'Member soft-deleted.']);
         }
         exit;
     }

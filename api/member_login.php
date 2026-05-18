@@ -29,9 +29,9 @@ try {
     $user = null;
     $contributor = null;
 
-    // Search by Member email
-    $stmt = $pdo->prepare("SELECT * FROM members WHERE LOWER(email) = LOWER(?) LIMIT 1");
-    $stmt->execute([$email]);
+    // Search by Member email or username
+    $stmt = $pdo->prepare("SELECT * FROM members WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1");
+    $stmt->execute([$email, $email]);
     $member = $stmt->fetch();
 
     // Search by User email or username
@@ -116,6 +116,13 @@ try {
 
 
     // ── 4. Account Status Check ─────────────────────────────────────────────
+    // Block deactivated (soft-deleted) accounts
+    if (($member && $member['is_deleted'] == 1) || ($member && $member['status'] === 'deleted')) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'This account has been deactivated.']);
+        exit;
+    }
+
     if ($member['status'] === 'pending') {
         http_response_code(403);
         echo json_encode(['status' => 'error', 'message' => 'Your account is pending approval.']);

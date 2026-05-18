@@ -35,13 +35,18 @@ try {
 
     $hash = password_hash($newPassword, PASSWORD_DEFAULT);
     
-    // Update either users or members
-    $stmtUser = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-    $stmtUser->execute([$email]);
-    if ($stmtUser->fetch()) {
-        $pdo->prepare("UPDATE users SET password = ? WHERE email = ?")->execute([$hash, $email]);
-    } else {
-        $pdo->prepare("UPDATE members SET password_hash = ? WHERE email = ?")->execute([$hash, $email]);
+    // 1. Update users table (Dashboard/Admin/Contributor)
+    $stmtUser = $pdo->prepare("UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)");
+    $stmtUser->execute([$hash, $email]);
+    $userUpdated = $stmtUser->rowCount() > 0;
+
+    // 2. Update members table (Frontend/Member)
+    $stmtMem = $pdo->prepare("UPDATE members SET password_hash = ? WHERE LOWER(email) = LOWER(?)");
+    $stmtMem->execute([$hash, $email]);
+    $memUpdated = $stmtMem->rowCount() > 0;
+
+    if (!$userUpdated && !$memUpdated) {
+        throw new Exception("Account not found.");
     }
 
     // Delete token

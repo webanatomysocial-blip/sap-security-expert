@@ -17,9 +17,9 @@ const Blogs = () => {
         setLoading(true);
         const res = await getBlogs();
         // Sort by date desc
-        const sorted = (Array.isArray(res.data) ? res.data : []).sort(
-          (a, b) => new Date(b.date) - new Date(a.date),
-        );
+        const sorted = (Array.isArray(res.data) ? res.data : [])
+          .filter((b) => b.status === 'approved' || b.status === 'published')
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
         setBlogs(sorted);
       } catch (err) {
         console.error("Error fetching blogs:", err);

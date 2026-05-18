@@ -9,6 +9,7 @@ const MemberSignup = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    username: "",
     phone: "",
     location: "",
     company_name: "",
@@ -229,6 +230,7 @@ const MemberSignup = () => {
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
                     gap: "20px",
+                    marginBottom: "20px"
                   }}
                 >
                   <div className="form-group">
@@ -244,15 +246,27 @@ const MemberSignup = () => {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Verified Email</label>
+                    <label className="form-label">Username (Optional)</label>
                     <input
-                      type="email"
+                      type="text"
+                      name="username"
                       className="form-control"
-                      value={formData.email}
-                      disabled
-                      style={{background:'#f1f5f9'}}
+                      value={formData.username}
+                      onChange={handleChange}
+                      placeholder="johndoe"
                     />
                   </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Verified Email</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={formData.email}
+                    disabled
+                    style={{background:'#f1f5f9'}}
+                  />
                 </div>
 
                 <div

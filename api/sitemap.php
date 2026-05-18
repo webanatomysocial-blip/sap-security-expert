@@ -6,7 +6,9 @@ require_once 'db.php';
 
 header("Content-Type: application/xml; charset=utf-8");
 
-$domain = getenv('SITE_URL') ?: "https://sapsecurityexpert.com";
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+$host = $_SERVER['HTTP_HOST'] ?? 'sapsecurityexpert.com';
+$domain = getenv('SITE_URL') ?: ($protocol . $host);
 
 echo '<?xml version="1.0" encoding="UTF-8"?>';
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';

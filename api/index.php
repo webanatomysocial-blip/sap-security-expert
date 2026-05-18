@@ -164,16 +164,6 @@ if ($path === '/views') {
     exit;
 }
 
-// 10. Database Migration (dev only — protect in production)
-if ($path === '/migrate-contributor-login') {
-    require __DIR__ . '/migrate_contributor_login.php';
-    exit;
-}
-if ($path === '/migrate-members') {
-    require __DIR__ . '/migrate_members.php';
-    exit;
-}
-
 // 11. Members (public) API
 if ($path === '/member/signup') {
     require __DIR__ . '/member_signup.php';

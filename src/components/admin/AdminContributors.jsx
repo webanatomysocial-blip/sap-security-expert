@@ -104,7 +104,7 @@ const AdminContributors = () => {
   const handleDelete = (id) => {
     openConfirm({
       title: "Delete Contributor?",
-      message: "Are you sure you want to PERMANENTLY delete this contributor?",
+      message: "Are you sure you want to delete this contributor? This will deactivate their account and move them to the Deleted section.",
       confirmText: "Delete",
       isDanger: true,
       onConfirm: async () => {
@@ -153,8 +153,8 @@ const AdminContributors = () => {
   const filteredApps = applications.filter(
     (app) =>
       (filterStatus === "all" || app.status === filterStatus) &&
-      (app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.email.toLowerCase().includes(searchTerm.toLowerCase())),
+      ((app.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (app.email || "").toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   const handleExport = () => {
@@ -202,6 +202,12 @@ const AdminContributors = () => {
           >
             All
           </button>
+          <button
+            className={filterStatus === "deleted" ? "active" : ""}
+            onClick={() => setFilterStatus("deleted")}
+          >
+            Deleted
+          </button>
         </div>
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           <div className="search-box">
@@ -236,7 +242,15 @@ const AdminContributors = () => {
                 <tr>
                   <th className="col-lg text-left">Name</th>
                   <th className="col-lg text-left">Email</th>
-                  <th className="col-xl text-left">Role</th>
+                  {filterStatus === "deleted" ? (
+                    <>
+                      <th className="col-md text-left">Deleted At</th>
+                      <th className="col-md text-left">IP Address</th>
+                      <th className="col-md text-left">Method</th>
+                    </>
+                  ) : (
+                    <th className="col-xl text-left">Role</th>
+                  )}
                   <th className="col-sm text-center">Status</th>
                   <th className="col-md text-left">Date</th>
                   <th className="col-actions text-center">Actions</th>
@@ -256,11 +270,25 @@ const AdminContributors = () => {
                         <strong className="truncate-2" style={{ fontSize: "0.85rem" }}>{app.name}</strong>
                       </td>
                       <td className="col-lg text-left no-wrap" style={{ fontSize: "0.8rem" }}>{app.email}</td>
-                      <td className="col-xl text-left wrap-text">
-                        <div className="truncate-2" style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                          {app.role}
-                        </div>
-                      </td>
+                      {filterStatus === "deleted" ? (
+                        <>
+                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
+                            {app.deleted_at ? new Date(app.deleted_at).toLocaleString() : "—"}
+                          </td>
+                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
+                            {app.deletion_ip || "—"}
+                          </td>
+                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
+                            {app.deletion_method || "—"}
+                          </td>
+                        </>
+                      ) : (
+                        <td className="col-xl text-left wrap-text">
+                          <div className="truncate-2" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                            {app.role}
+                          </div>
+                        </td>
+                      )}
                       <td className="col-sm text-center">
                         <span
                           className={`status-badge status-${app.status}`}
@@ -272,6 +300,8 @@ const AdminContributors = () => {
                               ? "Pend"
                               : app.status === "rejected"
                                 ? "Rej"
+                              : app.status === "deleted"
+                                ? "Del"
                                 : app.status}
                         </span>
                       </td>
@@ -334,12 +364,14 @@ const AdminContributors = () => {
                             )}
 
                             <div className="action-menu-separator"></div>
-                            <button
-                              className="action-menu-item danger"
-                              onClick={() => handleDelete(app.id)}
-                            >
-                              <i className="bi bi-trash"></i> Delete
-                            </button>
+                            {app.status !== "deleted" && (
+                              <button
+                                className="action-menu-item danger"
+                                onClick={() => handleDelete(app.id)}
+                              >
+                                <i className="bi bi-trash"></i> Delete
+                              </button>
+                            )}
                           </ActionMenu>
                         </td>
                       </tr>
@@ -553,6 +585,29 @@ const AdminContributors = () => {
                       {selectedApp.previous_work_links || "N/A"}
                     </div>
                   </div>
+                )}
+                {selectedApp.is_deleted == 1 && (
+                  <>
+                    <div style={{ gridColumn: "span 2", padding: '15px 0', borderTop: '1px solid #e2e8f0', marginTop: '10px' }}>
+                      <strong style={{ color: '#ee5e42' }}>Account Deletion Metadata</strong>
+                    </div>
+                    <div>
+                      <strong>Deleted At:</strong>
+                      <div style={{ color: "#475569" }}>{selectedApp.deleted_at ? new Date(selectedApp.deleted_at).toLocaleString() : "—"}</div>
+                    </div>
+                    <div>
+                      <strong>IP Address:</strong>
+                      <div style={{ color: "#475569" }}>{selectedApp.deletion_ip || "—"}</div>
+                    </div>
+                    <div>
+                      <strong>Method:</strong>
+                      <div style={{ color: "#475569" }}>{selectedApp.deletion_method || "—"}</div>
+                    </div>
+                    <div>
+                      <strong>Confirmation Method:</strong>
+                      <div style={{ color: "#475569" }}>{selectedApp.deletion_confirmation_method || "—"}</div>
+                    </div>
+                  </>
                 )}
               </div>
 

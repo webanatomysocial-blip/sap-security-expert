@@ -49,8 +49,8 @@ class BlogService {
             $sql .= " WHERE b.author_id = ?";
             $params[] = $currentUserId;
         } elseif (!$isLoggedIn || ($isContributor && !$authorOnly)) {
-            // Public view (Guest or Contributor-visitor): show all approved
-            $sql .= " WHERE b.status IN ('approved', 'published') AND b.date <= ?";
+            // Public view (Guest or Contributor-visitor): show only approved/published, never drafts
+            $sql .= " WHERE b.status IN ('approved', 'published') AND b.status != 'draft' AND b.date <= ?";
             $params[] = $currentDateTime ?: gmdate('Y-m-d H:i:s');
         } elseif ($isAdmin) {
             // Admin: see everything, no filter added
@@ -344,6 +344,17 @@ class BlogService {
 
                 $this->pdo->prepare($sql)->execute($params);
                 $this->invalidateHomepage();
+
+                // Trigger immediate queuing for member notifications
+                if (in_array($targetStatus, ['approved', 'published'])) {
+                    try {
+                        require_once __DIR__ . '/MailService.php';
+                        MailService::getInstance()->queuePendingBlogNotifications();
+                    } catch (Exception $e) {
+                        error_log("Error in instant queuing: " . $e->getMessage());
+                    }
+                }
+
                 $msg = 'Blog updated';
                 if ($plagScore === -1) $msg .= ' (Warning: Plagiarism check failed)';
                 return ['status' => 'success', 'message' => $msg, 'plagiarism_score' => $finalPlag];
@@ -387,6 +398,16 @@ class BlogService {
                     $ns->notifyBlogSubmitted($title, $authorName);
                 } catch (Exception $e) {
                     error_log("Notification Error: " . $e->getMessage());
+                }
+            }
+
+            // Trigger immediate queuing for member notifications
+            if (in_array($targetStatus, ['approved', 'published'])) {
+                try {
+                    require_once __DIR__ . '/MailService.php';
+                    MailService::getInstance()->queuePendingBlogNotifications();
+                } catch (Exception $e) {
+                    error_log("Error in instant queuing: " . $e->getMessage());
                 }
             }
 
