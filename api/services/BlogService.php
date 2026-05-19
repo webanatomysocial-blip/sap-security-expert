@@ -345,15 +345,7 @@ class BlogService {
                 $this->pdo->prepare($sql)->execute($params);
                 $this->invalidateHomepage();
 
-                // Trigger immediate queuing for member notifications
-                if (in_array($targetStatus, ['approved', 'published'])) {
-                    try {
-                        require_once __DIR__ . '/MailService.php';
-                        MailService::getInstance()->queuePendingBlogNotifications();
-                    } catch (Exception $e) {
-                        error_log("Error in instant queuing: " . $e->getMessage());
-                    }
-                }
+
 
                 $msg = 'Blog updated';
                 if ($plagScore === -1) $msg .= ' (Warning: Plagiarism check failed)';
@@ -401,15 +393,7 @@ class BlogService {
                 }
             }
 
-            // Trigger immediate queuing for member notifications
-            if (in_array($targetStatus, ['approved', 'published'])) {
-                try {
-                    require_once __DIR__ . '/MailService.php';
-                    MailService::getInstance()->queuePendingBlogNotifications();
-                } catch (Exception $e) {
-                    error_log("Error in instant queuing: " . $e->getMessage());
-                }
-            }
+
 
             $msg = 'Blog created';
             if ($plagScore === -1) $msg .= ' (Warning: Plagiarism check failed)';

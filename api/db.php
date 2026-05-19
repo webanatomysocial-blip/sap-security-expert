@@ -147,9 +147,6 @@ try {
                 $pdo->prepare("UPDATE announcements SET status = 'active' WHERE status = 'scheduled' AND publish_date <= ?")
                     ->execute([$now]);
 
-                // Scan and queue member notifications for newly published/approved articles
-                require_once __DIR__ . '/services/MailService.php';
-                MailService::getInstance()->queuePendingBlogNotifications();
             }
             flock($lockHandle, LOCK_UN);
         }

@@ -105,13 +105,7 @@ try {
             $ns->notifyBlogApproved($author['email'], $blog['title'], $postUrl);
         }
 
-        // Trigger immediate queuing for member notifications
-        try {
-            require_once 'services/MailService.php';
-            MailService::getInstance()->queuePendingBlogNotifications();
-        } catch (Exception $e) {
-            error_log("Error in instant queuing: " . $e->getMessage());
-        }
+
 
         echo json_encode(['status' => 'success', 'message' => 'Blog approved and published']);
     } elseif ($action === 'save_as_draft') {
