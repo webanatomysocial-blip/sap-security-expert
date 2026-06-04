@@ -2,40 +2,40 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Layout from "./components/Layout";
-import Home from "./pages/Home";
-import FundamentalsPage from "./pages/FundamentalsPage";
+import Home from "./views/Home";
+import FundamentalsPage from "./views/FundamentalsPage";
 import Blogs from "./components/Blog";
 import DynamicBlog from "./components/DynamicBlog";
 
 // New Separate Category Pages
 // New Separate Category Pages
-import SapSecurity from "./pages/categories/SapSecurity";
-import SapS4Hana from "./pages/categories/SapS4Hana";
-import SapFiori from "./pages/categories/SapFiori";
-import SapBtpSecurity from "./pages/categories/SapBtpSecurity";
-import SapPublicCloud from "./pages/categories/SapPublicCloud";
-import SapSac from "./pages/categories/SapSac";
-import SapCis from "./pages/categories/SapCis";
-import SapSuccessFactors from "./pages/categories/SapSuccessFactors";
-import SapOther from "./pages/categories/SapOther";
+import SapSecurity from "./views/categories/SapSecurity";
+import SapS4Hana from "./views/categories/SapS4Hana";
+import SapFiori from "./views/categories/SapFiori";
+import SapBtpSecurity from "./views/categories/SapBtpSecurity";
+import SapPublicCloud from "./views/categories/SapPublicCloud";
+import SapSac from "./views/categories/SapSac";
+import SapCis from "./views/categories/SapCis";
+import SapSuccessFactors from "./views/categories/SapSuccessFactors";
+import SapOther from "./views/categories/SapOther";
 
-import SapAccessControl from "./pages/categories/SapAccessControl";
-import SapProcessControl from "./pages/categories/SapProcessControl";
-import SapIag from "./pages/categories/SapIag";
-import SapGrc from "./pages/categories/SapGrc";
+import SapAccessControl from "./views/categories/SapAccessControl";
+import SapProcessControl from "./views/categories/SapProcessControl";
+import SapIag from "./views/categories/SapIag";
+import SapGrc from "./views/categories/SapGrc";
 
-import SapCybersecurity from "./pages/categories/SapCybersecurity";
-import ProductReviews from "./pages/categories/ProductReviews";
-import Podcasts from "./pages/categories/Podcasts";
-import Videos from "./pages/categories/Videos";
-import ExpertRecommendations from "./pages/categories/ExpertRecommendations";
-import Contact from "./pages/Contact";
-import ContactUs from "./pages/ContactUs";
+import SapCybersecurity from "./views/categories/SapCybersecurity";
+import ProductReviews from "./views/categories/ProductReviews";
+import Podcasts from "./views/categories/Podcasts";
+import Videos from "./views/categories/Videos";
+import ExpertRecommendations from "./views/categories/ExpertRecommendations";
+import Contact from "./views/Contact";
+import ContactUs from "./views/ContactUs";
 import BecomeContributor from "./components/BecomeContributor";
-import ContributorApplication from "./pages/ContributorApplication";
-import ContributorProfile from "./pages/ContributorProfile";
-import MemberLogin from "./pages/MemberLogin";
-import MemberSignup from "./pages/MemberSignup";
+import ContributorApplication from "./views/ContributorApplication";
+import ContributorProfile from "./views/ContributorProfile";
+import MemberLogin from "./views/MemberLogin";
+import MemberSignup from "./views/MemberSignup";
 import AdminLayout from "./components/admin/AdminLayout.jsx";
 import AdminHome from "./components/admin/AdminHome";
 import AdminContributors from "./components/admin/AdminContributors";
@@ -45,16 +45,16 @@ import AdminAds from "./components/admin/AdminAds";
 import AdminBlogs from "./components/admin/AdminBlogs";
 import AdminBlogReview from "./components/admin/AdminBlogReview";
 import AdminManageUsers from "./components/admin/AdminManageUsers";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import NotFound from "./pages/NotFound";
+import ForgotPassword from "./views/ForgotPassword";
+import ResetPassword from "./views/ResetPassword";
+import NotFound from "./views/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
-import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
-import TermsConditions from "./pages/legal/TermsConditions";
-import AccessibilityStatement from "./pages/legal/AccessibilityStatement";
-import SafetyMovement from "./pages/legal/SafetyMovement";
-import SecurityCompliance from "./pages/legal/SecurityCompliance";
-import ResponsibleAi from "./pages/legal/ResponsibleAi";
+import PrivacyPolicy from "./views/legal/PrivacyPolicy";
+import TermsConditions from "./views/legal/TermsConditions";
+import AccessibilityStatement from "./views/legal/AccessibilityStatement";
+import SafetyMovement from "./views/legal/SafetyMovement";
+import SecurityCompliance from "./views/legal/SecurityCompliance";
+import ResponsibleAi from "./views/legal/ResponsibleAi";
 
 function App() {
   return (

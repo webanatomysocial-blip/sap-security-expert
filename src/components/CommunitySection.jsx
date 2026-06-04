@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 // Removed static metadata import
 // Removed static metadata import
-import "../css/CommunitySection.css";
+// next-disabled: import "../css/CommunitySection.css";
 import ads1 from "../assets/promotions/promo-1.png";
 import ads2 from "../assets/promotions/promo-1.png";
 import {

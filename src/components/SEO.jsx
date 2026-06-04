@@ -1,5 +1,6 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
+import { VITE_SITE_URL } from "../utils/env";
 
 const SEO = ({
   title,
@@ -13,8 +14,7 @@ const SEO = ({
 }) => {
   const siteTitle = "SAP Security Expert";
   const fullTitle = title || siteTitle;
-  const domain =
-    import.meta.env.VITE_SITE_URL || "https://sapsecurityexpert.com";
+  const domain = VITE_SITE_URL;
 
   const getAbsoluteUrl = (path) => {
     if (!path) return `${domain}/assets/fav.png`;

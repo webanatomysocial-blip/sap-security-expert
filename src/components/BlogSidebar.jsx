@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BsSearch } from "react-icons/bs";
+import Image from "next/image";
 // Removed static categories import
-import "../css/BlogSidebar.css";
-
+// next-disabled: import "../css/BlogSidebar.css";
 import { getCategories, getBlogs, getAdsByZone } from "../services/api";
 
 const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
@@ -239,17 +239,17 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
             rel="noopener noreferrer"
             onClick={() => handleAdClick("blog_sidebar")}
           >
-            <img
+            <Image
               src={sidebarAd.image}
               alt="Sidebar Ad"
+              width={300}
+              height={300}
               style={{
-                width: "300px",
-                height: "300px",
                 objectFit: "contain",
                 display: "block",
                 margin: "0 auto",
               }}
-              onError={(e) => (e.target.style.display = "none")}
+              onError={(e) => (e.currentTarget.style.display = "none")}
             />
           </a>
         </div>
@@ -267,12 +267,15 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
                 <li key={post.id} className="latest-post-item related-post-item">
                   <Link to={`/${categorySlug}/${post.slug || post.id}`} className="related-post-link">
                     <div className="related-post-img-wrapper">
-                      <img 
+                      <Image 
                         src={displayImage || "https://placehold.co/80x60?text=SAP"} 
                         alt={post.title} 
+                        width={80}
+                        height={60}
                         className="related-post-img"
+                        style={{ objectFit: 'cover' }}
                         onError={(e) => {
-                          e.target.src = "https://placehold.co/80x60?text=SAP";
+                          e.currentTarget.src = "https://placehold.co/80x60?text=SAP";
                         }}
                       />
                     </div>

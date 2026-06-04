@@ -1,4 +1,5 @@
 import React from "react";
+import { DEV } from "../utils/env";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -43,7 +44,7 @@ class ErrorBoundary extends React.Component {
           >
             Reload Page
           </button>
-          {import.meta.env.DEV && (
+          {DEV && (
             <details
               style={{
                 whiteSpace: "pre-wrap",

@@ -1,5 +1,6 @@
 import React from "react";
 import BlogLayout from "../components/BlogLayout";
+import Image from "next/image";
 import featuredImage from "../assets/blogs/what-actually-optimizes.jpg";
 import slawImage from "../assets/inside-blog-images/SLAW-Explained.png";
 
@@ -29,7 +30,7 @@ const WhatActuallyOptimizes = () => {
           </p>
 
           <div className="blog-inline-image">
-            <img src={slawImage} alt="SAP License Measurement Components" />
+            <Image src={slawImage} alt="SAP License Measurement Components" />
             <p className="image-caption">
               USMM, LAW/SLAW, and STAR - The three layers of SAP license
               measurement

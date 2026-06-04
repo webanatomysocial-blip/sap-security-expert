@@ -1,6 +1,7 @@
 import React from "react";
 import { authors } from "../data/authors";
 import { FaLinkedin, FaTwitter, FaGlobe } from "react-icons/fa";
+import Image from "next/image";
 
 const AuthorProfile = ({ authorId }) => {
   const author = authors[authorId];
@@ -20,12 +21,12 @@ const AuthorProfile = ({ authorId }) => {
         alignItems: "start",
       }}
     >
-      <img
+      <Image
         src={author.image}
         alt={author.name}
+        width={80}
+        height={80}
         style={{
-          width: "80px",
-          height: "80px",
           borderRadius: "50%",
           objectFit: "cover",
         }}

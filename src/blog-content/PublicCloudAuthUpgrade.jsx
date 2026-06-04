@@ -1,5 +1,6 @@
 import React from "react";
 import BlogLayout from "../components/BlogLayout";
+import Image from "next/image";
 import featuredImage from "../assets/blogs/public-cloud-auth-upgrade.jpg";
 import img1 from "../assets/inside-blog-images/sap-public-cloud/1.png";
 import img2 from "../assets/inside-blog-images/sap-public-cloud/2.png";
@@ -46,7 +47,7 @@ const PublicCloudAuthUpgrade = () => {
             Enterprise
           </h2>
           <div className="blog-inline-image">
-            <img src={img1} alt="IAM Upgrade Framework" />
+            <Image src={img1} alt="IAM Upgrade Framework" />
             <p className="image-caption">
               Recommended IAM Upgrade Framework for Release
             </p>
@@ -80,7 +81,7 @@ const PublicCloudAuthUpgrade = () => {
           </p>
 
           <div className="blog-inline-image">
-            <img src={img2} alt="IAM Upgrade Timeline" />
+            <Image src={img2} alt="IAM Upgrade Timeline" />
             <p className="image-caption">
               Upgrade Timeline spanning six distinct phases
             </p>
@@ -96,7 +97,7 @@ const PublicCloudAuthUpgrade = () => {
           </p>
 
           <div className="blog-inline-image">
-            <img src={img3} alt="Pre-Release Preparation Steps" />
+            <Image src={img3} alt="Pre-Release Preparation Steps" />
             <p className="image-caption">
               Foundational phase for successful execution
             </p>
@@ -104,7 +105,7 @@ const PublicCloudAuthUpgrade = () => {
 
           <h2>Step-by-Step Execution: Pre-Release Preparation</h2>
           <div className="blog-inline-image">
-            <img src={img4} alt="Test System Validation" />
+            <Image src={img4} alt="Test System Validation" />
             <p className="image-caption">
               Test system serves as observation environment
             </p>
@@ -140,7 +141,7 @@ const PublicCloudAuthUpgrade = () => {
             productive roles within the Test environment.
           </p>
           <div className="blog-inline-image">
-            <img src={img5} alt="Business Role Upgrade Steps" />
+            <Image src={img5} alt="Business Role Upgrade Steps" />
             <p className="image-caption">
               Systematic approach to role maintenance
             </p>
@@ -164,7 +165,7 @@ const PublicCloudAuthUpgrade = () => {
 
           <h2>Upgrade Custom Business Roles</h2>
           <div className="blog-inline-image">
-            <img src={img6} alt="Transport Flow" />
+            <Image src={img6} alt="Transport Flow" />
             <p className="image-caption">
               Development → Test → Production flow
             </p>
@@ -206,7 +207,7 @@ const PublicCloudAuthUpgrade = () => {
             procedures.
           </p>
           <div className="blog-inline-image">
-            <img src={img7} alt="Transport Methods" />
+            <Image src={img7} alt="Transport Methods" />
             <p className="image-caption">
               Recommended Method – Export Software Collection
             </p>
@@ -246,7 +247,7 @@ const PublicCloudAuthUpgrade = () => {
 
           <h2>Post-Go-Live QA & Governance</h2>
           <div className="blog-inline-image">
-            <img src={img8} alt="Post-Go-Live Validation" />
+            <Image src={img8} alt="Post-Go-Live Validation" />
             <p className="image-caption">Validation using IAM Key Figures</p>
           </div>
           <p>
@@ -270,7 +271,7 @@ const PublicCloudAuthUpgrade = () => {
 
           <h2>Common Pitfalls & How to Avoid Them</h2>
           <div className="blog-inline-image">
-            <img src={img9} alt="Common Pitfalls" />
+            <Image src={img9} alt="Common Pitfalls" />
             <p className="image-caption">
               Key pitfalls to avoid during IAM upgrades
             </p>

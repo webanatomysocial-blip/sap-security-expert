@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "./Toast.css";
-
+// next-disabled: import "./Toast.css";
 const Toast = ({ id, message, type, removeToast, duration }) => {
   const [isRemoving, setIsRemoving] = useState(false);
 

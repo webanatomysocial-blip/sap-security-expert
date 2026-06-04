@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import Image from "next/image";
 // Removed static metadata import
 // Removed static metadata import
 import { LuEye, LuMessageSquare } from "react-icons/lu";
 import { api } from "../services/api"; // Added API import
-import "../css/LatestBlogs.css";
-
+// next-disabled: import "../css/LatestBlogs.css";
 export default function LatestBlogs() {
   const [blogs, setBlogs] = useState([]);
 
@@ -115,7 +115,7 @@ export default function LatestBlogs() {
               className="latest-blog-card"
             >
               <div className="latest-blog-image">
-                <img src={blog.image} alt={blog.title} />
+                <Image src={blog.image} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: "cover" }} />
                 <span className="latest-blog-badge">
                   {getCategoryLabel(blog.category, blog.subCategory)}
                 </span>

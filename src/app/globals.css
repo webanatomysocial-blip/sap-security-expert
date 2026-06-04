@@ -1,0 +1,28 @@
+/* Consolidated CSS imports to comply with Next.js global CSS restrictions */
+
+@import "../css/index.css";
+@import "../css/header.css";
+@import "../css/footer.css";
+@import "../css/Home.css";
+@import "../css/FundamentalsPage.css";
+@import "../css/blogs.css";
+@import "../css/Blog.css";
+@import "../css/blog-post.css";
+@import "../css/BlogSidebar.css";
+@import "../css/CategoryPage.css";
+@import "../css/CommentSection.css";
+@import "../css/CommunitySection.css";
+@import "../css/ContactForm.css";
+@import "../css/ContributorProfile.css";
+@import "../css/FAQ.css";
+@import "../css/FeaturedInsights.css";
+@import "../css/LatestBlogs.css";
+@import "../css/NotFound.css";
+@import "../css/ShareButton.css";
+@import "../css/Sidebar.css";
+@import "../css/admin-profile.css";
+@import "../css/members-paywall.css";
+@import "../css/BecomeContributor.css";
+@import "../css/AdminDashboard.css";
+@import "../components/ui/ConfirmationModal.css";
+@import "../components/ui/Toast.css";

@@ -1,6 +1,7 @@
 import React, { useState, useContext, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "../css/header.css";
+import Image from "next/image";
+// next-disabled: import "../css/header.css";
 import logo from "../assets/sapsecurityexpert-black.png";
 import { FiMenu, FiX } from "react-icons/fi";
 import { FaChevronDown } from "react-icons/fa";
@@ -94,7 +95,7 @@ const Header = () => {
       <div className="header-inner">
         {/* Logo */}
         <Link to="/" className="header-logo">
-          <img src={logo} alt="SAP Security Expert" className="logo-img" />
+          <Image src={logo} alt="SAP Security Expert" className="logo-img" priority />
         </Link>
 
         {/* Desktop Nav */}
@@ -184,7 +185,7 @@ const Header = () => {
                 >
                   <div className="member-avatar-circle">
                     {member.profile_image ? (
-                      <img src={member.profile_image} alt="Avatar" />
+                      <Image src={member.profile_image} alt="Avatar" width={42} height={42} />
                     ) : (
                       (member.name || member.email || "M")
                         .charAt(0)
@@ -312,7 +313,7 @@ const Header = () => {
       {/* MOBILE MENU */}
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         <div className="mobile-menu-header">
-          <img src={logo} alt="Logo" />
+          <Image src={logo} alt="Logo" />
           <button onClick={closeMenu}>
             <FiX size={24} />
           </button>
@@ -324,7 +325,7 @@ const Header = () => {
               <div className="mobile-profile-header">
                 <div className="mobile-profile-avatar">
                   {member.profile_image ? (
-                    <img src={member.profile_image} alt="Avatar" />
+                    <Image src={member.profile_image} alt="Avatar" width={56} height={56} />
                   ) : (
                     (member.name || member.email || "M").charAt(0).toUpperCase()
                   )}

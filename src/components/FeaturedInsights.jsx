@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import Image from "next/image";
 // blogMetadata import removed
 // Removed static metadata import
 import { LuEye, LuMessageSquare } from "react-icons/lu";
-import "../css/FeaturedInsights.css";
-import "../css/LatestBlogs.css"; // Import LatestBlogs styling
+// next-disabled: import "../css/FeaturedInsights.css";
+// next-disabled: import "../css/LatestBlogs.css"; // Import LatestBlogs styling
 import { api } from "../services/api"; // Added API import
 
 // Category mapping for tabs
@@ -36,19 +37,26 @@ export default function FeaturedInsights({ id }) {
             const isLive = postDate.setHours(0,0,0,0) <= now.setHours(23,59,59,999);
             return isApproved && isLive;
           })
-          .map((b) => ({
-            ...b,
-            image:
-              b.image ||
-              b.featured_image ||
-              "https://placehold.co/600x400?text=No+Image",
-            date:
-              b.date ||
-              b.published_at ||
-              b.created_at ||
-              new Date().toISOString(),
-            slug: b.slug || b.id,
-          }));
+          .map((b) => {
+            let authorImg = b.author_image ? b.author_image.trim() : "";
+            if (authorImg.toUpperCase() === "NULL" || authorImg === "") {
+              authorImg = null;
+            }
+            return {
+              ...b,
+              author_image: authorImg,
+              image:
+                b.image ||
+                b.featured_image ||
+                "https://placehold.co/600x400?text=No+Image",
+              date:
+                b.date ||
+                b.published_at ||
+                b.created_at ||
+                new Date().toISOString(),
+              slug: b.slug || b.id,
+            };
+          });
 
         setAllBlogs(mappedBlogs);
         setLoading(false);
@@ -190,7 +198,7 @@ export default function FeaturedInsights({ id }) {
               className="latest-blog-card"
             >
               <div className="latest-blog-image">
-                <img src={blog.image} alt={blog.title} />
+                <Image src={blog.image} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
                 {blog.is_members_only == 1 && (
                   <div className="exclusive-badge-overlay">
                     <i className="bi bi-lock-fill"></i> Exclusive
@@ -213,19 +221,19 @@ export default function FeaturedInsights({ id }) {
                     }}
                   >
                     {blog.author_image ? (
-                      <img
+                      <Image
                         src={blog.author_image}
                         alt={blog.author_name || blog.author}
+                        width={26}
+                        height={26}
                         style={{
-                          width: "26px",
-                          height: "26px",
                           borderRadius: "50%",
                           objectFit: "cover",
                           border: "1px solid #e2e8f0",
                           flexShrink: 0,
                         }}
                         onError={(e) => {
-                          e.target.src =
+                          e.currentTarget.src =
                             "https://placehold.co/100x100?text=Author";
                         }}
                       />

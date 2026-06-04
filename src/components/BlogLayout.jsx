@@ -2,8 +2,10 @@ import React, { useEffect, useRef, useMemo } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "react-router-dom";
-import "../css/blog-post.css";
+import Image from "next/image";
+// next-disabled: import "../css/blog-post.css";
 import { FaLinkedin, FaXTwitter, FaInstagram, FaGlobe } from "react-icons/fa6";
+import { VITE_SITE_URL } from "../utils/env";
 
 // Icons and Components
 import ShareButton from "./ShareButton";
@@ -47,6 +49,10 @@ const BlogLayout = ({
   const { isLoggedIn } = useMemberAuth();
   const progressBarRef = useRef(null);
   const currentUrl = window.location.href;
+
+  const cleanAuthorImage = (author_image && author_image.trim().toUpperCase() !== "NULL" && author_image.trim() !== "") 
+    ? author_image.trim() 
+    : "https://placehold.co/100x100?text=Author";
 
   // ProgressBar Logic
 
@@ -102,8 +108,7 @@ const BlogLayout = ({
 
   // JSON-LD Schema Construction
   const schemaData = useMemo(() => {
-    const domain =
-      import.meta.env.VITE_SITE_URL || "https://sapsecurityexpert.com";
+    const domain = VITE_SITE_URL;
     const articleSchema = {
       "@context": "https://schema.org",
       "@type": "BlogPosting", // More specific than Article
@@ -182,9 +187,13 @@ const BlogLayout = ({
         <main className="blog-main-column">
           {/* 1. Featured Image (Top) */}
           <div className="blog-featured-image">
-            <img
+            <Image
               src={image || "https://placehold.co/600x400?text=No+Image"}
               alt={title}
+              width={1200}
+              height={675}
+              style={{ display: "block", width: "100%", height: "auto", objectFit: "cover" }}
+              priority
             />
           </div>
 
@@ -320,21 +329,21 @@ const BlogLayout = ({
                   alignItems: "start",
                 }}
               >
-                <img
+                <Image
                   src={
-                    author_image || "https://placehold.co/100x100?text=Author"
+                    cleanAuthorImage
                   }
                   alt={author_name}
+                  width={80}
+                  height={80}
                   style={{
-                    width: "80px",
-                    height: "80px",
                     borderRadius: "50%",
                     objectFit: "cover",
                     border: "4px solid #fff",
                     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                   }}
                   onError={(e) => {
-                    e.target.src = "https://placehold.co/100x100?text=Author";
+                    e.currentTarget.src = "https://placehold.co/100x100?text=Author";
                   }}
                 />
                 <div className="author-info">

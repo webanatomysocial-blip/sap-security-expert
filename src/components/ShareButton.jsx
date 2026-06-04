@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiShare2, FiLink, FiMail } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
-import "../css/ShareButton.css";
+// next-disabled: import "../css/ShareButton.css";
 import { shareUrls } from "../data/socialLinks";
 
 const ShareButton = ({ title, url }) => {

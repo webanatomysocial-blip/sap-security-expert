@@ -1,6 +1,6 @@
 import React from "react";
-import "../css/AuthorBio.css";
-
+import Image from "next/image";
+// next-disabled: import "../css/AuthorBio.css";
 const AuthorBio = ({
   authorName = "Raghu Boddu",
   authorRole = "SAP Security Expert",
@@ -13,7 +13,7 @@ const AuthorBio = ({
 
   return (
     <div className="author-bio-card">
-      <img src={image} alt={authorName} className="author-avatar-large" />
+      <Image src={image} alt={authorName} className="author-avatar-large" width={100} height={100} />
       <div className="author-content">
         <span className="posted-by">Posted by</span>
         <h3>{authorName}</h3>

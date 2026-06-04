@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import "../../css/AdminDashboard.css";
+// next-disabled: import "../../css/AdminDashboard.css";
 import ActionMenu from "./ActionMenu";
 import ManageContributorModal from "./ManageContributorModal";
 import TableScrollContainer from "./TableScrollContainer";

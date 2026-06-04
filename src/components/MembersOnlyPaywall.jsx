@@ -1,8 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
-import "../css/members-paywall.css";
-
+// next-disabled: import "../css/members-paywall.css";
 /**
  * MembersOnlyPaywall
  *

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
-import "../../css/AdminDashboard.css";
+// next-disabled: import "../../css/AdminDashboard.css";
 import useScrollLock from "../../hooks/useScrollLock";
 import { getAds, saveAd } from "../../services/api";
 import api from "../../services/api";

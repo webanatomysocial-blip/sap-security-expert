@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import "../css/Sidebar.css";
-
+import Image from "next/image";
+// next-disabled: import "../css/Sidebar.css";
 const Sidebar = () => {
   const [activeTab, setActiveTab] = useState("newest");
 
@@ -72,10 +72,12 @@ const Sidebar = () => {
         <div className="members-list">
           {members[activeTab].map((member) => (
             <div key={member.name} className="member-item">
-              <img
+              <Image
                 src={member.avatar}
                 alt={member.name}
                 className="member-avatar"
+                width={36}
+                height={36}
               />
               <div className="member-info">
                 <div className="member-name">{member.name}</div>

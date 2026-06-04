@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import "../../css/AdminDashboard.css";
+// next-disabled: import "../../css/AdminDashboard.css";
 import useScrollLock from "../../hooks/useScrollLock";
 // import { API_BASE_URL } from "../../config";
 import ActionMenu from "./ActionMenu";

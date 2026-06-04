@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import "../css/CommentSection.css";
+// next-disabled: import "../css/CommentSection.css";
 import { submitComment, getCommentsByBlogId } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";

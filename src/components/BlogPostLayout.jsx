@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import "../css/blog-post.css";
-
+import Image from "next/image";
+// next-disabled: import "../css/blog-post.css";
 import { FiFacebook, FiLinkedin } from "react-icons/fi";
 import ShareButton from "./ShareButton";
 import SEO from "./SEO";
@@ -98,7 +98,7 @@ const PodLayout = ({
               <h1>{title}</h1>
             </div>
             <div className="pod-hero-img-container">
-              <img src={image} alt={title} />
+              <Image src={image} alt={title} width={600} height={400} style={{ width: "100%", height: "auto", objectFit: "cover" }} />
             </div>
           </div>
 
@@ -130,7 +130,7 @@ const PodLayout = ({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <img src={sponsoredImage} alt="Sponsored" />
+                <Image src={sponsoredImage} alt="Sponsored" width={300} height={250} style={{ width: "100%", height: "auto", objectFit: "cover" }} />
               </a>
             )}
             <div className="sponsored-text">

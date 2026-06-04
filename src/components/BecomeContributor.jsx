@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "../css/BecomeContributor.css";
+// next-disabled: import "../css/BecomeContributor.css";
 import { Helmet } from "react-helmet-async";
 
 const BecomeContributor = () => {

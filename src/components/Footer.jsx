@@ -1,6 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import "../css/Footer.css";
+import Image from "next/image";
+import { VITE_SITE_URL } from "../utils/env";
+// next-disabled: import "../css/Footer.css";
 import whiteLogo from "../assets/sapsecurityexpert-white.png";
 import {
   FaLinkedinIn,
@@ -18,7 +20,7 @@ const Footer = () => {
         {/* Branch 1 */}
         <div className="footer-brand">
           <div className="brand-header">
-            <img src={whiteLogo} alt="SAP Security Expert" />
+            <Image src={whiteLogo} alt="SAP Security Expert" />
           </div>
           <p>
             The leading community for SAP Security, GRC, and BTP professionals.
@@ -125,10 +127,10 @@ const Footer = () => {
           SAP Security Expert or the website{" "}
           <a
             href={
-              import.meta.env.VITE_SITE_URL || "https://sapsecurityexpert.com"
+              VITE_SITE_URL
             }
           >
-            {(import.meta.env.VITE_SITE_URL || "https://sapsecurityexpert.com")
+            {VITE_SITE_URL
               .replace("https://", "")
               .replace("http://", "")}
           </a>

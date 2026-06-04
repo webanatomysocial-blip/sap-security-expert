@@ -3,9 +3,8 @@ import axios from "axios";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar.jsx";
 import ContributorDashboard from "./ContributorDashboard";
-import "../../css/AdminDashboard.css";
-import "../../css/admin-profile.css";
-
+// next-disabled: import "../../css/AdminDashboard.css";
+// next-disabled: import "../../css/admin-profile.css";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import { LuChevronDown, LuUser, LuKey, LuLogOut, LuGlobe, LuShieldCheck, LuTrash2 } from "react-icons/lu";

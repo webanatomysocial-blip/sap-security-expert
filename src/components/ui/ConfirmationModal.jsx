@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import "./ConfirmationModal.css";
+// next-disabled: import "./ConfirmationModal.css";
 import useScrollLock from "../../hooks/useScrollLock";
 
 const ConfirmationModal = ({

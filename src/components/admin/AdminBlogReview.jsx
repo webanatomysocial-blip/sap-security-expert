@@ -8,8 +8,7 @@ import { getPendingBlogs, reviewBlog } from "../../services/api";
 import BlogPreviewModal from "./BlogPreviewModal";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
-import "../../css/AdminDashboard.css";
-
+// next-disabled: import "../../css/AdminDashboard.css";
 /**
  * AdminBlogReview — Dedicated admin-only page for reviewing contributor blog submissions.
  * Route: /admin/blog-review

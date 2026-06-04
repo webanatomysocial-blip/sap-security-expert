@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import Image from "next/image";
 // Removed static metadata import
-import "../css/CategoryPage.css";
+// next-disabled: import "../css/CategoryPage.css";
 import BlogSidebar from "./BlogSidebar";
 import { getBlogs } from "../services/api";
 
@@ -72,13 +73,15 @@ const Blogs = () => {
                   <div key={blog.id} className="blog-grid-card">
                     <div className="blog-card-image">
                       <Link to={`/${blog.category}/${blog.slug}`}>
-                        <img
+                        <Image
                           src={
                             blog.image ||
                             "https://placehold.co/600x400?text=No+Image"
                           }
                           alt={blog.title}
-                          loading="lazy"
+                          fill
+                          sizes="(max-width: 768px) 100vw, 300px"
+                          style={{ objectFit: 'cover' }}
                         />
                         {blog.is_members_only == 1 && (
                           <div className="exclusive-badge">

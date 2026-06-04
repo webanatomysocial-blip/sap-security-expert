@@ -1,9 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import BlogSidebar from "./BlogSidebar";
-import "../css/CategoryPage.css";
-import "../css/blog-post.css";
-
+// next-disabled: import "../css/CategoryPage.css";
+// next-disabled: import "../css/blog-post.css";
 const LegalLayout = ({ title, children }) => {
   return (
     <div className="category-page-wrapper">

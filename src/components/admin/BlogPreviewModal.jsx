@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { LuX, LuCalendar, LuTag, LuUser } from "react-icons/lu";
+import { VITE_SITE_URL, VITE_API_URL } from "../../utils/env";
 
 /**
  * BlogPreviewModal — Display a blog post's content and metadata for review.
@@ -125,22 +126,22 @@ const BlogPreviewModal = ({
   const plagCol = getPlagColor(plagScore);
 
   const authorName = previewData.author_name || "Guest Author";
-  const authorImageSrc = previewData.author_image || previewData.profile_image;
+  const authorImageSrc = (previewData.author_image || previewData.profile_image || "").trim();
   // Make the author image rendering more robust
   let finalAuthorImage = "https://placehold.co/100x100?text=Author";
-  if (authorImageSrc) {
+  if (authorImageSrc && authorImageSrc.toUpperCase() !== "NULL") {
     if (authorImageSrc.startsWith("http")) {
       finalAuthorImage = authorImageSrc;
     } else if (authorImageSrc.includes("assets/")) {
       // Handle both /assets/ and ../assets/ cases
       const assetPath = authorImageSrc.replace(/^.*assets\//, "/assets/");
-      finalAuthorImage = `${import.meta.env.VITE_SITE_URL || ""}${assetPath}`;
+      finalAuthorImage = `${VITE_SITE_URL}${assetPath}`;
     } else if (authorImageSrc.includes("uploads/")) {
       // Handle uploads which are served from the site root
       const uploadPath = authorImageSrc.replace(/^.*uploads\//, "/uploads/");
-      finalAuthorImage = `${import.meta.env.VITE_SITE_URL || ""}${uploadPath}`;
+      finalAuthorImage = `${VITE_SITE_URL}${uploadPath}`;
     } else {
-      finalAuthorImage = `${import.meta.env.VITE_API_URL || ""}${authorImageSrc.startsWith("/") ? "" : "/"}${authorImageSrc}`;
+      finalAuthorImage = `${VITE_API_URL}${authorImageSrc.startsWith("/") ? "" : "/"}${authorImageSrc}`;
     }
   }
   const authorImage = finalAuthorImage;

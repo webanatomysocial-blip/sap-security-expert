@@ -1,5 +1,6 @@
 import React from "react";
 import BlogLayout from "../components/BlogLayout";
+import Image from "next/image";
 import featuredImage from "../assets/blogs/grc-compliance-management.jpg";
 import img from "../assets/images/GRC Compliance1.png";
 
@@ -67,7 +68,7 @@ const GrcComplianceManagement = () => {
           </p>
 
           <div className="blog-inline-image">
-            <img src={img} alt="SAP GRC Suite" />
+            <Image src={img} alt="SAP GRC Suite" />
             <p className="image-caption">Image source: SAP</p>
           </div>
 

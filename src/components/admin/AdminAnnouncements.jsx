@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "../../css/AdminDashboard.css";
+// next-disabled: import "../../css/AdminDashboard.css";
 import useScrollLock from "../../hooks/useScrollLock";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";

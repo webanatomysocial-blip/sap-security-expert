@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import "../../css/AdminDashboard.css";
-import "../../css/admin-profile.css";
+// next-disabled: import "../../css/AdminDashboard.css";
+// next-disabled: import "../../css/admin-profile.css";
 import { LuShieldCheck, LuKey } from "react-icons/lu";
 import ResetPasswordModal from "./ResetPasswordModal";
 import { useAuth } from "../../context/AuthContext";

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import Image from "next/image";
 // Removed static metadata import
 import BlogSidebar from "./BlogSidebar";
-import "../css/CategoryPage.css";
+// next-disabled: import "../css/CategoryPage.css";
 import { getBlogs } from "../services/api";
 
 const CategoryLayout = ({ categorySlug, displayName }) => {
@@ -17,7 +18,17 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
         setLoading(true);
         const res = await getBlogs();
         if (Array.isArray(res.data)) {
-          setBlogs(res.data);
+          const cleaned = res.data.map((blog) => {
+            let authorImg = blog.author_image ? blog.author_image.trim() : "";
+            if (authorImg.toUpperCase() === "NULL" || authorImg === "") {
+              authorImg = null;
+            }
+            return {
+              ...blog,
+              author_image: authorImg,
+            };
+          });
+          setBlogs(cleaned);
         } else {
           setBlogs([]);
         }
@@ -119,13 +130,15 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
                   <div key={blog.id} className="blog-grid-card">
                     <div className="blog-card-image">
                       <Link to={`/${blog.category}/${blog.slug}`}>
-                        <img
+                        <Image
                           src={
                             blog.image ||
                             "https://placehold.co/600x400?text=No+Image"
                           }
                           alt={blog.title}
-                          loading="lazy"
+                          fill
+                          sizes="(max-width: 768px) 100vw, 300px"
+                          style={{ objectFit: 'cover' }}
                         />
                         {blog.is_members_only == 1 && (
                           <div className="exclusive-badge">
@@ -145,19 +158,19 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
                           }}
                         >
                           {blog.author_image ? (
-                            <img
+                            <Image
                               src={blog.author_image}
                               alt={blog.author_name || blog.author}
+                              width={24}
+                              height={24}
                               style={{
-                                width: "24px",
-                                height: "24px",
                                 borderRadius: "50%",
                                 objectFit: "cover",
                                 border: "1px solid #e2e8f0",
                                 flexShrink: 0,
                               }}
                               onError={(e) => {
-                                e.target.src =
+                                e.currentTarget.src =
                                   "https://placehold.co/100x100?text=Author";
                               }}
                             />

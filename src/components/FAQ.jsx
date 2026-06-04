@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { HiPlus } from "react-icons/hi";
-import "../css/FAQ.css";
-
+// next-disabled: import "../css/FAQ.css";
 const FAQItem = ({ question, answer }) => {
   const [isOpen, setIsOpen] = useState(false);
 
