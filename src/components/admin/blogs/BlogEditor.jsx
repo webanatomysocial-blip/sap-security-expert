@@ -256,7 +256,7 @@ const BlogEditor = ({
               <option value="sap-grc">SAP GRC</option>
               <option value="sap-cybersecurity">Cybersecurity</option>
               <option value="product-reviews">Product Reviews</option>
-              <option value="podcasts">Podcasts</option>
+              <option value="podcasts">Expert Voices/Podcasts</option>
               <option value="videos">Videos</option>
               <option value="expert-recommendations">Expert Recommendations</option>
             </select>

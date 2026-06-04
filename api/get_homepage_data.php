@@ -40,8 +40,8 @@ try {
     $currentDate = gmdate('Y-m-d');
     $currentDateTime = gmdate('Y-m-d H:i:s');
 
-    // 1. Fetch Featured Blog (Latest 1, using full datetime)
-    $featuredSql = "SELECT b.*,
+    // 1. Fetch Featured Hero Blogs (Latest 3, using full datetime)
+    $heroSql = "SELECT b.*,
                    b.category,
                    b.view_count,
                    CASE
@@ -61,13 +61,13 @@ try {
         LEFT JOIN users u ON b.author_id = u.id
         LEFT JOIN contributors c ON u.contributor_id = c.id
         WHERE b.status IN ('approved', 'published') AND b.date <= ?
-        ORDER BY b.date DESC, b.id DESC LIMIT 1";
+        ORDER BY b.date DESC, b.id DESC LIMIT 3";
     
-    $stmt = $pdo->prepare($featuredSql);
+    $stmt = $pdo->prepare($heroSql);
     $stmt->execute([$currentDateTime]);
-    $featured = $stmt->fetch(PDO::FETCH_ASSOC);
+    $heroArticles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 2. Fetch Recent Blogs (Next 3, excluding featured, using full datetime sort)
+    // 2. Fetch Recent Blogs (excluding those in heroArticles)
     $recent = [];
     $recentParams = [];
     $sql = "SELECT b.*,
@@ -92,26 +92,43 @@ try {
             WHERE b.status = 'approved' AND b.date <= ?";
     $recentParams[] = $currentDateTime;
 
-    if ($featured) {
-        $sql .= " AND b.id != ?";
-        $recentParams[] = $featured['id'];
+    if (!empty($heroArticles)) {
+        $excludeIds = array_map(function($article) { return $article['id']; }, $heroArticles);
+        $inQuery = implode(',', array_fill(0, count($excludeIds), '?'));
+        $sql .= " AND b.id NOT IN ($inQuery)";
+        $recentParams = array_merge($recentParams, $excludeIds);
     }
     
-    $sql .= " ORDER BY b.date DESC, b.id DESC LIMIT 3";
+    $sql .= " ORDER BY b.date DESC, b.id DESC LIMIT 10";
     
     $stmt = $pdo->prepare($sql);
     $stmt->execute($recentParams);
     $recent = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 3. Fetch All Approved Contributors
-    // Note: 'created_at' is used as 'joined date'.
-    $stmt = $pdo->query("SELECT id, full_name, role, image AS profile_image, created_at FROM contributors WHERE status = 'approved' ORDER BY created_at DESC");
+    // 3. Fetch Trending This Week
+    $trendingSql = "SELECT id, title, slug, category, view_count 
+                    FROM blogs 
+                    WHERE status IN ('approved', 'published') AND date <= ?
+                    ORDER BY view_count DESC LIMIT 5";
+    $stmt = $pdo->prepare($trendingSql);
+    $stmt->execute([$currentDateTime]);
+    $trending = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 4. Fetch All Approved Contributors
+    $stmt = $pdo->query("
+        SELECT id, full_name, role, image AS profile_image, created_at,
+               (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id WHERE u.contributor_id = contributors.id AND b.status IN ('approved', 'published')) AS contributions_count
+        FROM contributors
+        WHERE status = 'approved'
+        ORDER BY created_at DESC
+    ");
     $contributors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $response = json_encode([
         'status' => 'success',
-        'featured' => $featured,
+        'heroArticles' => $heroArticles,
         'recent' => $recent,
+        'trending' => $trending,
         'contributors' => $contributors
     ]);
 

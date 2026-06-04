@@ -13,6 +13,20 @@ import {
 } from "../services/api";
 
 export default function CommunitySection() {
+  const getImageUrl = (path) => {
+    if (!path) return "https://placehold.co/100x100?text=Author";
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      return path;
+    }
+    if (path.includes("uploads/")) {
+      return "/" + path.substring(path.indexOf("uploads/"));
+    }
+    if (path.includes("assets/")) {
+      return "/" + path.substring(path.indexOf("assets/"));
+    }
+    return path.startsWith("/") ? path : `/${path}`;
+  };
+
   const handleAdClick = (zone) => {
     import("../services/api").then(({ trackAdClick }) => {
       trackAdClick(zone).catch(() => {});
@@ -33,8 +47,18 @@ export default function CommunitySection() {
   });
 
   // Dynamic Data State
-  const [featuredArticle, setFeaturedArticle] = useState({});
+  const [heroArticles, setHeroArticles] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [trending, setTrending] = useState([]);
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
+ 
+  useEffect(() => {
+    if (heroArticles.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentHeroIndex((prev) => (prev + 1) % heroArticles.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroArticles]);
 
   useEffect(() => {
     // Fetch consolidated homepage data
@@ -42,7 +66,7 @@ export default function CommunitySection() {
       .then((res) => {
         const data = res.data;
         if (data.status === "success") {
-          setFeaturedArticle(data.featured || {});
+          setHeroArticles(data.heroArticles || []);
           setRecentActivity(
             (data.recent || []).filter(
               (post) =>
@@ -51,6 +75,7 @@ export default function CommunitySection() {
                 ) <= new Date(),
             ),
           );
+          setTrending(data.trending || []);
           setContributors(data.contributors || []);
           setContributorCount(data.contributors ? data.contributors.length : 0);
         }
@@ -169,7 +194,7 @@ export default function CommunitySection() {
                     {/* Author Avatar */}
                     {post.author_image ? (
                       <img
-                        src={post.author_image}
+                        src={getImageUrl(post.author_image)}
                         alt={post.author_name || post.author}
                         style={{
                           width: "36px",
@@ -226,7 +251,7 @@ export default function CommunitySection() {
                     rel="noreferrer"
                     onClick={() => handleAdClick("community_left")}
                   >
-                    <img src={adsConfig.community_left.image} alt="Ad 1" />
+                    <img src={getImageUrl(adsConfig.community_left.image)} alt="Ad 1" />
                   </a>
                 </div>
               ) : (
@@ -251,7 +276,7 @@ export default function CommunitySection() {
                       <div className="contributor-avatar">
                         {contributor.profile_image ? (
                           <img
-                            src={contributor.profile_image}
+                            src={getImageUrl(contributor.profile_image)}
                             alt={contributor.full_name}
                             onError={(e) => {
                               e.target.onerror = null;
@@ -273,11 +298,18 @@ export default function CommunitySection() {
                             : "C"}
                         </div>
                       </div>
-                      <div className="contributor-info">
-                        <h4>{contributor.full_name}</h4>
-                        <span className="joined-date">
-                          Joined:{" "}
-                          {formatDate(contributor.created_at || new Date())}
+                      <div className="contributor-info" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>{contributor.full_name}</h4>
+                        {contributor.role && (
+                          <span className="contributor-role" style={{ fontSize: "0.8rem", color: "#475569", fontWeight: 500 }}>
+                            {contributor.role}
+                          </span>
+                        )}
+                        <span className="joined-date" style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                          Joined: {formatDate(contributor.created_at || new Date())}
+                        </span>
+                        <span className="contributions-count" style={{ fontSize: "0.75rem", color: "#2563eb", fontWeight: 600 }}>
+                          Contributions: {contributor.contributions_count || 0} {Number(contributor.contributions_count) === 1 ? "Article" : "Articles"}
                         </span>
                       </div>
                     </Link>
@@ -290,43 +322,85 @@ export default function CommunitySection() {
           {/* CENTER COLUMN */}
           <div className="community-center">
             {/* Featured Insight */}
-            {featuredArticle && featuredArticle.title && (
+            {/* Featured Insight Carousel */}
+            {heroArticles && heroArticles.length > 0 && (
               <div className="featured-insight-card">
                 <span className="featured-badge">Featured Insight</span>
-                <h2>{featuredArticle.title}</h2>
-                <p>{featuredArticle.excerpt}</p>
-                <div className="featured-meta">
-                  <span>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    6 min read
-                  </span>
-                  <span>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                    {featuredArticle.view_count || featuredArticle.views || 0}
-                  </span>
-                  <span>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                    </svg>
-                    {featuredArticle.comment_count || 0}
-                  </span>
+                
+                <div className="hero-carousel-content" style={{ minHeight: "180px", position: "relative" }}>
+                  {heroArticles.map((article, index) => {
+                    const isVisible = index === currentHeroIndex;
+                    return (
+                      <div
+                        key={article.id}
+                        className={`hero-carousel-slide ${isVisible ? "active" : ""}`}
+                        style={{
+                          display: isVisible ? "block" : "none",
+                          animation: isVisible ? "fadeIn 0.5s ease-in-out" : "none",
+                        }}
+                      >
+                        <h2 style={{ minHeight: "68px" }}>{article.title}</h2>
+                        <p style={{ minHeight: "72px" }}>{article.excerpt}</p>
+                        <div className="featured-meta">
+                          <span>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            6 min read
+                          </span>
+                          <span>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            {article.view_count || article.views || 0}
+                          </span>
+                          <span>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                            </svg>
+                            {article.comment_count || 0}
+                          </span>
+                        </div>
+                        <Link
+                          to={
+                            article.category
+                              ? `/${article.category.toLowerCase().replace(/\s+/g, "-")}/${article.slug || article.id}`
+                              : `/blogs/${article.slug || article.id}`
+                          }
+                          className="btn-read-insight"
+                          style={{ marginTop: "20px", display: "inline-block" }}
+                        >
+                          Read Full Insight →
+                        </Link>
+                      </div>
+                    );
+                  })}
                 </div>
-                <Link
-                  to={
-                    featuredArticle.category
-                      ? `/${featuredArticle.category.toLowerCase().replace(/\s+/g, "-")}/${featuredArticle.slug || featuredArticle.id}`
-                      : `/blogs/${featuredArticle.slug || featuredArticle.id}`
-                  }
-                  className="btn-read-insight"
-                >
-                  Read Full Insight →
-                </Link>
 
-                {/* Layered wave divider — new classname to avoid conflicts */}
+                {/* Carousel dots indicator */}
+                {heroArticles.length > 1 && (
+                  <div className="hero-carousel-dots" style={{ display: "flex", gap: "8px", marginTop: "15px", zIndex: 10, position: "relative" }}>
+                    {heroArticles.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`hero-dot ${index === currentHeroIndex ? "active" : ""}`}
+                        onClick={() => setCurrentHeroIndex(index)}
+                        style={{
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          border: "none",
+                          backgroundColor: index === currentHeroIndex ? "#fff" : "rgba(255,255,255,0.4)",
+                          cursor: "pointer",
+                          padding: 0,
+                          transition: "all 0.3s ease",
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Layered wave divider — keeping exactly the same */}
                 <div className="fi-wave-divider">
                   <svg data-name="Layered Waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 200" preserveAspectRatio="none">
                     <path d="M0,130 C400,160 800,90 1200,70 L1200,200 L0,200 Z" fill="rgba(255, 255, 255, 0.15)"></path>
@@ -335,8 +409,9 @@ export default function CommunitySection() {
                   </svg>
                 </div>
               </div>
-
             )}
+
+
 
             {/* Recent Activity */}
             {recentActivity && recentActivity.length > 0 && (
@@ -345,7 +420,7 @@ export default function CommunitySection() {
                   <h3>Recent Activity</h3>
                 </div>
                 <div className="activity-list">
-                  {recentActivity.slice(0, 10).map((activity) => (
+                  {recentActivity.slice(0, 3).map((activity) => (
                     <Link
                       key={activity.slug || activity.id}
                       to={
@@ -357,7 +432,7 @@ export default function CommunitySection() {
                     >
                       <div className="activity-img-wrapper" style={{ flexShrink: 0 }}>
                         <img 
-                          src={activity.image || "https://placehold.co/600x400?text=No+Image"} 
+                          src={getImageUrl(activity.image)} 
                           alt={activity.title}
                           onError={(e) => {
                             e.target.src = "https://placehold.co/600x400?text=No+Image";
@@ -398,7 +473,7 @@ export default function CommunitySection() {
                           >
                             {activity.author_image ? (
                               <img
-                                src={activity.author_image}
+                                src={getImageUrl(activity.author_image)}
                                 alt={activity.author_name || activity.author}
                                 style={{
                                   width: "22px",
@@ -507,7 +582,7 @@ export default function CommunitySection() {
                     rel="noreferrer"
                     onClick={() => handleAdClick("community_right")}
                   >
-                    <img src={adsConfig.community_right.image} alt="Ad 2" />
+                    <img src={getImageUrl(adsConfig.community_right.image)} alt="Ad 2" />
                   </a>
                 </div>
               ) : (

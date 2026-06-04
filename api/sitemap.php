@@ -2,7 +2,7 @@
 /**
  * api/sitemap.php - Dynamic XML Sitemap Generator
  */
-require_once 'db.php';
+require_once __DIR__ . '/db.php';
 
 header("Content-Type: application/xml; charset=utf-8");
 

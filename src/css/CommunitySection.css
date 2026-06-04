@@ -388,7 +388,7 @@
 .featured-insight-card h2 {
   font-size: 1.8rem;
   font-weight: 500;
-  margin-bottom: 16px;
+  /* margin-bottom: 16px; */
   line-height: 1.3;
 }
 

@@ -149,7 +149,7 @@ const Header = () => {
             </span>
             <div className="dropdown-menu">
               <Link to="/product-reviews">Product Reviews</Link>
-              <Link to="/podcasts">Podcasts</Link>
+              <Link to="/podcasts">Expert Voices/Podcasts</Link>
               <Link to="/videos">Videos</Link>
               <Link to="/expert-recommendations">Expert Recommendations</Link>
             </div>
@@ -494,7 +494,7 @@ const Header = () => {
                   Product Reviews
                 </Link>
                 <Link to="/podcasts" onClick={closeMenu}>
-                  Podcasts
+                  Expert Voices/Podcasts
                 </Link>
                 <Link to="/videos" onClick={closeMenu}>
                   Videos

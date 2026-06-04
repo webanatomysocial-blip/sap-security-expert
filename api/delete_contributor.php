@@ -25,39 +25,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $randomId = mt_rand(100000, 999999);
             $deletedEmail = "deleted_user_" . $randomId . "_" . $contributor['email'];
 
-            // 2. Perform Soft Delete on Contributor Profile
-            $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-            $deleteStmt = $pdo->prepare("
-                UPDATE contributors 
-                SET email = ?,
-                    is_deleted = 1, 
-                    status = 'deleted',
-                    deleted_at = CURRENT_TIMESTAMP,
-                    deletion_ip = ?,
-                    deletion_method = 'admin_action',
-                    deletion_confirmation_method = 'admin_confirmed'
-                WHERE id = ?
-            ");
-            $deleteStmt->execute([$deletedEmail, $ipAddress, $id]);
+            // 2. Perform Full Delete on Contributor Profile
+            $deleteStmt = $pdo->prepare("DELETE FROM contributors WHERE id = ?");
+            $deleteStmt->execute([$id]);
+ 
+            // 3. Fully delete the linked dashboard user if exists
+            $userStmt = $pdo->prepare("DELETE FROM users WHERE LOWER(email) = LOWER(?)");
+            $userStmt->execute([$contributor['email']]);
 
-            // 3. Deactivate and Anonymize the linked dashboard user if exists
-            // NOTE: We do NOT delete the record from the 'members' table. 
-            // This ensures they remain a regular member of the community.
-            $userStmt = $pdo->prepare("
-                UPDATE users 
-                SET email = ?,
-                    username = ?,
-                    is_deleted = 1,
-                    is_active = 0,
-                    deleted_at = CURRENT_TIMESTAMP,
-                    deletion_ip = ?,
-                    deletion_method = 'admin_action',
-                    deletion_confirmation_method = 'admin_confirmed'
-                WHERE LOWER(email) = LOWER(?)
-            ");
-            $userStmt->execute([$deletedEmail, $deletedEmail, $ipAddress, $contributor['email']]);
-
-            echo json_encode(['status' => 'success', 'message' => 'Contributor removed. The user remains an active regular member.']);
+            // 4. Fully delete member
+            $memberStmt = $pdo->prepare("DELETE FROM members WHERE LOWER(email) = LOWER(?)");
+            $memberStmt->execute([$contributor['email']]);
+ 
+            echo json_encode(['status' => 'success', 'message' => 'Contributor fully deleted.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Contributor not found']);
         }

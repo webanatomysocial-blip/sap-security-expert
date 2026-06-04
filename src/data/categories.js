@@ -32,7 +32,7 @@ export const categories = [
     slug: "product-reviews", // Fallback or general
     subcategories: [
       { name: "Product Reviews", slug: "product-reviews" },
-      { name: "Podcasts", slug: "podcasts" },
+      { name: "Expert Voices/Podcasts", slug: "podcasts" },
       { name: "Videos", slug: "videos" },
       { name: "Expert Recommendations", slug: "expert-recommendations" },
     ],

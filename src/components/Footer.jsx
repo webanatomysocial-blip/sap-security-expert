@@ -71,7 +71,7 @@ const Footer = () => {
             <h4>Explore</h4>
             <ul>
               <li>
-                <Link to="/podcasts">Podcasts</Link>
+                <Link to="/podcasts">Expert Voices/Podcasts</Link>
               </li>
               <li>
                 <Link to="/product-reviews">Product Reviews</Link>

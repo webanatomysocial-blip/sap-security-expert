@@ -49,7 +49,6 @@ const SEO = ({
       {/* Standard Metadata */}
       <title>{meta.title}</title>
       <meta name="description" content={meta.description} />
-      <meta name="keywords" content={meta.keywords} />
       <meta name="author" content={meta.author} />
       <link rel="canonical" href={meta.url} />
 

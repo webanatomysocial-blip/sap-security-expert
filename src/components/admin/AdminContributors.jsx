@@ -152,7 +152,7 @@ const AdminContributors = () => {
 
   const filteredApps = applications.filter(
     (app) =>
-      (filterStatus === "all" || app.status === filterStatus) &&
+      (filterStatus === "all" ? app.status !== "deleted" : app.status === filterStatus) &&
       ((app.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (app.email || "").toLowerCase().includes(searchTerm.toLowerCase())),
   );

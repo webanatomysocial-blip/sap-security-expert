@@ -80,6 +80,12 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
           if (allowed) el.setAttribute("style", allowed);
           else el.removeAttribute("style");
         }
+      } else if (el.tagName === "DIV" || el.tagName === "SPAN") {
+        // Keep style attributes on DIVs and SPANs for custom styled blocks/disclaimers
+        const style = el.getAttribute("style");
+        if (style) {
+          el.setAttribute("style", style);
+        }
       } else {
         el.removeAttribute("style");
       }
@@ -209,6 +215,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
       const doc = parser.parseFromString(htmlText, "text/html");
 
       const allowedTags = [
+        "DIV",
         "P",
         "H2",
         "H3",
@@ -224,6 +231,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
         "IMG",
         "PRE",
         "CODE",
+        "SPAN",
       ];
 
       const sanitizeNode = (node) => {
@@ -247,6 +255,9 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
         const el = document.createElement(tag);
 
         if (tag === "A" && node.href) el.href = node.href;
+        if ((tag === "DIV" || tag === "SPAN") && node.getAttribute("style")) {
+          el.setAttribute("style", node.getAttribute("style"));
+        }
         if (tag === "IMG" && node.src) {
           el.src = node.src;
           // Preserve dimensions if they exist in source

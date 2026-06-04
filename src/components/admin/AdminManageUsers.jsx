@@ -134,7 +134,7 @@ const AdminManageUsers = () => {
 
   const filteredMembers = members.filter(
     (m) =>
-      (filterStatus === "all" || m.status === filterStatus) &&
+      (filterStatus === "all" ? m.status !== "deleted" : m.status === filterStatus) &&
       ((m.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (m.email || "").toLowerCase().includes(searchTerm.toLowerCase())),
   );

@@ -211,7 +211,6 @@ const AdminComments = () => {
                 <tr>
                   <th className="col-md text-left">Author</th>
                   <th className="col-auto text-left">Comment</th>
-                  <th className="col-md text-left">Post</th>
                   <th className="col-md text-left">Date</th>
                   <th className="col-sm text-center">Status</th>
                   <th className="col-actions text-center">Actions</th>
@@ -220,7 +219,7 @@ const AdminComments = () => {
             <tbody>
               {filteredComments.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center">
+                  <td colSpan="5" className="text-center">
                     No {filter !== "all" ? filter : ""} comments found
                   </td>
                 </tr>
@@ -238,6 +237,27 @@ const AdminComments = () => {
                        </div>
                      </td>
                      <td className="col-auto text-left wrap-text">
+                       {/* Target Post Link */}
+                       <div style={{ marginBottom: "6px", fontSize: "0.75rem", color: "#64748b" }}>
+                         <span style={{ fontWeight: 600 }}>Post: </span>
+                         {comment.slug ? (
+                           <a
+                             href={`/blogs/${comment.slug}`}
+                             target="_blank"
+                             rel="noopener noreferrer"
+                             className="post-link"
+                             title={comment.slug}
+                             style={{ textDecoration: "underline", color: "#2563eb", fontWeight: 500 }}
+                           >
+                             {comment.slug}
+                           </a>
+                         ) : (
+                           <span className="post-id-fallback">
+                             ID: {comment.post_id}
+                           </span>
+                         )}
+                       </div>
+
                        {comment.parent_id && (
                          <div
                            className="reply-context"
@@ -284,24 +304,6 @@ const AdminComments = () => {
                          <small className="edited-indicator" style={{ fontSize: "0.7rem" }}>
                            (Ed)
                          </small>
-                       )}
-                     </td>
-                     <td className="col-md text-left no-wrap">
-                       {comment.slug ? (
-                         <a
-                           href={`/blogs/${comment.slug}`}
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           className="post-link"
-                           title={comment.slug}
-                           style={{ fontSize: "0.75rem", textDecoration: "underline" }}
-                         >
-                           {comment.slug}
-                         </a>
-                       ) : (
-                         <span className="post-id-fallback" style={{ fontSize: "0.75rem" }}>
-                           ID: {comment.post_id}
-                         </span>
                        )}
                      </td>
                      <td className="col-md text-left">
