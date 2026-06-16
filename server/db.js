@@ -182,19 +182,27 @@ if (isSQLite) {
   }
 } else {
   const mysql = require('mysql2/promise');
-  const dbHost = process.env.DB_HOST || '127.0.0.1';
+  const dbHost = process.env.DB_HOST || 'localhost';
   pool = mysql.createPool({
-    host: dbHost === 'localhost' ? '127.0.0.1' : dbHost,
+    host: dbHost,
+    port: parseInt(process.env.DB_PORT || '3306'),
     user: process.env.DB_USER || '',
     password: process.env.DB_PASS || '',
     database: process.env.DB_NAME || '',
     charset: process.env.DB_CHARSET || 'utf8mb4',
     waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
+    // Hostinger shared MySQL caps total connections per user at ~10–15.
+    // The session store (express-mysql-session) opens its own pool of 3.
+    // Keeping the main pool at 5 gives a safe total of ≤8 connections.
+    // Override with DB_POOL_SIZE env var if your plan allows more.
+    connectionLimit: parseInt(process.env.DB_POOL_SIZE || '5'),
+    queueLimit: 50,
     timezone: '+00:00',
+    // Reconnect automatically if the Hostinger MySQL server closes idle connections.
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
   });
-  console.log('[DB] Using MySQL →', dbHost === 'localhost' ? '127.0.0.1' : dbHost, '/', process.env.DB_NAME);
+  console.log('[DB] Using MySQL →', dbHost, '/', process.env.DB_NAME);
 }
 
 // ── Auto-publish hook ─────────────────────────────────────────────────────────
@@ -233,6 +241,11 @@ async function dbMiddleware(req, res, next) {
     runAutoPublish(conn).catch(() => {});
     next();
   } catch (err) {
+    const isHealthCheck = req.path === '/api/health' || req.path === '/health' || req.originalUrl === '/api/health';
+    if (isHealthCheck) {
+      req.dbError = err;
+      return next();
+    }
     res.status(500).json({ status: 'error', message: 'Database connection failed: ' + err.message });
   }
 }

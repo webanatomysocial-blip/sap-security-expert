@@ -23,8 +23,12 @@ server/.env.*
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+server/database.sqlite
+server/database.sqlite-shm
+server/database.sqlite-wal
 
 # Uploads / backups
+public/uploads/
 private/backups/
 _BACKUP/
 
@@ -45,3 +49,6 @@ logs/
 
 # Vercel
 .vercel/
+
+# SQL Dumps
+*.sql

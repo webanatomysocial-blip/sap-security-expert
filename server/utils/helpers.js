@@ -118,19 +118,21 @@ async function checkPlagiarismScore(text, blogId = null, db = null) {
 }
 
 /**
- * Resolve upload directory based on environment.
- * - UPLOAD_BASE_DIR env var (Railway volume mount point, e.g. /data/uploads) → use that
- * - Local dev (SQLite): public/uploads/<sub>
- * - Production default: uploads/<sub>
+ * Resolve upload directory.
+ *
+ * Priority order:
+ *   1. UPLOAD_BASE_DIR env var — explicit override (e.g. a Railway/cloud volume path)
+ *   2. <project_root>/public/uploads/<sub> — default for ALL environments
+ *
+ * Why always public/uploads?  Express static-serving is configured to serve
+ * /uploads/* from <root>/public/uploads/.  Saving to any other directory means
+ * uploaded images return 404.  This was a production bug when DB_CONNECTION=mysql
+ * caused the old code to use <root>/uploads/ instead.
  */
 function getUploadDir(sub) {
-  let base;
-  if (process.env.UPLOAD_BASE_DIR) {
-    base = path.join(process.env.UPLOAD_BASE_DIR, sub);
-  } else {
-    const isLocal = process.env.DB_CONNECTION === 'sqlite' || !process.env.DB_NAME;
-    base = isLocal ? path.join(ROOT, 'public/uploads', sub) : path.join(ROOT, 'uploads', sub);
-  }
+  const base = process.env.UPLOAD_BASE_DIR
+    ? path.join(process.env.UPLOAD_BASE_DIR, sub)
+    : path.join(ROOT, 'public/uploads', sub);
   if (!fs.existsSync(base)) fs.mkdirSync(base, { recursive: true });
   return base;
 }
