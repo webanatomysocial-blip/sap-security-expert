@@ -10,3 +10,4 @@ _BACKUP/
 *.log
 api/.env
 *.sql
+.claude/
