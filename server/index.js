@@ -19,15 +19,20 @@ if (isSQLite) {
   console.log('[Sessions] Using in-memory store (SQLite dev mode)');
 } else {
   const MySQLStore = require('express-mysql-session')(session);
-  const dbHost = process.env.DB_HOST || '127.0.0.1';
+  const dbHost = process.env.DB_HOST || 'localhost';
   sessionStore = new MySQLStore({
-    host: dbHost === 'localhost' ? '127.0.0.1' : dbHost,
+    host: dbHost,
+    port: parseInt(process.env.DB_PORT || '3306'),
     user: process.env.DB_USER || '',
     password: process.env.DB_PASS || '',
     database: process.env.DB_NAME || '',
     createDatabaseTable: true,
+    // Keep session store to 3 connections so total (3 + DB_POOL_SIZE 5 = 8)
+    // stays within Hostinger shared MySQL per-user connection limits.
+    connectionLimit: parseInt(process.env.SESSION_POOL_SIZE || '3'),
     schema: { tableName: 'sessions', columnNames: { session_id: 'session_id', expires: 'expires', data: 'data' } },
   });
+  console.log('[Sessions] Using MySQL session store');
 }
 
 // ── Middleware ──────────────────────────────────────────────────────────────────
@@ -38,14 +43,9 @@ app.set('trust proxy', 1);
 // Gzip/deflate all responses
 app.use(compression());
 
-// CORS — mirror db.php whitelist
+// CORS — allow the production domain + optional extra origin for split-server setups.
+// FRONTEND_URL can be set when the frontend runs on a different domain (e.g. Vercel).
 const siteUrl = (process.env.SITE_URL || 'https://sap.webanatomy.in').replace(/\/$/, '');
-// VERCEL_URL is set automatically by Vercel for each deployment (preview + prod).
-// VERCEL_FRONTEND_URL can be set manually in Railway env vars to match your
-// Vercel custom domain (e.g. https://sap.webanatomy.in).
-const vercelOrigins = [];
-if (process.env.VERCEL_FRONTEND_URL) vercelOrigins.push(process.env.VERCEL_FRONTEND_URL.replace(/\/$/, ''));
-if (process.env.VERCEL_URL) vercelOrigins.push(`https://${process.env.VERCEL_URL}`);
 
 const allowedOrigins = [
   siteUrl,
@@ -53,8 +53,9 @@ const allowedOrigins = [
   'http://localhost:5173', 'http://127.0.0.1:5173',
   'http://localhost:3000', 'http://127.0.0.1:3000',
   'http://localhost:8000', 'http://127.0.0.1:8000',
-  ...vercelOrigins,
 ];
+// Optional extra origin for split-server setups (set FRONTEND_URL in .env if needed)
+if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL.replace(/\/$/, ''));
 
 app.use(cors({
   origin: (origin, cb) => {
@@ -77,9 +78,12 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'strict' : 'lax',
-    maxAge: null, // session cookie (expires on browser close)
+    secure: isProd,            // true in prod — requires HTTPS (Hostinger provides this)
+    sameSite: 'lax',           // 'lax' (not 'strict') — 'strict' silently drops the
+                               // session cookie on Razorpay payment-return redirects
+                               // because the navigation originates from razorpay.com.
+                               // CSRF is already covered by the X-CSRF-Token header check.
+    maxAge: null,              // session cookie — expires on browser close
   },
 }));
 
@@ -95,13 +99,43 @@ app.use((_, res, next) => {
 // Attach DB connection to every request
 app.use(dbMiddleware);
 
+// Health check — validates process liveness AND database connectivity.
+// Mounted after dbMiddleware so it can reuse the request-scoped req.db connection.
+app.get('/api/health', async (req, res) => {
+  if (req.dbError) {
+    return res.status(500).json({
+      status: 'error',
+      database: 'failed',
+      message: req.dbError.message,
+    });
+  }
+
+  try {
+    if (!req.db) {
+      throw new Error('Database connection is undefined');
+    }
+    await req.db.execute('SELECT 1');
+    return res.json({
+      status: 'ok',
+      database: 'connected',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: 'error',
+      database: 'failed',
+      message: err.message,
+    });
+  }
+});
+
 // Serve uploaded files and static assets
 const ROOT = path.join(__dirname, '..');
 // Uploads: 7-day cache (content-addressed by filename in practice)
 app.use('/uploads', express.static(path.join(ROOT, 'public/uploads'), { maxAge: '7d' }));
 app.use('/assets', express.static(path.join(ROOT, 'public'), { maxAge: '1d' }));
-// NOTE: Next.js (port 3000) serves all static assets and HTML.
-// Express only handles /api/* and /uploads/* (via Next.js rewrites in next.config.js).
+// In unified mode (Hostinger) start.cjs routes /api/* and /uploads/* directly to
+// this Express app before Next.js ever sees the request.
 
 // ── Routes ─────────────────────────────────────────────────────────────────────
 
@@ -203,10 +237,7 @@ app.post('/api/cron/send-emails', async (req, res) => {
   }
 });
 
-// Health check — used by Railway and load balancers
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// Health endpoint moved above dbMiddleware
 
 // 404 fallback for API routes
 app.use('/api', (req, res) => {
