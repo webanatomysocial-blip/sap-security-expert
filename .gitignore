@@ -1,13 +1,47 @@
+# Dependencies
 node_modules/
-.DS_Store
-.vscode/
+
+# Next.js
 .next/
+out/
+
+# Build
 build/
 dist/
+
+# Environment files
+.env
+.env.*
+server/.env
+server/.env.*
+
+# Keep examples
+!.env.example
+!server/.env.example
+
+# Databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Uploads / backups
+private/backups/
 _BACKUP/
+
+# IDE
+.vscode/
+.DS_Store
+
+# Archives
 *.zip
 *.tar.gz
+
+# Logs
 *.log
-api/.env
-*.sql
+logs/
+
+# Claude
 .claude/
+
+# Vercel
+.vercel/
