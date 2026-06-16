@@ -58,40 +58,72 @@ const AdminManageUsers = () => {
       return;
     }
 
-    const confirmMsg =
-      action === "delete"
-        ? "Are you sure you want to delete this member? This will deactivate their account and move them to the Deleted section."
-        : `Are you sure you want to ${action} this member?`;
+    if (action === "delete") {
+      // Step 1: send OTP to member's email
+      openConfirm({
+        title: "Delete Member Account",
+        message: "This will permanently delete the member account. An OTP will be sent to the member's email address to confirm. Proceed?",
+        confirmText: "Send OTP & Delete",
+        isDanger: true,
+        onConfirm: async () => {
+          try {
+            const res = await manageAdminMember({ id, action: "delete" });
+            if (res.data?.status === "otp_sent") {
+              // Step 2: ask admin to enter the OTP the member received
+              openConfirm({
+                title: "Enter Deletion OTP",
+                message: res.data.message,
+                confirmText: "Confirm Delete",
+                isDanger: true,
+                showInput: true,
+                inputPlaceholder: "Enter 6-digit OTP",
+                onConfirm: async (otp) => {
+                  try {
+                    const res2 = await manageAdminMember({ id, action: "delete_confirm", otp });
+                    if (res2.data?.status === "success") {
+                      addToast("Member account permanently deleted.", "success");
+                      if (selectedMember?.id === id) setSelectedMember(null);
+                      fetchMembers();
+                    } else {
+                      addToast(res2.data?.message || "OTP verification failed.", "error");
+                    }
+                  } catch (err) {
+                    addToast(err.response?.data?.message || "Invalid or expired OTP.", "error");
+                  }
+                },
+              });
+            } else {
+              addToast(res.data?.message || "Failed to initiate deletion.", "error");
+            }
+          } catch (err) {
+            addToast("Error initiating deletion.", "error");
+          }
+        },
+      });
+      return;
+    }
 
     openConfirm({
       title: `${action.charAt(0).toUpperCase() + action.slice(1)} Member`,
-      message: confirmMsg,
+      message: `Are you sure you want to ${action} this member?`,
       confirmText: action.charAt(0).toUpperCase() + action.slice(1),
-      isDanger: action === "delete" || action === "reject",
+      isDanger: action === "reject",
       onConfirm: async () => {
         try {
           const res = await manageAdminMember({ id, action });
           if (res.data?.status === "success") {
             addToast(`Member ${action}d successfully.`, "success");
             if (selectedMember && selectedMember.id === id) {
-              if (action === "delete") {
-                setSelectedMember(null);
-              } else {
-                setSelectedMember({
-                  ...selectedMember,
-                  status: action === "approve" ? "approved" : "rejected",
-                });
-              }
+              setSelectedMember({
+                ...selectedMember,
+                status: action === "approve" ? "approved" : "rejected",
+              });
             }
-            fetchMembers(); // refresh
+            fetchMembers();
           } else {
-            addToast(
-              res.data?.message || `Failed to ${action} member.`,
-              "error",
-            );
+            addToast(res.data?.message || `Failed to ${action} member.`, "error");
           }
         } catch (err) {
-          console.error(err);
           addToast(`Error trying to ${action} member.`, "error");
         }
       },
@@ -202,7 +234,7 @@ const AdminManageUsers = () => {
             Deleted
           </button>
         </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div className="page-header-actions">
           <div className="search-box">
             <i className="bi bi-search"></i>
             <input
@@ -212,15 +244,11 @@ const AdminManageUsers = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            onClick={handleExport}
-            className="btn-filter"
-            title="Export to CSV"
-          >
+          <button onClick={handleExport} className="btn-filter btn-sm" title="Export to CSV">
             <i className="bi bi-download"></i> Export
           </button>
-          <button onClick={fetchMembers} className="btn-primary">
-            <i className="bi bi-arrow-clockwise"></i> Refresh
+          <button onClick={fetchMembers} className="btn-primary btn-sm">
+            <i className="bi bi-arrow-clockwise"></i>
           </button>
         </div>
       </div>

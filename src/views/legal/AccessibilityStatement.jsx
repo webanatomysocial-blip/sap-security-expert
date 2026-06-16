@@ -83,8 +83,8 @@ const AccessibilityStatement = () => {
         <p>
           If you have any questions or feedback regarding the accessibility of
           our site, please contact us at{" "}
-          <a className="legal-links" href="mailto:hello@sapsecurityexpert.com">
-            hello@sapsecurityexpert.com
+          <a className="legal-links" href="mailto:hello@sap.webanatomy.in">
+            hello@sap.webanatomy.in
           </a>
           .
         </p>

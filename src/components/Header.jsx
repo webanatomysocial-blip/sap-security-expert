@@ -1,5 +1,5 @@
 import React, { useState, useContext, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Image from "next/image";
 // next-disabled: import "../css/header.css";
 import logo from "../assets/sapsecurityexpert-black.png";
@@ -27,14 +27,32 @@ const Header = () => {
     member,
     isContributor,
     logout: memberLogout,
+    subscription,
+    isPremiumMember,
   } = useMemberAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // These states from the instruction seem to be for a different header implementation,
-  // but I'll add them as requested, assuming they might be used elsewhere or are placeholders.
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      setIsScrolled(currentY > 10);
+      if (currentY < 80) {
+        setIsHidden(false);
+      } else if (currentY > lastScrollY.current + 5) {
+        setIsHidden(true);
+      } else if (currentY < lastScrollY.current - 5) {
+        setIsHidden(false);
+      }
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Member profile state
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
@@ -51,7 +69,7 @@ const Header = () => {
         setProfileInitialTab(e.detail?.tab || "profile");
         setIsProfileModalOpen(true);
       } else {
-        navigate("/member/login");
+        navigate("/member/login", { state: { from: location.pathname + location.search } });
       }
     };
 
@@ -91,7 +109,7 @@ const Header = () => {
   };
 
   return (
-    <header className="header-container-premium">
+    <header className={`header-container-premium${isScrolled ? ' header--scrolled' : ''}${isHidden ? ' header--hidden' : ''}`}>
       <div className="header-inner">
         {/* Logo */}
         <Link to="/" className="header-logo">
@@ -149,6 +167,8 @@ const Header = () => {
               <FaChevronDown size={10} style={{ marginLeft: "4px" }} />
             </span>
             <div className="dropdown-menu">
+              <Link to="/news">News &amp; Updates</Link>
+              <Link to="/announcements">Announcements</Link>
               <Link to="/product-reviews">Product Reviews</Link>
               <Link to="/podcasts">Expert Voices/Podcasts</Link>
               <Link to="/videos">Videos</Link>
@@ -199,6 +219,14 @@ const Header = () => {
                     <div className="member-dropdown-header">
                       <strong>{member.name}</strong>
                       <span>{member.email}</span>
+                      {isPremiumMember && subscription && (
+                        <div style={{ fontSize: "0.75rem", color: "#d97706", marginTop: "4px", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <i className="bi bi-star-fill"></i> Premium Member
+                          <span style={{ color: "#64748b", fontWeight: "normal", marginLeft: "auto" }}>
+                            ({Math.ceil((new Date(subscription.expires_at) - new Date()) / (1000 * 60 * 60 * 24))} days left)
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <button
                       className="member-dropdown-item"
@@ -292,7 +320,7 @@ const Header = () => {
                 )}
               </div>
             ) : (
-              <Link to="/member/login" className="btn-header-login">
+              <Link to="/member/login" state={{ from: location.pathname + location.search }} className="btn-header-login">
                 Member Login
               </Link>
             )}
@@ -313,7 +341,7 @@ const Header = () => {
       {/* MOBILE MENU */}
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         <div className="mobile-menu-header">
-          <Image src={logo} alt="Logo" />
+          <Image src={logo} alt="Logo" width={160} height={40} style={{ width: "auto", height: "auto" }} />
           <button onClick={closeMenu}>
             <FiX size={24} />
           </button>
@@ -333,7 +361,15 @@ const Header = () => {
                 <div className="mobile-profile-info">
                   <span className="mobile-profile-name">{member.name}</span>
                   <span className="mobile-profile-email">{member.email}</span>
-                  <span className="mobile-profile-role">Member</span>
+                  <span className="mobile-profile-role">
+                  {isPremiumMember && subscription ? (
+                    <span style={{ color: "#d97706", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <i className="bi bi-star-fill"></i> Premium ({Math.ceil((new Date(subscription.expires_at) - new Date()) / (1000 * 60 * 60 * 24))} days left)
+                    </span>
+                  ) : (
+                    "Member"
+                  )}
+                </span>
                 </div>
               </div>
               <div className="mobile-profile-actions">
@@ -385,7 +421,7 @@ const Header = () => {
               </div>
             </div>
           ) : (
-            <Link to="/member/login" onClick={closeMenu}>
+            <Link to="/member/login" state={{ from: location.pathname + location.search }} onClick={closeMenu}>
               Member Login
             </Link>
           )}
@@ -491,6 +527,12 @@ const Header = () => {
             </div>
             {dropdowns.resources && (
               <div className="mobile-submenu">
+                <Link to="/news" onClick={closeMenu}>
+                  News &amp; Updates
+                </Link>
+                <Link to="/announcements" onClick={closeMenu}>
+                  Announcements
+                </Link>
                 <Link to="/product-reviews" onClick={closeMenu}>
                   Product Reviews
                 </Link>

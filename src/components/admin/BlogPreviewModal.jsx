@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { LuX, LuCalendar, LuTag, LuUser } from "react-icons/lu";
-import { VITE_SITE_URL, VITE_API_URL } from "../../utils/env";
 
 /**
  * BlogPreviewModal — Display a blog post's content and metadata for review.
@@ -131,17 +130,17 @@ const BlogPreviewModal = ({
   let finalAuthorImage = "https://placehold.co/100x100?text=Author";
   if (authorImageSrc && authorImageSrc.toUpperCase() !== "NULL") {
     if (authorImageSrc.startsWith("http")) {
+      // Already an absolute URL — use as-is
       finalAuthorImage = authorImageSrc;
     } else if (authorImageSrc.includes("assets/")) {
-      // Handle both /assets/ and ../assets/ cases
-      const assetPath = authorImageSrc.replace(/^.*assets\//, "/assets/");
-      finalAuthorImage = `${VITE_SITE_URL}${assetPath}`;
+      // Relative path — keep it relative so it resolves against current origin
+      finalAuthorImage = authorImageSrc.replace(/^.*assets\//, "/assets/");
     } else if (authorImageSrc.includes("uploads/")) {
-      // Handle uploads which are served from the site root
-      const uploadPath = authorImageSrc.replace(/^.*uploads\//, "/uploads/");
-      finalAuthorImage = `${VITE_SITE_URL}${uploadPath}`;
+      // Relative upload path — Next.js proxies /uploads/* to Express in dev,
+      // Apache serves them in production
+      finalAuthorImage = authorImageSrc.replace(/^.*uploads\//, "/uploads/");
     } else {
-      finalAuthorImage = `${VITE_API_URL}${authorImageSrc.startsWith("/") ? "" : "/"}${authorImageSrc}`;
+      finalAuthorImage = authorImageSrc.startsWith("/") ? authorImageSrc : `/${authorImageSrc}`;
     }
   }
   const authorImage = finalAuthorImage;

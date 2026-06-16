@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eef2f6; border-radius: 8px; }
+    .header { text-align: center; border-bottom: 2px solid #ee5e42; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h2 { color: #ee5e42; margin: 0; }
+    .otp { font-size: 32px; font-weight: bold; text-align: center; color: #ee5e42; letter-spacing: 5px; margin: 30px 0; background: #fff5f2; padding: 20px; border-radius: 8px; }
+    .info-box { background: #fef9c3; border: 1px solid #fde047; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 0.9rem; color: #713f12; }
+    .footer { font-size: 12px; color: #94a3b8; margin-top: 30px; text-align: center; border-top: 1px solid #eef2f6; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Contributor Account Deletion</h2>
+    </div>
+    <p>Hello {{name}},</p>
+    <p>An administrator has initiated the removal of your <strong>SAP Security Expert</strong> contributor profile. To confirm this action, please provide the verification code below:</p>
+
+    <div class="otp">{{code}}</div>
+
+    <div class="info-box">
+      <strong>What happens after deletion:</strong><br>
+      &bull; Your contributor profile will be removed.<br>
+      &bull; Your regular member account will remain active — you can still log in.<br>
+      &bull; All your published blogs and contributions will stay live on the platform.
+    </div>
+
+    <p>This code expires in <strong>10 minutes</strong>. If you did not expect this action, please contact the admin team immediately.</p>
+
+    <div class="footer">
+      &copy; {{year}} SAP Security Expert. The leading community for SAP Security Professionals.<br>
+      <a href="https://sapsecurityexpert.com" style="color: #94a3b8;">sapsecurityexpert.com</a>
+    </div>
+  </div>
+</body>
+</html>

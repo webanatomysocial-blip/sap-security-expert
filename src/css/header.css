@@ -16,12 +16,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   padding: 0 50px;
   z-index: 1000;
   width: 100%;
   font-family: "Inter", sans-serif;
+  transform: translateY(0);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+.header-container-premium.header--scrolled {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.header-container-premium.header--hidden {
+  transform: translateY(-110%);
 }
 
 .header-inner {

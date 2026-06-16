@@ -17,6 +17,7 @@ import {
 import BlogList from "./blogs/BlogList";
 import BlogEditor from "./blogs/BlogEditor";
 import SeoSettings from "./blogs/SeoSettings";
+import SchemaSettings from "./blogs/SchemaSettings";
 import CtaSettings from "./blogs/CtaSettings";
 import FaqSettings from "./blogs/FaqSettings";
 
@@ -37,8 +38,9 @@ const AdminBlogs = () => {
     content: "",
     date: new Date().toISOString().split("T")[0],
     image: "",
+    image_alt: "",
     category: "",
-    subCategory: "",
+    secondary_categories: [],
     tags: "",
     faqs: [],
     cta_title: "",
@@ -46,7 +48,11 @@ const AdminBlogs = () => {
     cta_button_text: "",
     cta_button_link: "",
     related_blogs: [],
+    co_authors: [],
     author_id: "", // Admin-only: assign contributor as author
+    schema_type: "BlogPosting",
+    article_section: "",
+    is_premium: 0,
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -60,9 +66,13 @@ const AdminBlogs = () => {
 
   useEffect(() => {
     fetchBlogs();
-    if (isAdmin) fetchAuthors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (isAdmin) fetchAuthors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
 
   const safeJsonParse = (val, fallback = []) => {
     if (!val || val === "null") return fallback;
@@ -78,7 +88,8 @@ const AdminBlogs = () => {
   const fetchAuthors = async () => {
     try {
       const res = await getAuthors();
-      if (res.data?.data) setAuthors(res.data.data);
+      const list = Array.isArray(res.data) ? res.data : res.data?.data;
+      if (list) setAuthors(list);
     } catch (err) {
       console.warn("Could not load authors", err);
     }
@@ -92,6 +103,8 @@ const AdminBlogs = () => {
           ...blog,
           faqs: safeJsonParse(blog.faqs),
           draft_faqs: safeJsonParse(blog.draft_faqs),
+          secondary_categories: safeJsonParse(blog.secondary_categories),
+          draft_secondary_categories: safeJsonParse(blog.draft_secondary_categories),
         }));
         setBlogs(parsedData);
       }
@@ -213,7 +226,13 @@ const AdminBlogs = () => {
       content: isEdited ? blog.draft_content || blog.content : blog.content,
       excerpt: isEdited ? blog.draft_excerpt || blog.excerpt : blog.excerpt,
       image: isEdited ? blog.draft_image || blog.image : blog.image,
+      image_alt: isEdited ? blog.draft_image_alt || blog.image_alt || "" : blog.image_alt || "",
       category: isEdited ? blog.draft_category || blog.category : blog.category,
+      secondary_categories: safeJsonParse(
+        isEdited
+          ? blog.draft_secondary_categories || blog.secondary_categories
+          : blog.secondary_categories
+      ),
       date: blog.date
         ? blog.date.split(" ")[0].substring(0, 10)
         : new Date().toISOString().split("T")[0],
@@ -222,7 +241,10 @@ const AdminBlogs = () => {
           ? JSON.parse(faqsSource || "[]")
           : faqsSource || [],
       related_blogs: safeJsonParse(blog.related_blogs),
+      co_authors: safeJsonParse(blog.co_authors),
       author_id: blog.author_id || "",
+      schema_type: blog.schema_type || "BlogPosting",
+      article_section: blog.article_section || "",
     });
     setView("editor");
   };
@@ -365,10 +387,10 @@ const AdminBlogs = () => {
             </button>
           </div>
         )}
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div className="page-header-actions">
           {view === "list" ? (
             <button
-              className="btn-approve"
+              className="btn-approve btn-sm"
               onClick={() => {
                 setFormData(initialFormState);
                 setView("editor");
@@ -377,45 +399,38 @@ const AdminBlogs = () => {
               + New Blog Post
             </button>
           ) : (
-            <button className="btn-reject" onClick={() => setView("list")}>
+            <button className="btn-reject btn-sm" onClick={() => setView("list")}>
               Cancel
             </button>
           )}
 
           {view === "list" && isAdmin && (
             <button
-              className="btn-secondary"
+              className="btn-secondary btn-sm"
               onClick={handleBulkRecalculate}
               disabled={isBulkProcessing}
-              style={{ display: "flex", alignItems: "center", gap: "8px" }}
             >
-              <i
-                className={`bi ${isBulkProcessing ? "bi-hourglass-split" : "bi-arrow-repeat"}`}
-              ></i>
-              {isBulkProcessing
-                ? "Processing..."
-                : "Recalculate All Plagiarism"}
+              <i className={`bi ${isBulkProcessing ? "bi-hourglass-split" : "bi-arrow-repeat"}`}></i>
+              {isBulkProcessing ? "Processing..." : "Recalculate Plagiarism"}
             </button>
           )}
         </div>
       </div>
 
       {view === "list" && (
-        <div className="admin-filter-bar" style={{ marginBottom: "20px", display: "flex", gap: "15px", alignItems: "center", background: "#fff", padding: "15px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-          <div style={{ flex: 1, position: "relative" }}>
-            <i className="bi bi-search" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }}></i>
+        <div className="admin-filter-bar">
+          <div className="search-box" style={{ flex: 1 }}>
+            <i className="bi bi-search"></i>
             <input
               type="text"
               placeholder="Search blogs by title or author..."
-              className="form-control"
-              style={{ paddingLeft: "35px", width: "100%" }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <select
             className="form-control"
-            style={{ width: "200px" }}
+            style={{ width: "200px", flexShrink: 0 }}
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
           >
@@ -492,6 +507,10 @@ const AdminBlogs = () => {
             addFAQ={addFAQ}
             removeFAQ={removeFAQ}
             rteImageUpload={rteImageUpload}
+          />
+          <SchemaSettings
+            formData={formData}
+            handleInputChange={handleInputChange}
           />
           <CtaSettings
             formData={formData}

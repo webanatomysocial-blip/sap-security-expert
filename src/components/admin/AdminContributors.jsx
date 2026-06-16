@@ -104,24 +104,39 @@ const AdminContributors = () => {
   const handleDelete = (id) => {
     openConfirm({
       title: "Delete Contributor?",
-      message: "Are you sure you want to delete this contributor? This will deactivate their account and move them to the Deleted section.",
-      confirmText: "Delete",
+      message: "This will remove the contributor profile. An OTP will be sent to their email to confirm. Their published blogs stay live and they'll keep their member account.",
+      confirmText: "Send OTP & Delete",
       isDanger: true,
       onConfirm: async () => {
         try {
           const res = await deleteContributor(id);
-          if (res.data.status === "success") {
-            setApplications((prev) => prev.filter((app) => app.id !== id));
-            if (selectedApp && selectedApp.id === id) {
-              setSelectedApp(null);
-            }
-            addToast("Contributor deleted successfully.", "success");
+          if (res.data?.status === "otp_sent") {
+            openConfirm({
+              title: "Enter Deletion OTP",
+              message: res.data.message,
+              showInput: true,
+              inputPlaceholder: "Enter 6-digit OTP",
+              isDanger: true,
+              onConfirm: async (otp) => {
+                try {
+                  const res2 = await deleteContributor(id, otp);
+                  if (res2.data?.status === "success") {
+                    setApplications((prev) => prev.filter((app) => app.id !== id));
+                    if (selectedApp?.id === id) setSelectedApp(null);
+                    addToast("Contributor deleted. Account preserved as member.", "success");
+                  } else {
+                    addToast(res2.data?.message || "OTP verification failed.", "error");
+                  }
+                } catch (err) {
+                  addToast(err.response?.data?.message || "Verification failed.", "error");
+                }
+              },
+            });
           } else {
-            addToast("Failed to delete: " + res.data.message, "error");
+            addToast(res.data?.message || "Failed to initiate deletion.", "error");
           }
         } catch (error) {
-          console.error("Error deleting contributor:", error);
-          addToast("Connection error. Please try again.", "error");
+          addToast(error.response?.data?.message || "Connection error. Please try again.", "error");
         }
       },
     });
@@ -209,7 +224,7 @@ const AdminContributors = () => {
             Deleted
           </button>
         </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div className="page-header-actions">
           <div className="search-box">
             <i className="bi bi-search"></i>
             <input
@@ -219,15 +234,11 @@ const AdminContributors = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            onClick={handleExport}
-            className="btn-filter"
-            title="Export to CSV"
-          >
+          <button onClick={handleExport} className="btn-filter btn-sm" title="Export to CSV">
             <i className="bi bi-download"></i> Export
           </button>
-          <button onClick={fetchApplications} className="btn-primary">
-            <i className="bi bi-arrow-clockwise"></i> Refresh
+          <button onClick={fetchApplications} className="btn-primary btn-sm">
+            <i className="bi bi-arrow-clockwise"></i>
           </button>
         </div>
       </div>

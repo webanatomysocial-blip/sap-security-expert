@@ -14,6 +14,7 @@ import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { HiArrowRight } from "react-icons/hi";
 import FeaturedInsights from "../components/FeaturedInsights";
 import CommunitySection from "../components/CommunitySection";
+import TrendingStrip from "../components/TrendingStrip";
 // next-disabled: import "../css/Home.css";
 // Dummy data for visual layout
 import SEO from "../components/SEO";
@@ -27,6 +28,7 @@ export default function Home() {
         url={window.location.href}
       />
 
+      <TrendingStrip />
 
       {/* Community Section - Three Column Layout */}
       <CommunitySection />
@@ -201,19 +203,21 @@ export default function Home() {
             </p>
           </div>
           <div className="newsletter-form-container">
-            <iframe
-              src="https://grcwithraghu.substack.com/embed"
-              // style={{
-              //   border: "1px solid #EEE",
-              //   background: "white",
-              //   borderRadius: "8px",
-              //   margin: "0 auto",
-              //   display: "block",
-              // }}
-              frameBorder="0"
-              scrolling="no"
-              title="Newsletter Subscription"
-            ></iframe>
+            <div className="newsletter-signup-box">
+              <div className="newsletter-signup-icon">
+                <i className="bi bi-shield-lock-fill"></i>
+              </div>
+              <h3>Join the SAP Security Expert Community</h3>
+              <p>Get exclusive access to premium articles, expert insights, and the latest SAP security updates — all in one place.</p>
+              <div className="newsletter-signup-actions">
+                <Link to="/member/signup" className="btn-newsletter-primary">
+                  Create Free Account <i className="bi bi-arrow-right"></i>
+                </Link>
+                <Link to="/member/login" className="btn-newsletter-secondary">
+                  Already a member? Sign in
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>

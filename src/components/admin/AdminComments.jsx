@@ -185,7 +185,7 @@ const AdminComments = () => {
             All
           </button>
         </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div className="page-header-actions">
           <div className="search-box">
             <i className="bi bi-search"></i>
             <input
@@ -195,11 +195,11 @@ const AdminComments = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button onClick={handleExport} className="btn-filter" title="Export to CSV">
+          <button onClick={handleExport} className="btn-filter btn-sm" title="Export to CSV">
             <i className="bi bi-download"></i> Export
           </button>
-          <button className="btn-primary" onClick={fetchCommentsData}>
-            <i className="bi bi-arrow-clockwise"></i> Refresh
+          <button className="btn-primary btn-sm" onClick={fetchCommentsData}>
+            <i className="bi bi-arrow-clockwise"></i>
           </button>
         </div>
       </div>
@@ -237,27 +237,6 @@ const AdminComments = () => {
                        </div>
                      </td>
                      <td className="col-auto text-left wrap-text">
-                       {/* Target Post Link */}
-                       <div style={{ marginBottom: "6px", fontSize: "0.75rem", color: "#64748b" }}>
-                         <span style={{ fontWeight: 600 }}>Post: </span>
-                         {comment.slug ? (
-                           <a
-                             href={`/blogs/${comment.slug}`}
-                             target="_blank"
-                             rel="noopener noreferrer"
-                             className="post-link"
-                             title={comment.slug}
-                             style={{ textDecoration: "underline", color: "#2563eb", fontWeight: 500 }}
-                           >
-                             {comment.slug}
-                           </a>
-                         ) : (
-                           <span className="post-id-fallback">
-                             ID: {comment.post_id}
-                           </span>
-                         )}
-                       </div>
-
                        {comment.parent_id && (
                          <div
                            className="reply-context"
@@ -305,6 +284,23 @@ const AdminComments = () => {
                            (Ed)
                          </small>
                        )}
+                       {/* Post link below comment text */}
+                       <div style={{ marginTop: "6px", fontSize: "0.72rem", color: "#94a3b8" }}>
+                         {comment.slug ? (
+                           <a
+                             href={`/blogs/${comment.slug}`}
+                             target="_blank"
+                             rel="noopener noreferrer"
+                             className="post-link"
+                             title={comment.slug}
+                             style={{ color: "#94a3b8", textDecoration: "underline" }}
+                           >
+                             /{comment.slug}
+                           </a>
+                         ) : (
+                           <span style={{ color: "#94a3b8" }}>ID: {comment.post_id}</span>
+                         )}
+                       </div>
                      </td>
                      <td className="col-md text-left">
                        <span className="comment-date" style={{ fontSize: "0.8rem", color: "#64748b" }}>
@@ -407,24 +403,6 @@ const AdminComments = () => {
                   </label>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Target Post:</label>
-                  {editingComment.slug ? (
-                    <a
-                      href={`/blogs/${editingComment.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="post-link"
-                      style={{ display: "block", marginTop: "4px" }}
-                    >
-                      View Post: {editingComment.slug}
-                    </a>
-                  ) : (
-                    <span className="post-id-fallback">
-                      Internal ID: {editingComment.post_id}
-                    </span>
-                  )}
-                </div>
-                <div className="form-group">
                   <label className="form-label">Comment Text</label>
                   <textarea
                     value={editText}
@@ -432,6 +410,14 @@ const AdminComments = () => {
                     rows="5"
                     className="form-control"
                   />
+                  {editingComment.slug && (
+                    <div style={{ marginTop: "6px", fontSize: "0.75rem", color: "#94a3b8" }}>
+                      <a href={`/blogs/${editingComment.slug}`} target="_blank" rel="noopener noreferrer"
+                        style={{ color: "#94a3b8", textDecoration: "underline" }}>
+                        /{editingComment.slug}
+                      </a>
+                    </div>
+                  )}
                 </div>
                 {editingComment.original_text && (
                   <div className="form-group">

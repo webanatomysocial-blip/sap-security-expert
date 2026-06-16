@@ -22,9 +22,14 @@
   max-width: 400px;
 }
 
+.brand-header {
+  margin-bottom: 20px;
+}
+
 .brand-header img {
-  height: 40px;
-  filter: brightness(0) invert(1);
+  height: 50px;
+  width: auto;
+  display: block;
 }
 
 .footer-brand p {
@@ -32,7 +37,7 @@
   font-weight: 400;
   color: #94a3b8;
   line-height: 1.6;
-  margin: 20px 0 25px 0;
+  margin: 0 0 25px 0;
   max-width: 350px;
 }
 

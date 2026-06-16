@@ -5,6 +5,19 @@ import { submitComment, getCommentsByBlogId } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 
+const decodeEntities = (str) => {
+  if (!str) return '';
+  return str
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&#034;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+};
+
 const CommentItem = ({ comment, depth = 0, replyMap, onReply }) => {
   const replies = replyMap[comment.id] || [];
   const [isExpanded, setIsExpanded] = useState(false);
@@ -17,7 +30,7 @@ const CommentItem = ({ comment, depth = 0, replyMap, onReply }) => {
     <div className={`comment-item ${depth > 0 ? "reply-item" : ""}`}>
       <div className="comment-content-wrapper">
         <div className="comment-header">
-          <span className="comment-author">{comment.author}</span>
+          <span className="comment-author">{decodeEntities(comment.author)}</span>
           <span className="comment-date">
             {new Date(comment.date).toLocaleDateString("en-US", {
               month: "long",
@@ -26,7 +39,7 @@ const CommentItem = ({ comment, depth = 0, replyMap, onReply }) => {
             })}
           </span>
         </div>
-        <p className="comment-text">{comment.text}</p>
+        <p className="comment-text">{decodeEntities(comment.text)}</p>
 
         <div className="comment-footer">
           <button className="btn-reply-link" onClick={() => onReply(comment)}>
@@ -97,6 +110,7 @@ const CommentSection = ({ blogId, onCommentAdded, isExclusive }) => {
     return { q: `${num1} + ${num2}`, a: (num1 + num2).toString() };
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
   const [totalComments, setTotalComments] = useState(0);
 
@@ -121,12 +135,12 @@ const CommentSection = ({ blogId, onCommentAdded, isExclusive }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!isLoggedIn) {
       addToast("Please login to post a comment.", "error");
       return;
     }
     if (!newComment.trim() || !authorName.trim() || !email.trim()) return;
-
     if (honeypot) return;
 
     if (mathAnswer !== mathQuestion.a) {
@@ -142,42 +156,32 @@ const CommentSection = ({ blogId, onCommentAdded, isExclusive }) => {
       parent_id: replyTo ? replyTo.id : null,
     };
 
+    setIsSubmitting(true);
     try {
       const response = await submitComment(payload);
 
-      if (response.status === 201) {
+      if (response.data?.status === 'success') {
         addToast(
           "Thank you for your comment. It has been successfully submitted and is now awaiting moderation. Once reviewed, it will be published.",
           "success",
         );
         setNewComment("");
-        // Preserve authorName and email from member data
-        if (!isLoggedIn) {
-          setAuthorName("");
-          setEmail("");
-        }
         setMathAnswer("");
         setReplyTo(null);
 
         const num1 = Math.floor(Math.random() * 10) + 1;
         const num2 = Math.floor(Math.random() * 10) + 1;
-        setMathQuestion({
-          q: `${num1} + ${num2}`,
-          a: (num1 + num2).toString(),
-        });
+        setMathQuestion({ q: `${num1} + ${num2}`, a: (num1 + num2).toString() });
 
-        // Refresh to show updated (if approved immediately, but usually it waits)
         fetchComments();
-
-        // Notify parent to increment comment count if not a reply and assuming it could be auto-approved
-        if (!replyTo && onCommentAdded) {
-          onCommentAdded();
-        }
+        if (!replyTo && onCommentAdded) onCommentAdded();
       } else {
         addToast("Something went wrong.", "error");
       }
     } catch (error) {
       addToast("Failed to submit comment.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -233,7 +237,7 @@ const CommentSection = ({ blogId, onCommentAdded, isExclusive }) => {
             <i className="bi bi-lock-fill"></i>
             <h4>Want to join the conversation?</h4>
             <p>Please login to your account to leave a comment or reply.</p>
-            <Link to="/member/login" className="btn-primary login-redirect-btn">
+            <Link to="/member/login" state={{ from: window.location.pathname + window.location.search }} className="btn-primary login-redirect-btn">
               Login to Comment
             </Link>
           </div>
@@ -298,8 +302,8 @@ const CommentSection = ({ blogId, onCommentAdded, isExclusive }) => {
                 />
               </div>
 
-              <button type="submit" className="btn-primary btn-submit-comment">
-                {replyTo ? "Post Reply" : "Post Comment"}
+              <button type="submit" className="btn-primary btn-submit-comment" disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : replyTo ? "Post Reply" : "Post Comment"}
               </button>
             </div>
           </form>
@@ -353,8 +357,8 @@ const CommentSection = ({ blogId, onCommentAdded, isExclusive }) => {
                     required
                   />
                 </div>
-                <button type="submit" className="btn-primary">
-                  Post Reply
+                <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? "Submitting..." : "Post Reply"}
                 </button>
               </div>
             </form>

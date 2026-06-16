@@ -184,7 +184,7 @@ h6 {
   border: 1px solid var(--primary-color);
   cursor: pointer;
   display: flex;
-  justify-content: start;
+  justify-content: flex-start;
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease-in-out;
@@ -218,7 +218,7 @@ h6 {
   border: 1px solid var(--secondary-color);
   cursor: pointer;
   display: flex;
-  justify-content: start;
+  justify-content: flex-start;
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease;
@@ -252,7 +252,7 @@ h6 {
   text-decoration: none;
   cursor: pointer;
   display: flex;
-  justify-content: start;
+  justify-content: flex-start;
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease;
@@ -300,7 +300,6 @@ body {
   margin: 0;
   padding: 0;
   /* padding-top: 100px; */
-  background-color: var(--primary-color) !important;
 }
 
 @media (max-width: 768px) {

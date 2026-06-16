@@ -49,7 +49,7 @@ const MembersOnlyPaywall = ({ children }) => {
           <div className="members-paywall-actions">
             <button
               className="members-paywall-btn-login"
-              onClick={() => navigate("/member/login")}
+              onClick={() => navigate("/member/login", { state: { from: window.location.pathname + window.location.search } })}
             >
               Log In
             </button>

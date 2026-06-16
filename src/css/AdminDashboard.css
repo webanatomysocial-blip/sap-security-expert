@@ -127,8 +127,8 @@ h6 {
 }
 
 .sidebar-logo {
-  max-height: 45px;
-  width: auto;
+  /* max-height: 45px; */
+  width: 100%;
   object-fit: contain;
   filter: brightness(1.1);
   transition: all var(--transition-speed);
@@ -438,6 +438,15 @@ h6 {
   margin: 0;
 }
 
+/* Header title row (hamburger + page title) */
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
 /* Profile modal specific override if needed */
 .profile-modal-body {
   padding: 24px;
@@ -668,25 +677,7 @@ h6 {
   }
 }
 
-@media (max-width: 1024px) {
-  .admin-sidebar {
-    transform: translateX(-100%);
-    visibility: hidden;
-    transition:
-      transform 0.3s ease,
-      visibility 0.3s;
-  }
-  .admin-main {
-    margin-left: 0 !important;
-  }
-  .admin-header {
-    padding: 0 24px;
-    justify-content: center; /* Center logo/title if sidebar is gone */
-  }
-  .header-user {
-    display: none; /* Hide admin user details to save space on mobile */
-  }
-}
+/* 1024px is already handled by the granular section below */
 
 @media (max-width: 768px) {
   .dashboard-grid {
@@ -1674,6 +1665,58 @@ td.col-status {
 }
 
 /* ================================
+   ADMIN FILTER BAR (e.g. search + category select row)
+================================ */
+.admin-filter-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #fff;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--slate-200);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.admin-filter-bar .search-box {
+  flex: 1;
+  min-width: 160px;
+}
+
+.admin-filter-bar .form-control {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .admin-filter-bar {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-filter-bar .search-box,
+  .admin-filter-bar .form-control {
+    width: 100% !important;
+  }
+}
+
+/* ================================
+   PAGE HEADER ACTIONS ROW
+   Used in page-header for search + action buttons
+================================ */
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.page-header-actions .search-box {
+  flex: 1;
+  min-width: 180px;
+}
+
+/* ================================
    FILTERS & TABS
 ================================ */
 .filter-group {
@@ -2175,10 +2218,10 @@ input:checked + .toggle-slider:before {
   }
   .sidebar-header {
     padding: 0 10px;
-    justify-content: center;
+    /* justify-content: center; */
   }
   .sidebar-logo {
-    max-width: 45px;
+    max-width: 200px;
   }
   .nav-item1 span,
   .btn-logout span {
@@ -2202,46 +2245,302 @@ input:checked + .toggle-slider:before {
   }
 }
 
-/* Tablets and below (max 768px) */
+/* ================================
+   MOBILE HAMBURGER BUTTON
+================================ */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  color: var(--slate-700);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.mobile-menu-btn:hover {
+  background: var(--slate-100);
+}
+
+/* ================================
+   MOBILE SIDEBAR BACKDROP
+   React controls when this is in the DOM ({isMobileOpen && ...})
+   so no display:none trick needed — it's simply not rendered when closed.
+================================ */
+.mobile-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 1999;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: backdropFadeIn 0.2s ease;
+}
+
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ================================
+   TABLETS AND BELOW (≤768px)
+================================ */
 @media (max-width: 768px) {
-  .admin-sidebar {
-    width: 0;
-    transform: translateX(-100%);
-    position: fixed;
-    z-index: 2000;
+
+  /* ----- Hamburger ----- */
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+
+  /* ----- Sidebar: off-screen by default, slides in on .mobile-open ----- */
+  .admin-sidebar,
+  .admin-container.collapsed .admin-sidebar {
+    width: 280px !important;
+    transform: translateX(-100%) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    z-index: 2000 !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: none;
+    padding: 0 !important;
+  }
+
+  .admin-sidebar.mobile-open {
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* Restore sidebar nav padding on mobile */
+  .admin-sidebar .sidebar-nav {
+    padding: 16px !important;
+  }
+
+  .admin-sidebar .nav-item1 {
+    justify-content: flex-start !important;
+    padding: 12px 14px !important;
+    gap: 12px !important;
+  }
+
+  .admin-sidebar .nav-item1 span {
+    display: inline !important;
+  }
+
+  .admin-sidebar .sidebar-footer {
+    padding: 16px !important;
+  }
+
+  /* ----- Main content: full width ----- */
   .admin-main {
-    margin-left: 0;
+    margin-left: 0 !important;
+    width: 100% !important;
+    overflow-x: hidden;
   }
+
+  /* ----- Header ----- */
   .admin-header {
-    padding: 0 16px;
+    padding: 0 14px;
+    min-height: 60px;
+    justify-content: space-between;
+    gap: 8px;
   }
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .admin-header h2 {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Hide "Go to Website" text on mobile, keep icon only */
+  .btn-go-website span { display: none; }
+  .btn-go-website { padding: 8px 10px; min-width: 36px; }
+
+  /* Compact user pill: show only avatar */
+  .header-user .user-meta,
+  .header-user .user-info,
+  .header-user .chevron-icon { display: none !important; }
+
+  /* ----- Content area ----- */
+  .admin-content {
+    padding: 14px;
+    overflow-x: hidden;
+  }
+
+  /* ----- Page/section header — stack title + filters + actions vertically ----- */
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 16px;
   }
-  .header-actions {
+
+  .page-header > h2,
+  .page-header > h3 {
+    margin-bottom: 2px;
+  }
+
+  .admin-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .admin-title-group {
     width: 100%;
-    justify-content: end;
+    justify-content: space-between;
   }
+
+  /* ----- Filter / status tabs: horizontal scroll strip ----- */
   .status-filter-tabs {
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 5px;
     display: flex;
     flex-wrap: nowrap;
-  }
-  .admin-table-wrapper {
-    margin-top: 10px;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 4px;
+    padding-bottom: 2px;
+    width: 100%;
   }
+  .status-filter-tabs::-webkit-scrollbar { display: none; }
+  .status-filter-tabs button { white-space: nowrap; flex-shrink: 0; }
+
+  .filter-group {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+    width: 100%;
+    gap: 8px;
+  }
+  .filter-group::-webkit-scrollbar { display: none; }
+  .filter-group .btn-filter { white-space: nowrap; flex-shrink: 0; }
+
+  /* ----- Page-level action row (search + buttons) ----- */
+  .page-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .page-header-actions .search-box,
+  .page-header > div > .search-box,
+  .page-header > div[style] .search-box {
+    flex: 1;
+    min-width: 0;
+    width: auto !important;
+  }
+
+  /* ----- Search box ----- */
+  .search-box {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  /* ----- Table scroll ----- */
+  .admin-table-wrapper { overflow-x: auto; }
+
+  /* ----- Dashboard stats ----- */
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
   }
-  .admin-card {
-    padding: 16px;
+
+  .stat-card { padding: 14px; gap: 10px; }
+  .stat-value { font-size: 1.4rem; }
+  .stat-icon { width: 42px; height: 42px; font-size: 1.35rem; }
+
+  /* ----- Admin card ----- */
+  .admin-card { padding: 14px; }
+
+  /* ----- Modals: bottom-sheet style ----- */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
   }
+
+  .modal-container,
+  .modal-content {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 93vh;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  .modal-container.large,
+  .modal-container.xlarge { max-width: 100% !important; }
+
+  .modal-header { padding: 16px 18px; }
+  .modal-body  { padding: 14px 18px; }
+
+  .modal-footer {
+    padding: 14px 18px !important;
+    flex-direction: column-reverse;
+    gap: 8px !important;
+  }
+
+  .modal-footer .btn-primary,
+  .modal-footer .btn-cancel,
+  .modal-footer .btn-secondary {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* ----- Forms ----- */
+  .form-row { flex-direction: column; gap: 0; }
+  .form-group.half { margin-bottom: 20px; }
+
+  /* ----- View meta grid ----- */
+  .view-meta-grid { grid-template-columns: 1fr; gap: 12px; }
+
+  /* ----- Tab navigation ----- */
+  .tab-container-navigation {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .tab-container-navigation::-webkit-scrollbar { display: none; }
+  .tab-nav-item { white-space: nowrap; flex-shrink: 0; }
+}
+
+/* ================================
+   VERY SMALL PHONES (≤480px)
+================================ */
+@media (max-width: 480px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .admin-header h2 { font-size: 0.95rem; }
+  .stat-card { padding: 12px; gap: 8px; }
+  .stat-value { font-size: 1.2rem; }
+  .action-buttons { flex-wrap: wrap; gap: 6px; }
+  .btn-filter { padding: 8px 12px; font-size: 0.8rem; }
+  .admin-content { padding: 10px; }
 }
 
 /* Final Alignment Fixes */

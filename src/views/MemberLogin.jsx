@@ -25,7 +25,7 @@ const MemberLogin = () => {
 
       if (res.data.status === "success" && res.data.member) {
         // 1. Log in as a member (frontend)
-        memberLogin(res.data.member, res.data.token, res.data.is_contributor);
+        memberLogin(res.data.member, res.data.token, res.data.is_contributor, res.data.subscription || null);
 
         // 2. If it's a contributor, also log in to the admin/dashboard side
         if (res.data.is_contributor) {
@@ -41,14 +41,9 @@ const MemberLogin = () => {
         }
 
         addToast("Welcome back!", "success");
-        
-        // Intelligent redirect: If coming from reset/forgot flow, go to home
-        if (location.state?.fromAuth) {
-          navigate("/", { replace: true });
-        } else {
-          // Fallback to home if no history
-          navigate("/", { replace: true });
-        }
+        // Return to the page they came from, unless it was an auth flow
+        const returnTo = location.state?.fromAuth ? "/" : (location.state?.from || "/");
+        navigate(returnTo, { replace: true });
       } else {
         addToast(res.data.message || "Invalid email or password", "error");
       }

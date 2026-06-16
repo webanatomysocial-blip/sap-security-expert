@@ -119,7 +119,12 @@ export default function LatestBlogs() {
                 <span className="latest-blog-badge">
                   {getCategoryLabel(blog.category, blog.subCategory)}
                 </span>
-                {blog.is_members_only == 1 && (
+                {blog.is_premium == 1 && (
+                  <div className="exclusive-badge-overlay" style={{ background: "#d97706" }}>
+                    <i className="bi bi-star-fill"></i> Premium
+                  </div>
+                )}
+                {blog.is_members_only == 1 && blog.is_premium != 1 && (
                   <div className="exclusive-badge-overlay">
                     <i className="bi bi-lock-fill"></i> Exclusive
                   </div>

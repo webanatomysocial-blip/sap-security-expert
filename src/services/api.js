@@ -12,11 +12,13 @@ export const api = axios.create({
     withCredentials: true,
 });
 
-// Response error logger
+// Response error logger — 401 errors are always handled by the auth flow (not bugs)
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        console.error('API Error:', error.response?.data?.message || error.message);
+        if (error.response?.status !== 401) {
+            console.error('API Error:', error.response?.data?.message || error.message);
+        }
         return Promise.reject(error);
     }
 );
@@ -61,7 +63,8 @@ export const getCategories = () => api.get('/get_categories.php');
 export const getBlogs = (params = {}) => api.get('/posts', { params });
 export const saveBlog = (data) => api.post('/posts', data);
 export const deleteBlog = (id) => api.delete(`/posts/${id}`);
-export const toggleExclusiveContent = (data) => api.post('/admin/toggle-exclusive', data);
+export const toggleExclusiveContent = (data) => api.post('/admin/blogs/toggle-exclusive', data);
+export const togglePremiumContent = (data) => api.post('/admin/blogs/toggle-premium', data);
 export const uploadBlogImage = (formData) => api.post('/upload-blog-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
 });
@@ -69,12 +72,12 @@ export const uploadBlogImage = (formData) => api.post('/upload-blog-image', form
 // ── Contributors Management (Admin) ───────────────────────────────────────────
 export const getContributors = () => api.get('/admin/contributors');
 export const updateContributorStatus = (data) => api.post('/admin/contributors', data);
-export const deleteContributor = (id) => api.post('/delete_contributor.php', { id });
+export const deleteContributor = (id, otp) => api.post('/delete_contributor.php', { id, ...(otp ? { otp } : {}) });
 
 // ── Members Management (Admin) ───────────────────────────────────────────────
 export const getAdminMembers = (status = 'all') => api.get(`/admin/members?status=${status}`);
 export const manageAdminMember = (data) => api.post('/admin/members', data);
-export const resetMemberPassword = (memberId) => api.post('/admin/reset-member-password', { member_id: memberId });
+export const resetMemberPassword = (memberId) => api.post('/admin/members/reset-password', { member_id: memberId });
 
 // ── Admin Profile ─────────────────────────────────────────────────────────────
 export const getAdminProfile = () => api.get('/admin/profile');
@@ -113,6 +116,24 @@ export const getAds = () => api.get('/admin/ads');
 export const saveAd = (data) => api.post('/admin/ads', data);
 export const trackAdClick = (zone) => api.post('/ads/click', { zone });
 
+// ── News/Updates (Public) ────────────────────────────────────────────────────
+export const getNewsList = () => api.get('/news');
+export const getNewsBySlug = (slug) => api.get(`/news/${slug}`);
+
+// ── News/Updates Management (Admin) ─────────────────────────────────────────
+export const getAdminNews = () => api.get('/admin/news');
+export const saveNews = (data) => api.post('/admin/news', data);
+export const deleteNews = (id) => api.delete(`/admin/news/${id}`);
+
+// ── Learning Hub (Public) ─────────────────────────────────────────────────────
+export const getLearnings = (category) => api.get('/learnings', { params: category ? { category } : {} });
+export const getLearningCounts = () => api.get('/learnings/counts');
+
+// ── Learning Hub Management (Admin) ──────────────────────────────────────────
+export const getAdminLearnings = () => api.get('/admin/learnings');
+export const saveLearning = (data) => api.post('/admin/learnings', data);
+export const deleteLearning = (id) => api.delete(`/admin/learnings/${id}`);
+
 // ── Comments Management (Admin) ───────────────────────────────────────────────
 export const getComments = () => api.get('/admin/comments');
 export const updateComment = (data) => api.post('/admin/comments', data);
@@ -121,8 +142,14 @@ export const updateComment = (data) => api.post('/admin/comments', data);
 export const getAnnouncements = (isAdmin = false) =>
   api.get(isAdmin ? "/admin/announcements" : "/announcements");
 
+export const getAnnouncementBySlug = (slug) =>
+  api.get(`/admin/announcements/${slug}`);
+
 export const saveAnnouncement = (data) =>
   api.post("/admin/announcements", data);
+
+export const deleteAnnouncement = (id) =>
+  api.delete(`/admin/announcements?id=${id}`);
 
 // ── Member Auth (Public) ─────────────────────────────────────────────────────
 export const memberLogin = (data) => api.post('/member/login', data);
@@ -138,5 +165,11 @@ export const getCaptcha = () => api.get('/get_captcha.php');
 export const forgotPassword = (email) => api.post('/forgot_password.php', { email });
 export const resetWithToken = (email, token, password) => api.post('/reset_with_token.php', { email, token, password });
 export const resetPasswordOTP = (data) => api.post('/reset_password_otp.php', data);
+
+// ── Payments / Membership ─────────────────────────────────────────────────────
+export const getMembershipPlans = () => api.get('/payments/plans');
+export const getMySubscription = () => api.get('/payments/my-subscription');
+export const createPaymentOrder = (plan_id) => api.post('/payments/create-order', { plan_id });
+export const verifyPayment = (data) => api.post('/payments/verify', data);
 
 export default api;

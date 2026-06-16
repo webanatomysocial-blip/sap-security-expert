@@ -7,7 +7,7 @@ const Layout = () => {
   return (
     <div className="app-layout">
       <Header />
-      <main>
+      <main style={{ paddingTop: '90px' }}>
         <Outlet />
       </main>
       <Footer />

@@ -48,6 +48,7 @@ const AdminLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(
     localStorage.getItem("admin-sidebar-collapsed") === "true",
   );
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const toggleSidebar = () => {
     setIsCollapsed((prev) => {
@@ -56,6 +57,9 @@ const AdminLayout = () => {
       return newState;
     });
   };
+
+  const toggleMobileSidebar = () => setIsMobileOpen((prev) => !prev);
+  const closeMobileSidebar = () => setIsMobileOpen(false);
 
   // Click outside dropdown closes it
   useEffect(() => {
@@ -224,6 +228,9 @@ const AdminLayout = () => {
 
   return (
     <div className={`admin-container ${isCollapsed ? "collapsed" : ""}`}>
+      {isMobileOpen && (
+        <div className="mobile-sidebar-backdrop" onClick={closeMobileSidebar} />
+      )}
       <AdminSidebar
         onLogout={handleLogout}
         role={role}
@@ -231,10 +238,15 @@ const AdminLayout = () => {
         badges={badges}
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
+        isMobileOpen={isMobileOpen}
+        onMobileClose={closeMobileSidebar}
       />
       <main className="admin-main">
         <header className="admin-header">
           <div className="header-title">
+            <button className="mobile-menu-btn" onClick={toggleMobileSidebar} aria-label="Open menu">
+              <i className="bi bi-list"></i>
+            </button>
             <h2>{getPageTitle()}</h2>
           </div>
           <div className="header-actions">

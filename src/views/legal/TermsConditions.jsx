@@ -127,14 +127,14 @@ const TermsConditions = () => {
         <h3>Contact Information</h3>
         <p>
           For any inquiries regarding these Terms, please contact us at{" "}
-          <a className="legal-links" href="mailto:hello@sap.kaphi.in">
-            hello@sap.kaphi.in
+          <a className="legal-links" href="mailto:hello@sap.webanatomy.in">
+            hello@sap.webanatomy.in
           </a>
         </p>
         <p>
           Official Website:{" "}
-          <a className="legal-links" href="https://sap.kaphi.in">
-            sap.kaphi.in
+          <a className="legal-links" href="https://sap.webanatomy.in">
+            sap.webanatomy.in
           </a>
           .
         </p>

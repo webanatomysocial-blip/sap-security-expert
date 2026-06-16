@@ -58,31 +58,28 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
         // Status safety check
         if (!['approved', 'published', 'active'].includes(blog.status)) return false;
 
+        const secCats = Array.isArray(blog.secondary_categories)
+          ? blog.secondary_categories
+          : (() => { try { return JSON.parse(blog.secondary_categories || "[]"); } catch { return []; } })();
+
         // Parent category logic: sap-security shows its sub-categories AND itself
         if (categorySlug === "sap-security") {
-          return (
-            blog.category === "sap-security" ||
-            blog.category === "sap-btp-security" ||
-            blog.category === "sap-public-cloud" ||
-            blog.category === "sap-fiori-security" ||
-            blog.category === "sap-s4hana-security"
-          );
+          const sapSecGroup = ["sap-security", "sap-btp-security", "sap-public-cloud", "sap-fiori-security", "sap-s4hana-security"];
+          return sapSecGroup.includes(blog.category) || sapSecGroup.some((s) => secCats.includes(s));
         }
         if (categorySlug === "sap-grc") {
+          const grcGroup = ["sap-grc", "sap-access-control", "sap-process-control", "sap-iag"];
           return (
-            blog.category === "sap-grc" ||
-            blog.subCategory === "sap-grc" ||
-            blog.category === "sap-access-control" ||
-            blog.subCategory === "sap-access-control" ||
-            blog.category === "sap-process-control" ||
-            blog.subCategory === "sap-process-control" ||
-            blog.category === "sap-iag" ||
-            blog.subCategory === "sap-iag"
+            grcGroup.includes(blog.category) ||
+            grcGroup.includes(blog.subCategory) ||
+            grcGroup.some((s) => secCats.includes(s))
           );
         }
-        // Direct category or sub-category match
+        // Direct category, legacy subCategory, or secondary_categories match
         return (
-          blog.category === categorySlug || blog.subCategory === categorySlug
+          blog.category === categorySlug ||
+          blog.subCategory === categorySlug ||
+          secCats.includes(categorySlug)
         );
       })
       .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -93,9 +90,11 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
       {/* Header */}
       <div className="category-header-section">
         <div className="container">
-          <div className="breadcrumbs">
-            <Link to="/">Home</Link> &gt; <span>{displayName}</span>
-          </div>
+          <nav className="blog-breadcrumb" aria-label="Breadcrumb">
+            <Link to="/" className="breadcrumb-link">Home</Link>
+            <span className="breadcrumb-sep"><i className="bi bi-chevron-right"></i></span>
+            <span className="breadcrumb-current">{displayName}</span>
+          </nav>
           <h1>{displayName}</h1>
         </div>
       </div>
@@ -140,7 +139,12 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
                           sizes="(max-width: 768px) 100vw, 300px"
                           style={{ objectFit: 'cover' }}
                         />
-                        {blog.is_members_only == 1 && (
+                        {blog.is_premium == 1 && (
+                          <div className="exclusive-badge" style={{ background: "#d97706" }}>
+                            <i className="bi bi-star-fill"></i> Premium
+                          </div>
+                        )}
+                        {blog.is_members_only == 1 && blog.is_premium != 1 && (
                           <div className="exclusive-badge">
                             <i className="bi bi-lock-fill"></i> Exclusive
                           </div>

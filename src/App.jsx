@@ -29,6 +29,7 @@ import ProductReviews from "./views/categories/ProductReviews";
 import Podcasts from "./views/categories/Podcasts";
 import Videos from "./views/categories/Videos";
 import ExpertRecommendations from "./views/categories/ExpertRecommendations";
+import About from "./views/About";
 import Contact from "./views/Contact";
 import ContactUs from "./views/ContactUs";
 import BecomeContributor from "./components/BecomeContributor";
@@ -44,10 +45,17 @@ import AdminComments from "./components/admin/AdminComments";
 import AdminAds from "./components/admin/AdminAds";
 import AdminBlogs from "./components/admin/AdminBlogs";
 import AdminBlogReview from "./components/admin/AdminBlogReview";
+import AdminNews from "./components/admin/AdminNews";
+import AdminLearnings from "./components/admin/AdminLearnings";
+import News from "./views/News";
+import Announcements from "./views/Announcements";
+import AnnouncementDetail from "./views/AnnouncementDetail";
+import LearningHub from "./views/LearningHub";
+import LearningModulePage from "./views/LearningModulePage";
 import AdminManageUsers from "./components/admin/AdminManageUsers";
 import ForgotPassword from "./views/ForgotPassword";
 import ResetPassword from "./views/ResetPassword";
-import NotFound from "./views/NotFound";
+import MembershipPage from "./views/MembershipPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PrivacyPolicy from "./views/legal/PrivacyPolicy";
 import TermsConditions from "./views/legal/TermsConditions";
@@ -131,14 +139,29 @@ function App() {
         <Route path="expert-recommendations" element={<ExpertRecommendations />} />
         <Route path="expert-recommendations/:blogId" element={<DynamicBlog />} />
 
+        {/* News & Updates */}
+        <Route path="news" element={<News />} />
+        <Route path="news/:blogId" element={<DynamicBlog />} />
+
+        {/* Announcements */}
+        <Route path="announcements" element={<Announcements />} />
+        <Route path="announcements/:slug" element={<AnnouncementDetail />} />
+
+        {/* Learning Hub */}
+        <Route path="learning-hub" element={<LearningHub />} />
+        <Route path="learning/:moduleSlug" element={<LearningModulePage />} />
+        <Route path="learning/:moduleSlug/:blogId" element={<DynamicBlog />} />
+
         <Route path="become-a-contributor" element={<BecomeContributor />} />
         <Route path="apply-contributor" element={<ContributorApplication />} />
         <Route path="contributor/:id" element={<ContributorProfile />} />
+        <Route path="about" element={<About />} />
         <Route path="contact-us" element={<ContactUs />} />
 
         {/* Members Only Auth Pages */}
         <Route path="member/login" element={<MemberLogin />} />
         <Route path="member/signup" element={<MemberSignup />} />
+        <Route path="membership" element={<MembershipPage />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
 
@@ -235,12 +258,30 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="news"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminNews />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="learnings"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminLearnings />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       <Route
         path="/admin-dashboard"
         element={<Navigate to="/admin" replace />}
       />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

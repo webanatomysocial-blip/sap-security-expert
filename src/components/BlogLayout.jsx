@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "react-router-dom";
@@ -16,25 +16,56 @@ import AuthorProfile from "./AuthorProfile";
 import FAQ from "./FAQ";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import MembersOnlyPaywall from "./MembersOnlyPaywall";
+import PremiumPaywall from "./PremiumPaywall";
 
 // Register ScrollTrigger
 gsap.registerPlugin(ScrollTrigger);
+
+const CATEGORY_LABELS = {
+  "sap-security": "SAP Security",
+  "sap-s4hana-security": "SAP S/4HANA Security",
+  "sap-fiori-security": "SAP Fiori Security",
+  "sap-btp-security": "SAP BTP Security",
+  "sap-public-cloud": "SAP Public Cloud",
+  "sap-sac-security": "SAP SAC Security",
+  "sap-cis": "SAP CIS",
+  "sap-successfactors-security": "SuccessFactors Security",
+  "sap-security-other": "SAP Security",
+  "sap-access-control": "Access Control",
+  "sap-process-control": "Process Control",
+  "sap-iag": "SAP IAG",
+  "sap-grc": "SAP GRC",
+  "sap-cybersecurity": "Cybersecurity",
+  "product-reviews": "Product Reviews",
+  "podcasts": "Expert Voices & Podcasts",
+  "videos": "Videos",
+  "expert-recommendations": "Expert Recommendations",
+  "news": "News & Updates",
+  "security-fundamentals": "Security Fundamentals",
+  "user-management": "User Management",
+  "role-management": "Role Management",
+  "authorization-concepts": "Authorization Concepts",
+  "audit-compliance": "Audit & Compliance",
+  "grc-advanced": "GRC & Advanced Topics",
+};
 
 const BlogLayout = ({
   blogId,
   title,
   content,
   image,
+  image_alt,
+  category,
   date,
-  author_name = "Guest Author", // Standardized Author Name
+  author_name = "Guest Author",
   author_image,
   author_bio,
   author_designation,
   author_linkedin,
   author_twitter,
   author_website,
-  sidebarAd = {}, // Sidebar ad data
-  dynamicRecentPosts = [], // New prop for passing recent posts if available
+  sidebarAd = {},
+  dynamicRecentPosts = [],
   viewCount = 0,
   commentCount = 0,
   faqs = [],
@@ -44,10 +75,16 @@ const BlogLayout = ({
   metaDescription,
   metaKeywords,
   isMembersOnly = false,
+  isPremium = false,
+  isPremiumLocked = false,
+  onPaymentSuccess,
   relatedBlogs = [],
+  co_authors = [],
 }) => {
   const { isLoggedIn } = useMemberAuth();
   const progressBarRef = useRef(null);
+  const metaRowRef = useRef(null);
+  const [isSticky, setIsSticky] = useState(false);
   const currentUrl = window.location.href;
 
   const cleanAuthorImage = (author_image && author_image.trim().toUpperCase() !== "NULL" && author_image.trim() !== "") 
@@ -106,64 +143,187 @@ const BlogLayout = ({
     }
   }, [blogId, title]);
 
+  useEffect(() => {
+    if (!metaRowRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsSticky(!entry.isIntersecting),
+      { threshold: 0, rootMargin: "-64px 0px 0px 0px" }
+    );
+    observer.observe(metaRowRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   // JSON-LD Schema Construction
   const schemaData = useMemo(() => {
     const domain = VITE_SITE_URL;
-    const articleSchema = {
-      "@context": "https://schema.org",
-      "@type": "BlogPosting", // More specific than Article
-      headline: title,
-      image: [
-        image
-          ? image.startsWith("http")
-            ? image
-            : `${domain}${image.startsWith("/") ? "" : "/"}${image}`
-          : `${domain}/assets/sapsecurityexpert-black.png`,
-      ],
-      datePublished: date,
-      dateModified: date,
-      author: {
-        "@type": "Person",
-        name: author_name,
-        url: `${domain}/contributor/${author_name.replace(/\s+/g, "-").toLowerCase()}`,
-      },
-      publisher: {
-        "@type": "Organization",
-        name: "SAP Security Expert",
-        logo: {
-          "@type": "ImageObject",
-          url: `${domain}/assets/sapsecurityexpert-black.png`,
-        },
-      },
-      mainEntityOfPage: {
+    const absoluteImage = image
+      ? image.startsWith("http")
+        ? image
+        : `${domain}${image.startsWith("/") ? "" : "/"}${image}`
+      : `${domain}/assets/sapsecurityexpert-black.png`;
+
+    const authorSlug = author_name.replace(/\s+/g, "-").toLowerCase();
+    const authorSameAs = [
+      `${domain}/contributor/${authorSlug}`,
+      ...(author_linkedin ? [author_linkedin] : []),
+      ...(author_twitter ? [author_twitter] : []),
+      ...(author_website ? [author_website] : []),
+    ];
+
+    const graph = [
+      // WebPage — root node that ties everything together
+      {
         "@type": "WebPage",
         "@id": currentUrl,
+        url: currentUrl,
+        name: title,
+        description: metaDescription || title,
+        inLanguage: "en-US",
+        isPartOf: { "@id": `${domain}/#website` },
+        breadcrumb: { "@id": `${currentUrl}#breadcrumb` },
+        primaryImageOfPage: { "@id": `${currentUrl}#primaryimage` },
       },
-      description: metaDescription || title,
-    };
 
-    const schemas = [articleSchema];
+      // Primary image
+      {
+        "@type": "ImageObject",
+        "@id": `${currentUrl}#primaryimage`,
+        url: absoluteImage,
+        contentUrl: absoluteImage,
+      },
+
+      // BreadcrumbList — matches the visual breadcrumbs on the page
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${currentUrl}#breadcrumb`,
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: domain,
+          },
+          ...(category
+            ? [
+                {
+                  "@type": "ListItem",
+                  position: 2,
+                  name: CATEGORY_LABELS[category] || category,
+                  item: `${domain}/${category}`,
+                },
+                {
+                  "@type": "ListItem",
+                  position: 3,
+                  name: title,
+                  item: currentUrl,
+                },
+              ]
+            : [
+                {
+                  "@type": "ListItem",
+                  position: 2,
+                  name: title,
+                  item: currentUrl,
+                },
+              ]),
+        ],
+      },
+
+      // BlogPosting — the article itself
+      {
+        "@type": "BlogPosting",
+        "@id": `${currentUrl}#article`,
+        headline: title,
+        description: metaDescription || title,
+        image: absoluteImage,
+        datePublished: date,
+        dateModified: date,
+        inLanguage: "en-US",
+        url: currentUrl,
+        mainEntityOfPage: { "@id": currentUrl },
+        ...(category ? { articleSection: CATEGORY_LABELS[category] || category } : {}),
+        ...(metaKeywords ? { keywords: metaKeywords } : {}),
+        author: {
+          "@type": "Person",
+          "@id": `${domain}/contributor/${authorSlug}`,
+          name: author_name,
+          url: `${domain}/contributor/${authorSlug}`,
+          ...(authorSameAs.length > 1 ? { sameAs: authorSameAs } : {}),
+          ...(author_image ? { image: { "@type": "ImageObject", url: author_image } } : {}),
+        },
+        publisher: {
+          "@type": "Organization",
+          "@id": `${domain}/#organization`,
+          name: "SAP Security Expert",
+          url: domain,
+          logo: {
+            "@type": "ImageObject",
+            url: `${domain}/assets/sapsecurityexpert-black.png`,
+          },
+        },
+        isPartOf: { "@id": currentUrl },
+      },
+
+      // Website node
+      {
+        "@type": "WebSite",
+        "@id": `${domain}/#website`,
+        url: domain,
+        name: "SAP Security Expert",
+        publisher: { "@id": `${domain}/#organization` },
+      },
+    ];
 
     if (faqs && Array.isArray(faqs) && faqs.length > 0) {
-      schemas.push({
-        "@context": "https://schema.org",
+      graph.push({
         "@type": "FAQPage",
+        "@id": `${currentUrl}#faq`,
         mainEntity: faqs.map((f) => ({
           "@type": "Question",
           name: f.question,
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: f.answer,
-          },
+          acceptedAnswer: { "@type": "Answer", text: f.answer },
         })),
       });
     }
 
-    return schemas;
-  }, [title, image, date, author_name, metaDescription, faqs, currentUrl]);
+    return { "@context": "https://schema.org", "@graph": graph };
+  }, [title, image, date, author_name, author_linkedin, author_twitter, author_website, author_image, category, metaDescription, metaKeywords, faqs, currentUrl]);
+
+  const categoryLabel = CATEGORY_LABELS[category] || category;
 
   return (
     <div className="blog-post-wrapper">
+      {/* Sticky Post Header */}
+      <div className={`blog-sticky-header${isSticky ? " blog-sticky-header--visible" : ""}`}>
+        <div className="blog-sticky-inner">
+          <nav className="blog-sticky-breadcrumb" aria-label="Breadcrumb">
+            <Link to="/" className="breadcrumb-link">Home</Link>
+            <span className="breadcrumb-sep"><i className="bi bi-chevron-right"></i></span>
+            {category && (
+              <>
+                <Link to={`/${category}`} className="breadcrumb-link">{categoryLabel}</Link>
+                <span className="breadcrumb-sep"><i className="bi bi-chevron-right"></i></span>
+              </>
+            )}
+            <span className="breadcrumb-current">{title}</span>
+          </nav>
+
+          <div className="blog-sticky-meta">
+            <span className="meta-author">{author_name},</span>
+            <span className="meta-date" style={{ marginLeft: "5px" }}>{formatDateForm(date)}</span>
+            <span className="meta-dot">•</span>
+            <span className="meta-read-time"><i className="bi bi-clock"></i> 5 min read</span>
+            <span className="meta-dot">•</span>
+            <span className="meta-views"><i className="bi bi-eye"></i> {viewCount}</span>
+            <span className="meta-dot">•</span>
+            <span className="meta-comments"><i className="bi bi-chat"></i> {commentCount} Comments</span>
+          </div>
+
+          <div className="blog-sticky-actions">
+            <ShareButton title={title} url={currentUrl} />
+          </div>
+        </div>
+      </div>
       <SEO
         title={metaTitle || title}
         description={
@@ -189,7 +349,7 @@ const BlogLayout = ({
           <div className="blog-featured-image">
             <Image
               src={image || "https://placehold.co/600x400?text=No+Image"}
-              alt={title}
+              alt={image_alt || title}
               width={1200}
               height={675}
               style={{ display: "block", width: "100%", height: "auto", objectFit: "cover" }}
@@ -197,8 +357,25 @@ const BlogLayout = ({
             />
           </div>
 
+          {/* 2. Breadcrumbs */}
+          {category && (
+            <nav className="blog-breadcrumb" aria-label="Breadcrumb">
+              <Link to="/" className="breadcrumb-link">Home</Link>
+              <span className="breadcrumb-sep">
+                <i className="bi bi-chevron-right"></i>
+              </span>
+              <Link to={`/${category}`} className="breadcrumb-link">
+                {CATEGORY_LABELS[category] || category}
+              </Link>
+              <span className="breadcrumb-sep">
+                <i className="bi bi-chevron-right"></i>
+              </span>
+              <span className="breadcrumb-current">{title}</span>
+            </nav>
+          )}
+
           {/* 3. Meta Row: Author, Date, Views */}
-          <div className="blog-meta-row">
+          <div className="blog-meta-row" ref={metaRowRef}>
             <div className="meta-left">
               <span className="meta-author">
                 {author_name || "Raghu Boddu"},
@@ -231,19 +408,26 @@ const BlogLayout = ({
               <i className="bi bi-lock-fill"></i> Exclusive Members-Only Content
             </div>
           )}
+          {isPremium && (
+            <div className="exclusive-badge-full" style={{ background: "linear-gradient(135deg,#92400e,#d97706)", borderColor: "#d97706" }}>
+              <i className="bi bi-star-fill"></i> Premium Article — Paid Members Only
+            </div>
+          )}
           <h1 className="blog-title">{title}</h1>
 
-          {/* 5. Content Body — gated behind paywall for members-only blogs */}
+          {/* 5. Content Body — gated behind paywall */}
           {isMembersOnly ? (
             <MembersOnlyPaywall>
               <article className="blog-content-body">{content}</article>
             </MembersOnlyPaywall>
+          ) : isPremiumLocked ? (
+            <PremiumPaywall onSuccess={onPaymentSuccess} />
           ) : (
             <article className="blog-content-body">{content}</article>
           )}
 
-          {/* FAQS SECTION (Hidden for exclusive posts for guests) */}
-          {faqs && faqs.length > 0 && (!isMembersOnly || isLoggedIn) && (
+          {/* FAQS SECTION (Hidden for exclusive/premium posts for guests) */}
+          {faqs && faqs.length > 0 && (!isMembersOnly || isLoggedIn) && !isPremiumLocked && (
             <div
               className="blog-faqs-section"
               style={{ marginTop: "40px", marginBottom: "40px" }}
@@ -252,8 +436,8 @@ const BlogLayout = ({
             </div>
           )}
 
-          {/* CTA SECTION (Hidden for exclusive posts for guests - replaced by White Box) */}
-          {cta && cta.title && (!isMembersOnly || isLoggedIn) && (
+          {/* CTA SECTION (Hidden for exclusive/premium posts for guests) */}
+          {cta && cta.title && (!isMembersOnly || isLoggedIn) && !isPremiumLocked && (
             <div
               className="blog-cta-section"
               style={{
@@ -313,134 +497,87 @@ const BlogLayout = ({
 
           <div className="post-footer-divider"></div>
 
-          {/* Dynamic Author Profile Card (Hidden for exclusive posts for guests) */}
-          {(!isMembersOnly || isLoggedIn) &&
-            (author_name ? (
-              <div
-                className="author-profile-card"
-                style={{
-                  display: "flex",
-                  gap: "20px",
-                  padding: "30px",
-                  background: "#f8fafc",
-                  borderRadius: "16px",
-                  marginTop: "40px",
-                  border: "1px solid #e2e8f0",
-                  alignItems: "start",
-                }}
-              >
-                <Image
-                  src={
-                    cleanAuthorImage
-                  }
-                  alt={author_name}
-                  width={80}
-                  height={80}
-                  style={{
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                    border: "4px solid #fff",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.src = "https://placehold.co/100x100?text=Author";
-                  }}
-                />
-                <div className="author-info">
-                  <h3
-                    style={{
-                      margin: "0 0 8px 0",
-                      fontSize: "1.25rem",
-                      color: "#0f172a",
-                    }}
-                  >
-                    {author_name}
-                  </h3>
-                  {author_designation && (
-                    <p
-                      style={{
-                        margin: "-5px 0 10px 0",
-                        fontSize: "0.9rem",
-                        color: "#64748b",
-                        fontWeight: "600",
-                      }}
-                    >
-                      {author_designation}
-                    </p>
-                  )}
-                  <p
-                    style={{
-                      margin: "0 0 16px 0",
-                      color: "#475569",
-                      lineHeight: "1.6",
-                      fontSize: "0.95rem",
-                    }}
-                  >
-                    {author_bio || "Expert SAP Security contributor."}
-                  </p>
-                  <div
-                    className="author-socials"
-                    style={{
-                      display: "flex",
-                      gap: "14px",
-                      alignItems: "center",
-                    }}
-                  >
-                    {author_linkedin && (
-                      <a
-                        href={author_linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="LinkedIn"
-                        style={{
-                          color: "#0077b5",
-                          fontSize: "1.5rem",
-                          lineHeight: 1,
-                        }}
-                      >
-                        <FaLinkedin size={18} />
-                      </a>
-                    )}
-                    {author_twitter && (
-                      <a
-                        href={author_twitter}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Twitter / X"
-                        style={{
-                          color: "#000",
-                          fontSize: "1.4rem",
-                          lineHeight: 1,
-                        }}
-                      >
-                        <FaXTwitter size={18} />
-                      </a>
-                    )}
-                    {author_website && (
-                      <a
-                        href={author_website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Website"
-                        style={{
-                          color: "#64748b",
-                          fontSize: "1.4rem",
-                          lineHeight: 1,
-                        }}
-                      >
-                        <FaGlobe size={18} />
-                      </a>
-                    )}
+          {/* ── Authors section ── */}
+          {(!isMembersOnly || isLoggedIn) && !isPremiumLocked && (
+            author_name ? (
+              <div className="bl-authors-section">
+                <p className="bl-authors-label">
+                  {co_authors && co_authors.length > 0 ? "" : "About the author"}
+                </p>
+                <div className="bl-authors-grid" style={(!co_authors || co_authors.length === 0) ? { gridTemplateColumns: '1fr' } : undefined}>
+                  {/* Primary author */}
+                  <div className="bl-author-card bl-author-card--primary">
+                    <div className="bl-author-card__left">
+                      <Image
+                        src={cleanAuthorImage}
+                        alt={author_name}
+                        width={64}
+                        height={64}
+                        className="bl-author-avatar"
+                        onError={(e) => { e.currentTarget.src = "https://placehold.co/100x100?text=Author"; }}
+                      />
+                      <span className="bl-author-role-badge bl-author-role-badge--author">Author</span>
+                    </div>
+                    <div className="bl-author-card__body">
+                      <h3 className="bl-author-name">{author_name}</h3>
+                      {author_designation && <p className="bl-author-designation">{author_designation}</p>}
+                      <p className="bl-author-bio">{author_bio || "Expert SAP Security contributor."}</p>
+                      {(author_linkedin || author_twitter || author_website) && (
+                        <div className="bl-author-socials">
+                          {author_linkedin && (
+                            <a href={author_linkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
+                              <FaLinkedin size={15} />
+                            </a>
+                          )}
+                          {author_twitter && (
+                            <a href={author_twitter} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
+                              <FaXTwitter size={15} />
+                            </a>
+                          )}
+                          {author_website && (
+                            <a href={author_website} target="_blank" rel="noopener noreferrer" title="Website" className="bl-social-link bl-social-link--web">
+                              <FaGlobe size={15} />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Co-author cards */}
+                  {co_authors && co_authors.map((ca, idx) => {
+                    const caImg = ca.image ? ca.image.trim() : "";
+                    const cleanCaImg = caImg === "" || caImg.toUpperCase() === "NULL" ? null : caImg;
+                    return (
+                      <div key={ca.id || idx} className="bl-author-card bl-author-card--coauthor">
+                        <div className="bl-author-card__left">
+                          <Image
+                            src={cleanCaImg || "https://placehold.co/100x100?text=Author"}
+                            alt={ca.name || "Co-author"}
+                            width={64}
+                            height={64}
+                            className="bl-author-avatar"
+                            onError={(e) => { e.currentTarget.src = "https://placehold.co/100x100?text=Author"; }}
+                          />
+                          <span className="bl-author-role-badge bl-author-role-badge--coauthor">Co-author</span>
+                        </div>
+                        <div className="bl-author-card__body">
+                          <h3 className="bl-author-name">{ca.name}</h3>
+                          {ca.designation && <p className="bl-author-designation">{ca.designation}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
               // Absolute Fallback
               <AuthorProfile authorId="raghu_boddu" />
-            ))}
+            )
+          )}
 
-          {/* Dynamic Comment Section (Hidden for exclusive posts for guests) */}
-          {(!isMembersOnly || isLoggedIn) && (
+          {/* Dynamic Comment Section (Hidden for exclusive/premium posts for guests) */}
+          {(!isMembersOnly || isLoggedIn) && !isPremiumLocked && (
             <CommentSection blogId={blogId} onCommentAdded={onCommentAdded} />
           )}
 

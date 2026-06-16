@@ -8,6 +8,18 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
   const { openConfirm } = useConfirm();
   const savedSelection = useRef(null);
 
+  // ── HTML Block Modal ──────────────────────────────────────────────────────
+  const [htmlModal, setHtmlModal] = React.useState({ open: false, code: '' });
+
+  // ── CTA Block Modal ───────────────────────────────────────────────────────
+  const [ctaModal, setCtaModal] = React.useState({
+    open: false,
+    title: '',
+    description: '',
+    btnText: '',
+    btnUrl: '',
+  });
+
   // Focus preservation logic
   const saveSelection = () => {
     if (editorRef.current && !isSourceView) {
@@ -64,6 +76,10 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     // Use a temporary DOM parser to surgically clean styles
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
+    // Pure inline formatting elements — strip styles from these only.
+    // Everything else (block, container, sectioning elements) keeps its styles
+    // so that custom-styled disclaimers, callouts, tables, etc. survive editing.
+    const inlineNoStyle = new Set(["STRONG", "EM", "U", "B", "I", "S", "MARK"]);
     doc.querySelectorAll("*").forEach((el) => {
       if (el.tagName === "IMG") {
         const style = el.getAttribute("style");
@@ -80,26 +96,35 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
           if (allowed) el.setAttribute("style", allowed);
           else el.removeAttribute("style");
         }
-      } else if (el.tagName === "DIV" || el.tagName === "SPAN") {
-        // Keep style attributes on DIVs and SPANs for custom styled blocks/disclaimers
-        const style = el.getAttribute("style");
-        if (style) {
-          el.setAttribute("style", style);
-        }
-      } else {
+      } else if (inlineNoStyle.has(el.tagName)) {
         el.removeAttribute("style");
       }
+      // All other elements keep their style attribute as-is
     });
     html = doc.body.innerHTML;
 
-    // Clean unwanted classes (only retain our alignment classes)
-    html = html.replace(/ class="([^"]*)"/gi, (match, classes) => {
-      const allowed = classes
-        .split(" ")
-        .filter((c) => c.startsWith("align-") || c.startsWith("text-") || c.startsWith("language-"))
-        .join(" ");
-      return allowed ? ` class="${allowed}"` : "";
+    // Preserve all custom classes; only strip known browser-injected garbage
+    // (MS Office MsoXxx, Gmail gmail_*, Apple apple-* classes added during paste).
+    const classDoc = parser.parseFromString(html, "text/html");
+    classDoc.querySelectorAll("*").forEach((el) => {
+      const cls = el.getAttribute("class");
+      if (cls) {
+        const cleaned = cls
+          .split(" ")
+          .filter(
+            (c) =>
+              c &&
+              !c.startsWith("Mso") &&
+              !c.startsWith("gmail_") &&
+              !c.startsWith("apple-") &&
+              !c.startsWith("x_"),
+          )
+          .join(" ");
+        if (cleaned) el.setAttribute("class", cleaned);
+        else el.removeAttribute("class");
+      }
     });
+    html = classDoc.body.innerHTML;
 
     // Remove empty block tags and trailing line breaks
     html = html.replace(/<(p|h2|h3|h4|div)>\s*<\/\1>/gi, "");
@@ -177,25 +202,16 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
           const url = await onImageUpload(file);
           if (!url) return;
 
-          restoreSelection();
-
-          const img = document.createElement("img");
-          img.src = url;
-          img.classList.add("align-center");
-
-          const sel = window.getSelection();
-          if (sel.rangeCount) {
-            const range = sel.getRangeAt(0);
-            range.deleteContents();
-            range.insertNode(img);
-
-            range.setStartAfter(img);
-            range.setEndAfter(img);
-            sel.removeAllRanges();
-            sel.addRange(range);
-          }
-
-          cleanAndDispatch();
+          openConfirm({
+            title: "Image Alt Text",
+            message: "Enter descriptive alt text for the pasted image:",
+            confirmText: "Insert Image",
+            cancelText: "Skip",
+            showInput: true,
+            inputPlaceholder: "e.g. SAP role conflict matrix screenshot",
+            onConfirm: (alt) => insertImageWithAlt(url, alt),
+            onCancel: () => insertImageWithAlt(url, ""),
+          });
         } catch (err) {
           console.error("Image paste upload failed:", err);
         }
@@ -369,10 +385,28 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     cleanAndDispatch();
   };
 
+  const insertImageWithAlt = (url, alt) => {
+    restoreSelection();
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = alt || "";
+      img.classList.add("align-center");
+      range.insertNode(img);
+      range.setStartAfter(img);
+      range.setEndAfter(img);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      handleChange();
+    }
+  };
+
   const handleImageClick = async () => {
     if (isSourceView) return;
 
-    // Save selection BEFORE opening dialog
     saveSelection();
 
     const input = document.createElement("input");
@@ -383,29 +417,17 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
       if (file && onImageUpload) {
         const url = await onImageUpload(file);
         if (url) {
-          // Restore selection BEFORE inserting
-          restoreSelection();
-
-          // Use range insertion for better reliability than execCommand('insertImage')
-          const sel = window.getSelection();
-          if (sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0);
-            range.deleteContents();
-
-            const img = document.createElement("img");
-            img.src = url;
-            img.classList.add("align-center"); // Default alignment
-
-            range.insertNode(img);
-
-            // Move cursor after image
-            range.setStartAfter(img);
-            range.setEndAfter(img);
-            sel.removeAllRanges();
-            sel.addRange(range);
-
-            handleChange();
-          }
+          saveSelection();
+          openConfirm({
+            title: "Image Alt Text",
+            message: "Enter descriptive alt text for this image (improves accessibility & SEO):",
+            confirmText: "Insert Image",
+            cancelText: "Skip",
+            showInput: true,
+            inputPlaceholder: "e.g. SAP GRC dashboard showing role assignments",
+            onConfirm: (alt) => insertImageWithAlt(url, alt),
+            onCancel: () => insertImageWithAlt(url, ""),
+          });
         }
       }
     };
@@ -429,7 +451,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
         message: "Enter width (e.g., 300px, 50%):",
         confirmText: "Apply",
         showInput: true,
-        defaultValue: img.style.width || img.getAttribute("width") || "",
+        initialValue: img.style.width || img.getAttribute("width") || "",
         onConfirm: (width) => {
           img.classList.remove("selected-image");
           if (width) {
@@ -440,7 +462,6 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
               restoreSelection();
               return;
             }
-
             img.style.width = cleanWidth;
             img.style.height = "auto";
           } else {
@@ -448,7 +469,25 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
             img.style.height = "";
           }
           cleanAndDispatch();
-          restoreSelection();
+
+          // After resize, prompt for alt text
+          setTimeout(() => {
+            openConfirm({
+              title: "Image Alt Text",
+              message: "Update alt text for this image:",
+              confirmText: "Save",
+              cancelText: "Skip",
+              showInput: true,
+              initialValue: img.alt || "",
+              inputPlaceholder: "Describe the image for accessibility & SEO",
+              onConfirm: (alt) => {
+                img.alt = alt || "";
+                cleanAndDispatch();
+                restoreSelection();
+              },
+              onCancel: () => restoreSelection(),
+            });
+          }, 50);
         },
         onCancel: () => {
           img.classList.remove("selected-image");
@@ -456,6 +495,60 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
         },
       });
     }
+  };
+
+  // ── Insert raw HTML block at cursor ────────────────────────────────────────
+  const insertHtmlBlock = (html) => {
+    if (!html.trim()) return;
+    restoreSelection();
+    const sel = window.getSelection();
+    const selectionInEditor =
+      sel &&
+      sel.rangeCount > 0 &&
+      editorRef.current &&
+      editorRef.current.contains(sel.getRangeAt(0).commonAncestorContainer);
+
+    let insertedNode = null;
+
+    if (selectionInEditor) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const frag = document.createRange().createContextualFragment(html);
+      insertedNode = frag.lastChild;
+      range.insertNode(frag);
+    } else {
+      const frag = document.createRange().createContextualFragment(html);
+      insertedNode = frag.lastChild;
+      editorRef.current.appendChild(frag);
+    }
+
+    // Always place cursor in a fresh paragraph AFTER the inserted block
+    // so pressing Enter doesn't clone the block's styling
+    const p = document.createElement('p');
+    p.innerHTML = '<br>';
+    if (insertedNode && insertedNode.parentNode) {
+      insertedNode.parentNode.insertBefore(p, insertedNode.nextSibling);
+    } else {
+      editorRef.current.appendChild(p);
+    }
+    const newRange = document.createRange();
+    newRange.setStart(p, 0);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+
+    editorRef.current.focus();
+    cleanAndDispatch();
+  };
+
+  // ── Insert CTA block at cursor ──────────────────────────────────────────────
+  const insertCtaBlock = ({ title, description, btnText, btnUrl }) => {
+    const html = `<div class="rte-cta-block">
+  <h3 class="rte-cta-title">${title}</h3>
+  ${description ? `<p class="rte-cta-desc">${description}</p>` : ''}
+  <a href="${btnUrl || '#'}" class="rte-cta-btn">${btnText || 'Learn More'}</a>
+</div>`;
+    insertHtmlBlock(html);
   };
 
   return (
@@ -626,6 +719,33 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
             disabled={isSourceView}
           >
             🖼️ Image
+          </button>
+        </div>
+
+        <div className="rte-divider"></div>
+
+        <div className="rte-group">
+          <button
+            type="button"
+            onClick={() => {
+              saveSelection();
+              setHtmlModal({ open: true, code: '' });
+            }}
+            title="Insert Raw HTML"
+            disabled={isSourceView}
+          >
+            &lt;/&gt; HTML
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              saveSelection();
+              setCtaModal({ open: true, title: '', description: '', btnText: '', btnUrl: '' });
+            }}
+            title="Insert CTA Block"
+            disabled={isSourceView}
+          >
+            📣 CTA
           </button>
         </div>
 
@@ -871,7 +991,224 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
             color: inherit;
             border: none;
         }
+        /* ── RTE Modals ──────────────────────────────────────────── */
+        .rte-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .rte-modal {
+            background: #fff;
+            border-radius: 14px;
+            padding: 28px 32px;
+            width: 520px;
+            max-width: 96vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+        }
+        .rte-modal h4 {
+            margin: 0 0 18px;
+            font-size: 1.1rem;
+            color: #1e293b;
+            font-weight: 700;
+        }
+        .rte-modal label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 4px;
+        }
+        .rte-modal textarea,
+        .rte-modal input[type="text"],
+        .rte-modal input[type="url"] {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+            background: #f8fafc;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .rte-modal textarea:focus,
+        .rte-modal input:focus {
+            border-color: #3b82f6;
+            background: #fff;
+        }
+        .rte-modal textarea {
+            min-height: 130px;
+            resize: vertical;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+        .rte-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .rte-modal-actions button {
+            padding: 9px 22px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+        .rte-modal-actions .btn-insert {
+            background: #1e293b;
+            color: #fff;
+        }
+        .rte-modal-actions .btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        /* ── CTA Block display in editor & published blog ─────────── */
+        .rte-cta-block {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: #fff;
+            border-radius: 14px;
+            padding: 32px 36px;
+            text-align: center;
+            margin: 32px 0;
+            box-shadow: 0 10px 25px -5px rgba(59,130,246,0.4);
+        }
+        .rte-cta-block h3,
+        .rte-cta-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 10px;
+            color: #fff !important;
+        }
+        .rte-cta-block > p,
+        .rte-cta-desc {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin: 0 0 20px;
+            color: #fff;
+        }
+        .rte-cta-block a,
+        .rte-cta-btn {
+            display: inline-block;
+            background: #fff;
+            color: #1e40af !important;
+            padding: 11px 30px;
+            border-radius: 50px;
+            font-weight: 700;
+            text-decoration: none !important;
+            font-size: 0.95rem;
+            transition: transform 0.15s;
+        }
+        .rte-cta-block a:hover,
+        .rte-cta-btn:hover { transform: scale(1.04); }
       `}</style>
+
+      {/* ── HTML Code Modal ───────────────────────────────────── */}
+      {htmlModal.open && (
+        <div className="rte-modal-overlay" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="rte-modal">
+            <h4>&lt;/&gt; Insert HTML Code</h4>
+            <label>Paste or type your HTML:</label>
+            <textarea
+              autoFocus
+              value={htmlModal.code}
+              onChange={(e) => setHtmlModal((m) => ({ ...m, code: e.target.value }))}
+              placeholder="<div class=&quot;my-block&quot;>...</div>"
+            />
+            <div className="rte-modal-actions">
+              <button
+                className="btn-cancel"
+                onClick={() => {
+                  setHtmlModal({ open: false, code: '' });
+                  restoreSelection();
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-insert"
+                onClick={() => {
+                  insertHtmlBlock(htmlModal.code);
+                  setHtmlModal({ open: false, code: '' });
+                }}
+              >
+                Insert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CTA Block Modal ───────────────────────────────────── */}
+      {ctaModal.open && (
+        <div className="rte-modal-overlay" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="rte-modal">
+            <h4>📣 Insert CTA Block</h4>
+            <label>Heading *</label>
+            <input
+              type="text"
+              autoFocus
+              placeholder="e.g. Ready to get started?"
+              value={ctaModal.title}
+              onChange={(e) => setCtaModal((m) => ({ ...m, title: e.target.value }))}
+            />
+            <label>Description (optional)</label>
+            <input
+              type="text"
+              placeholder="A short supporting sentence"
+              value={ctaModal.description}
+              onChange={(e) => setCtaModal((m) => ({ ...m, description: e.target.value }))}
+            />
+            <label>Button Text</label>
+            <input
+              type="text"
+              placeholder="Learn More"
+              value={ctaModal.btnText}
+              onChange={(e) => setCtaModal((m) => ({ ...m, btnText: e.target.value }))}
+            />
+            <label>Button URL</label>
+            <input
+              type="url"
+              placeholder="https://sap.webanatomy.in/..."
+              value={ctaModal.btnUrl}
+              onChange={(e) => setCtaModal((m) => ({ ...m, btnUrl: e.target.value }))}
+            />
+            <div className="rte-modal-actions">
+              <button
+                className="btn-cancel"
+                onClick={() => {
+                  setCtaModal({ open: false, title: '', description: '', btnText: '', btnUrl: '' });
+                  restoreSelection();
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-insert"
+                disabled={!ctaModal.title.trim()}
+                onClick={() => {
+                  insertCtaBlock({
+                    title: ctaModal.title,
+                    description: ctaModal.description,
+                    btnText: ctaModal.btnText,
+                    btnUrl: ctaModal.btnUrl,
+                  });
+                  setCtaModal({ open: false, title: '', description: '', btnText: '', btnUrl: '' });
+                }}
+              >
+                Insert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

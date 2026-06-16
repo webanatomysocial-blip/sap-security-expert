@@ -46,6 +46,10 @@ export default function AppWrapper() {
     const intervalId = setInterval(removeScrollLock, 100);
     const timeoutId = setTimeout(() => clearInterval(intervalId), 2000);
 
+    // Remove server-pre-rendered blog content once the SPA takes over
+    const ssrEl = document.getElementById('ssr-blog-content');
+    if (ssrEl) ssrEl.remove();
+
     return () => {
       lenis.destroy();
       clearInterval(intervalId);

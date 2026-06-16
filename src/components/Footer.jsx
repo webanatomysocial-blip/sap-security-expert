@@ -20,7 +20,7 @@ const Footer = () => {
         {/* Branch 1 */}
         <div className="footer-brand">
           <div className="brand-header">
-            <Image src={whiteLogo} alt="SAP Security Expert" />
+            <Image src={whiteLogo} alt="SAP Security Expert" width={200} height={50} style={{ width: 'auto', height: '50px', display: 'block' }} priority />
           </div>
           <p>
             The leading community for SAP Security, GRC, and BTP professionals.

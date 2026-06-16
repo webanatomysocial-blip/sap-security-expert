@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eef2f6; border-radius: 8px; }
+    .header { text-align: center; border-bottom: 2px solid #64748b; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h2 { color: #64748b; margin: 0; }
+    .info-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 0.9rem; color: #0c4a6e; }
+    .btn { display: inline-block; background: #ee5e42; color: #fff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 700; margin-top: 16px; }
+    .footer { font-size: 12px; color: #94a3b8; margin-top: 30px; text-align: center; border-top: 1px solid #eef2f6; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Contributor Access Removed</h2>
+    </div>
+    <p>Hello {{name}},</p>
+    <p>Your <strong>SAP Security Expert</strong> contributor profile has been removed by an administrator.</p>
+
+    <div class="info-box">
+      <strong>Your account is still active:</strong><br>
+      &bull; You can still log in as a regular member using your existing email and password.<br>
+      &bull; All your published blogs and contributions remain live on the platform.<br>
+      &bull; Your member profile and community access are fully intact.
+    </div>
+
+    <p>If you believe this was done in error, please reach out to the admin team.</p>
+
+    <a href="{{login_url}}" class="btn">Sign In as Member</a>
+
+    <div class="footer">
+      &copy; {{year}} SAP Security Expert. The leading community for SAP Security Professionals.<br>
+      <a href="https://sapsecurityexpert.com" style="color: #94a3b8;">sapsecurityexpert.com</a>
+    </div>
+  </div>
+</body>
+</html>

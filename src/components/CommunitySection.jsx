@@ -431,8 +431,8 @@ export default function CommunitySection() {
                       className="activity-item"
                     >
                       <div className="activity-img-wrapper" style={{ flexShrink: 0 }}>
-                        <img 
-                          src={getImageUrl(activity.image)} 
+                        <img
+                          src={activity.image ? getImageUrl(activity.image) : "https://placehold.co/600x400?text=No+Image"}
                           alt={activity.title}
                           onError={(e) => {
                             e.target.src = "https://placehold.co/600x400?text=No+Image";
@@ -525,46 +525,37 @@ export default function CommunitySection() {
                     No announcements yet.
                   </p>
                 ) : (
-                  announcements.map((announcement, i) => (
+                  announcements.map((announcement, i) => {
+                    const raw = announcement.date || "";
+                    const isoStr = raw.includes(" ") ? raw.replace(" ", "T") + "Z" : raw;
+                    const d = new Date(isoStr);
+                    const dateLabel = isNaN(d.getTime()) ? raw : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+                    const hasDetail = !!(announcement.slug && (announcement.content || announcement.image));
+                    return (
                     <div key={i} className="announcement-item">
-                      <h4>{announcement.title}</h4>
+                      {hasDetail ? (
+                        <Link to={`/announcements/${announcement.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
+                          <h4 style={{ cursor: "pointer" }}>{announcement.title}</h4>
+                        </Link>
+                      ) : (
+                        <h4>{announcement.title}</h4>
+                      )}
                       <div className="announcement-meta">
-                        <span>
-                          {(() => {
-                            // Handle raw MySQL DATETIME "2026-02-15 00:00:00" or already formatted "February 5, 2026"
-                            const raw = announcement.date || "";
-                            const isoStr = raw.includes(" ")
-                              ? raw.replace(" ", "T") + "Z"
-                              : raw;
-                            const d = new Date(isoStr);
-                            if (isNaN(d.getTime())) return raw;
-                            return d.toLocaleDateString("en-US", {
-                              month: "long",
-                              day: "numeric",
-                              year: "numeric",
-                              timeZone: "UTC",
-                            });
-                          })()}
-                        </span>
-                        {/* <span>
-                          <i className="bi bi-eye"></i> {announcement.views || 0}
-                        </span>
-                        <span>
-                          <i className="bi bi-chat"></i> {announcement.comments || 0}
-                        </span> */}
+                        <span>{dateLabel}</span>
                         {announcement.link && (
-                          <a
-                            href={announcement.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ marginLeft: "10px" }}
-                          >
+                          <a href={announcement.link} target="_blank" rel="noopener noreferrer" style={{ marginLeft: "10px" }}>
                             <i className="bi bi-box-arrow-up-right"></i>
                           </a>
                         )}
+                        {hasDetail && (
+                          <Link to={`/announcements/${announcement.slug}`} style={{ marginLeft: "10px", color: "#e84a3d", fontSize: "0.78rem", fontWeight: 600 }}>
+                            Read more →
+                          </Link>
+                        )}
                       </div>
                     </div>
-                  ))
+                  );
+                  })
                 )}
               </div>
               {/* <Link to="/announcements" className="view-all-link">
@@ -614,8 +605,7 @@ export default function CommunitySection() {
                     {contributorCount + memberCount}
                   </div>
                   <div style={{ fontSize: "0.9rem", color: "#64748b" }}>
-                    Total Community Members &<br />
-                    Experts
+                    Total Community Members & Experts
                   </div>
                 </div>
                 <p style={{ fontSize: "0.85rem", color: "#475569", lineHeight: "1.5" }}>
@@ -631,23 +621,16 @@ export default function CommunitySection() {
             {/* Newsletter */}
             <div className="widget newsletter-widget">
               <div className="newsletter-icon">
-                <i className="bi bi-envelope"></i>
+                <i className="bi bi-shield-lock-fill"></i>
               </div>
-              <h3>Subscribe for Expert Insights</h3>
-              <p>Check Latest Updates</p>
-              <iframe
-                src="https://grcwithraghu.substack.com/embed"
-                width="100%"
-                height="150"
-                // style={{
-                //   border: "1px solid #EEE",
-                //   background: "white",
-                //   borderRadius: "8px",
-                // }}
-                frameBorder="0"
-                scrolling="no"
-                title="Newsletter Subscription"
-              ></iframe>
+              <h3>Join Our Community</h3>
+              <p>Get exclusive SAP security insights delivered to your inbox.</p>
+              <Link to="/member/signup" className="btn-newsletter-widget">
+                <i className="bi bi-person-plus-fill"></i> Create Free Account
+              </Link>
+              <Link to="/member/login" style={{ display: "block", textAlign: "center", marginTop: "8px", fontSize: "0.8rem", color: "#64748b" }}>
+                Already a member? Sign in
+              </Link>
             </div>
           </div>
         </div>

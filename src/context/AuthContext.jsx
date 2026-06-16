@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+import { createContext, useContext, useState, useEffect } from "react";
+import { api } from "../services/api";
 import { useLocation } from "react-router-dom";
 
 /**
@@ -15,9 +15,9 @@ export const AuthProvider = ({ children }) => {
   const [permissions, setPermissions] = useState({});
   const location = useLocation();
 
-  const verifySession = async (adminAuth, memberAuth) => {
+  const verifySession = async (adminAuth) => {
     try {
-      const { data } = await axios.get("/api/verify_session.php");
+      const { data } = await api.get("/verify_session.php");
       if (data.status === "success" && data.authenticated) {
         setAuth({
           user: data.user,
@@ -29,8 +29,7 @@ export const AuthProvider = ({ children }) => {
         // Only clear admin auth if we thought we were an admin
         if (adminAuth === "true") clearAuth();
       }
-    } catch (err) {
-      console.error("Session verification failed", err);
+    } catch {
       if (adminAuth === "true") clearAuth();
     }
   };

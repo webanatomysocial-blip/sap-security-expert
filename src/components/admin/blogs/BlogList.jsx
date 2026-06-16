@@ -3,6 +3,7 @@ import ActionMenu from "../ActionMenu";
 import {
   recalculatePlagiarism,
   toggleExclusiveContent,
+  togglePremiumContent,
 } from "../../../services/api";
 import { useToast } from "../../../context/ToastContext";
 import TableScrollContainer from "../TableScrollContainer";
@@ -83,6 +84,26 @@ const BlogList = ({
     }
   };
 
+  const handleTogglePremium = async (blog) => {
+    const newVal = Number(blog.is_premium) === 1 ? 0 : 1;
+    setTogglingMap((prev) => ({ ...prev, [`p_${blog.id}`]: true }));
+    try {
+      const res = await togglePremiumContent({ id: blog.id, is_premium: newVal });
+      if (res.data?.status === "success") {
+        addToast(`Premium ${newVal ? "enabled" : "disabled"}.`, "success");
+        setBlogs((prev) =>
+          prev.map((b) => b.id === blog.id ? { ...b, is_premium: newVal } : b)
+        );
+      } else {
+        addToast(res.data?.message || "Failed to update premium flag", "error");
+      }
+    } catch {
+      addToast("Error updating premium flag", "error");
+    } finally {
+      setTogglingMap((prev) => ({ ...prev, [`p_${blog.id}`]: false }));
+    }
+  };
+
   const handleExport = () => {
     const headers = [
       { label: "Title", key: "title" },
@@ -114,6 +135,7 @@ const BlogList = ({
               <th className="col-sm text-center">Status</th>
               <th className="col-md text-left">Updated</th>
               <th className="col-xs text-center">Exc</th>
+              <th className="col-xs text-center" style={{ color: "#d97706" }}>★ Paid</th>
               <th className="col-xs text-center">SEO</th>
               <th className="col-xs text-center">Plag</th>
               <th className="col-actions text-center">Actions</th>
@@ -213,6 +235,21 @@ const BlogList = ({
                         disabled={togglingMap[blog.id]}
                       />
                       <span className="toggle-slider" style={{ transform: "scale(0.8)" }}></span>
+                    </label>
+                  </td>
+                  <td className="col-xs text-center">
+                    <label
+                      className={`toggle-switch ${togglingMap[`p_${blog.id}`] ? "toggle-loading" : ""}`}
+                      title={Number(blog.is_premium) === 1 ? "Paid — click to remove" : "Free — click to make paid"}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={Number(blog.is_premium) === 1}
+                        onChange={() => handleTogglePremium(blog)}
+                        disabled={togglingMap[`p_${blog.id}`]}
+                        style={{ accentColor: "#d97706" }}
+                      />
+                      <span className="toggle-slider" style={{ transform: "scale(0.8)", background: Number(blog.is_premium) === 1 ? "#d97706" : undefined }}></span>
                     </label>
                   </td>
                   <td className="col-xs text-center">

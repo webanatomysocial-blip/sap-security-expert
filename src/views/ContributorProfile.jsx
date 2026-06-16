@@ -28,6 +28,11 @@ const ContributorProfile = () => {
       });
   }, [id]);
 
+  // Parse expertise if still a string (defensive guard)
+  if (contributor && typeof contributor.expertise === 'string') {
+    try { contributor.expertise = JSON.parse(contributor.expertise); } catch { contributor.expertise = {}; }
+  }
+
   if (loading) {
     return (
       <div className="profile-loading">
@@ -191,6 +196,76 @@ const ContributorProfile = () => {
             </div>
           </div>
         </div>
+
+        {/* Contributions section */}
+        {contributor.blogs && contributor.blogs.length > 0 && (
+          <div className="profile-contributions">
+            <h2 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: "1.2rem", color: "#0f172a" }}>
+              <i className="bi bi-file-earmark-text" style={{ marginRight: "8px", color: "#3b82f6" }}></i>
+              Contributions ({contributor.blogs.length})
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {contributor.blogs.map((blog) => (
+                <Link
+                  key={blog.id}
+                  to={`/${blog.category}/${blog.slug}`}
+                  style={{ textDecoration: "none" }}
+                >
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "10px",
+                      padding: "1.1rem 1.4rem",
+                      display: "flex",
+                      gap: "1rem",
+                      alignItems: "flex-start",
+                      transition: "box-shadow 0.2s",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(59,130,246,0.10)"}
+                    onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+                  >
+                    {blog.image && (
+                      <img
+                        src={blog.image}
+                        alt={blog.title}
+                        style={{ width: 72, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
+                        onError={e => { e.currentTarget.style.display = "none"; }}
+                      />
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "0.75rem", color: "#3b82f6", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+                        {blog.category?.replace(/-/g, " ")}
+                      </div>
+                      <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "1rem", marginBottom: 4, lineHeight: 1.3 }}>
+                        {blog.title}
+                      </div>
+                      {blog.excerpt && (
+                        <div style={{ fontSize: "0.88rem", color: "#64748b", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                          {blog.excerpt}
+                        </div>
+                      )}
+                      <div style={{ fontSize: "0.78rem", color: "#94a3b8", marginTop: 6 }}>
+                        {blog.date ? new Date(blog.date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : ""}
+                        {blog.view_count > 0 && <span style={{ marginLeft: 12 }}><i className="bi bi-eye" style={{ marginRight: 3 }}></i>{blog.view_count} views</span>}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {contributor.blogs && contributor.blogs.length === 0 && (
+          <div className="profile-contributions">
+            <h2 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: "1rem", color: "#0f172a" }}>
+              <i className="bi bi-file-earmark-text" style={{ marginRight: "8px", color: "#3b82f6" }}></i>
+              Contributions
+            </h2>
+            <p style={{ color: "#94a3b8", fontStyle: "italic" }}>No published articles yet.</p>
+          </div>
+        )}
       </div>
     </div>
   );

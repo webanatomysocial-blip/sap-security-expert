@@ -123,8 +123,8 @@ const PrivacyPolicy = () => {
             Account Settings
           </button>
           , where available, or by contacting us at{" "}
-          <a className="legal-links" href="mailto:hello@sapsecurityexpert.com">
-            hello@sapsecurityexpert.com
+          <a className="legal-links" href="mailto:hello@sap.webanatomy.in">
+            hello@sap.webanatomy.in
           </a>
           .
         </p>
@@ -159,8 +159,8 @@ const PrivacyPolicy = () => {
         <p>
           For privacy, data protection, or account-related requests (including
           data access or deletion), please contact us at{" "}
-          <a className="legal-links" href="mailto:hello@sapsecurityexpert.com">
-            hello@sapsecurityexpert.com
+          <a className="legal-links" href="mailto:hello@sap.webanatomy.in">
+            hello@sap.webanatomy.in
           </a>
         </p>
       </section>

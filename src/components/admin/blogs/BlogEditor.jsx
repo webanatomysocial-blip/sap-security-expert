@@ -1,6 +1,27 @@
 import React from "react";
 import SimpleRTE from "../SimpleRTE.jsx";
 
+const ALL_CATEGORIES = [
+  { value: "sap-security", label: "SAP Security" },
+  { value: "sap-s4hana-security", label: "SAP S/4HANA Security" },
+  { value: "sap-fiori-security", label: "SAP Fiori Security" },
+  { value: "sap-btp-security", label: "SAP BTP Security" },
+  { value: "sap-public-cloud", label: "SAP Public Cloud" },
+  { value: "sap-sac-security", label: "SAP SAC Security" },
+  { value: "sap-cis", label: "SAP CIS" },
+  { value: "sap-successfactors-security", label: "SuccessFactors" },
+  { value: "sap-security-other", label: "Other SAP Security" },
+  { value: "sap-access-control", label: "Access Control" },
+  { value: "sap-process-control", label: "Process Control" },
+  { value: "sap-iag", label: "SAP IAG" },
+  { value: "sap-grc", label: "SAP GRC" },
+  { value: "sap-cybersecurity", label: "Cybersecurity" },
+  { value: "product-reviews", label: "Product Reviews" },
+  { value: "podcasts", label: "Expert Voices/Podcasts" },
+  { value: "videos", label: "Videos" },
+  { value: "expert-recommendations", label: "Expert Recommendations" },
+];
+
 const BlogEditor = ({
   formData,
   handleInputChange,
@@ -9,14 +30,27 @@ const BlogEditor = ({
   handleImageUpload,
   uploading,
   imageVersion,
-  authors = [],    // List of eligible authors (admin+contributors)
-  isAdmin = false, // Whether current user is admin
-  blogs = [],      // List for related blogs selection
-  children,        // For sub-sections (SEO, CTA, FAQ)
+  authors = [],
+  isAdmin = false,
+  blogs = [],
+  hideCategory = false,
+  hideExtras = false,
+  customCategories = null,
+  categoryHint = null,
+  children,
   onSave,
   onSaveDraft,
 }) => {
+  const ACTIVE_CATEGORIES = customCategories || ALL_CATEGORIES;
   const [blogSearch, setBlogSearch] = React.useState("");
+
+  const handleToggleSecondary = (value) => {
+    const current = formData.secondary_categories || [];
+    const next = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
+    handleInputChange({ target: { name: "secondary_categories", value: next } });
+  };
 
   const handleToggleRelated = (id) => {
     const current = formData.related_blogs || [];
@@ -202,12 +236,29 @@ const BlogEditor = ({
             </span>
           </div>
 
+          <div className="form-group" style={{ marginBottom: "20px", background: "#fffbeb", border: "1.5px solid #fcd34d", borderRadius: 8, padding: "14px 16px" }}>
+            <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", color: "#92400e" }}>
+              <input
+                type="checkbox"
+                name="is_premium"
+                checked={formData.is_premium == 1}
+                onChange={(e) => handleInputChange({ target: { name: "is_premium", value: e.target.checked ? 1 : 0 } })}
+                style={{ width: "16px", height: "16px", accentColor: "#d97706" }}
+              />
+              <i className="bi bi-star-fill" style={{ color: "#d97706" }}></i>
+              Premium Article (Paid)
+            </label>
+            <span style={{ fontSize: "0.78rem", color: "#92400e", display: "block", marginTop: "4px" }}>
+              Only members with an active paid subscription can read the full content. Free visitors see a short teaser.
+            </span>
+          </div>
+
           {/* Author Selector — Admin only */}
-          {isAdmin && (
+          {isAdmin && !hideExtras && (
             <div className="form-group" style={{ marginBottom: "20px" }}>
               <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <i className="bi bi-person-badge" style={{ color: "#6366f1" }}></i>
-                Author
+                Primary Author
               </label>
               <select
                 name="author_id"
@@ -224,13 +275,99 @@ const BlogEditor = ({
                 ))}
               </select>
               <span style={{ fontSize: "0.78rem", color: "#94a3b8", marginTop: "4px", display: "block" }}>
-                Set who appears as the author on the published blog.
+                The main author shown on the article.
               </span>
             </div>
           )}
 
+          {/* Co-authors — Admin only */}
+          {isAdmin && !hideExtras && (
+            <div className="form-group" style={{ marginBottom: "20px" }}>
+              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <i className="bi bi-people" style={{ color: "#6366f1" }}></i>
+                Co-authors
+              </label>
+              <select
+                className="form-control"
+                style={{ padding: "10px", background: "#f8fafc" }}
+                value=""
+                onChange={(e) => {
+                  const selectedId = parseInt(e.target.value);
+                  if (!selectedId) return;
+                  const author = authors.find((a) => a.id === selectedId);
+                  if (!author) return;
+                  const current = Array.isArray(formData.co_authors) ? formData.co_authors : [];
+                  if (current.some((ca) => ca.id === selectedId)) return;
+                  handleInputChange({
+                    target: {
+                      name: "co_authors",
+                      value: [...current, { id: author.id, name: author.display_name, image: author.image || null }],
+                    },
+                  });
+                  e.target.value = "";
+                }}
+              >
+                <option value="">+ Add co-author…</option>
+                {authors
+                  .filter((a) => {
+                    const primaryId = formData.author_id ? parseInt(formData.author_id) : null;
+                    const coIds = (formData.co_authors || []).map((ca) => ca.id);
+                    return a.id !== primaryId && !coIds.includes(a.id);
+                  })
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.display_name}{a.role === "admin" ? " (Admin)" : " (Contributor)"}
+                    </option>
+                  ))}
+              </select>
+
+              {/* Selected co-authors chips */}
+              {(formData.co_authors || []).length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                  {(formData.co_authors || []).map((ca) => (
+                    <span
+                      key={ca.id}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: "6px",
+                        padding: "4px 10px", background: "#ede9fe", color: "#5b21b6",
+                        borderRadius: "20px", fontSize: "0.82rem", fontWeight: 600,
+                      }}
+                    >
+                      {ca.image && (
+                        <img
+                          src={ca.image}
+                          alt={ca.name}
+                          width={18} height={18}
+                          style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                          onError={(e) => { e.currentTarget.style.display = "none"; }}
+                        />
+                      )}
+                      {ca.name}
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange({
+                          target: {
+                            name: "co_authors",
+                            value: (formData.co_authors || []).filter((x) => x.id !== ca.id),
+                          },
+                        })}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#7c3aed", fontWeight: 700, fontSize: "1rem", lineHeight: 1, padding: 0 }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <span style={{ fontSize: "0.78rem", color: "#94a3b8", marginTop: "6px", display: "block" }}>
+                Additional authors shown alongside the primary author.
+              </span>
+            </div>
+          )}
+
+          {!hideCategory && (
           <div className="form-group">
-            <label className="form-label">Category</label>
+            <label className="form-label">Primary Category</label>
             <select
               name="category"
               value={formData.category}
@@ -239,30 +376,85 @@ const BlogEditor = ({
               style={{ padding: "10px", background: "#f8fafc" }}
             >
               <option value="">Select Category</option>
-              <option value="sap-security">SAP Security</option>
-              <option value="sap-s4hana-security">SAP S/4HANA Security</option>
-              <option value="sap-fiori-security">SAP Fiori Security</option>
-              <option value="sap-btp-security">SAP BTP Security</option>
-              <option value="sap-public-cloud">SAP Public Cloud</option>
-              <option value="sap-sac-security">SAP SAC Security</option>
-              <option value="sap-cis">SAP CIS</option>
-              <option value="sap-successfactors-security">
-                SuccessFactors
-              </option>
-              <option value="sap-security-other">Other SAP Security</option>
-              <option value="sap-access-control">Access Control</option>
-              <option value="sap-process-control">Process Control</option>
-              <option value="sap-iag">SAP IAG</option>
-              <option value="sap-grc">SAP GRC</option>
-              <option value="sap-cybersecurity">Cybersecurity</option>
-              <option value="product-reviews">Product Reviews</option>
-              <option value="podcasts">Expert Voices/Podcasts</option>
-              <option value="videos">Videos</option>
-              <option value="expert-recommendations">Expert Recommendations</option>
+              {ACTIVE_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
             </select>
+            <span style={{ fontSize: "0.78rem", color: "#94a3b8", marginTop: "4px", display: "block" }}>
+              {categoryHint || `Controls the URL slug: /${formData.category || "category"}/${formData.slug || "slug"}`}
+            </span>
           </div>
+          )}
 
-          <div className="admin-card" style={{ marginTop: "24px" }}>
+          {!hideCategory && (
+          <div className="form-group">
+            <label className="form-label">Secondary Categories</label>
+            <select
+              className="form-control"
+              style={{ padding: "10px", background: "#f8fafc" }}
+              value=""
+              onChange={(e) => {
+                if (e.target.value) handleToggleSecondary(e.target.value);
+                e.target.value = "";
+              }}
+            >
+              <option value="">+ Add Secondary Category</option>
+              {ACTIVE_CATEGORIES.filter(
+                (c) =>
+                  c.value !== formData.category &&
+                  !(formData.secondary_categories || []).includes(c.value)
+              ).map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+            {(formData.secondary_categories || []).length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                {(formData.secondary_categories || []).map((val) => {
+                  const cat = ALL_CATEGORIES.find((c) => c.value === val);
+                  return (
+                    <span
+                      key={val}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "4px 12px",
+                        background: "#e0e7ff",
+                        color: "#3730a3",
+                        borderRadius: "20px",
+                        fontSize: "0.8rem",
+                        fontWeight: "600",
+                      }}
+                    >
+                      {cat ? cat.label : val}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSecondary(val)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#6366f1",
+                          fontWeight: "700",
+                          fontSize: "1rem",
+                          lineHeight: 1,
+                          padding: 0,
+                        }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <span style={{ fontSize: "0.78rem", color: "#94a3b8", marginTop: "6px", display: "block" }}>
+              Article will appear in these category pages too.
+            </span>
+          </div>
+          )}
+
+          {!hideExtras && <div className="admin-card" style={{ marginTop: "24px" }}>
             <h3
               style={{
                 marginBottom: "15px",
@@ -346,6 +538,7 @@ const BlogEditor = ({
               </div>
             </div>
           </div>
+          }
         </div>
 
         <div className="admin-card">
@@ -376,6 +569,24 @@ const BlogEditor = ({
               style={{ padding: "8px" }}
             />
             <span className="image-hint">Required: 1920x1080 (16:9)</span>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: "0.82rem", display: "flex", alignItems: "center", gap: "6px" }}>
+                <i className="bi bi-card-text" style={{ color: "#6366f1" }}></i>
+                Image Alt Text
+              </label>
+              <input
+                className="form-control"
+                name="image_alt"
+                value={formData.image_alt || ""}
+                onChange={handleInputChange}
+                placeholder="Describe the image for accessibility & SEO"
+                style={{ fontSize: "0.875rem" }}
+              />
+              <span style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "4px", display: "block" }}>
+                Shown to screen readers and search engines when the image can't load.
+              </span>
+            </div>
 
             {uploading && (
               <p

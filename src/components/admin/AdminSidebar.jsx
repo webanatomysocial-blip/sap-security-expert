@@ -15,6 +15,8 @@ const AdminSidebar = ({
   badges = {},
   isCollapsed = false,
   onToggle = () => {},
+  isMobileOpen = false,
+  onMobileClose = () => {},
 }) => {
   const location = useLocation();
   const isActive = (path) => location.pathname === path;
@@ -46,6 +48,8 @@ const AdminSidebar = ({
       icon: "bi-hourglass-split",
       badge: badges.pendingReviews,
     },
+    { label: "News & Updates", path: "/admin/news", icon: "bi-newspaper" },
+    { label: "Learning Hub", path: "/admin/learnings", icon: "bi-journal-bookmark-fill" },
     { label: "Manage Ads & Promos", path: "/admin/ads", icon: "bi-images" },
     {
       label: "Manage Comments",
@@ -109,7 +113,7 @@ const AdminSidebar = ({
   const navItems = isAdmin ? adminNavItems : contributorNavItems;
 
   return (
-    <aside className="admin-sidebar">
+    <aside className={`admin-sidebar${isMobileOpen ? " mobile-open" : ""}`}>
       <div className="sidebar-header">
         <Link to="/" className="sidebar-brand">
           <img
@@ -143,6 +147,7 @@ const AdminSidebar = ({
           <Link
             key={item.path}
             to={item.path}
+            onClick={onMobileClose}
             className={`nav-item1 ${isActive(item.path) ? "active" : ""}`}
             style={{
               display: "flex",

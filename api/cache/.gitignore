@@ -1,3 +1,0 @@
-# Exclude cache files from version control
-*
-!.gitignore

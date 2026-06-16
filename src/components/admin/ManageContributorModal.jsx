@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   LuX,
   LuUser,
@@ -55,22 +55,10 @@ const ManageContributorModal = ({ contributor, onClose }) => {
 
   useScrollLock(!!contributor);
 
-  // Generate username from contributor name/email
-  const genUsername = () => {
-    if (contributor.email) {
-      return contributor.email
-        .split("@")[0]
-        .toLowerCase()
-        .replace(/[^a-z0-9_]/g, "_");
-    }
-    return contributor.name
-      .toLowerCase()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-z0-9_]/g, "");
-  };
-
-  // Generate a default strong password
-  const genPassword = () => "Sap@2026";
+  // Derive display username from contributor email
+  const genUsername = () =>
+    contributor.email ||
+    contributor.name?.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
 
   useEffect(() => {
     (async () => {
@@ -87,9 +75,9 @@ const ManageContributorModal = ({ contributor, onClose }) => {
         } else {
           setHasLogin(false);
           setPermissions({ ...DEFAULT_PERMS });
-          // Pre-fill generated credentials
+          // Credentials are generated server-side on create — show placeholder
           setGeneratedUser(genUsername());
-          setGeneratedPass(genPassword());
+          setGeneratedPass("Will be generated on save");
         }
       } catch {
         setError("Failed to load contributor login data.");
@@ -109,12 +97,14 @@ const ManageContributorModal = ({ contributor, onClose }) => {
     setError("");
     setSaving(true);
     try {
-      await createContributorLogin({
+      // Server generates the password and emails it — returns same credentials for display
+      const res = await createContributorLogin({
         contributor_id: contributor.id,
-        username: generatedUser,
-        password: generatedPass,
         permissions,
       });
+      // Display the server-generated credentials (same ones sent in the email)
+      setGeneratedUser(res.data.username || contributor.email);
+      setGeneratedPass(res.data.password || "");
       setCreated(true);
       setHasLogin(true);
       addToast(`Account created for ${contributor.name}`, "success");

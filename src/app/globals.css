@@ -12,6 +12,7 @@
 @import "../css/CategoryPage.css";
 @import "../css/CommentSection.css";
 @import "../css/CommunitySection.css";
+@import "../css/About.css";
 @import "../css/ContactForm.css";
 @import "../css/ContributorProfile.css";
 @import "../css/FAQ.css";
@@ -26,3 +27,4 @@
 @import "../css/AdminDashboard.css";
 @import "../components/ui/ConfirmationModal.css";
 @import "../components/ui/Toast.css";
+@import "../css/LearningHub.css";

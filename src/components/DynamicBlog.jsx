@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 import BlogLayout from "./BlogLayout";
+import { useMemberAuth } from "../context/MemberAuthContext";
 import {
   getPostBySlug,
   getCommentsByBlogId,
@@ -10,11 +11,13 @@ import {
 
 export default function DynamicBlog() {
   const { blogId } = useParams(); // Expecting slug
+  const { isLoggedIn } = useMemberAuth();
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [commentsCount, setCommentsCount] = useState(0);
   const [relatedBlogs, setRelatedBlogs] = useState([]);
+  const [premiumLocked, setPremiumLocked] = useState(false);
   const [sidebarAd, setSidebarAd] = useState({
     active: false,
     image: "",
@@ -80,6 +83,7 @@ export default function DynamicBlog() {
         }
 
         setBlog(postData);
+        setPremiumLocked(!!postData.premium_locked);
         setLoading(false);
 
         // Title and Meta Description are now strictly managed by BlogLayout's <SEO> block
@@ -148,7 +152,7 @@ export default function DynamicBlog() {
         })
         .catch((err) => console.error("Comments fetch failed", err));
     }
-  }, [blogId, location.pathname, navigate]);
+  }, [blogId, location.pathname, navigate, isLoggedIn]);
 
   const handleCommentAdded = () => {
     setCommentsCount((prevCount) => prevCount + 1);
@@ -195,6 +199,21 @@ export default function DynamicBlog() {
 
   const isExclusive = Number(blog.is_members_only) === 1;
 
+  // Called by PremiumPaywall after successful payment — re-fetch to get full content
+  const handlePaymentSuccess = () => {
+    setLoading(true);
+    getPostBySlug(blogId)
+      .then((response) => {
+        const postData = Array.isArray(response.data) ? response.data[0] : response.data;
+        if (postData?.title) {
+          setBlog(postData);
+          setPremiumLocked(!!postData.premium_locked);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
   return (
     <>
       <BlogLayout
@@ -206,7 +225,11 @@ export default function DynamicBlog() {
             dangerouslySetInnerHTML={{ __html: blog.content }}
           />
         }
+        isPremium={Number(blog.is_premium) === 1}
+        isPremiumLocked={premiumLocked}
+        onPaymentSuccess={handlePaymentSuccess}
         image={blog.image || blog.featured_image}
+        image_alt={blog.image_alt || blog.title}
         date={blog.date || blog.published_at || blog.created_at}
         author_name={blog.author_name}
         author_image={blog.author_image}
@@ -227,6 +250,11 @@ export default function DynamicBlog() {
         metaDescription={blog.meta_description}
         metaKeywords={blog.meta_keywords}
         isMembersOnly={isExclusive}
+        co_authors={(() => {
+          if (!blog.co_authors) return [];
+          if (Array.isArray(blog.co_authors)) return blog.co_authors;
+          try { const p = JSON.parse(blog.co_authors); return Array.isArray(p) ? p : []; } catch { return []; }
+        })()}
         faqs={(() => {
           if (!blog.faqs || blog.faqs === "null") return [];
           if (Array.isArray(blog.faqs)) return blog.faqs;

@@ -7,11 +7,14 @@ import { useAuth } from "../context/AuthContext";
  * If the user is not authenticated according to AuthContext,
  * they are redirected to the admin login page.
  */
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+const ProtectedRoute = ({ children, adminOnly = false }) => {
+  const { isAuthenticated, role } = useAuth();
 
   if (!isAuthenticated) {
-    // Redirect to login if not authenticated
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (adminOnly && role !== "admin") {
     return <Navigate to="/admin" replace />;
   }
 
