@@ -71,13 +71,25 @@ router.post('/contributors', requireAdmin, async (req, res) => {
         await db.execute("UPDATE users SET is_active=1, contributor_id=? WHERE LOWER(email)=LOWER(?)", [id, contributor.email]);
       }
 
-      // Sync new password to members table so both login paths use the same password
-      if (password) {
+      // Ensure contributor has a member record so they can log into the member portal
+      const memberName = contributor.full_name || contributor.email.split('@')[0];
+      const [memCheck] = await db.execute(
+        'SELECT id FROM members WHERE LOWER(email)=LOWER(?) LIMIT 1', [contributor.email]
+      ).catch(() => [[]]);
+      if (!memCheck.length) {
+        // No member record yet — fetch the hash from users and create one
+        const [uRow] = await db.execute('SELECT password FROM users WHERE LOWER(email)=LOWER(?) LIMIT 1', [contributor.email]).catch(() => [[]]);
+        const memberHash = password ? await bcrypt.hash(password, 10) : uRow[0]?.password;
+        if (memberHash) {
+          await db.execute(
+            "INSERT INTO members (name, email, password_hash, status, approved_at) VALUES (?, ?, ?, 'approved', CURRENT_TIMESTAMP)",
+            [memberName, contributor.email, memberHash]
+          ).catch(() => {});
+        }
+      } else if (password) {
+        // Member exists — keep password in sync
         const approveHash = await bcrypt.hash(password, 10);
-        await db.execute(
-          'UPDATE members SET password_hash=? WHERE LOWER(email)=LOWER(?)',
-          [approveHash, contributor.email]
-        ).catch(() => {});
+        await db.execute('UPDATE members SET password_hash=? WHERE LOWER(email)=LOWER(?)', [approveHash, contributor.email]).catch(() => {});
       }
 
       notifier.notifyContributorApproved(contributor.email, contributor.full_name, { password }).catch(() => {});
@@ -129,6 +141,7 @@ router.get('/contributor-login', requireAdmin, async (req, res) => {
       can_manage_comments: !!permRows[0].can_manage_comments,
       can_manage_announcements: !!permRows[0].can_manage_announcements,
       can_review_blogs: !!(permRows[0].can_review_blogs || 0),
+      can_access_premium_articles: !!(permRows[0].can_access_premium_articles || 0),
     } : {};
 
     return res.json({ has_login: true, user_id: user.id, is_active: !!user.is_active, permissions });
@@ -176,18 +189,18 @@ router.post('/create-contributor-login', requireAdmin, async (req, res) => {
       if (existingPerm.length) {
         await db.execute(
           `UPDATE user_permissions SET can_manage_blogs=?, can_manage_ads=?, can_manage_comments=?,
-           can_manage_announcements=?, can_review_blogs=? WHERE user_id=?`,
+           can_manage_announcements=?, can_review_blogs=?, can_access_premium_articles=? WHERE user_id=?`,
           [permissions.can_manage_blogs ? 1 : 0, permissions.can_manage_ads ? 1 : 0,
            permissions.can_manage_comments ? 1 : 0, permissions.can_manage_announcements ? 1 : 0,
-           permissions.can_review_blogs ? 1 : 0, userId]
+           permissions.can_review_blogs ? 1 : 0, permissions.can_access_premium_articles ? 1 : 0, userId]
         );
       } else {
         await db.execute(
-          `INSERT INTO user_permissions (user_id, can_manage_blogs, can_manage_ads, can_manage_comments, can_manage_announcements, can_review_blogs)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO user_permissions (user_id, can_manage_blogs, can_manage_ads, can_manage_comments, can_manage_announcements, can_review_blogs, can_access_premium_articles)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [userId, permissions.can_manage_blogs ? 1 : 0, permissions.can_manage_ads ? 1 : 0,
            permissions.can_manage_comments ? 1 : 0, permissions.can_manage_announcements ? 1 : 0,
-           permissions.can_review_blogs ? 1 : 0]
+           permissions.can_review_blogs ? 1 : 0, permissions.can_access_premium_articles ? 1 : 0]
         );
       }
     }
@@ -197,11 +210,19 @@ router.post('/create-contributor-login', requireAdmin, async (req, res) => {
     const notifier = new NotificationService(mailService);
     notifier.notifyContributorApproved(contributor.email, contributor.full_name, { password }).catch(() => {});
 
-    // Keep members table in sync — same person, same password
-    await db.execute(
-      'UPDATE members SET password_hash=? WHERE LOWER(email)=LOWER(?)',
-      [hash, contributor.email]
-    ).catch(() => {});
+    // Ensure contributor has a member record so they can log into the member portal
+    const memberName = contributor.full_name || contributor.email.split('@')[0];
+    const [memCheck2] = await db.execute(
+      'SELECT id FROM members WHERE LOWER(email)=LOWER(?) LIMIT 1', [contributor.email]
+    ).catch(() => [[]]);
+    if (!memCheck2.length) {
+      await db.execute(
+        "INSERT INTO members (name, email, password_hash, status, approved_at) VALUES (?, ?, ?, 'approved', CURRENT_TIMESTAMP)",
+        [memberName, contributor.email, hash]
+      ).catch(() => {});
+    } else {
+      await db.execute('UPDATE members SET password_hash=? WHERE LOWER(email)=LOWER(?)', [hash, contributor.email]).catch(() => {});
+    }
 
     return res.json({
       status: 'success',
@@ -227,18 +248,18 @@ router.post('/update-contributor-access', requireAdmin, async (req, res) => {
       if (existing.length) {
         await db.execute(
           `UPDATE user_permissions SET can_manage_blogs=?, can_manage_ads=?, can_manage_comments=?,
-           can_manage_announcements=?, can_review_blogs=? WHERE user_id=?`,
+           can_manage_announcements=?, can_review_blogs=?, can_access_premium_articles=? WHERE user_id=?`,
           [permissions.can_manage_blogs ? 1 : 0, permissions.can_manage_ads ? 1 : 0,
            permissions.can_manage_comments ? 1 : 0, permissions.can_manage_announcements ? 1 : 0,
-           permissions.can_review_blogs ? 1 : 0, user_id]
+           permissions.can_review_blogs ? 1 : 0, permissions.can_access_premium_articles ? 1 : 0, user_id]
         );
       } else {
         await db.execute(
-          `INSERT INTO user_permissions (user_id, can_manage_blogs, can_manage_ads, can_manage_comments, can_manage_announcements, can_review_blogs)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO user_permissions (user_id, can_manage_blogs, can_manage_ads, can_manage_comments, can_manage_announcements, can_review_blogs, can_access_premium_articles)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [user_id, permissions.can_manage_blogs ? 1 : 0, permissions.can_manage_ads ? 1 : 0,
            permissions.can_manage_comments ? 1 : 0, permissions.can_manage_announcements ? 1 : 0,
-           permissions.can_review_blogs ? 1 : 0]
+           permissions.can_review_blogs ? 1 : 0, permissions.can_access_premium_articles ? 1 : 0]
         );
       }
     }

@@ -20,8 +20,11 @@ function deleteImage(imagePath) {
     path.join(ROOT, 'assets', imagePath.replace('/assets', '')),
   ];
 
+  const allowedRoot = path.join(ROOT, 'public', 'uploads');
   for (const p of candidates) {
     const normalized = path.normalize(p);
+    // Reject any path that escapes the uploads directory
+    if (!normalized.startsWith(allowedRoot + path.sep) && normalized !== allowedRoot) continue;
     if (fs.existsSync(normalized) && fs.statSync(normalized).isFile()) {
       try { fs.unlinkSync(normalized); return true; } catch { /* skip */ }
     }

@@ -27,8 +27,7 @@ const Header = () => {
     member,
     isContributor,
     logout: memberLogout,
-    subscription,
-    isPremiumMember,
+    creditBalance,
   } = useMemberAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -218,15 +217,11 @@ const Header = () => {
                   <div className="member-dropdown-menu">
                     <div className="member-dropdown-header">
                       <strong>{member.name}</strong>
-                      <span>{member.email}</span>
-                      {isPremiumMember && subscription && (
-                        <div style={{ fontSize: "0.75rem", color: "#d97706", marginTop: "4px", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <i className="bi bi-star-fill"></i> Premium Member
-                          <span style={{ color: "#64748b", fontWeight: "normal", marginLeft: "auto" }}>
-                            ({Math.ceil((new Date(subscription.expires_at) - new Date()) / (1000 * 60 * 60 * 24))} days left)
-                          </span>
-                        </div>
-                      )}
+                      <span className="member-email">{member.email}</span>
+                      <div className="member-premium-badge" style={{ cursor: "default" }}>
+                        <i className="bi bi-coin"></i>
+                        {creditBalance} Credit{creditBalance !== 1 ? "s" : ""}
+                      </div>
                     </div>
                     <button
                       className="member-dropdown-item"
@@ -362,13 +357,9 @@ const Header = () => {
                   <span className="mobile-profile-name">{member.name}</span>
                   <span className="mobile-profile-email">{member.email}</span>
                   <span className="mobile-profile-role">
-                  {isPremiumMember && subscription ? (
-                    <span style={{ color: "#d97706", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
-                      <i className="bi bi-star-fill"></i> Premium ({Math.ceil((new Date(subscription.expires_at) - new Date()) / (1000 * 60 * 60 * 24))} days left)
-                    </span>
-                  ) : (
-                    "Member"
-                  )}
+                  <span style={{ color: "#d97706", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <i className="bi bi-coin"></i> {creditBalance} Credits
+                  </span>
                 </span>
                 </div>
               </div>

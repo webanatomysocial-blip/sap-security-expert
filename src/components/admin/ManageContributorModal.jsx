@@ -24,6 +24,7 @@ const DEFAULT_PERMS = {
   can_manage_comments: false,
   can_manage_announcements: false,
   can_review_blogs: false,
+  can_access_premium_articles: false,
 };
 
 /**

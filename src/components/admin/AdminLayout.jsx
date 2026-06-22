@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import axios from "axios";
+import { api as axios } from "../../services/api";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar.jsx";
 import ContributorDashboard from "./ContributorDashboard";
@@ -117,20 +117,17 @@ const AdminLayout = () => {
     }
   }, []);
 
-  // Fetch profile and stats when authenticated
+  // Fetch profile and stats once when authenticated — not on every page navigation
   useEffect(() => {
     if (isAuthenticated) {
-      const initDashboard = async () => {
-        await Promise.all([fetchProfile(), fetchBadges()]);
-      };
-      initDashboard();
+      Promise.all([fetchProfile(), fetchBadges()]).catch(() => {});
     }
-  }, [isAuthenticated, location.pathname, fetchProfile, fetchBadges]);
+  }, [isAuthenticated, fetchProfile, fetchBadges]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("/api/login", { username, password });
+      const response = await axios.post("/login", { username, password });
       if (response.data.status === "success") {
         addToast("Login successful! Redirecting...", "success");
         setAuth({

@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 // Removed static metadata import
 // Removed static metadata import
 // next-disabled: import "../css/CommunitySection.css";
-import ads1 from "../assets/promotions/promo-1.png";
-import ads2 from "../assets/promotions/promo-1.png";
+const ads1 = "/assets/ads/promo-1.png";
+const ads2 = "/assets/ads/promo-2.png";
 import {
   getHomepageData,
   getPublicAnnouncements,
@@ -162,18 +162,6 @@ export default function CommunitySection() {
         <div className="community-grid">
           {/* LEFT COLUMN */}
           <div className="community-left">
-            {/* New to SAP Security? Box */}
-            {/* <div className="widget new-to-sap-box">
-              <div className="widget-header">
-                <h3>New to SAP Security?</h3>
-              </div>
-              <div className="new-to-sap-content">
-                <p>Start with the basics and build your knowledge.</p>
-                <Link to="/sap-security-fundamentals" className="start-here-btn">
-                  Start Here
-                </Link>
-              </div>
-            </div> */}
 
             {/* Recent Topics */}
             <div className="widget">
@@ -514,6 +502,20 @@ export default function CommunitySection() {
 
           {/* RIGHT COLUMN */}
           <div className="community-right">
+
+            {/* New to SAP Security? Box */}
+            <div className="widget new-to-sap-box">
+              <div className="widget-header">
+                <h3>New to SAP Security?</h3>
+              </div>
+              <div className="new-to-sap-content">
+                <p>Start with the basics and build your knowledge.</p>
+                <Link to="/learning-hub" className="start-here-btn">
+                  Start Here
+                </Link>
+              </div>
+            </div>
+
             {/* Announcements */}
             <div className="widget">
               <div className="widget-header">

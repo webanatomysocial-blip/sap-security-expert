@@ -15,7 +15,7 @@ const BecomeContributor = () => {
       description:
         "Create and post engaging LinkedIn content, write impactful scripts, share posts in relevant groups, and grow reach organically.",
       howTo: [
-        "Create and post engaging LinkedIn content based on newly published articles on sap.webanatomy.in",
+        "Create and post engaging LinkedIn content based on newly published articles on sapsecurityexpert.com",
         "Write short, impactful post scripts with the right industry hooks and hashtags",
         "Share posts in relevant SAP Security, GRC, Audit, and Cybersecurity LinkedIn groups",
         "Help grow reach, engagement, and followers organically",
@@ -159,7 +159,7 @@ const BecomeContributor = () => {
             Join the SAP Security Expert Community as a Contributor / Volunteer
           </h1>
           <p className="hero-subtitle">
-            SAP Security Expert (sap.webanatomy.in) is a non-profit,
+            SAP Security Expert (sapsecurityexpert.com) is a non-profit,
             vendor-neutral community built by practitioners, for practitioners
             in the SAP Security, GRC, and Risk & Compliance space.
           </p>

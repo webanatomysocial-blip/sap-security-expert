@@ -6,7 +6,7 @@
  * Hostinger assigns via process.env.PORT.
  *
  * Hostinger hPanel settings:
- *   Application Root : /home/<user>/htdocs/sap.webanatomy.in
+ *   Application Root : /var/www/sap-security-expert
  *   Startup File     : start.cjs
  *   Node.js version  : 20.x or 22.x
  *   Install Command  : npm install
@@ -72,7 +72,7 @@ async function main() {
   const server = http.createServer((req, res) => {
     const { pathname } = parse(req.url, true);
 
-    if (pathname.startsWith('/api/') || pathname.startsWith('/uploads/')) {
+    if (pathname.startsWith('/api/') || pathname === '/api' || pathname.startsWith('/uploads/') || pathname === '/uploads') {
       expressApp(req, res);
     } else {
       nextHandle(req, res, parse(req.url, true));

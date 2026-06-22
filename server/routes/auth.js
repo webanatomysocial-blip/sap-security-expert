@@ -112,6 +112,7 @@ router.get(['/verify_session.php', '/verify-session'], async (req, res) => {
     can_manage_comments: !!p.can_manage_comments,
     can_manage_announcements: !!p.can_manage_announcements,
     can_review_blogs: !!(p.can_review_blogs || 0),
+    can_access_premium_articles: !!(p.can_access_premium_articles || 0),
   } : {};
 
   if (sess.admin_logged_in) {

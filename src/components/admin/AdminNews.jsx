@@ -7,6 +7,8 @@ import { getAdminNews, saveNews, deleteNews, uploadBlogImage } from "../../servi
 import BlogEditor from "./blogs/BlogEditor";
 import SeoSettings from "./blogs/SeoSettings";
 import CtaSettings from "./blogs/CtaSettings";
+import ActionMenu from "./ActionMenu";
+import TableScrollContainer from "./TableScrollContainer";
 
 const initialFormState = {
   id: "",
@@ -250,65 +252,62 @@ const AdminNews = () => {
               </button>
             </div>
           ) : (
-            <div className="admin-card" style={{ padding: 0, overflow: "hidden" }}>
-              <table className="admin-table" style={{ margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: "left", paddingLeft: "20px" }}>Title</th>
-                    <th style={{ textAlign: "left" }}>Slug</th>
-                    <th style={{ textAlign: "center" }}>Status</th>
-                    <th style={{ textAlign: "left" }}>Date</th>
-                    <th style={{ textAlign: "center" }}>Views</th>
-                    <th style={{ textAlign: "center" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleItems.map((item) => {
-                    const isLive = ["approved", "published"].includes(item.status);
-                    return (
-                      <tr key={item.id}>
-                        <td style={{ paddingLeft: "20px", maxWidth: "320px" }}>
-                          <strong style={{ fontSize: "0.875rem", color: "#0f172a", display: "block", marginBottom: "2px" }}>
-                            {item.title}
-                          </strong>
-                          {item.excerpt && (
-                            <span style={{ fontSize: "0.75rem", color: "#94a3b8", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                              {item.excerpt}
+            <div className="admin-card">
+              <TableScrollContainer>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th className="col-xxl text-left">Title</th>
+                      <th className="col-sm text-center">Status</th>
+                      <th className="col-md text-left">Date</th>
+                      <th className="col-sm text-center">Views</th>
+                      <th className="col-actions text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleItems.map((item) => {
+                      const isLive = ["approved", "published"].includes(item.status);
+                      return (
+                        <tr key={item.id}>
+                          <td className="col-xxl text-left wrap-text">
+                            <strong className="truncate-2" style={{ fontSize: "0.85rem" }}>{item.title}</strong>
+                            {item.excerpt && (
+                              <span style={{ fontSize: "0.78rem", color: "#64748b", display: "block", marginTop: "2px" }}>
+                                {item.excerpt.slice(0, 100)}{item.excerpt.length > 100 ? "…" : ""}
+                              </span>
+                            )}
+                          </td>
+                          <td className="col-sm text-center">
+                            <span className={`status-badge ${isLive ? "status-live" : "status-draft"}`} style={{ fontSize: "0.7rem", padding: "2px 6px" }}>
+                              {isLive ? "Live" : "Draft"}
                             </span>
-                          )}
-                        </td>
-                        <td>
-                          <code style={{ fontSize: "0.75rem", color: "#64748b", background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>
-                            {item.slug || "—"}
-                          </code>
-                        </td>
-                        <td style={{ textAlign: "center" }}>
-                          <span className={`status-badge ${isLive ? "status-live" : "status-draft"}`} style={{ fontSize: "0.7rem", padding: "2px 8px" }}>
-                            {isLive ? "Live" : "Draft"}
-                          </span>
-                        </td>
-                        <td style={{ fontSize: "0.8rem", color: "#64748b", whiteSpace: "nowrap" }}>
-                          {formatDateLabel(item.date || item.created_at)}
-                        </td>
-                        <td style={{ textAlign: "center", fontSize: "0.8rem", color: "#64748b" }}>
-                          <i className="bi bi-eye" style={{ marginRight: "4px" }}></i>
-                          {item.view_count || 0}
-                        </td>
-                        <td style={{ textAlign: "center" }}>
-                          <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
-                            <button className="btn-edit btn-sm" onClick={() => handleEdit(item)} title="Edit">
-                              <i className="bi bi-pencil"></i> Edit
-                            </button>
-                            <button className="btn-reject btn-sm" onClick={() => handleDelete(item.id)} title="Delete">
-                              <i className="bi bi-trash"></i>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                          <td className="col-md text-left">
+                            <span style={{ fontSize: "0.80rem", color: "var(--slate-500)", fontWeight: "500" }}>
+                              {formatDateLabel(item.date || item.created_at)}
+                            </span>
+                          </td>
+                          <td className="col-sm text-center" style={{ fontSize: "0.80rem", color: "#64748b" }}>
+                            <i className="bi bi-eye" style={{ marginRight: "4px" }} />
+                            {item.view_count || 0}
+                          </td>
+                          <td className="col-actions text-center">
+                            <ActionMenu>
+                              <button className="action-menu-item" onClick={() => handleEdit(item)}>
+                                <i className="bi bi-pencil-square" /> Edit
+                              </button>
+                              <div className="action-menu-separator" />
+                              <button className="action-menu-item danger" onClick={() => handleDelete(item.id)}>
+                                <i className="bi bi-trash" /> Delete
+                              </button>
+                            </ActionMenu>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </TableScrollContainer>
             </div>
           )}
         </>

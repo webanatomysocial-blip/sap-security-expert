@@ -53,6 +53,7 @@ const AdminBlogs = () => {
     schema_type: "BlogPosting",
     article_section: "",
     is_premium: 0,
+    credits_required: 1,
   };
 
   const [formData, setFormData] = useState(initialFormState);

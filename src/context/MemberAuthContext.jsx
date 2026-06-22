@@ -1,27 +1,32 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
-/**
- * MemberAuthContext — provides member session state to frontend components.
- * Member auth is localStorage-based (matches contributor pattern).
- * Keys: memberAuth="true", memberData=JSON, memberToken=<string>
- *
- * Also tracks premium subscription state:
- *   isPremiumMember — true when the member has an active paid subscription
- *   subscription    — { plan_name, expires_at } or null
- */
 const MemberAuthContext = createContext(null);
 
 export const MemberAuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [member, setMember] = useState(null);
   const [isContributor, setIsContributor] = useState(false);
-  const [subscription, setSubscription] = useState(null);
-  const [isPremiumMember, setIsPremiumMember] = useState(false);
+  const [creditBalance, setCreditBalance] = useState(0);
+  const [unlockedSlugs, setUnlockedSlugs] = useState([]);
 
-  const applySubscription = useCallback((sub) => {
-    const active = sub && new Date(sub.expires_at) > new Date();
-    setSubscription(active ? sub : null);
-    setIsPremiumMember(!!active);
+  // Refresh credits + unlocks from server
+  const refreshCredits = useCallback(() => {
+    import("../services/api").then(({ getMyCredits, getMyUnlocks }) => {
+      getMyCredits()
+        .then((res) => {
+          const bal = res.data?.balance ?? 0;
+          setCreditBalance(bal);
+          localStorage.setItem("memberCredits", String(bal));
+        })
+        .catch(() => {});
+      getMyUnlocks()
+        .then((res) => {
+          const slugs = (res.data?.unlocks || []).map((u) => u.blog_slug);
+          setUnlockedSlugs(slugs);
+          localStorage.setItem("memberUnlocks", JSON.stringify(slugs));
+        })
+        .catch(() => {});
+    });
   }, []);
 
   // Rehydrate from localStorage on mount and fetch fresh data from server
@@ -34,11 +39,13 @@ export const MemberAuthProvider = ({ children }) => {
         setMember(savedMember);
         setIsContributor(localStorage.getItem("isContributor") === "true");
 
-        // Restore cached subscription from localStorage
-        const cachedSub = JSON.parse(localStorage.getItem("memberSubscription") || "null");
-        if (cachedSub) applySubscription(cachedSub);
+        // Restore cached credits/unlocks
+        const cachedBal = parseInt(localStorage.getItem("memberCredits") || "0");
+        setCreditBalance(cachedBal);
+        const cachedUnlocks = JSON.parse(localStorage.getItem("memberUnlocks") || "[]");
+        setUnlockedSlugs(cachedUnlocks);
 
-        // Fetch fresh data from server
+        // Fetch fresh profile
         import("../services/api").then(({ getMemberProfile }) => {
           getMemberProfile()
             .then((res) => {
@@ -46,30 +53,30 @@ export const MemberAuthProvider = ({ children }) => {
                 const freshMember = res.data.member;
                 setMember(freshMember);
                 localStorage.setItem("memberData", JSON.stringify(freshMember));
-                const freshSub = res.data.subscription || null;
-                applySubscription(freshSub);
-                localStorage.setItem("memberSubscription", JSON.stringify(freshSub));
               }
             })
             .catch((err) => {
               if (err.response?.status === 401) logout();
             });
         });
+
+        // Fetch fresh credits + unlocks
+        refreshCredits();
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = (memberData, token, isContrib = false, sub = null) => {
+  const login = (memberData, token, isContrib = false) => {
     setIsLoggedIn(true);
     setMember(memberData);
     setIsContributor(isContrib);
-    applySubscription(sub);
     localStorage.setItem("memberAuth", "true");
     localStorage.setItem("memberData", JSON.stringify(memberData));
     localStorage.setItem("memberToken", token);
     localStorage.setItem("isContributor", isContrib ? "true" : "false");
-    localStorage.setItem("memberSubscription", JSON.stringify(sub));
+    // Fetch credits after login
+    setTimeout(() => refreshCredits(), 200);
   };
 
   const updateMember = (updatedMemberData) => {
@@ -77,23 +84,39 @@ export const MemberAuthProvider = ({ children }) => {
     localStorage.setItem("memberData", JSON.stringify(updatedMemberData));
   };
 
-  // Called after a successful Razorpay payment verification
-  const activatePremium = (sub) => {
-    applySubscription(sub);
-    localStorage.setItem("memberSubscription", JSON.stringify(sub));
+  // Call after a successful blog unlock to update local state immediately
+  const onBlogUnlocked = (slug, newBalance) => {
+    setUnlockedSlugs((prev) => {
+      const updated = [...new Set([...prev, slug])];
+      localStorage.setItem("memberUnlocks", JSON.stringify(updated));
+      return updated;
+    });
+    if (newBalance !== undefined) {
+      setCreditBalance(newBalance);
+      localStorage.setItem("memberCredits", String(newBalance));
+    }
   };
+
+  // Call after purchasing a bundle to update credit balance
+  const onCreditsPurchased = (newBalance) => {
+    setCreditBalance(newBalance);
+    localStorage.setItem("memberCredits", String(newBalance));
+  };
+
+  const isUnlocked = useCallback((slug) => unlockedSlugs.includes(slug), [unlockedSlugs]);
 
   const logout = () => {
     setIsLoggedIn(false);
     setMember(null);
     setIsContributor(false);
-    setSubscription(null);
-    setIsPremiumMember(false);
+    setCreditBalance(0);
+    setUnlockedSlugs([]);
     localStorage.removeItem("memberAuth");
     localStorage.removeItem("memberData");
     localStorage.removeItem("memberToken");
     localStorage.removeItem("isContributor");
-    localStorage.removeItem("memberSubscription");
+    localStorage.removeItem("memberCredits");
+    localStorage.removeItem("memberUnlocks");
   };
 
   return (
@@ -102,12 +125,15 @@ export const MemberAuthProvider = ({ children }) => {
         isLoggedIn,
         member,
         isContributor,
-        subscription,
-        isPremiumMember,
+        creditBalance,
+        unlockedSlugs,
+        isUnlocked,
+        refreshCredits,
         login,
         logout,
         updateMember,
-        activatePremium,
+        onBlogUnlocked,
+        onCreditsPurchased,
       }}
     >
       {children}

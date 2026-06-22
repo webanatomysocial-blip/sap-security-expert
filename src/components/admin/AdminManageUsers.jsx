@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { getAdminMembers, manageAdminMember } from "../../services/api";
@@ -203,53 +203,31 @@ const AdminManageUsers = () => {
       <div className="page-header">
         <h3>Manage Members</h3>
         <div className="status-filter-tabs" style={{ margin: 0 }}>
-          <button
-            className={filterStatus === "all" ? "active" : ""}
-            onClick={() => setFilterStatus("all")}
-          >
-            All
-          </button>
-          <button
-            className={filterStatus === "pending" ? "active" : ""}
-            onClick={() => setFilterStatus("pending")}
-          >
-            Pending
-          </button>
-          <button
-            className={filterStatus === "approved" ? "active" : ""}
-            onClick={() => setFilterStatus("approved")}
-          >
-            Approved
-          </button>
-          <button
-            className={filterStatus === "rejected" ? "active" : ""}
-            onClick={() => setFilterStatus("rejected")}
-          >
-            Rejected
-          </button>
-          <button
-            className={filterStatus === "deleted" ? "active" : ""}
-            onClick={() => setFilterStatus("deleted")}
-          >
-            Deleted
-          </button>
+          {["all", "pending", "approved", "rejected", "deleted"].map((s) => (
+            <button key={s} className={filterStatus === s ? "active" : ""} onClick={() => setFilterStatus(s)}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
         </div>
         <div className="page-header-actions">
-          <div className="search-box">
-            <i className="bi bi-search"></i>
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
           <button onClick={handleExport} className="btn-filter btn-sm" title="Export to CSV">
             <i className="bi bi-download"></i> Export
           </button>
-          <button onClick={fetchMembers} className="btn-primary btn-sm">
+          <button onClick={fetchMembers} className="btn-primary btn-sm" title="Refresh">
             <i className="bi bi-arrow-clockwise"></i>
           </button>
+        </div>
+      </div>
+
+      <div className="admin-filter-bar">
+        <div className="search-box" style={{ flex: 1 }}>
+          <i className="bi bi-search"></i>
+          <input
+            type="text"
+            placeholder="Search by name or email…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
 
@@ -266,27 +244,23 @@ const AdminManageUsers = () => {
                   {filterStatus === "deleted" ? (
                     <>
                       <th className="col-md text-left">Deleted At</th>
-                      <th className="col-md text-left">IP Address</th>
                       <th className="col-md text-left">Method</th>
-                      <th className="col-md text-left">Confirmation</th>
                     </>
                   ) : (
                     <>
                       <th className="col-md text-left">Phone</th>
-                      <th className="col-md text-left">Company</th>
-                      <th className="col-md text-left">Position</th>
-                      <th className="col-md text-left">Location</th>
+                      <th className="col-lg text-left">Company / Role</th>
                     </>
                   )}
                   <th className="col-sm text-center">Status</th>
-                  <th className="col-sm text-left">Reg. Date</th>
+                  <th className="col-md text-left">Reg. Date</th>
                   <th className="col-actions text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredMembers.length === 0 ? (
                   <tr key="empty">
-                    <td colSpan="9" className="text-center">
+                    <td colSpan="7" className="text-center" style={{ padding: "32px", color: "#94a3b8" }}>
                       No members matching the filter.
                     </td>
                   </tr>
@@ -294,134 +268,81 @@ const AdminManageUsers = () => {
                   filteredMembers.map((m) => (
                     <tr key={m.id}>
                       <td className="col-lg text-left wrap-text">
-                        <strong className="truncate-2" style={{ fontSize: "0.85rem" }}>{m.name}</strong>
+                        <strong style={{ fontSize: "0.875rem" }}>{m.name}</strong>
                       </td>
-                      <td className="col-lg text-left no-wrap">
-                        <div style={{ fontSize: "0.8rem" }}>{m.email}</div>
+                      <td className="col-lg text-left">
+                        <span style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.email}</span>
                       </td>
                       {filterStatus === "deleted" ? (
                         <>
-                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
-                            {m.deleted_at ? new Date(m.deleted_at).toLocaleString() : "—"}
+                          <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                            {m.deleted_at ? new Date(m.deleted_at).toLocaleDateString() : "—"}
                           </td>
-                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
-                            {m.deletion_ip || "—"}
-                          </td>
-                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
+                          <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
                             {m.deletion_method || "—"}
-                          </td>
-                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
-                            {m.deletion_confirmation_method || "—"}
                           </td>
                         </>
                       ) : (
                         <>
-                          <td className="col-md text-left no-wrap">
-                            {m.phone ? (
-                              <div style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                                {m.phone}
-                              </div>
-                            ) : (
-                              <span style={{ color: "#cbd5e1" }}>—</span>
-                            )}
+                          <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                            {m.phone || <span style={{ color: "#cbd5e1" }}>—</span>}
                           </td>
-                          <td className="col-md text-left wrap-text">
-                            <div
-                              className="truncate-2"
-                              style={{
-                                fontWeight: 600,
-                                color: "var(--slate-900)",
-                                fontSize: "0.85rem",
-                              }}
-                            >
-                              {m.company_name || "—"}
-                            </div>
-                          </td>
-                          <td className="col-md text-left wrap-text">
-                            <div
-                              className="truncate-2"
-                              style={{ fontSize: "0.8rem", color: "#64748b" }}
-                            >
-                              {m.job_role || "—"}
-                            </div>
-                          </td>
-                          <td className="col-md text-left wrap-text">
-                            <div className="truncate-2" style={{ fontSize: "0.80rem" }}>
-                              {m.location || "—"}
-                            </div>
+                          <td className="col-lg text-left wrap-text">
+                            {m.company_name ? (
+                              <strong style={{ fontSize: "0.83rem", display: "block" }}>{m.company_name}</strong>
+                            ) : null}
+                            {m.job_role ? (
+                              <span style={{ fontSize: "0.78rem", color: "#64748b" }}>{m.job_role}</span>
+                            ) : (!m.company_name ? <span style={{ color: "#cbd5e1" }}>—</span> : null)}
                           </td>
                         </>
                       )}
                       <td className="col-sm text-center">
-                        <span className={`status-badge status-${m.status}`}>
-                          {m.status === "approved" ? "Active" : m.status}
+                        <span className={`status-badge status-${m.status}`} style={{ fontSize: "0.7rem", padding: "2px 8px" }}>
+                          {m.status === "approved" ? "Active" : m.status.charAt(0).toUpperCase() + m.status.slice(1)}
                         </span>
                       </td>
-                      <td className="col-sm text-left" style={{ fontSize: "0.85rem" }}>
-                        {new Date(m.created_at).toLocaleDateString()}
+                      <td className="col-md text-left" style={{ fontSize: "0.80rem", color: "var(--slate-500)", fontWeight: 500 }}>
+                        {new Date(m.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
                       <td className="col-actions text-center">
                         <ActionMenu>
-                          <button
-                            className="action-menu-item"
-                            onClick={() => setSelectedMember(m)}
-                          >
-                            <i className="bi bi-eye"></i> View Details
+                          <button className="action-menu-item" onClick={() => setSelectedMember(m)}>
+                            <i className="bi bi-eye" /> View Details
                           </button>
-
                           {m.status === "pending" && (
-                            <button
-                              className="action-menu-item"
-                              onClick={() => handleAction(m.id, "approve")}
-                              style={{ color: "var(--success-green)" }}
-                            >
-                              <i className="bi bi-check-circle"></i> Approve Now
+                            <button className="action-menu-item success" onClick={() => handleAction(m.id, "approve")} style={{ color: "var(--success-green)" }}>
+                              <i className="bi bi-check-circle" /> Approve
                             </button>
                           )}
-
                           {m.status === "rejected" && (
-                            <button
-                              className="action-menu-item"
-                              onClick={() => handleAction(m.id, "approve")}
-                              style={{ color: "var(--success-green)" }}
-                            >
-                              <i className="bi bi-check-circle"></i> Re-Approve
+                            <button className="action-menu-item" onClick={() => handleAction(m.id, "approve")} style={{ color: "var(--success-green)" }}>
+                              <i className="bi bi-check-circle" /> Re-Approve
                             </button>
                           )}
-
                           {m.status === "approved" && (
                             <>
-                              <div className="action-menu-separator"></div>
-                              <button
-                                className="action-menu-item"
-                                onClick={() => setManagingMember(m)}
-                              >
-                                <i className="bi bi-shield-lock"></i> Manage Login
+                              <div className="action-menu-separator" />
+                              <button className="action-menu-item" onClick={() => setManagingMember(m)}>
+                                <i className="bi bi-shield-lock" /> Manage Login
                               </button>
                             </>
                           )}
-
                           {m.status === "pending" && (
                             <>
-                              <div className="action-menu-separator"></div>
-                              <button
-                                className="action-menu-item"
-                                onClick={() => handleAction(m.id, "reject")}
-                                style={{ color: "var(--warning-yellow)" }}
-                              >
-                                <i className="bi bi-x-circle"></i> Reject
+                              <div className="action-menu-separator" />
+                              <button className="action-menu-item" onClick={() => handleAction(m.id, "reject")} style={{ color: "var(--warning-yellow)" }}>
+                                <i className="bi bi-x-circle" /> Reject
                               </button>
                             </>
                           )}
-
-                          <div className="action-menu-separator"></div>
                           {m.status !== "deleted" && (
-                            <button
-                              className="action-menu-item danger"
-                              onClick={() => handleAction(m.id, "delete")}
-                            >
-                              <i className="bi bi-trash"></i> Delete
-                            </button>
+                            <>
+                              <div className="action-menu-separator" />
+                              <button className="action-menu-item danger" onClick={() => handleAction(m.id, "delete")}>
+                                <i className="bi bi-trash" /> Delete
+                              </button>
+                            </>
                           )}
                         </ActionMenu>
                       </td>

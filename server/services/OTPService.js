@@ -14,7 +14,8 @@ class OTPService {
       throw new Error('Too many requests. Please try again later.');
     }
 
-    const code = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    const { randomInt } = require('crypto');
+    const code = String(randomInt(0, 1000000)).padStart(6, '0');
 
     await this.db.execute(
       `INSERT INTO verification_codes (email, code, type, ip_address, expires_at)

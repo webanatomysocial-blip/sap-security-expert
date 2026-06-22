@@ -40,8 +40,8 @@ const ResponsibleAi = () => {
         <h3>Contact</h3>
         <p>
           For inquiries regarding Responsible AI, please contact{" "}
-          <a className="legal-links" href="mailto:hello@sap.webanatomy.in">
-            hello@sap.webanatomy.in
+          <a className="legal-links" href="mailto:hello@sapsecurityexpert.com">
+            hello@sapsecurityexpert.com
           </a>
           .
         </p>

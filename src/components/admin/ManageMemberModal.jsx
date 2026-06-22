@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LuX,
   LuShieldCheck,
@@ -8,7 +8,7 @@ import {
   LuCircleCheck,
 } from "react-icons/lu";
 import { useToast } from "../../context/ToastContext";
-import { resetMemberPassword } from "../../services/api";
+import { resetMemberPassword, getMemberCreditBalance, grantAdminCredits } from "../../services/api";
 import useScrollLock from "../../hooks/useScrollLock";
 
 const ManageMemberModal = ({ member, onClose }) => {
@@ -17,9 +17,49 @@ const ManageMemberModal = ({ member, onClose }) => {
   const [copied, setCopied] = useState(false);
   const [newResetPass, setNewResetPass] = useState("");
 
+  const [creditBalance, setCreditBalance] = useState(null);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditNote, setCreditNote] = useState("");
+  const [creditError, setCreditError] = useState("");
+  const [savingCredits, setSavingCredits] = useState(false);
+
   const { addToast } = useToast();
 
   useScrollLock(!!member);
+
+  useEffect(() => {
+    if (member?.id) {
+      getMemberCreditBalance(member.id)
+        .then((res) => setCreditBalance(res.data?.balance ?? 0))
+        .catch(() => setCreditBalance(0));
+    }
+  }, [member?.id]);
+
+  const handleGrantCredits = async (e) => {
+    e.preventDefault();
+    const amount = parseInt(creditAmount);
+    if (!amount || isNaN(amount)) {
+      setCreditError("Enter a non-zero integer.");
+      return;
+    }
+    setCreditError("");
+    setSavingCredits(true);
+    try {
+      const res = await grantAdminCredits(member.id, amount, creditNote.trim() || undefined);
+      if (res.data.status === "success") {
+        setCreditBalance(res.data.new_balance);
+        setCreditAmount("");
+        setCreditNote("");
+        addToast(res.data.message, "success");
+      } else {
+        setCreditError(res.data.message || "Failed to update credits.");
+      }
+    } catch (err) {
+      setCreditError(err.response?.data?.message || "Failed to update credits.");
+    } finally {
+      setSavingCredits(false);
+    }
+  };
 
   const handleResetPassword = async () => {
     setResetting(true);
@@ -183,6 +223,55 @@ const ManageMemberModal = ({ member, onClose }) => {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* ── Credit Management ─────────────────────────────────────── */}
+          <div className="form-group" style={{ marginTop: 28, borderTop: "1px solid var(--slate-100)", paddingTop: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <span style={{ fontWeight: 600 }}>Credit Balance</span>
+              <span style={{
+                background: "#fffbeb", border: "1px solid #fcd34d",
+                borderRadius: 20, padding: "3px 12px", fontSize: 13, fontWeight: 700, color: "#92400e",
+              }}>
+                {creditBalance === null ? "…" : `${creditBalance} credits`}
+              </span>
+            </div>
+            <p style={{ color: "var(--slate-500)", fontSize: "0.85rem", marginBottom: 14 }}>
+              Add or deduct credits. Use a negative number to deduct (e.g. <code>-5</code>).
+            </p>
+            {creditError && (
+              <div className="form-error" style={{ marginBottom: 12 }}>
+                <LuTriangleAlert /> {creditError}
+              </div>
+            )}
+            <form onSubmit={handleGrantCredits} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input
+                type="number"
+                placeholder="Amount (e.g. 10 or -5)"
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+                style={{ flex: "1 1 120px", minWidth: 100, padding: "7px 10px", border: "1.5px solid var(--slate-200)", borderRadius: 6, fontSize: 13 }}
+              />
+              <input
+                type="text"
+                placeholder="Note (optional)"
+                value={creditNote}
+                onChange={(e) => setCreditNote(e.target.value)}
+                style={{ flex: "2 1 180px", padding: "7px 10px", border: "1.5px solid var(--slate-200)", borderRadius: 6, fontSize: 13 }}
+              />
+              <button
+                type="submit"
+                disabled={savingCredits || !creditAmount}
+                style={{
+                  padding: "7px 16px", background: "#1e293b", color: "#fff",
+                  border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600,
+                  cursor: savingCredits || !creditAmount ? "not-allowed" : "pointer",
+                  opacity: savingCredits || !creditAmount ? 0.6 : 1,
+                }}
+              >
+                {savingCredits ? "Saving…" : "Apply"}
+              </button>
+            </form>
           </div>
         </div>
 

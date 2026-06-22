@@ -236,22 +236,45 @@ const BlogEditor = ({
             </span>
           </div>
 
-          <div className="form-group" style={{ marginBottom: "20px", background: "#fffbeb", border: "1.5px solid #fcd34d", borderRadius: 8, padding: "14px 16px" }}>
-            <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", color: "#92400e" }}>
-              <input
-                type="checkbox"
-                name="is_premium"
-                checked={formData.is_premium == 1}
-                onChange={(e) => handleInputChange({ target: { name: "is_premium", value: e.target.checked ? 1 : 0 } })}
-                style={{ width: "16px", height: "16px", accentColor: "#d97706" }}
-              />
-              <i className="bi bi-star-fill" style={{ color: "#d97706" }}></i>
-              Premium Article (Paid)
-            </label>
-            <span style={{ fontSize: "0.78rem", color: "#92400e", display: "block", marginTop: "4px" }}>
-              Only members with an active paid subscription can read the full content. Free visitors see a short teaser.
-            </span>
-          </div>
+          {isAdmin && (
+            <div className="form-group" style={{ marginBottom: "20px", background: "#fffbeb", border: "1.5px solid #fcd34d", borderRadius: 8, padding: "14px 16px" }}>
+              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", color: "#92400e" }}>
+                <input
+                  type="checkbox"
+                  name="is_premium"
+                  checked={formData.is_premium == 1}
+                  onChange={(e) => handleInputChange({ target: { name: "is_premium", value: e.target.checked ? 1 : 0 } })}
+                  style={{ width: "16px", height: "16px", accentColor: "#d97706" }}
+                />
+                <i className="bi bi-star-fill" style={{ color: "#d97706" }}></i>
+                Premium Article (Paid)
+              </label>
+              <span style={{ fontSize: "0.78rem", color: "#92400e", display: "block", marginTop: "4px" }}>
+                Members must spend credits to unlock this article for lifetime access.
+              </span>
+              {formData.is_premium == 1 && (
+                <div style={{ marginTop: "12px" }}>
+                  <label style={{ fontSize: "0.82rem", fontWeight: "600", color: "#92400e", display: "block", marginBottom: "6px" }}>
+                    <i className="bi bi-coin" style={{ marginRight: "6px" }}></i>
+                    Credits Required to Unlock
+                  </label>
+                  <input
+                    type="number"
+                    name="credits_required"
+                    min="1"
+                    max="999"
+                    value={formData.credits_required || 1}
+                    onChange={handleInputChange}
+                    className="form-control"
+                    style={{ width: "120px", padding: "8px 10px", fontSize: "0.9rem", border: "1.5px solid #fcd34d", background: "#fffef0" }}
+                  />
+                  <span style={{ fontSize: "0.75rem", color: "#78350f", marginTop: "4px", display: "block" }}>
+                    How many credits a member must spend to unlock this article.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Author Selector — Admin only */}
           {isAdmin && !hideExtras && (
@@ -613,7 +636,7 @@ const BlogEditor = ({
                 }}
               >
                 <img
-                  src={`${formData.image.startsWith("http") ? "" : "http://localhost:8000"}${formData.image}?v=${imageVersion}`}
+                  src={`${formData.image}?v=${imageVersion}`}
                   alt="Featured Preview"
                   style={{ width: "100%", height: "auto", display: "block" }}
                 />

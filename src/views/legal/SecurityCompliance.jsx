@@ -100,8 +100,8 @@ const SecurityCompliance = () => {
         <h3>Contact</h3>
         <p>
           For security and compliance enquiries, please contact{" "}
-          <a className="legal-links" href="mailto:hello@sap.webanatomy.in">
-            hello@sap.webanatomy.in
+          <a className="legal-links" href="mailto:hello@sapsecurityexpert.com">
+            hello@sapsecurityexpert.com
           </a>
           .
         </p>

@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useMemo, useState } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "react-router-dom";
 import Image from "next/image";
 // next-disabled: import "../css/blog-post.css";
-import { FaLinkedin, FaXTwitter, FaInstagram, FaGlobe } from "react-icons/fa6";
+import { FaLinkedin, FaXTwitter, FaGlobe } from "react-icons/fa6";
 import { VITE_SITE_URL } from "../utils/env";
 
 // Icons and Components
@@ -65,7 +65,6 @@ const BlogLayout = ({
   author_twitter,
   author_website,
   sidebarAd = {},
-  dynamicRecentPosts = [],
   viewCount = 0,
   commentCount = 0,
   faqs = [],
@@ -77,6 +76,8 @@ const BlogLayout = ({
   isMembersOnly = false,
   isPremium = false,
   isPremiumLocked = false,
+  creditsRequired = 0,
+  blogSlug = "",
   onPaymentSuccess,
   relatedBlogs = [],
   co_authors = [],
@@ -415,13 +416,13 @@ const BlogLayout = ({
           )}
           <h1 className="blog-title">{title}</h1>
 
-          {/* 5. Content Body — gated behind paywall */}
-          {isMembersOnly ? (
+          {/* 5. Content Body — premium gate always wins over members-only gate */}
+          {isPremiumLocked ? (
+            <PremiumPaywall creditsRequired={creditsRequired} blogSlug={blogSlug} onSuccess={onPaymentSuccess} />
+          ) : isMembersOnly ? (
             <MembersOnlyPaywall>
               <article className="blog-content-body">{content}</article>
             </MembersOnlyPaywall>
-          ) : isPremiumLocked ? (
-            <PremiumPaywall onSuccess={onPaymentSuccess} />
           ) : (
             <article className="blog-content-body">{content}</article>
           )}
