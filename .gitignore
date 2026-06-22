@@ -27,14 +27,18 @@ server/database.sqlite
 server/database.sqlite-shm
 server/database.sqlite-wal
 
-# Uploads / backups
+# Uploads / backups (both upload roots must be excluded)
 public/uploads/
+uploads/
 private/backups/
 _BACKUP/
 
 # IDE
 .vscode/
 .DS_Store
+
+# Rate-limiter cache (runtime file-based state)
+cache/
 
 # Archives
 *.zip
@@ -43,6 +47,7 @@ _BACKUP/
 # Logs
 *.log
 logs/
+server/logs/*.log
 
 # Claude
 .claude/
