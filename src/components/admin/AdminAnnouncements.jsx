@@ -10,6 +10,8 @@ import {
 import api from "../../services/api";
 import SimpleRTE from "./SimpleRTE.jsx";
 import Image from "next/image";
+import ActionMenu from "./ActionMenu";
+import TableScrollContainer from "./TableScrollContainer";
 
 const initialFormState = {
   id: "",
@@ -288,10 +290,11 @@ const AdminAnnouncements = () => {
       </div>
 
       <div className="admin-card">
+        <TableScrollContainer>
         <table className="admin-table">
           <thead>
             <tr>
-              <th className="text-left">Title / Excerpt</th>
+              <th className="col-xxl text-left">Title</th>
               <th className="col-sm text-center">Status</th>
               <th className="col-md text-left">Date</th>
               <th className="col-actions text-center">Actions</th>
@@ -303,62 +306,59 @@ const AdminAnnouncements = () => {
             ) : (
               filtered.map((item) => (
                 <tr key={item.id}>
-                  <td className="text-left">
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      {item.image ? (
-                        <Image
-                          src={item.image}
-                          alt={item.image_alt || item.title}
-                          width={48}
-                          height={48}
-                          style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }}
-                        />
-                      ) : (
-                        <div style={{ width: "48px", height: "48px", background: "#f1f5f9", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <i className="bi bi-megaphone" style={{ color: "#94a3b8", fontSize: "18px" }} />
-                        </div>
-                      )}
-                      <div>
-                        <strong style={{ fontSize: "0.875rem", color: "#0f172a", display: "block" }}>{item.title}</strong>
-                        {item.excerpt && <span style={{ fontSize: "0.78rem", color: "#64748b" }}>{item.excerpt.slice(0, 80)}{item.excerpt.length > 80 ? "…" : ""}</span>}
-                      </div>
-                    </div>
+                  <td className="col-xxl text-left wrap-text">
+                    <strong className="truncate-2" style={{ fontSize: "0.85rem" }}>{item.title}</strong>
+                    {item.submission_status === "edited" && (
+                      <span className="pending-badge" style={{ fontSize: "0.65rem", padding: "1px 5px", background: "#fef3c7", color: "#d97706" }}>
+                        Edited — Pending Approval
+                      </span>
+                    )}
+                    {item.excerpt && item.excerpt.length > 6 && (
+                      <span style={{ fontSize: "0.78rem", color: "#64748b", display: "block", marginTop: "2px" }}>
+                        {item.excerpt.slice(0, 100)}{item.excerpt.length > 100 ? "…" : ""}
+                      </span>
+                    )}
                   </td>
                   <td className="col-sm text-center">
                     {item.status === "approved" || item.status === "active" || item.status === "published" ? (
-                      <span className="status-badge status-live">Live</span>
+                      <span className="status-badge status-live" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Live</span>
                     ) : (
-                      <span className="status-badge status-draft">Draft</span>
+                      <span className="status-badge status-draft" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Draft</span>
                     )}
                   </td>
-                  <td className="col-md text-left" style={{ fontSize: "0.82rem", color: "#64748b" }}>
-                    {formatDateLabel(item.date || item.created_at)}
+                  <td className="col-md text-left">
+                    <span style={{ fontSize: "0.80rem", color: "var(--slate-500)", fontWeight: "500" }}>
+                      {formatDateLabel(item.date || item.created_at)}
+                    </span>
                   </td>
                   <td className="col-actions text-center">
-                    <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                    <ActionMenu>
                       {item.submission_status === "edited" && (
                         <>
-                          <button className="btn-approve btn-xs" onClick={() => handleReview(item.id, "approve")} title="Approve Edit">
-                            <i className="bi bi-check-lg" />
+                          <button className="action-menu-item success" onClick={() => handleReview(item.id, "approve")} style={{ color: "var(--success-green)" }}>
+                            <i className="bi bi-check-circle" /> Approve Edit
                           </button>
-                          <button className="btn-reject btn-xs" onClick={() => handleReview(item.id, "reject")} title="Reject Edit">
-                            <i className="bi bi-x-lg" />
+                          <button className="action-menu-item danger" onClick={() => handleReview(item.id, "reject")}>
+                            <i className="bi bi-x-circle" /> Reject Edit
                           </button>
+                          <div className="action-menu-separator" />
                         </>
                       )}
-                      <button className="btn-secondary btn-xs" onClick={() => handleEdit(item)} title="Edit">
-                        <i className="bi bi-pencil" />
+                      <button className="action-menu-item" onClick={() => handleEdit(item)}>
+                        <i className="bi bi-pencil-square" /> Edit
                       </button>
-                      <button className="btn-danger btn-xs" onClick={() => handleDelete(item.id)} title="Delete">
-                        <i className="bi bi-trash" />
+                      <div className="action-menu-separator" />
+                      <button className="action-menu-item danger" onClick={() => handleDelete(item.id)}>
+                        <i className="bi bi-trash" /> Delete
                       </button>
-                    </div>
+                    </ActionMenu>
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+        </TableScrollContainer>
       </div>
     </div>
   );

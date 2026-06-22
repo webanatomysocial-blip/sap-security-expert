@@ -83,6 +83,7 @@ export default function DynamicBlog() {
         }
 
         setBlog(postData);
+        // Re-check unlock state in case context loaded after this fetch
         setPremiumLocked(!!postData.premium_locked);
         setLoading(false);
 
@@ -102,8 +103,8 @@ export default function DynamicBlog() {
         if (postData.related_blogs) {
           let relatedIds = [];
           try {
-            relatedIds = typeof postData.related_blogs === 'string' 
-              ? JSON.parse(postData.related_blogs) 
+            relatedIds = typeof postData.related_blogs === 'string'
+              ? JSON.parse(postData.related_blogs.replace(/\\"/g, '"'))
               : postData.related_blogs;
           } catch (e) { console.error("JSON parse error for related_blogs", e); }
 
@@ -227,6 +228,8 @@ export default function DynamicBlog() {
         }
         isPremium={Number(blog.is_premium) === 1}
         isPremiumLocked={premiumLocked}
+        creditsRequired={Number(blog.credits_required) || 1}
+        blogSlug={blog.slug || blogId}
         onPaymentSuccess={handlePaymentSuccess}
         image={blog.image || blog.featured_image}
         image_alt={blog.image_alt || blog.title}

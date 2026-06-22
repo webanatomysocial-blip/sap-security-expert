@@ -32,8 +32,12 @@ if (isSQLite) {
     connectionLimit: parseInt(process.env.SESSION_POOL_SIZE || '3'),
     schema: { tableName: 'sessions', columnNames: { session_id: 'session_id', expires: 'expires', data: 'data' } },
   });
+  sessionStore.on('error', function(error) {
+    console.error('[Sessions] Session store error:', error.message);
+  });
   console.log('[Sessions] Using MySQL session store');
 }
+
 
 // ── Middleware ──────────────────────────────────────────────────────────────────
 const isProd = process.env.NODE_ENV === 'production';
@@ -72,7 +76,11 @@ app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 app.use(session({
   key: 'connect.sid',
-  secret: process.env.SESSION_SECRET || 'sap_security_expert_secret_key_change_in_prod',
+  secret: (() => {
+    const s = process.env.SESSION_SECRET;
+    if (!s || s === 'CHANGE_THIS') { console.error('FATAL: SESSION_SECRET is not set. Refusing to start.'); process.exit(1); }
+    return s;
+  })(),
   store: sessionStore,
   resave: false,
   saveUninitialized: false,
@@ -195,11 +203,20 @@ app.use('/api/admin/learnings', require('./routes/admin/learnings'));
 // Admin — contributors management (all routes in one router, mounted at /api/admin)
 app.use('/api/admin', require('./routes/admin/contributors'));
 // Legacy PHP path alias
-app.post('/api/delete_contributor.php', require('./routes/admin/contributors'));
+app.post('/api/delete_contributor.php', (req, res, next) => {
+  req.url = '/delete-contributor';
+  next();
+}, require('./routes/admin/contributors'));
+
+// Admin — credit bundles & coupons
+app.use('/api/admin', require('./routes/admin/credits'));
 
 // Admin — members management
 app.use('/api/admin/members', require('./routes/admin/members'));
-app.use('/api/admin/reset-member-password', require('./routes/admin/members'));
+app.use('/api/admin/reset-member-password', (req, res, next) => {
+  req.url = '/reset-password';
+  next();
+}, require('./routes/admin/members'));
 
 // Admin — comments management
 app.use('/api/admin/comments', require('./routes/admin/comments'));
@@ -242,6 +259,18 @@ app.post('/api/cron/send-emails', async (req, res) => {
 // 404 fallback for API routes
 app.use('/api', (req, res) => {
   res.status(404).json({ status: 'error', message: `Endpoint not found: ${req.path}` });
+});
+
+// Global error handler — catches multer errors, unhandled throws in middleware/routes.
+// Must be 4-argument to be recognised as an error handler by Express.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || 'Internal server error';
+  console.error(`[Express error] ${req.method} ${req.path} →`, message);
+  if (!res.headersSent) {
+    res.status(status).json({ status: 'error', message });
+  }
 });
 
 // ── Well-known files ───────────────────────────────────────────────────────────

@@ -62,6 +62,11 @@ const AdminSidebar = ({
       path: "/admin/announcements",
       icon: "bi-megaphone-fill",
     },
+    {
+      label: "Bundles & Coupons",
+      path: "/admin/bundles",
+      icon: "bi-stack",
+    },
   ];
 
   // Contributor sees only their permitted modules

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import ActionMenu from "../ActionMenu";
 import {
   recalculatePlagiarism,
@@ -20,6 +20,8 @@ const BlogList = ({
 }) => {
   const [recalculating, setRecalculating] = useState({});
   const [togglingMap, setTogglingMap] = useState({});
+  const [premiumModal, setPremiumModal] = useState(null); // { blog } when asking for credits
+  const [premiumCredits, setPremiumCredits] = useState("1");
   const { addToast } = useToast();
 
   const handleRecalculate = async (blogId) => {
@@ -84,15 +86,30 @@ const BlogList = ({
     }
   };
 
-  const handleTogglePremium = async (blog) => {
-    const newVal = Number(blog.is_premium) === 1 ? 0 : 1;
+  const handleTogglePremium = (blog) => {
+    if (Number(blog.is_premium) === 1) {
+      // Turning OFF — no modal needed
+      applyTogglePremium(blog, 0, null);
+    } else {
+      // Turning ON — ask for credits count
+      setPremiumCredits(String(blog.credits_required || 1));
+      setPremiumModal(blog);
+    }
+  };
+
+  const applyTogglePremium = async (blog, newVal, credits) => {
     setTogglingMap((prev) => ({ ...prev, [`p_${blog.id}`]: true }));
+    setPremiumModal(null);
     try {
-      const res = await togglePremiumContent({ id: blog.id, is_premium: newVal });
+      const payload = { id: blog.id, is_premium: newVal };
+      if (newVal === 1 && credits != null) payload.credits_required = parseInt(credits) || 1;
+      const res = await togglePremiumContent(payload);
       if (res.data?.status === "success") {
         addToast(`Premium ${newVal ? "enabled" : "disabled"}.`, "success");
         setBlogs((prev) =>
-          prev.map((b) => b.id === blog.id ? { ...b, is_premium: newVal } : b)
+          prev.map((b) => b.id === blog.id
+            ? { ...b, is_premium: newVal, ...(newVal === 1 && credits != null ? { credits_required: parseInt(credits) || 1 } : {}) }
+            : b)
         );
       } else {
         addToast(res.data?.message || "Failed to update premium flag", "error");
@@ -120,6 +137,7 @@ const BlogList = ({
   };
 
   return (
+    <>
     <div className="admin-card">
       <div className="card-header-actions" style={{ padding: "16px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
         <button onClick={handleExport} className="btn-filter" title="Export to CSV">
@@ -134,8 +152,8 @@ const BlogList = ({
               <th className="col-sm text-left">Slug</th>
               <th className="col-sm text-center">Status</th>
               <th className="col-md text-left">Updated</th>
-              <th className="col-xs text-center">Exc</th>
-              <th className="col-xs text-center" style={{ color: "#d97706" }}>★ Paid</th>
+              {isAdmin && <th className="col-xs text-center">Exc</th>}
+              {isAdmin && <th className="col-xs text-center" style={{ color: "#d97706" }}>★ Paid</th>}
               <th className="col-xs text-center">SEO</th>
               <th className="col-xs text-center">Plag</th>
               <th className="col-actions text-center">Actions</th>
@@ -224,34 +242,38 @@ const BlogList = ({
                       {formatDate(blog.date)}
                     </span>
                   </td>
-                  <td className="col-xs text-center">
-                    <label
-                      className={`toggle-switch ${togglingMap[blog.id] ? "toggle-loading" : ""}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={Number(blog.is_members_only) === 1}
-                        onChange={() => handleToggleExclusive(blog)}
-                        disabled={togglingMap[blog.id]}
-                      />
-                      <span className="toggle-slider" style={{ transform: "scale(0.8)" }}></span>
-                    </label>
-                  </td>
-                  <td className="col-xs text-center">
-                    <label
-                      className={`toggle-switch ${togglingMap[`p_${blog.id}`] ? "toggle-loading" : ""}`}
-                      title={Number(blog.is_premium) === 1 ? "Paid — click to remove" : "Free — click to make paid"}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={Number(blog.is_premium) === 1}
-                        onChange={() => handleTogglePremium(blog)}
-                        disabled={togglingMap[`p_${blog.id}`]}
-                        style={{ accentColor: "#d97706" }}
-                      />
-                      <span className="toggle-slider" style={{ transform: "scale(0.8)", background: Number(blog.is_premium) === 1 ? "#d97706" : undefined }}></span>
-                    </label>
-                  </td>
+                  {isAdmin && (
+                    <td className="col-xs text-center">
+                      <label
+                        className={`toggle-switch ${togglingMap[blog.id] ? "toggle-loading" : ""}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={Number(blog.is_members_only) === 1}
+                          onChange={() => handleToggleExclusive(blog)}
+                          disabled={togglingMap[blog.id]}
+                        />
+                        <span className="toggle-slider" style={{ transform: "scale(0.8)" }}></span>
+                      </label>
+                    </td>
+                  )}
+                  {isAdmin && (
+                    <td className="col-xs text-center">
+                      <label
+                        className={`toggle-switch ${togglingMap[`p_${blog.id}`] ? "toggle-loading" : ""}`}
+                        title={Number(blog.is_premium) === 1 ? "Paid — click to remove" : "Free — click to make paid"}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={Number(blog.is_premium) === 1}
+                          onChange={() => handleTogglePremium(blog)}
+                          disabled={togglingMap[`p_${blog.id}`]}
+                          style={{ accentColor: "#d97706" }}
+                        />
+                        <span className="toggle-slider" style={{ transform: "scale(0.8)", background: Number(blog.is_premium) === 1 ? "#d97706" : undefined }}></span>
+                      </label>
+                    </td>
+                  )}
                   <td className="col-xs text-center">
                     <span
                       style={{
@@ -340,6 +362,64 @@ const BlogList = ({
         </table>
       </TableScrollContainer>
     </div>
+
+    {/* ── Credits modal for enabling premium ─────────────────────────── */}
+    {premiumModal && (
+      <div
+        className="modal-overlay"
+        onClick={(e) => e.target === e.currentTarget && setPremiumModal(null)}
+      >
+        <div className="modal-container" style={{ maxWidth: 420 }}>
+          <div className="modal-header">
+            <h3 style={{ margin: 0 }}>
+              <i className="bi bi-star-fill" style={{ color: "#d97706", marginRight: 8 }}></i>
+              Set Credits Required
+            </h3>
+          </div>
+          <div className="modal-body">
+            <p style={{ color: "var(--slate-600)", fontSize: "0.9rem", marginBottom: 16 }}>
+              How many credits must a member spend to unlock <strong>"{premiumModal.title}"</strong>?
+            </p>
+            <input
+              type="number"
+              min="1"
+              max="999"
+              value={premiumCredits}
+              onChange={(e) => setPremiumCredits(e.target.value)}
+              className="form-control"
+              style={{ width: "120px", padding: "8px 10px", fontSize: "1rem", border: "1.5px solid #fcd34d", background: "#fffef0" }}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") applyTogglePremium(premiumModal, 1, premiumCredits);
+                if (e.key === "Escape") setPremiumModal(null);
+              }}
+            />
+            <span style={{ fontSize: "0.78rem", color: "#78350f", marginTop: 6, display: "block" }}>
+              Credits are non-refundable after unlock. Members get lifetime access.
+            </span>
+          </div>
+          <div className="modal-footer" style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid var(--slate-100)", padding: "14px 24px" }}>
+            <button
+              className="btn-secondary"
+              onClick={() => setPremiumModal(null)}
+              style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--slate-200)", background: "white", fontWeight: 600, cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => applyTogglePremium(premiumModal, 1, premiumCredits)}
+              disabled={!premiumCredits || parseInt(premiumCredits) < 1}
+              style={{ padding: "8px 18px", borderRadius: 8, background: "#d97706", color: "white", border: "none", fontWeight: 700, cursor: "pointer" }}
+            >
+              <i className="bi bi-star-fill" style={{ marginRight: 6 }}></i>
+              Enable Premium
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 

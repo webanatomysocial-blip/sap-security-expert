@@ -53,6 +53,7 @@ import AnnouncementDetail from "./views/AnnouncementDetail";
 import LearningHub from "./views/LearningHub";
 import LearningModulePage from "./views/LearningModulePage";
 import AdminManageUsers from "./components/admin/AdminManageUsers";
+import AdminCreditBundles from "./components/admin/AdminCreditBundles";
 import ForgotPassword from "./views/ForgotPassword";
 import ResetPassword from "./views/ResetPassword";
 import MembershipPage from "./views/MembershipPage";
@@ -271,6 +272,14 @@ function App() {
           element={
             <ProtectedRoute adminOnly>
               <AdminLearnings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="bundles"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminCreditBundles />
             </ProtectedRoute>
           }
         />

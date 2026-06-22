@@ -108,8 +108,8 @@ export const getPendingBlogs = (status = "pending") =>
 export const reviewBlog = (id, action, rejection_reason = '') =>
     api.put(`/admin/blogs/${id}/review`, { action, rejection_reason });
 
-export const recalculatePlagiarism = (blogId) => api.post('/recalculate_plagiarism.php', { id: blogId });
-export const bulkRecalculatePlagiarism = () => api.post('/bulk_recalculate_plagiarism.php');
+export const recalculatePlagiarism = (blogId) => api.post('/admin/blogs/recalculate-plagiarism', { id: blogId });
+export const bulkRecalculatePlagiarism = () => api.post('/admin/blogs/bulk-recalculate-plagiarism');
 
 // ── Ads Management (Admin) ───────────────────────────────────────────────────
 export const getAds = () => api.get('/admin/ads');
@@ -166,10 +166,24 @@ export const forgotPassword = (email) => api.post('/forgot_password.php', { emai
 export const resetWithToken = (email, token, password) => api.post('/reset_with_token.php', { email, token, password });
 export const resetPasswordOTP = (data) => api.post('/reset_password_otp.php', data);
 
-// ── Payments / Membership ─────────────────────────────────────────────────────
-export const getMembershipPlans = () => api.get('/payments/plans');
-export const getMySubscription = () => api.get('/payments/my-subscription');
-export const createPaymentOrder = (plan_id) => api.post('/payments/create-order', { plan_id });
-export const verifyPayment = (data) => api.post('/payments/verify', data);
+// ── Credits & Bundles ─────────────────────────────────────────────────────────
+export const getCreditBundles = () => api.get('/payments/bundles');
+export const getMyCredits = () => api.get('/payments/my-credits');
+export const getMyUnlocks = () => api.get('/payments/my-unlocks');
+export const validateCoupon = (code, bundle_id) => api.post('/payments/validate-coupon', { code, bundle_id });
+export const createCreditOrder = (bundle_id, coupon_code) => api.post('/payments/create-order', { bundle_id, coupon_code });
+export const verifyCreditPayment = (data) => api.post('/payments/verify', data);
+export const unlockBlog = (blog_slug) => api.post('/payments/unlock-blog', { blog_slug });
+
+// ── Admin: Bundles & Coupons ──────────────────────────────────────────────────
+export const getAdminBundles = () => api.get('/admin/bundles');
+export const saveBundle = (data) => api.post('/admin/bundles', data);
+export const deleteBundle = (id) => api.delete(`/admin/bundles/${id}`);
+export const getAdminCoupons = () => api.get('/admin/coupons');
+export const saveCoupon = (data) => api.post('/admin/coupons', data);
+export const deleteCoupon = (id) => api.delete(`/admin/coupons/${id}`);
+export const getCreditStats = () => api.get('/admin/credit-stats');
+export const getMemberCreditBalance = (memberId) => api.get(`/admin/member-credits/${memberId}`);
+export const grantAdminCredits = (member_id, amount, note) => api.post('/admin/grant-credits', { member_id, amount, note });
 
 export default api;

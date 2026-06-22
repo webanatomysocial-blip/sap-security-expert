@@ -1,10 +1,10 @@
-import React from "react";
 import {
   LuFileText,
   LuMegaphone,
   LuImage,
   LuMessageSquare,
   LuSearch,
+  LuStar,
 } from "react-icons/lu";
 
 const PERMISSION_OPTIONS = [
@@ -37,6 +37,12 @@ const PERMISSION_OPTIONS = [
     label: "Review Blogs",
     description: "Approve or reject contributor blog submissions",
     icon: LuSearch,
+  },
+  {
+    key: "can_access_premium_articles",
+    label: "Access All Premium Articles",
+    description: "Allow reading paid/premium articles without a subscription",
+    icon: LuStar,
   },
 ];
 

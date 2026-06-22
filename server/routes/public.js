@@ -168,13 +168,38 @@ router.get(['/get_authors.php', '/admin/authors'], async (req, res) => {
 // POST /api/views  or  POST /api/save_view.php
 router.post(['/views', '/save_view.php'], async (req, res) => {
   const db = req.db;
-  const { slug, post_id } = req.body || {};
+  const { slug, post_id, visitor_token } = req.body || {};
   const id = slug || post_id;
   if (!id) return res.status(400).json({ status: 'error', message: 'slug or post_id required' });
 
+  // Require a visitor token — without one we cannot deduplicate
+  if (!visitor_token) return res.json({ status: 'skipped' });
+
   try {
+    // Resolve to the integer blog ID (post_views.post_id is INTEGER FK → blogs.id)
+    const [blogRows] = await db.execute(
+      'SELECT id FROM blogs WHERE slug = ? OR id = ? LIMIT 1',
+      [id, id]
+    );
+    if (!blogRows.length) return res.json({ status: 'skipped' });
+    const blogId = blogRows[0].id;
+
+    // Check if this visitor already viewed this post in the last 24 hours
+    const [existing] = await db.execute(
+      `SELECT id FROM post_views WHERE post_id = ? AND visitor_token = ?
+       AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) LIMIT 1`,
+      [blogId, visitor_token]
+    );
+    if (existing.length > 0) return res.json({ status: 'skipped' });
+
+    // Record the view and increment the counter atomically
     await db.execute(
-      "UPDATE blogs SET view_count = COALESCE(view_count, 0) + 1 WHERE slug = ? OR id = ?", [id, id]
+      'INSERT IGNORE INTO post_views (post_id, visitor_token) VALUES (?, ?)',
+      [blogId, visitor_token]
+    );
+    await db.execute(
+      'UPDATE blogs SET view_count = COALESCE(view_count, 0) + 1 WHERE id = ?',
+      [blogId]
     );
     return res.json({ status: 'success' });
   } catch (err) {
@@ -187,7 +212,7 @@ router.get(['/get_captcha.php', '/captcha'], (req, res) => {
   const a = Math.floor(Math.random() * 10) + 1;
   const b = Math.floor(Math.random() * 10) + 1;
   req.session.captcha_ans = a + b;
-  return res.json({ question: `${a} + ${b} = ?`, answer: a + b });
+  return res.json({ question: `${a} + ${b} = ?` });
 });
 
 // POST /api/delete_account.php

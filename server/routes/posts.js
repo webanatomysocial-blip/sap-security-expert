@@ -90,34 +90,26 @@ router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) =
         ['author_bio','author_image','author_designation','author_linkedin','author_twitter','author_website'].forEach(k => { blog[k] = null; });
       }
 
-      // Premium paid content gate — content is NEVER sent to non-paying users
-      // Only full admins bypass; contributors must subscribe like everyone else.
+      // Premium credit gate — content only sent to members who have unlocked this article.
+      // Bypassed only for contributors/admins explicitly granted can_access_premium_articles.
+      // Admin role alone does NOT bypass — admins browsing the public site see the same paywall.
       const isPremium = parseInt(blog.is_premium || 0);
-      if (isPremium && !isAdmin) {
-        // Check session cache first, fall back to DB
-        let hasPaid = false;
+      const creditsRequired = parseInt(blog.credits_required || 0);
+      const hasGrantedAccess = !!(sess.permissions?.can_access_premium_articles);
+      if (isPremium && !hasGrantedAccess) {
+        let hasUnlocked = false;
         if (sess.member_logged_in) {
-          if (sess.has_premium && sess.premium_expires_at && new Date(sess.premium_expires_at) > new Date()) {
-            hasPaid = true;
-          } else {
-            const [subRows] = await db.execute(
-              "SELECT id, expires_at FROM member_subscriptions WHERE member_id = ? AND status = 'active' AND expires_at > NOW() LIMIT 1",
-              [sess.member_id]
-            );
-            hasPaid = subRows.length > 0;
-            if (hasPaid) {
-              // Cache in session
-              req.session.has_premium = true;
-              req.session.premium_expires_at = subRows[0]?.expires_at;
-            } else {
-              req.session.has_premium = false;
-            }
-          }
+          const [unlockRows] = await db.execute(
+            'SELECT id FROM member_blog_unlocks WHERE member_id = ? AND blog_slug = ? LIMIT 1',
+            [sess.member_id, blog.slug]
+          );
+          hasUnlocked = unlockRows.length > 0;
         }
 
-        if (!hasPaid) {
+        if (!hasUnlocked) {
           blog.premium_locked = true;
-          blog.premium_locked_reason = sess.member_logged_in ? 'payment' : 'login';
+          blog.premium_locked_reason = sess.member_logged_in ? 'credits' : 'login';
+          blog.credits_required = creditsRequired;
           blog.content = '';
           blog.faqs = null;
           blog.author_bio = null;
@@ -144,7 +136,7 @@ router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) =
     if (req.query.trending === 'true') {
       sql = `SELECT b.*, b.view_count,
         (SELECT COUNT(*) FROM comments c_count WHERE c_count.post_id = b.slug AND c_count.status = 'approved') as comment_count,
-        (SELECT COUNT(*) FROM post_views pv WHERE pv.post_id = b.slug AND pv.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as recent_views,
+        (SELECT COUNT(*) FROM post_views pv WHERE pv.post_id = b.id AND pv.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)) as recent_views,
         ${AUTHOR_FIELDS}
         FROM blogs b
         LEFT JOIN users u ON b.author_id = u.id
@@ -213,7 +205,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
             image_alt = '',
             category = '', tags = '', meta_title = '', meta_description = '', meta_keywords = '',
             faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link = null,
-            is_members_only = 0, is_premium = 0, send_notification_email = 0, status: requestedStatus, related_blogs,
+            is_members_only = 0, is_premium = 0, credits_required = 1, send_notification_email = 0, status: requestedStatus, related_blogs,
             schema_type = 'BlogPosting', article_section = null, co_authors = [] } = data;
 
     const coAuthorsJson = JSON.stringify(Array.isArray(co_authors) ? co_authors : []);
@@ -269,7 +261,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
       // Cascade slug change
       if (ex.slug && slug && ex.slug !== slug) {
         await db.execute('UPDATE comments SET post_id = ? WHERE post_id = ?', [slug, ex.slug]);
-        await db.execute('UPDATE post_views SET post_id = ? WHERE post_id = ?', [slug, ex.slug]).catch(() => {});
+        // post_views stores blog ID (not slug) — ID never changes, no cascade needed
       }
 
       const existingPlag = ex.plagiarism_score || 0;
@@ -317,7 +309,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
          schema_type=?, article_section=?,
          status=?, submission_status=?, rejection_feedback=NULL,
          author_id=?, author=?, seo_score=?, plagiarism_score=?, plagiarism_status='completed',
-         is_members_only=?, is_premium=?, related_blogs=?, co_authors=?, send_notification_email=?, updated_at=CURRENT_TIMESTAMP,
+         is_members_only=?, is_premium=?, credits_required=?, related_blogs=?, co_authors=?, send_notification_email=?, updated_at=CURRENT_TIMESTAMP,
          ${publishDateSql}
          draft_title=NULL, draft_content=NULL, draft_excerpt=NULL, draft_image=NULL, draft_image_alt=NULL,
          draft_category=NULL, draft_faqs=NULL, draft_meta_title=NULL, draft_meta_description=NULL,
@@ -330,7 +322,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
          meta_title, meta_description, meta_keywords,
          schema_type || 'BlogPosting', article_section || null,
          targetStatus, subStatus, author_id, authorName, seoScore, finalPlag,
-         parseInt(is_members_only), parseInt(is_premium), relatedBlogsJson, coAuthorsJson, parseInt(send_notification_email),
+         parseInt(is_members_only), parseInt(is_premium), parseInt(credits_required) || 1, relatedBlogsJson, coAuthorsJson, parseInt(send_notification_email),
          ...publishParams, id]
       );
       cache.invalidate('homepage_data_public');
@@ -360,18 +352,18 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
           cta_title, cta_description, cta_button_text, cta_button_link,
           meta_title, meta_description, meta_keywords, schema_type, article_section,
           status, submission_status,
-          seo_score, plagiarism_score, plagiarism_status, is_members_only, is_premium, related_blogs, co_authors,
+          seo_score, plagiarism_score, plagiarism_status, is_members_only, is_premium, credits_required, related_blogs, co_authors,
           send_notification_email, publish_date, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?,""),CURRENT_DATE), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                  ?, ?,
-                 ?, ?, ?, ?, 'completed', ?, ?, ?, ?,
+                 ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?,
                  ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
         [newId, title, slug, excerpt, content, authorName, author_id, date || '', image, image_alt || null, category, secondaryCatsJson, tags, faqsJson,
          cta_title, cta_description, cta_button_text, cta_button_link,
          meta_title, meta_description, meta_keywords,
          schema_type || 'BlogPosting', article_section || null,
          targetStatus, subStatus,
-         seoScore, finalPlag, parseInt(is_members_only), parseInt(is_premium), relatedBlogsJson, coAuthorsJson,
+         seoScore, finalPlag, parseInt(is_members_only), parseInt(is_premium), parseInt(credits_required) || 1, relatedBlogsJson, coAuthorsJson,
          parseInt(send_notification_email), publishDateVal]
       );
       cache.invalidate('homepage_data_public');

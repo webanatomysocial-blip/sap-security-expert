@@ -42,7 +42,7 @@ router.get('/contributor/stats', requireAuth(), async (req, res) => {
     const [[approved]]  = await db.execute("SELECT COUNT(*) AS c FROM blogs WHERE author_id = ? AND status IN ('approved','published')", [userId]);
     const [[rejected]]  = await db.execute("SELECT COUNT(*) AS c FROM blogs WHERE author_id = ? AND status = 'rejected'", [userId]);
     const [[views]]     = await db.execute("SELECT COALESCE(SUM(view_count), 0) AS total FROM blogs WHERE author_id = ?", [userId]);
-    const [[comments]]  = await db.execute("SELECT COUNT(*) AS c FROM comments cm JOIN blogs b ON cm.post_id = b.id WHERE b.author_id = ?", [userId]);
+    const [[comments]]  = await db.execute("SELECT COUNT(*) AS c FROM comments cm JOIN blogs b ON cm.post_id = b.slug WHERE b.author_id = ?", [userId]);
 
     // Site-wide stats for privileged roles
     const [[pending_reviews]]    = await db.execute("SELECT COUNT(*) AS c FROM blogs WHERE submission_status IN ('submitted','edited')");

@@ -33,7 +33,14 @@ router.get('/pending', requireAuth(), checkPermission('can_review_blogs'), async
       COALESCE(c.designation, u.designation) AS author_designation,
       COALESCE(c.linkedin, u.linkedin) AS author_linkedin`;
 
-    if (status === 'edited') {
+    if (status === 'rejected') {
+      sql = `SELECT b.*, ${authorFields}
+             FROM blogs b
+             LEFT JOIN users u ON b.author_id = u.id
+             LEFT JOIN contributors c ON u.contributor_id = c.id
+             WHERE b.submission_status = 'rejected'
+             ORDER BY b.updated_at DESC`;
+    } else if (status === 'edited') {
       sql = `SELECT b.*, ${authorFields}
              FROM blogs b
              LEFT JOIN users u ON b.author_id = u.id
@@ -152,6 +159,58 @@ router.put('/:id/review', requireAuth(), checkPermission('can_review_blogs'), as
   }
 });
 
+// POST /api/admin/blogs/recalculate-plagiarism
+router.post('/recalculate-plagiarism', requireAuth(), checkPermission('can_review_blogs'), async (req, res) => {
+  const db = req.db;
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ status: 'error', message: 'Blog ID required' });
+
+  try {
+    const [rows] = await db.execute('SELECT id, content FROM blogs WHERE id = ? LIMIT 1', [id]);
+    if (!rows.length) return res.status(404).json({ status: 'error', message: 'Blog not found' });
+
+    const { checkPlagiarismScore } = require('../../utils/helpers');
+    const result = await checkPlagiarismScore(rows[0].content, id, db);
+    const score = result.score;
+
+    await db.execute(
+      "UPDATE blogs SET plagiarism_score=?, plagiarism_status='completed', updated_at=CURRENT_TIMESTAMP WHERE id=?",
+      [score, id]
+    );
+
+    return res.json({ status: 'success', plagiarism_score: score });
+  } catch (err) {
+    console.error('[recalculate-plagiarism]', err.message);
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// POST /api/admin/blogs/bulk-recalculate-plagiarism
+router.post('/bulk-recalculate-plagiarism', requireAdmin, async (req, res) => {
+  const db = req.db;
+  try {
+    const [rows] = await db.execute(
+      "SELECT id, content FROM blogs WHERE plagiarism_score IS NULL OR plagiarism_score = 0 OR plagiarism_score = -1"
+    );
+    if (!rows.length) return res.json({ status: 'success', message: 'No blogs need recalculation.', updated: 0 });
+
+    const { checkPlagiarismScore } = require('../../utils/helpers');
+    let updated = 0;
+    for (const blog of rows) {
+      const result = await checkPlagiarismScore(blog.content, blog.id, db).catch(() => ({ score: -1 }));
+      await db.execute(
+        "UPDATE blogs SET plagiarism_score=?, plagiarism_status='completed', updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        [result.score, blog.id]
+      );
+      updated++;
+    }
+    return res.json({ status: 'success', message: `Updated ${updated} blog(s).`, updated });
+  } catch (err) {
+    console.error('[bulk-recalculate-plagiarism]', err.message);
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // POST /api/admin/blogs/toggle-exclusive
 router.post('/toggle-exclusive', requireAdmin, async (req, res) => {
   const db = req.db;
@@ -168,10 +227,18 @@ router.post('/toggle-exclusive', requireAdmin, async (req, res) => {
 // POST /api/admin/blogs/toggle-premium
 router.post('/toggle-premium', requireAdmin, async (req, res) => {
   const db = req.db;
-  const { id, is_premium } = req.body || {};
+  const { id, is_premium, credits_required } = req.body || {};
   if (!id) return res.status(400).json({ status: 'error', message: 'ID required' });
   try {
-    await db.execute('UPDATE blogs SET is_premium=? WHERE id=?', [is_premium ? 1 : 0, id]);
+    const isPremium = is_premium ? 1 : 0;
+    if (isPremium && credits_required != null) {
+      await db.execute(
+        'UPDATE blogs SET is_premium=?, credits_required=? WHERE id=?',
+        [1, parseInt(credits_required) || 1, id]
+      );
+    } else {
+      await db.execute('UPDATE blogs SET is_premium=? WHERE id=?', [isPremium, id]);
+    }
     return res.json({ status: 'success', message: 'Premium setting updated.' });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });

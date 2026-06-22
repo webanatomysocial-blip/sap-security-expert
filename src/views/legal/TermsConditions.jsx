@@ -127,8 +127,8 @@ const TermsConditions = () => {
         <h3>Contact Information</h3>
         <p>
           For any inquiries regarding these Terms, please contact us at{" "}
-          <a className="legal-links" href="mailto:hello@sap.webanatomy.in">
-            hello@sap.webanatomy.in
+          <a className="legal-links" href="mailto:hello@sapsecurityexpert.com">
+            hello@sapsecurityexpert.com
           </a>
         </p>
         <p>

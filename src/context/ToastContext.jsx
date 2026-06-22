@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 import ToastContainer from "../components/ui/ToastContainer";
 
 const ToastContext = createContext();
@@ -14,18 +14,14 @@ export const useToast = () => {
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = (message, type = "info", duration = 4000) => {
-    const id = Date.now() + Math.random().toString(36).substr(2, 9);
-    setToasts((prevToasts) => [...prevToasts, { id, message, type, duration }]);
-  };
+  const addToast = useCallback((message, type = "info", duration = 4000) => {
+    const id = Date.now() + Math.random().toString(36).substring(2, 11);
+    setToasts((prev) => [...prev, { id, message, type, duration }]);
+  }, []);
 
-  const removeToast = (id) => {
-    // Trigger fade out animation first?
-    // For simplicity, we'll just filter it out.
-    // Styling handles 'removing' class if we wanted advanced animation logic,
-    // but React state update is instant.
-    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id));
-  };
+  const removeToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
 
   return (
     <ToastContext.Provider value={{ addToast, removeToast }}>

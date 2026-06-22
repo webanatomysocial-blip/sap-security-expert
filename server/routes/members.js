@@ -6,6 +6,7 @@ const OTPService = require('../services/OTPService');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const { getUploadDir } = require('../utils/helpers');
+const { rateLimit } = require('../middleware/rateLimit');
 
 // Profile image upload (members)
 const profileStorage = multer.diskStorage({
@@ -22,7 +23,7 @@ const profileUpload = multer({
 });
 
 // POST /api/member/login
-router.post('/login', async (req, res) => {
+router.post('/login', rateLimit('member_login', 10, 900), async (req, res) => {
   const db = req.db;
   const { email: emailInput, password } = req.body || {};
 
@@ -121,6 +122,7 @@ router.post('/login', async (req, res) => {
           can_manage_comments: !!p.can_manage_comments,
           can_manage_announcements: !!p.can_manage_announcements,
           can_review_blogs: !!p.can_review_blogs,
+          can_access_premium_articles: !!p.can_access_premium_articles,
         };
       }
       req.session.permissions = permissions;
@@ -207,7 +209,7 @@ router.post('/signup', async (req, res) => {
     await db.execute(
       `INSERT INTO members (name, phone, email, username, location, company_name, job_role, password_hash, status, created_at, receive_blog_emails)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, ?)`,
-      [name, phone || null, email, username, location || null, company_name || null, job_role || null, hash, parseInt(receive_blog_emails)]
+      [name, phone || null, email, username, location || null, company_name || null, job_role || null, hash, parseInt(receive_blog_emails) || 1]
     );
 
     const mailService = MailService.getInstance(db);

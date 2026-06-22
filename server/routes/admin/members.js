@@ -26,7 +26,8 @@ router.get('/', requireAdmin, async (req, res) => {
 // POST /api/admin/members — approve/reject/delete/suspend
 router.post('/', requireAdmin, async (req, res) => {
   const db = req.db;
-  const { id, action, reason, otp } = req.body || {};
+  const { id, action, reason, rejection_reason, otp } = req.body || {};
+  const rejectReason = rejection_reason || reason || 'Application not approved.';
   if (!id || !action) return res.status(400).json({ status: 'error', message: 'id and action are required' });
 
   try {
@@ -43,8 +44,8 @@ router.post('/', requireAdmin, async (req, res) => {
       return res.json({ status: 'success', message: 'Member approved.' });
 
     } else if (action === 'reject') {
-      await db.execute("UPDATE members SET status='rejected' WHERE id=?", [id]);
-      notifier.notifyMemberRejected(member.email, member.name, reason || 'Application not approved.').catch(() => {});
+      await db.execute("UPDATE members SET status='rejected', rejection_reason=? WHERE id=?", [rejectReason, id]);
+      notifier.notifyMemberRejected(member.email, member.name, rejectReason).catch(() => {});
       return res.json({ status: 'success', message: 'Member rejected.' });
 
     } else if (action === 'suspend') {

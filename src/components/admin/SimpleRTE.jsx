@@ -70,36 +70,28 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     html = html.replace(/<b>/g, "<strong>").replace(/<\/b>/g, "</strong>");
     html = html.replace(/<i>/g, "<em>").replace(/<\/i>/g, "</em>");
 
-    // Strip empty nested divs wrapping paragraphs, if they accidentally spawn
-    html = html.replace(/<div>\s*<p>(.*?)<\/p>\s*<\/div>/gi, "<p>$1</p>");
-
-    // Use a temporary DOM parser to surgically clean styles
+    // Use a temporary DOM parser to clean up IMG styles only.
+    // All other elements keep their inline styles exactly as authored —
+    // stripping styles from inline elements (strong, em, span, etc.) was
+    // causing user-authored source-mode inline styles to be lost whenever
+    // the browser's execCommand moved a style property onto one of those elements.
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
-    // Pure inline formatting elements — strip styles from these only.
-    // Everything else (block, container, sectioning elements) keeps its styles
-    // so that custom-styled disclaimers, callouts, tables, etc. survive editing.
-    const inlineNoStyle = new Set(["STRONG", "EM", "U", "B", "I", "S", "MARK"]);
-    doc.querySelectorAll("*").forEach((el) => {
-      if (el.tagName === "IMG") {
-        const style = el.getAttribute("style");
-        if (style) {
-          const allowed = style
-            .split(";")
-            .map((s) => s.trim())
-            .filter(
-              (s) =>
-                s.toLowerCase().startsWith("width") ||
-                s.toLowerCase().startsWith("height"),
-            )
-            .join("; ");
-          if (allowed) el.setAttribute("style", allowed);
-          else el.removeAttribute("style");
-        }
-      } else if (inlineNoStyle.has(el.tagName)) {
-        el.removeAttribute("style");
+    doc.querySelectorAll("img").forEach((el) => {
+      const style = el.getAttribute("style");
+      if (style) {
+        const allowed = style
+          .split(";")
+          .map((s) => s.trim())
+          .filter(
+            (s) =>
+              s.toLowerCase().startsWith("width") ||
+              s.toLowerCase().startsWith("height"),
+          )
+          .join("; ");
+        if (allowed) el.setAttribute("style", allowed);
+        else el.removeAttribute("style");
       }
-      // All other elements keep their style attribute as-is
     });
     html = doc.body.innerHTML;
 
@@ -1176,7 +1168,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
             <label>Button URL</label>
             <input
               type="url"
-              placeholder="https://sap.webanatomy.in/..."
+              placeholder="https://sapsecurityexpert.com/..."
               value={ctaModal.btnUrl}
               onChange={(e) => setCtaModal((m) => ({ ...m, btnUrl: e.target.value }))}
             />

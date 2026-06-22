@@ -1,7 +1,7 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'hello@sap.webanatomy.in';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'hello@sapsecurityexpert.com';
 
 function getSiteUrl() {
   return (process.env.SITE_URL || 'https://sap.webanatomy.in').replace(/\/$/, '');

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-const ActionMenu = ({ children }) => {
+const ActionMenu = ({ children, items }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -71,7 +71,25 @@ const ActionMenu = ({ children }) => {
           ref={dropdownRef}
           style={{ ...dropdownStyle, margin: 0 }}
         >
-          {children}
+          {items && items.length > 0 ? (
+            items.map((item, idx) => {
+              if (item.separator) return <div key={idx} className="action-menu-separator" />;
+              return (
+                <button
+                  key={idx}
+                  className={`action-menu-item ${item.danger ? 'danger' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(false);
+                    item.onClick && item.onClick();
+                  }}
+                >
+                  {item.icon && <i className={`bi ${item.icon}`} style={{ marginRight: 6 }}></i>}
+                  {item.label}
+                </button>
+              );
+            })
+          ) : children}
         </div>,
         document.body
       )}
