@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-# SAP Security Expert — redeploy / update script
-# Run this on the EC2 server every time you push new code.
+# SAP Security Expert — Lightsail redeploy script
+# Run this on the Lightsail server after every git push.
 #
-# Usage:  ./deploy/deploy.sh
-#         ./deploy/deploy.sh main   (to specify a branch)
+# Usage:
+#   ./deploy/deploy.sh           (defaults to main branch)
+#   ./deploy/deploy.sh main
 # =============================================================================
 set -euo pipefail
 
@@ -21,10 +22,12 @@ echo "[deploy] Installing/updating dependencies..."
 npm install --prefer-offline
 
 echo "[deploy] Building Next.js..."
+# Export NEXT_PUBLIC vars so the client bundle gets the correct domain
+export $(grep -E '^NEXT_PUBLIC_' server/.env | xargs)
 npm run build
 
 echo "[deploy] Reloading PM2 (zero-downtime)..."
 pm2 reload ecosystem.config.cjs --env production
 
-echo "[deploy] Done — checking app status:"
+echo "[deploy] Status:"
 pm2 status sap-security-expert

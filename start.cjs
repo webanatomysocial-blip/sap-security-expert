@@ -1,16 +1,14 @@
 'use strict';
 /**
- * Unified entry point for Hostinger Node.js Application Hosting.
+ * Unified production entry point.
+ * Target: AWS Lightsail (Debian 12), Node 18.20.4, PM2.
  *
- * Runs Next.js SSR + Express API in a single Node.js process on the port
- * Hostinger assigns via process.env.PORT.
+ * Runs Next.js SSR + Express API in a single Node.js process.
+ * PM2 ecosystem.config.cjs sets PORT=3000 via env_production.
+ * Nginx proxies port 80/443 → 127.0.0.1:3000.
  *
- * Hostinger hPanel settings:
- *   Application Root : /var/www/sap-security-expert
- *   Startup File     : start.cjs
- *   Node.js version  : 20.x or 22.x
- *   Install Command  : npm install
- *   Build Command    : npm run build
+ * Start:  pm2 start ecosystem.config.cjs --env production
+ * Build:  npm run build   (must run before start)
  */
 
 const path = require('path');
@@ -31,8 +29,8 @@ try {
 }
 
 // 2. Determine the listening port.
-//    Hostinger assigns process.env.PORT. It can be a TCP port number or a
-//    Unix socket path (named pipe). Both are handled below.
+//    PM2 env_production sets PORT=3000. A Unix socket path is also supported
+//    (isPipe=true) for environments that use named pipes instead of TCP.
 const PORT_ENV = process.env.PORT || '3000';
 const isPipe   = isNaN(parseInt(PORT_ENV, 10));
 const PORT     = isPipe ? PORT_ENV : parseInt(PORT_ENV, 10);
@@ -41,12 +39,12 @@ const PORT     = isPipe ? PORT_ENV : parseInt(PORT_ENV, 10);
 //    (e.g. SSR blog page, sitemap) during server-side rendering without
 //    going out to the network. In unified-server mode both live in the
 //    same process, so we loop back on 127.0.0.1:PORT.
-//    If Hostinger uses a Unix socket we fall back to the public site URL.
+//    Unix socket fallback: use the public SITE_URL for SSR API calls.
 process.env.INTERNAL_API_URL = isPipe
   ? (process.env.SITE_URL || 'https://sap.webanatomy.in').replace(/\/$/, '')
   : `http://127.0.0.1:${PORT}`;
 
-// 4. Ensure NODE_ENV is production (Hostinger may not set this).
+// 4. Ensure NODE_ENV is production (PM2 sets this via env_production).
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 // 5. Signal to next.config.js that rewrites are NOT needed (Express is
@@ -93,7 +91,7 @@ async function main() {
     });
   }
 
-  // 10. Graceful shutdown (Hostinger / hPanel sends SIGTERM on restart/stop).
+  // 10. Graceful shutdown — PM2 sends SIGTERM on stop/reload/restart.
   function shutdown(signal) {
     console.log(`[SAP Security Expert] ${signal} received — shutting down`);
     server.close(() => {
