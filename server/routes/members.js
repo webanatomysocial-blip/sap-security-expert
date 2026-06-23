@@ -184,9 +184,16 @@ router.post('/signup', async (req, res) => {
   }
 
   try {
-    const [existing] = await db.execute('SELECT id, status FROM members WHERE email = ? LIMIT 1', [email]);
+    const [existing] = await db.execute('SELECT id, status, is_deleted FROM members WHERE email = ? LIMIT 1', [email]);
     if (existing.length) {
       const s = existing[0].status;
+      const isDeleted = existing[0].is_deleted;
+      if (s === 'deactivated' || isDeleted === 1 || s === 'deleted') {
+        return res.status(403).json({
+          status: 'deactivated',
+          message: 'This account has been deactivated. Please contact the administrator at hello@sapsecurityexpert.com to reactivate it.'
+        });
+      }
       const msgs = { pending: 'Your signup request is already on our waitlist and pending admin approval.', approved: 'This email is already registered. Please log in.' };
       return res.status(409).json({ status: 'error', message: msgs[s] || 'This email was previously rejected. Contact the administrator.' });
     }
@@ -196,13 +203,23 @@ router.post('/signup', async (req, res) => {
       return res.status(409).json({ status: 'error', message: 'You already have a contributor account with this email. Please use your existing credentials.' });
     }
 
-    // Generate unique username
-    let username = rawUsername || email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
-    for (let i = 0; i < 5; i++) {
+    // Unique username check
+    let username;
+    if (rawUsername) {
+      username = rawUsername;
       const [u1] = await db.execute('SELECT id FROM members WHERE LOWER(username) = LOWER(?) LIMIT 1', [username]);
       const [u2] = await db.execute('SELECT id FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1', [username]);
-      if (!u1.length && !u2.length) break;
-      username = (rawUsername || username.replace(/\d+$/, '')) + Math.floor(Math.random() * 900 + 100);
+      if (u1.length || u2.length) {
+        return res.status(409).json({ status: 'error', message: 'The username is already taken. Please choose another one.' });
+      }
+    } else {
+      username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+      for (let i = 0; i < 10; i++) {
+        const [u1] = await db.execute('SELECT id FROM members WHERE LOWER(username) = LOWER(?) LIMIT 1', [username]);
+        const [u2] = await db.execute('SELECT id FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1', [username]);
+        if (!u1.length && !u2.length) break;
+        username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 900 + 100);
+      }
     }
 
     const hash = await bcrypt.hash(password, 10);

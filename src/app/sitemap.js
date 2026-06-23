@@ -49,34 +49,68 @@ export default async function sitemap() {
     priority: 0.8,
   }));
 
-  // Blog articles — fetched live from Express, revalidated every hour
+  const toDate = (raw, fallback) => {
+    try {
+      if (!raw) return fallback;
+      const d = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T') + 'Z');
+      return isNaN(d) ? fallback : d;
+    } catch { return fallback; }
+  };
+
+  // Blog articles
   let articleEntries = [];
   try {
-    const res = await fetch(`${INTERNAL_API}/api/posts`, {
-      next: { revalidate: 3600 },
-    });
+    const res = await fetch(`${INTERNAL_API}/api/posts`, { next: { revalidate: 3600 } });
     if (res.ok) {
       const posts = await res.json();
       if (Array.isArray(posts)) {
         articleEntries = posts
           .filter((p) => p.category && p.slug && p.status !== 'draft')
-          .map((p) => {
-            let lastModified = today;
-            try {
-              const raw = p.updated_at || p.date;
-              if (raw) lastModified = new Date(raw.includes('T') ? raw : raw.replace(' ', 'T') + 'Z');
-              if (isNaN(lastModified)) lastModified = today;
-            } catch {}
-            return {
-              url: `${SITE_URL}/${p.category}/${p.slug}`,
-              lastModified,
-              changeFrequency: 'monthly',
-              priority: 0.7,
-            };
-          });
+          .map((p) => ({
+            url: `${SITE_URL}/${p.category}/${p.slug}`,
+            lastModified: toDate(p.updated_at || p.date, today),
+            changeFrequency: 'monthly',
+            priority: 0.7,
+          }));
       }
     }
   } catch {}
 
-  return [...staticEntries, ...categoryEntries, ...articleEntries];
+  // Learning articles — URL pattern /learning/:moduleCategory/:slug
+  let learningEntries = [];
+  try {
+    const res = await fetch(`${INTERNAL_API}/api/learnings`, { next: { revalidate: 3600 } });
+    if (res.ok) {
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : (data.learnings || []);
+      learningEntries = items
+        .filter((p) => p.category && p.slug)
+        .map((p) => ({
+          url: `${SITE_URL}/learning/${p.category}/${p.slug}`,
+          lastModified: toDate(p.updated_at || p.date, today),
+          changeFrequency: 'monthly',
+          priority: 0.6,
+        }));
+    }
+  } catch {}
+
+  // News articles — URL pattern /news/:slug
+  let newsEntries = [];
+  try {
+    const res = await fetch(`${INTERNAL_API}/api/news`, { next: { revalidate: 3600 } });
+    if (res.ok) {
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : (data.news || []);
+      newsEntries = items
+        .filter((p) => p.slug)
+        .map((p) => ({
+          url: `${SITE_URL}/news/${p.slug}`,
+          lastModified: toDate(p.updated_at || p.date, today),
+          changeFrequency: 'weekly',
+          priority: 0.65,
+        }));
+    }
+  } catch {}
+
+  return [...staticEntries, ...categoryEntries, ...articleEntries, ...learningEntries, ...newsEntries];
 }

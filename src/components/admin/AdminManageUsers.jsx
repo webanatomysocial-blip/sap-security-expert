@@ -58,7 +58,57 @@ const AdminManageUsers = () => {
       return;
     }
 
+    if (action === "reactivate") {
+      openConfirm({
+        title: "Reactivate Member Account",
+        message: "Are you sure you want to reactivate this member account?",
+        confirmText: "Reactivate",
+        isDanger: false,
+        onConfirm: async () => {
+          try {
+            const res = await manageAdminMember({ id, action: "reactivate" });
+            if (res.data?.status === "success") {
+              addToast("Member account reactivated successfully.", "success");
+              fetchMembers();
+            } else {
+              addToast(res.data?.message || "Failed to reactivate member.", "error");
+            }
+          } catch (err) {
+            addToast("Error reactivating member.", "error");
+          }
+        }
+      });
+      return;
+    }
+
     if (action === "delete") {
+      const memberObj = members.find(m => m.id === id);
+      const isDeactivatedOrDeleted = memberObj && (memberObj.status === "deactivated" || memberObj.is_deleted === 1 || memberObj.status === "deleted");
+
+      if (isDeactivatedOrDeleted) {
+        openConfirm({
+          title: "Permanently Delete Account",
+          message: "Are you sure you want to permanently delete this deactivated member account? This action cannot be undone.",
+          confirmText: "Delete Permanently",
+          isDanger: true,
+          onConfirm: async () => {
+            try {
+              const res = await manageAdminMember({ id, action: "delete" });
+              if (res.data?.status === "success") {
+                addToast("Member account permanently deleted.", "success");
+                if (selectedMember?.id === id) setSelectedMember(null);
+                fetchMembers();
+              } else {
+                addToast(res.data?.message || "Failed to delete account.", "error");
+              }
+            } catch (err) {
+              addToast("Error deleting account.", "error");
+            }
+          }
+        });
+        return;
+      }
+
       // Step 1: send OTP to member's email
       openConfirm({
         title: "Delete Member Account",
@@ -164,12 +214,18 @@ const AdminManageUsers = () => {
     }
   };
 
-  const filteredMembers = members.filter(
-    (m) =>
-      (filterStatus === "all" ? m.status !== "deleted" : m.status === filterStatus) &&
+  const filteredMembers = members.filter((m) => {
+    const isDeactivatedOrDeleted = m.status === "deleted" || m.status === "deactivated" || m.is_deleted === 1;
+    const matchesFilter = filterStatus === "all"
+      ? !isDeactivatedOrDeleted
+      : filterStatus === "deleted"
+        ? isDeactivatedOrDeleted
+        : m.status === filterStatus;
+
+    return matchesFilter &&
       ((m.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (m.email || "").toLowerCase().includes(searchTerm.toLowerCase())),
-  );
+        (m.email || "").toLowerCase().includes(searchTerm.toLowerCase()));
+  });
 
   const handleExport = () => {
     const headers = [
@@ -205,7 +261,7 @@ const AdminManageUsers = () => {
         <div className="status-filter-tabs" style={{ margin: 0 }}>
           {["all", "pending", "approved", "rejected", "deleted"].map((s) => (
             <button key={s} className={filterStatus === s ? "active" : ""} onClick={() => setFilterStatus(s)}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+              {s === "deleted" ? "Deactivated" : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
         </div>
@@ -336,7 +392,17 @@ const AdminManageUsers = () => {
                               </button>
                             </>
                           )}
-                          {m.status !== "deleted" && (
+                          {(m.status === "deactivated" || m.is_deleted === 1 || m.status === "deleted") ? (
+                            <>
+                              <button className="action-menu-item success" onClick={() => handleAction(m.id, "reactivate")} style={{ color: "var(--success-green)" }}>
+                                <i className="bi bi-arrow-counterclockwise" /> Reactivate
+                              </button>
+                              <div className="action-menu-separator" />
+                              <button className="action-menu-item danger" onClick={() => handleAction(m.id, "delete")}>
+                                <i className="bi bi-trash" /> Delete Permanently
+                              </button>
+                            </>
+                          ) : (
                             <>
                               <div className="action-menu-separator" />
                               <button className="action-menu-item danger" onClick={() => handleAction(m.id, "delete")}>

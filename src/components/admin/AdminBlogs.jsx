@@ -13,6 +13,7 @@ import {
   getAuthors,
 } from "../../services/api";
 
+import { compressImage } from "../../utils/compressImage";
 // Refactored Sub-components
 import BlogList from "./blogs/BlogList";
 import BlogEditor from "./blogs/BlogEditor";
@@ -57,6 +58,7 @@ const AdminBlogs = () => {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imageVersion, setImageVersion] = useState(Date.now());
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
@@ -181,8 +183,9 @@ const AdminBlogs = () => {
     }));
 
   const rteImageUpload = async (file) => {
+    const compressed = await compressImage(file, { maxWidth: 1200, maxHeight: 1200 });
     const body = new FormData();
-    body.append("image", file);
+    body.append("image", compressed);
     body.append("type", "content");
     try {
       const res = await uploadBlogImage(body);
@@ -196,8 +199,9 @@ const AdminBlogs = () => {
 
   const handleImageUpload = async (file) => {
     setUploading(true);
+    const compressed = await compressImage(file, { maxWidth: 1920, maxHeight: 1080 });
     const body = new FormData();
-    body.append("image", file);
+    body.append("image", compressed);
     body.append("type", "featured");
     try {
       const res = await uploadBlogImage(body);
@@ -272,6 +276,7 @@ const AdminBlogs = () => {
   };
 
   const handleSave = async (status = "approved") => {
+    if (saving) return;
     if (
       !formData.title ||
       !formData.category ||
@@ -290,17 +295,14 @@ const AdminBlogs = () => {
     };
     delete payload.author;
 
-    // Fix: If date is missing (new blog), use now. If date exists, preserve it.
     if (!payload.date) {
       const now = new Date();
       payload.date = now.toISOString().slice(0, 19).replace("T", " ");
     }
 
-    const finalPayload = {
-      ...payload,
-      status,
-    };
+    const finalPayload = { ...payload, status };
 
+    setSaving(true);
     try {
       const res = await saveBlog(finalPayload);
       if (res.data.status === "success") {
@@ -311,6 +313,8 @@ const AdminBlogs = () => {
       }
     } catch (err) {
       addToast(err.response?.data?.message || "Save failed", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -493,6 +497,7 @@ const AdminBlogs = () => {
           blogs={blogs}
           authors={authors}
           isAdmin={isAdmin}
+          saving={saving}
           onSave={() => handleSave("approved")}
           onSaveDraft={() => handleSave("draft")}
         >

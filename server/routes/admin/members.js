@@ -52,9 +52,16 @@ router.post('/', requireAdmin, async (req, res) => {
       await db.execute("UPDATE members SET status='suspended' WHERE id=?", [id]);
       return res.json({ status: 'success', message: 'Member suspended.' });
 
+    } else if (action === 'reactivate') {
+      await db.execute("UPDATE members SET status='approved', is_deleted=0, deleted_at=NULL WHERE id=?", [id]);
+      await db.execute("UPDATE users SET is_active=1, is_deleted=0, deleted_at=NULL WHERE LOWER(email)=LOWER(?)", [member.email]).catch(() => {});
+      await db.execute("UPDATE contributors SET status='approved', is_deleted=0, deleted_at=NULL WHERE LOWER(email)=LOWER(?)", [member.email]).catch(() => {});
+      notifier.notifyMemberApproved(member.email, member.name).catch(() => {});
+      return res.json({ status: 'success', message: 'Member account reactivated.' });
+
     } else if (action === 'delete') {
-      // Already soft-deleted (anonymised) — just hard-delete the record immediately, no OTP needed
-      if (member.is_deleted == 1 || member.status === 'deleted') {
+      // Already soft-deleted (deactivated) — allow hard-delete the record permanently
+      if (member.is_deleted == 1 || member.status === 'deleted' || member.status === 'deactivated') {
         await db.execute('DELETE FROM members WHERE id=?', [id]);
         return res.json({ status: 'success', message: 'Deleted user record permanently removed.' });
       }
@@ -66,14 +73,17 @@ router.post('/', requireAdmin, async (req, res) => {
       return res.json({ status: 'otp_sent', message: `A deletion verification code has been sent to ${member.email}. Enter it below to confirm.` });
 
     } else if (action === 'delete_confirm') {
-      // Step 2: verify OTP then hard-delete
+      // Step 2: verify OTP then soft-delete (deactivate)
       if (!otp) return res.status(400).json({ status: 'error', message: 'OTP is required to confirm deletion.' });
       const otpService = new OTPService(db);
       await otpService.verifyOTP(member.email, otp, 'account_deletion');
 
-      await db.execute('DELETE FROM members WHERE id=?', [id]);
+      await db.execute("UPDATE members SET is_deleted=1, deleted_at=CURRENT_TIMESTAMP, status='deactivated' WHERE id=?", [id]);
+      await db.execute("UPDATE users SET is_active=0, is_deleted=1, deleted_at=CURRENT_TIMESTAMP WHERE LOWER(email)=LOWER(?)", [member.email]).catch(() => {});
+      await db.execute("UPDATE contributors SET is_deleted=1, deleted_at=CURRENT_TIMESTAMP, status='deactivated' WHERE LOWER(email)=LOWER(?)", [member.email]).catch(() => {});
+
       notifier.notifyAccountDeleted(member.email, member.name).catch(() => {});
-      return res.json({ status: 'success', message: 'Member account permanently deleted.' });
+      return res.json({ status: 'success', message: 'Member account deactivated.' });
     }
 
     return res.status(400).json({ status: 'error', message: 'Unknown action' });

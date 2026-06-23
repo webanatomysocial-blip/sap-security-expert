@@ -14,9 +14,16 @@ router.post(['/send_otp.php', '/send-otp'], rateLimit('otp_send', 5, 300), async
 
   try {
     if (type === 'signup') {
-      const [rows] = await db.execute('SELECT id, status FROM members WHERE LOWER(email) = LOWER(?) LIMIT 1', [email]);
+      const [rows] = await db.execute('SELECT id, status, is_deleted FROM members WHERE LOWER(email) = LOWER(?) LIMIT 1', [email]);
       if (rows.length) {
         const s = rows[0].status;
+        const isDeleted = rows[0].is_deleted;
+        if (s === 'deactivated' || isDeleted === 1 || s === 'deleted') {
+          return res.status(403).json({
+            status: 'deactivated',
+            message: 'This account has been deactivated. Please contact the administrator at hello@sapsecurityexpert.com to reactivate it.'
+          });
+        }
         if (s === 'approved') return res.status(409).json({ status: 'error', message: 'This email is already registered. Please log in.' });
         if (s === 'pending') return res.status(409).json({ status: 'error', message: 'Your signup request is already pending admin approval.' });
         return res.status(403).json({ status: 'error', message: 'This account has been rejected or disabled. Contact support.' });

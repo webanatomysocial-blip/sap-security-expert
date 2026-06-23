@@ -5,6 +5,7 @@ const API_URL = VITE_API_URL;
 
 export const api = axios.create({
     baseURL: API_URL,
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -66,7 +67,8 @@ export const deleteBlog = (id) => api.delete(`/posts/${id}`);
 export const toggleExclusiveContent = (data) => api.post('/admin/blogs/toggle-exclusive', data);
 export const togglePremiumContent = (data) => api.post('/admin/blogs/toggle-premium', data);
 export const uploadBlogImage = (formData) => api.post('/upload-blog-image', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
 });
 
 // ── Contributors Management (Admin) ───────────────────────────────────────────

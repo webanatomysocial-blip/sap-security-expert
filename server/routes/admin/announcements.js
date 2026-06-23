@@ -71,10 +71,11 @@ router.post('/', requireAuth(), checkPermission('can_manage_announcements'), asy
       );
     } else {
       const status = reqStatus || (isAdmin ? 'approved' : 'draft');
+      const submissionStatus = isAdmin ? 'approved' : 'pending';
       await db.execute(
         `INSERT INTO announcements (title, slug, date, link, status, content, excerpt, image, image_alt, views, comments, submission_status)
-         VALUES (?,?,?,?,?,?,?,?,?,0,0,'approved')`,
-        [title, slug, date, link, status, content, excerpt, image, image_alt]
+         VALUES (?,?,?,?,?,?,?,?,?,0,0,?)`,
+        [title, slug, date, link, status, content, excerpt, image, image_alt, submissionStatus]
       );
     }
 

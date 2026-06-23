@@ -9,6 +9,7 @@ import {
 } from "../../services/api";
 
 import BlogList from "./blogs/BlogList";
+import { compressImage } from "../../utils/compressImage";
 import BlogEditor from "./blogs/BlogEditor";
 import SeoSettings from "./blogs/SeoSettings";
 import SchemaSettings from "./blogs/SchemaSettings";
@@ -133,8 +134,9 @@ const AdminLearnings = () => {
   const removeFAQ = (index) => setFormData(prev => ({ ...prev, faqs: prev.faqs.filter((_, i) => i !== index) }));
 
   const rteImageUpload = async (file) => {
+    const compressed = await compressImage(file, { maxWidth: 1200, maxHeight: 1200 });
     const body = new FormData();
-    body.append("image", file); body.append("type", "content");
+    body.append("image", compressed); body.append("type", "content");
     try {
       const res = await uploadBlogImage(body);
       if (res.data.status === "success") return res.data.path;
@@ -145,8 +147,9 @@ const AdminLearnings = () => {
 
   const handleImageUpload = async (file) => {
     setUploading(true);
+    const compressed = await compressImage(file, { maxWidth: 1920, maxHeight: 1080 });
     const body = new FormData();
-    body.append("image", file); body.append("type", "featured");
+    body.append("image", compressed); body.append("type", "featured");
     try {
       const res = await uploadBlogImage(body);
       if (res.data.status === "success") {

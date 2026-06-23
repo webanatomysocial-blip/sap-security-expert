@@ -42,13 +42,22 @@ html {
 
 .container {
   width: 100%;
-  /* max-width: 1400px; */
   margin: 0 auto;
-  padding: 0 100px;
+  padding: 0 50px;
 }
 
 @media (max-width: 768px) {
   .container {
+    padding: 0 20px;
+  }
+}
+
+section {
+  padding: 0 50px;
+}
+
+@media (max-width: 768px) {
+  section {
     padding: 0 20px;
   }
 }
@@ -273,15 +282,8 @@ h6 {
 /* buttons End */
 .container {
   width: 100%;
-  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 40px;
-}
-
-@media (min-width: 1440px) {
-  .container {
-    padding: 0 100px;
-  }
+  padding: 0 50px;
 }
 
 @media (max-width: 1024px) {

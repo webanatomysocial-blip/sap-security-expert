@@ -256,33 +256,39 @@ router.post(['/delete_account.php', '/delete-account'], async (req, res) => {
     );
 
     if (contRows.length) {
-      // Contributor: anonymize but keep member active
+      // Contributor: deactivate contributor and user account, and also member account
       await db.execute(
-        `UPDATE contributors SET email=?, is_deleted=1, deleted_at=?, deletion_ip=?,
-         deletion_method='UI', deletion_confirmation_method='OTP', status='deleted'
+        `UPDATE contributors SET is_deleted=1, deleted_at=?, deletion_ip=?,
+         deletion_method='UI', deletion_confirmation_method='OTP', status='deactivated'
          WHERE LOWER(email) = LOWER(?)`,
-        [deletedEmail, timestamp, ip, memberEmail]
+        [timestamp, ip, memberEmail]
       );
       await db.execute(
-        `UPDATE users SET email=?, username=?, is_active=0, is_deleted=1, deleted_at=?, deletion_ip=?
+        `UPDATE users SET is_active=0, is_deleted=1, deleted_at=?, deletion_ip=?
          WHERE LOWER(email) = LOWER(?)`,
-        [deletedEmail, deletedEmail, timestamp, ip, memberEmail]
+        [timestamp, ip, memberEmail]
       );
-      message = 'Your contributor account has been removed. You are now a regular member.';
-    } else {
-      // Regular member: full soft-delete
       await db.execute(
-        `UPDATE members SET email=?, username=?, is_deleted=1, deleted_at=?, deletion_ip=?,
-         deletion_method='UI', deletion_confirmation_method='OTP', status='deleted'
+        `UPDATE members SET is_deleted=1, deleted_at=?, deletion_ip=?,
+         deletion_method='UI', deletion_confirmation_method='OTP', status='deactivated'
          WHERE (id=? OR LOWER(email)=LOWER(?))`,
-        [deletedEmail, deletedEmail, timestamp, ip, memberId || 0, memberEmail]
+        [timestamp, ip, memberId || 0, memberEmail]
+      );
+      message = 'Your contributor and member accounts have been deactivated.';
+    } else {
+      // Regular member: deactivation
+      await db.execute(
+        `UPDATE members SET is_deleted=1, deleted_at=?, deletion_ip=?,
+         deletion_method='UI', deletion_confirmation_method='OTP', status='deactivated'
+         WHERE (id=? OR LOWER(email)=LOWER(?))`,
+        [timestamp, ip, memberId || 0, memberEmail]
       );
       await db.execute(
-        `UPDATE users SET is_active=0, is_deleted=1, username=?, email=?, deleted_at=?, deletion_ip=?
+        `UPDATE users SET is_active=0, is_deleted=1, deleted_at=?, deletion_ip=?
          WHERE LOWER(email)=LOWER(?)`,
-        [deletedEmail, deletedEmail, timestamp, ip, memberEmail]
+        [timestamp, ip, memberEmail]
       );
-      message = 'Your account has been permanently deleted.';
+      message = 'Your account has been deactivated.';
     }
 
     await db.commit();
@@ -342,7 +348,7 @@ router.get(['/sitemap.php', '/sitemap.xml'], async (req, res) => {
     const today = new Date().toISOString().slice(0, 10);
 
     const [blogs] = await db.execute(
-      "SELECT slug, category, updated_at, date FROM blogs WHERE status IN ('approved','published') ORDER BY updated_at DESC"
+      "SELECT slug, category, updated_at, date FROM blogs WHERE status IN ('approved','published') AND (type IS NULL OR type = 'blog') ORDER BY updated_at DESC"
     );
 
     const staticPages = [
@@ -400,11 +406,13 @@ const SEO_STATIC = {
   },
   '/blogs': { title: 'Blogs & Tutorials | SAP Security Expert', description: 'Read our latest blogs, tutorials, and step-by-step guides on SAP Security, GRC, and cloud compliance.' },
   '/about': { title: 'About Us | SAP Security Expert', description: 'Learn more about SAP Security Expert, our mission, and our team of enterprise security specialists.' },
-  '/contact': { title: 'Contact SAP Security Expert', description: 'Contact SAP Security Expert for enquiries, partnerships, or support. Connect with SAP security professionals today.' },
+  '/contact-us': { title: 'Contact SAP Security Expert', description: 'Contact SAP Security Expert for enquiries, partnerships, or support. Connect with SAP security professionals today.' },
   '/podcasts': { title: 'SAP Security Podcasts & Expert Insights | SAP Security Expert', description: 'Listen to SAP security podcasts for expert insights, industry trends, and strategies.' },
   '/reviews': { title: 'Product Reviews | SAP Security Expert', description: 'Unbiased reviews of the latest SAP Security and GRC compliance tools and automation platforms.' },
   '/expert-recommendations': { title: 'SAP Security Recommendations & Resources | SAP Security Expert', description: 'SAP security expert recommendations, utilities, and resources to improve protection and simplify GRC workflows.' },
   '/news': { title: 'News & Updates | SAP Security Expert', description: 'The latest announcements, feature releases, and platform news from SAP Security Expert — straight from the team.' },
+  '/learning-hub': { title: 'SAP Security Learning Hub — Free Courses & Tutorials | SAP Security Expert', description: 'Learn SAP Security from scratch with structured modules covering fundamentals, user management, role design, GRC, and more. Free hands-on tutorials for all levels.' },
+  '/become-a-contributor': { title: 'Write for SAP Security Expert | Become a Contributor', description: 'Share your SAP Security expertise. Join our contributor programme and publish guides, tutorials, and best practices to the SAP security community.' },
   '/authors/raghu-boddu': { title: 'Raghu Boddu - SAP Security & GRC Expert | SAP Security Expert', description: 'Read expert insights and research from Raghu Boddu, founder of SAP Security Expert.' },
 };
 
@@ -460,7 +468,7 @@ router.get('/seo-meta', async (req, res) => {
          FROM blogs b
          LEFT JOIN users u ON b.author_id = u.id
          LEFT JOIN contributors c ON u.contributor_id = c.id
-         WHERE b.slug = ? AND b.status = 'published' LIMIT 1`,
+         WHERE b.slug = ? AND b.status IN ('approved','published') LIMIT 1`,
         [slug]
       );
       if (rows.length) {

@@ -40,6 +40,7 @@ const BlogEditor = ({
   children,
   onSave,
   onSaveDraft,
+  saving = false,
 }) => {
   const ACTIVE_CATEGORIES = customCategories || ALL_CATEGORIES;
   const [blogSearch, setBlogSearch] = React.useState("");
@@ -186,23 +187,26 @@ const BlogEditor = ({
           <button
             className="btn-approve btn-full"
             onClick={onSave}
+            disabled={saving}
             style={{
               padding: "14px",
               fontSize: "1rem",
               fontWeight: "700",
               marginBottom: "12px",
+              opacity: saving ? 0.6 : 1,
             }}
           >
             <i
-              className="bi bi-send-check"
+              className={`bi ${saving ? "bi-hourglass-split" : "bi-send-check"}`}
               style={{ marginRight: "8px" }}
             ></i>{" "}
-            Publish Blog Post
+            {saving ? "Saving…" : "Publish Blog Post"}
           </button>
 
           <button
             className="btn-secondary btn-full"
             onClick={onSaveDraft}
+            disabled={saving}
             style={{
               padding: "12px",
               fontSize: "0.95rem",
@@ -211,6 +215,7 @@ const BlogEditor = ({
               background: "#f1f5f9",
               color: "#475569",
               border: "1px solid #e2e8f0",
+              opacity: saving ? 0.6 : 1,
             }}
           >
             <i

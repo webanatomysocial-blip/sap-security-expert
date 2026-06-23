@@ -6,6 +6,7 @@ import "../css/ContactForm.css"; // Reuse existing clean form styles
 
 const MemberSignup = () => {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Form
+  const [showReactivateModal, setShowReactivateModal] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -40,7 +41,11 @@ const MemberSignup = () => {
         addToast(res.data.message || "Failed to send code.", "error");
       }
     } catch (err) {
-      addToast(err.response?.data?.message || "Failed to send verification code.", "error");
+      if (err.response?.data?.status === "deactivated") {
+        setShowReactivateModal(true);
+      } else {
+        addToast(err.response?.data?.message || "Failed to send verification code.", "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -87,12 +92,16 @@ const MemberSignup = () => {
         addToast(res.data.message || "Failed to register.", "error");
       }
     } catch (err) {
-      addToast(
-        err.response?.data?.message ||
-          err.message ||
-          "Network error during registration.",
-        "error",
-      );
+      if (err.response?.data?.status === "deactivated") {
+        setShowReactivateModal(true);
+      } else {
+        addToast(
+          err.response?.data?.message ||
+            err.message ||
+            "Network error during registration.",
+          "error",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -423,6 +432,100 @@ const MemberSignup = () => {
           </div>
         )}
       </div>
+      {showReactivateModal && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => setShowReactivateModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'rgba(255, 255, 255, 0.95)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              borderRadius: '24px',
+              padding: '40px',
+              maxWidth: '500px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              textAlign: 'center',
+              position: 'relative',
+            }}
+          >
+            <button 
+              onClick={() => setShowReactivateModal(false)}
+              style={{
+                position: 'absolute',
+                top: '20px', right: '20px',
+                background: 'none', border: 'none',
+                fontSize: '24px', cursor: 'pointer',
+                color: '#64748b', transition: 'color 0.2s'
+              }}
+            >
+              ×
+            </button>
+            <div style={{
+              width: '64px', height: '64px',
+              background: '#eff6ff', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 24px', color: '#2563eb'
+            }}>
+              <i className="bi bi-info-circle-fill" style={{ fontSize: '28px' }}></i>
+            </div>
+            <h3 style={{
+              fontSize: '1.5rem', fontWeight: 800,
+              color: '#0f172a', marginBottom: '16px'
+            }}>
+              Account Deactivated
+            </h3>
+            <p style={{
+              color: '#475569', fontSize: '1rem',
+              lineHeight: 1.6, marginBottom: '32px'
+            }}>
+              This account was previously deactivated. You can reactivate this account by writing an email to the admin.
+            </p>
+            <a 
+              href="mailto:hello@sapsecurityexpert.com?subject=Account Reactivation Request"
+              className="btn-primary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                width: '100%',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                textDecoration: 'none',
+                boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
+              }}
+            >
+              <i className="bi bi-envelope-fill"></i> Email: hello@sapsecurityexpert.com
+            </a>
+            <button
+              onClick={() => setShowReactivateModal(false)}
+              style={{
+                background: 'none', border: 'none',
+                marginTop: '16px', color: '#64748b',
+                fontWeight: 500, cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
