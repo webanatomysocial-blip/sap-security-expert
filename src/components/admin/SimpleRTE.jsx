@@ -1067,6 +1067,20 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
             resize: vertical;
             font-family: 'JetBrains Mono', 'Fira Code', monospace;
         }
+        .rte-modal-note {
+            font-size: 12.5px;
+            color: #64748b;
+            margin: 8px 0 4px;
+            line-height: 1.5;
+        }
+        .rte-modal-note code {
+            background: #f1f5f9;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 11.5px;
+            color: #b91c1c;
+        }
         .rte-modal-actions {
             display: flex;
             justify-content: flex-end;
@@ -1142,6 +1156,10 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
               onChange={(e) => setHtmlModal((m) => ({ ...m, code: e.target.value }))}
               placeholder="<div class=&quot;my-block&quot;>...</div>"
             />
+            <p className="rte-modal-note">
+              Note: <code>&lt;style&gt;</code> and <code>&lt;script&gt;</code> tags are not
+              supported and will be removed automatically on insert.
+            </p>
             <div className="rte-modal-actions">
               <button
                 className="btn-cancel"

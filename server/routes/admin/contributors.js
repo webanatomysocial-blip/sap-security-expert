@@ -5,7 +5,6 @@ const { requireAdmin } = require('../../middleware/auth');
 const { deleteImage } = require('../../utils/helpers');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
-const OTPService = require('../../services/OTPService');
 
 // All routes here are mounted at /api/admin, so paths are relative to that.
 
@@ -298,7 +297,7 @@ router.post('/reset-contributor-password', requireAdmin, async (req, res) => {
 // ── POST /api/delete_contributor.php (legacy path) ───────────────────────────
 router.post('/delete-contributor', requireAdmin, async (req, res) => {
   const db = req.db;
-  const { id, otp } = req.body || {};
+  const { id } = req.body || {};
   if (!id) return res.status(400).json({ status: 'error', message: 'ID required' });
 
   try {
@@ -313,22 +312,8 @@ router.post('/delete-contributor', requireAdmin, async (req, res) => {
     const contributor = rows[0];
     const email = contributor.contact_email || contributor.email;
 
-    const otpService = new OTPService(db);
     const mailService = MailService.getInstance(db);
     const notifier = new NotificationService(mailService);
-
-    if (!otp) {
-      // Step 1: generate OTP and notify contributor
-      const code = await otpService.generateOTP(email, 'contributor_deletion', req.ip);
-      notifier.notifyContributorDeletionOTP(email, contributor.full_name, code).catch(() => {});
-      return res.json({
-        status: 'otp_sent',
-        message: `A verification code has been sent to ${email}. Enter it to confirm deletion.`,
-      });
-    }
-
-    // Step 2: verify OTP then remove contributor profile
-    await otpService.verifyOTP(email, otp, 'contributor_deletion');
 
     if (contributor.image) deleteImage(contributor.image);
     // Detach user — they keep their account as a regular member
