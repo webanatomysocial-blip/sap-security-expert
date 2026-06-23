@@ -47,6 +47,9 @@ router.post('/', requireAuth(), checkPermission('can_manage_announcements'), asy
   } = req.body || {};
 
   const slug = generateSlug(title);
+  const mysqlDate = date
+    ? new Date(date).toISOString().slice(0, 19).replace('T', ' ')
+    : null;
 
   try {
     if (id) {
@@ -57,7 +60,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_announcements'), asy
       if (ex.status === 'approved' && !isAdmin) {
         await db.execute(
           "UPDATE announcements SET draft_title=?, draft_date=?, draft_link=?, submission_status='edited', updated_at=CURRENT_TIMESTAMP WHERE id=?",
-          [title, date, link, id]
+          [title, mysqlDate, link, id]
         );
         cache.invalidate('homepage_data_public');
         return res.json({ status: 'success', message: 'Changes saved for review.' });
@@ -67,7 +70,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_announcements'), asy
       await db.execute(
         `UPDATE announcements SET title=?, slug=?, date=?, link=?, status=?, content=?, excerpt=?, image=?, image_alt=?,
          submission_status='approved', updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-        [title, slug, date, link, status, content, excerpt, image, image_alt, id]
+        [title, slug, mysqlDate, link, status, content, excerpt, image, image_alt, id]
       );
     } else {
       const status = reqStatus || (isAdmin ? 'approved' : 'draft');
@@ -75,7 +78,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_announcements'), asy
       await db.execute(
         `INSERT INTO announcements (title, slug, date, link, status, content, excerpt, image, image_alt, views, comments, submission_status)
          VALUES (?,?,?,?,?,?,?,?,?,0,0,?)`,
-        [title, slug, date, link, status, content, excerpt, image, image_alt, submissionStatus]
+        [title, slug, mysqlDate, link, status, content, excerpt, image, image_alt, submissionStatus]
       );
     }
 
