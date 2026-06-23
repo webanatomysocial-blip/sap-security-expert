@@ -16,7 +16,7 @@ const Footer = () => {
 
   return (
     <footer className="footer-container">
-      <div className="container footer-content">
+      <div className="footer-content">
         {/* Branch 1 */}
         <div className="footer-brand">
           <div className="brand-header">

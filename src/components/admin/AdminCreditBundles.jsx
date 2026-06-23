@@ -199,6 +199,20 @@ export default function AdminCreditBundles() {
 
   const fmt = (paise) => `₹${(paise / 100).toFixed(0)}`;
 
+  const getCouponStatus = (c) => {
+    if (!c.is_active) return { label: "Inactive", bg: "#fee2e2", color: "#dc2626" };
+    if (c.expires_at) {
+      const today = new Date().toISOString().slice(0, 10);
+      if (c.expires_at.slice(0, 10) <= today) {
+        return { label: "Expired", bg: "#fef3c7", color: "#d97706" };
+      }
+    }
+    if (c.max_uses > 0 && c.used_count >= c.max_uses) {
+      return { label: "Exhausted", bg: "#fef3c7", color: "#d97706" };
+    }
+    return { label: "Active", bg: "#dcfce7", color: "#16a34a" };
+  };
+
   const handleExportBundles = () => {
     downloadCSV(
       bundles.map((b) => ({ ...b, price_rupees: (b.price_paise / 100).toFixed(0), status: b.is_active ? "Active" : "Inactive" })),
@@ -219,7 +233,7 @@ export default function AdminCreditBundles() {
         discount: c.discount_type === "percentage" ? `${c.discount_value}%` : `₹${c.discount_value}`,
         uses: c.max_uses > 0 ? `${c.used_count} / ${c.max_uses}` : `${c.used_count} / Unlimited`,
         expires: c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-IN") : "No expiry",
-        status: c.is_active ? "Active" : "Inactive",
+        status: getCouponStatus(c).label,
       })),
       [
         { label: "Code", key: "code" },
@@ -418,13 +432,11 @@ export default function AdminCreditBundles() {
                       {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-IN") : "—"}
                     </td>
                     <td className="col-sm text-center">
-                      <span style={{
-                        padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600,
-                        background: c.is_active ? "#dcfce7" : "#fee2e2",
-                        color: c.is_active ? "#16a34a" : "#dc2626",
-                      }}>
-                        {c.is_active ? "Active" : "Inactive"}
-                      </span>
+                      {(() => { const s = getCouponStatus(c); return (
+                        <span style={{ padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: s.bg, color: s.color }}>
+                          {s.label}
+                        </span>
+                      ); })()}
                     </td>
                     <td className="col-actions text-center">
                       <ActionMenu>

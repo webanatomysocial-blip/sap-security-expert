@@ -7,6 +7,9 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
   const [isSourceView, setIsSourceView] = React.useState(false);
   const { openConfirm } = useConfirm();
   const savedSelection = useRef(null);
+  // Always-current value ref so toggleSourceView can read latest HTML without stale closures
+  const valueRef = useRef(value);
+  useEffect(() => { valueRef.current = value; }, [value]);
 
   // ── HTML Block Modal ──────────────────────────────────────────────────────
   const [htmlModal, setHtmlModal] = React.useState({ open: false, code: '' });
@@ -310,7 +313,17 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
   };
 
   const toggleSourceView = () => {
-    setIsSourceView(!isSourceView);
+    const nextSourceView = !isSourceView;
+    setIsSourceView(nextSourceView);
+    if (!nextSourceView) {
+      // Switching back to visual mode: explicitly load the source HTML into the editor.
+      // requestAnimationFrame waits for the div.rte-content to mount before writing.
+      requestAnimationFrame(() => {
+        if (editorRef.current) {
+          editorRef.current.innerHTML = valueRef.current || '<p><br></p>';
+        }
+      });
+    }
   };
 
   const handleAlign = (alignment) => {
@@ -489,9 +502,24 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     }
   };
 
+  // Strip <style>/<script> tags and event-handler attributes so pasted or
+  // user-authored HTML blocks cannot leak global CSS or execute JS.
+  const sanitizeInsertedHtml = (html) => {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('style, script').forEach(el => el.remove());
+    doc.querySelectorAll('*').forEach(el => {
+      Array.from(el.attributes).forEach(attr => {
+        if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
+      });
+    });
+    return doc.body.innerHTML;
+  };
+
   // ── Insert raw HTML block at cursor ────────────────────────────────────────
   const insertHtmlBlock = (html) => {
     if (!html.trim()) return;
+    const safeHtml = sanitizeInsertedHtml(html);
+    if (!safeHtml.trim()) return;
     restoreSelection();
     const sel = window.getSelection();
     const selectionInEditor =
@@ -505,11 +533,11 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     if (selectionInEditor) {
       const range = sel.getRangeAt(0);
       range.deleteContents();
-      const frag = document.createRange().createContextualFragment(html);
+      const frag = document.createRange().createContextualFragment(safeHtml);
       insertedNode = frag.lastChild;
       range.insertNode(frag);
     } else {
-      const frag = document.createRange().createContextualFragment(html);
+      const frag = document.createRange().createContextualFragment(safeHtml);
       insertedNode = frag.lastChild;
       editorRef.current.appendChild(frag);
     }

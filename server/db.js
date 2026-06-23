@@ -410,11 +410,10 @@ if (isSQLite) {
     database: process.env.DB_NAME || '',
     charset: process.env.DB_CHARSET || 'utf8mb4',
     waitForConnections: true,
-    // Hostinger shared MySQL caps total connections per user at ~10–15.
-    // The session store (express-mysql-session) opens its own pool of 3.
-    // Keeping the main pool at 5 gives a safe total of ≤8 connections.
-    // Override with DB_POOL_SIZE env var if your plan allows more.
-    connectionLimit: parseInt(process.env.DB_POOL_SIZE || '5'),
+    // Lightsail 1 GB: session store uses 2 connections, so 3 here = 5 total.
+    // Each idle connection holds ~4–8 MB of socket/buffer memory.
+    // Override with DB_POOL_SIZE if you need more throughput.
+    connectionLimit: parseInt(process.env.DB_POOL_SIZE || '3'),
     queueLimit: 50,
     timezone: '+00:00',
     // Reconnect automatically if the Hostinger MySQL server closes idle connections.

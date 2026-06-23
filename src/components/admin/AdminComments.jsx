@@ -18,6 +18,7 @@ const AdminComments = () => {
   const [rejectingComment, setRejectingComment] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
+  const [processingId, setProcessingId] = useState(null);
   const [editText, setEditText] = useState("");
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
@@ -56,6 +57,8 @@ const AdminComments = () => {
   }, [addToast]);
 
   const handleStatusChange = async (id, newStatus, rejection_reason = null) => {
+    if (processingId === id) return;
+    setProcessingId(id);
     try {
       const res = await updateComment({
         id,
@@ -73,6 +76,8 @@ const AdminComments = () => {
     } catch (error) {
       console.error("Status update failed", error);
       addToast("Error updating status", "error");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -83,6 +88,8 @@ const AdminComments = () => {
 
 
   const handleSaveEdit = async () => {
+    if (processingId === editingComment?.id) return;
+    setProcessingId(editingComment.id);
     try {
       const res = await updateComment({
         id: editingComment.id,
@@ -100,6 +107,8 @@ const AdminComments = () => {
     } catch (error) {
       console.error("Edit failed", error);
       addToast("Error updating comment", "error");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -324,12 +333,12 @@ const AdminComments = () => {
                         {comment.status !== "approved" && (
                           <button
                             className="action-menu-item"
-                            onClick={() =>
-                              handleStatusChange(comment.id, "approved")
-                            }
+                            onClick={() => handleStatusChange(comment.id, "approved")}
+                            disabled={processingId === comment.id}
                             style={{ color: "var(--success-green)" }}
                           >
-                            <i className="bi bi-check-circle"></i> Approve
+                            <i className={`bi ${processingId === comment.id ? "bi-hourglass-split" : "bi-check-circle"}`}></i>{" "}
+                            {processingId === comment.id ? "…" : "Approve"}
                           </button>
                         )}
 
@@ -477,8 +486,9 @@ const AdminComments = () => {
                 type="submit"
                 form="edit-comment-form"
                 className="btn-primary"
+                disabled={processingId === editingComment?.id}
               >
-                Save Changes
+                {processingId === editingComment?.id ? "Saving…" : "Save Changes"}
               </button>
             </div>
           </div>

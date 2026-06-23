@@ -27,6 +27,8 @@ export default function DynamicBlog() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isLearningPath = location.pathname.split("/").filter(Boolean)[0] === "learning";
+
   // Check for Virtual Blog (API) + Track Views
   useEffect(() => {
     if (!blogId) return;
@@ -65,16 +67,17 @@ export default function DynamicBlog() {
         const pathSegments = location.pathname.split("/").filter(Boolean);
         const urlCategory = pathSegments[0];
 
-        if (postData.category && urlCategory !== "blogs") {
+        // Learning articles use module slugs in the URL (e.g. /learning/security-fundamentals/slug)
+        // while their DB category is also the module slug — skip redirect for these.
+        const isLearningPath = urlCategory === "learning";
+
+        if (postData.category && urlCategory !== "blogs" && !isLearningPath) {
           const canonicalCategory = postData.category
             .toLowerCase()
             .replace(/\s+/g, "-");
           const currentCategory = urlCategory.toLowerCase();
 
           if (canonicalCategory !== currentCategory) {
-            console.warn(
-              `DEBUG: Category mismatch. Found: ${currentCategory}, Expected: ${canonicalCategory}. Redirecting...`,
-            );
             navigate(`/${canonicalCategory}/${postData.slug}`, {
               replace: true,
             });
@@ -226,8 +229,8 @@ export default function DynamicBlog() {
             dangerouslySetInnerHTML={{ __html: blog.content }}
           />
         }
-        isPremium={Number(blog.is_premium) === 1}
-        isPremiumLocked={premiumLocked}
+        isPremium={!isLearningPath && Number(blog.is_premium) === 1}
+        isPremiumLocked={!isLearningPath && premiumLocked}
         creditsRequired={Number(blog.credits_required) || 1}
         blogSlug={blog.slug || blogId}
         onPaymentSuccess={handlePaymentSuccess}
@@ -248,11 +251,11 @@ export default function DynamicBlog() {
         viewCount={blog.view_count || 0}
         commentCount={commentsCount}
         onCommentAdded={handleCommentAdded}
-        isExclusive={isExclusive}
+        isExclusive={!isLearningPath && isExclusive}
         metaTitle={blog.meta_title}
         metaDescription={blog.meta_description}
         metaKeywords={blog.meta_keywords}
-        isMembersOnly={isExclusive}
+        isMembersOnly={!isLearningPath && isExclusive}
         co_authors={(() => {
           if (!blog.co_authors) return [];
           if (Array.isArray(blog.co_authors)) return blog.co_authors;
