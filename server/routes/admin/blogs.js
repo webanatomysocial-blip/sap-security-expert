@@ -14,8 +14,8 @@ router.get('/pending', requireAuth(), checkPermission('can_review_blogs'), async
   const status = req.query.status || 'pending';
 
   try {
-    let sql;
-    const params = [];
+    const isAdmin = req.session.role === 'admin';
+    const reviewerId = req.session.admin_id;
 
     // Author fields match what BlogPreviewModal expects: author_name, author_image, author_bio
     const authorFields = `
@@ -33,26 +33,31 @@ router.get('/pending', requireAuth(), checkPermission('can_review_blogs'), async
       COALESCE(c.designation, u.designation) AS author_designation,
       COALESCE(c.linkedin, u.linkedin) AS author_linkedin`;
 
+    // Non-admin reviewers must not see their own submitted blogs in the queue.
+    const selfExclude = (!isAdmin && reviewerId) ? ` AND (b.author_id IS NULL OR b.author_id != ?)` : '';
+    const params = (!isAdmin && reviewerId) ? [reviewerId] : [];
+
+    let sql;
     if (status === 'rejected') {
       sql = `SELECT b.*, ${authorFields}
              FROM blogs b
              LEFT JOIN users u ON b.author_id = u.id
              LEFT JOIN contributors c ON u.contributor_id = c.id
-             WHERE b.submission_status = 'rejected'
+             WHERE b.submission_status = 'rejected'${selfExclude}
              ORDER BY b.updated_at DESC`;
     } else if (status === 'edited') {
       sql = `SELECT b.*, ${authorFields}
              FROM blogs b
              LEFT JOIN users u ON b.author_id = u.id
              LEFT JOIN contributors c ON u.contributor_id = c.id
-             WHERE b.submission_status = 'edited'
+             WHERE b.submission_status = 'edited'${selfExclude}
              ORDER BY b.updated_at DESC`;
     } else {
       sql = `SELECT b.*, ${authorFields}
              FROM blogs b
              LEFT JOIN users u ON b.author_id = u.id
              LEFT JOIN contributors c ON u.contributor_id = c.id
-             WHERE b.submission_status IN ('submitted','edited')
+             WHERE b.submission_status IN ('submitted','edited')${selfExclude}
              ORDER BY b.created_at DESC`;
     }
 

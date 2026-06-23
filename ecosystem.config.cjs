@@ -28,9 +28,15 @@ module.exports = {
       instances: 1,
       exec_mode: 'fork',
 
+      // Cap V8 old-generation heap at 512 MB. Without this flag Node.js 18
+      // defaults to ~1.5× physical RAM and would exhaust the 1 GB instance.
+      // --optimize-for-size trades a small throughput cost for lower heap overhead.
+      node_args: '--max-old-space-size=512 --optimize-for-size',
+
       watch: false,
-      // 1 GB RAM on Lightsail — keep restart threshold well below total RAM.
-      max_memory_restart: '700M',
+      // Restart if RSS climbs above 600 MB — acts as a safety net for native/
+      // buffer memory that lives outside the V8 heap.
+      max_memory_restart: '600M',
       restart_delay: 3000,
       exp_backoff_restart_delay: 100,
 

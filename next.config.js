@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Reduce the number of SSR pages Next.js keeps hot in memory.
+  // Default is 50; 25 is plenty for this app and halves the page-cache footprint.
+  onDemandEntries: {
+    maxInactiveAge: 15 * 1000,
+    pagesBufferLength: 2,
+  },
+
   images: {
     // Unoptimized so all <Image> components work as plain <img> tags without
     // the optimization pipeline. The SSR blog route uses explicit dimensions

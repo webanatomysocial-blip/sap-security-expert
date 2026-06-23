@@ -55,5 +55,6 @@ server/logs/*.log
 # Vercel
 .vercel/
 
-# SQL Dumps
+# SQL Dumps (raw exports — never commit production dumps)
 *.sql
+!server/migrations/*.sql

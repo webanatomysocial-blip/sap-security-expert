@@ -232,7 +232,7 @@ export default async function BlogPostPage({ params }) {
         AppWrapper removes this div the moment the React SPA mounts,
         so real users only ever see the interactive SPA version.
       */}
-      <div id="ssr-blog-content" aria-hidden="true" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+      <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
       <div className="blog-post-wrapper">
         <div className="container blog-container">
           <main className="blog-main-column">

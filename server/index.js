@@ -27,9 +27,8 @@ if (isSQLite) {
     password: process.env.DB_PASS || '',
     database: process.env.DB_NAME || '',
     createDatabaseTable: true,
-    // Keep session store to 3 connections so total (3 + DB_POOL_SIZE 5 = 8)
-    // stays within Hostinger shared MySQL per-user connection limits.
-    connectionLimit: parseInt(process.env.SESSION_POOL_SIZE || '3'),
+    // 2 connections for sessions + 3 for main pool = 5 total.
+    connectionLimit: parseInt(process.env.SESSION_POOL_SIZE || '2'),
     schema: { tableName: 'sessions', columnNames: { session_id: 'session_id', expires: 'expires', data: 'data' } },
   });
   sessionStore.on('error', function(error) {
@@ -71,8 +70,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
 }));
 
-app.use(express.json({ limit: '20mb' }));
-app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 app.use(session({
   key: 'connect.sid',
