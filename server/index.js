@@ -85,7 +85,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: isProd,            // true in prod — requires HTTPS (Hostinger provides this)
+    secure: false,             // site runs on HTTP (no SSL yet) — secure cookies aren't sent over HTTP
     sameSite: 'lax',           // 'lax' (not 'strict') — 'strict' silently drops the
                                // session cookie on Razorpay payment-return redirects
                                // because the navigation originates from razorpay.com.
