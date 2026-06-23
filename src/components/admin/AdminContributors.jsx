@@ -104,36 +104,18 @@ const AdminContributors = () => {
   const handleDelete = (id) => {
     openConfirm({
       title: "Delete Contributor?",
-      message: "This will remove the contributor profile. An OTP will be sent to their email to confirm. Their published blogs stay live and they'll keep their member account.",
-      confirmText: "Send OTP & Delete",
+      message: "This will remove the contributor profile. Their published blogs stay live and they'll keep their member account.",
+      confirmText: "Delete",
       isDanger: true,
       onConfirm: async () => {
         try {
           const res = await deleteContributor(id);
-          if (res.data?.status === "otp_sent") {
-            openConfirm({
-              title: "Enter Deletion OTP",
-              message: res.data.message,
-              showInput: true,
-              inputPlaceholder: "Enter 6-digit OTP",
-              isDanger: true,
-              onConfirm: async (otp) => {
-                try {
-                  const res2 = await deleteContributor(id, otp);
-                  if (res2.data?.status === "success") {
-                    setApplications((prev) => prev.filter((app) => app.id !== id));
-                    if (selectedApp?.id === id) setSelectedApp(null);
-                    addToast("Contributor deleted. Account preserved as member.", "success");
-                  } else {
-                    addToast(res2.data?.message || "OTP verification failed.", "error");
-                  }
-                } catch (err) {
-                  addToast(err.response?.data?.message || "Verification failed.", "error");
-                }
-              },
-            });
+          if (res.data?.status === "success") {
+            setApplications((prev) => prev.filter((app) => app.id !== id));
+            if (selectedApp?.id === id) setSelectedApp(null);
+            addToast("Contributor deleted. Account preserved as member.", "success");
           } else {
-            addToast(res.data?.message || "Failed to initiate deletion.", "error");
+            addToast(res.data?.message || "Failed to delete contributor.", "error");
           }
         } catch (error) {
           addToast(error.response?.data?.message || "Connection error. Please try again.", "error");
