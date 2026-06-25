@@ -30,7 +30,7 @@ class MailService {
 
   /** Send using an HTML template file with {{placeholder}} substitution */
   async send(to, subject, templatePath, data = {}) {
-    const siteUrl = (process.env.SITE_URL || 'https://sap.webanatomy.in').replace(/\/$/, '');
+    const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
     data.site_url = data.site_url || siteUrl;
     data.site_domain = data.site_domain || new URL(siteUrl).hostname;
 
@@ -104,7 +104,7 @@ class MailService {
          WHERE status = 'approved' AND is_deleted = 0 AND receive_blog_emails = 1`
       );
 
-      const siteUrl = (process.env.SITE_URL || 'https://sap.webanatomy.in').replace(/\/$/, '');
+      const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
       const templatePath = path.join(TEMPLATES_DIR, 'member/new_article.html');
 
       for (const blog of blogs) {

@@ -174,10 +174,13 @@ CREATE TABLE IF NOT EXISTS `blogs` (
   `article_section` varchar(255) DEFAULT NULL,
   `send_notification_email` tinyint(1) DEFAULT 0,
   `credits_required` int(11) NOT NULL DEFAULT 0,
+  `homepage_featured_image` longtext DEFAULT NULL,
+  `homepage_featured_order` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `slug` (`slug`),
   KEY `idx_blogs_status` (`status`(20)),
-  KEY `idx_blogs_date` (`date`)
+  KEY `idx_blogs_date` (`date`),
+  KEY `idx_blogs_homepage_featured` (`homepage_featured_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

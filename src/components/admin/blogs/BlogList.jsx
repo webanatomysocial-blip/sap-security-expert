@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import ActionMenu from "../ActionMenu";
 import {
   recalculatePlagiarism,
@@ -22,7 +22,17 @@ const BlogList = ({
   const [togglingMap, setTogglingMap] = useState({});
   const [premiumModal, setPremiumModal] = useState(null); // { blog } when asking for credits
   const [premiumCredits, setPremiumCredits] = useState("1");
+  const [copiedSlug, setCopiedSlug] = useState(null);
   const { addToast } = useToast();
+
+  const copySlug = useCallback((blog) => {
+    const category = (blog.category || "blogs").toLowerCase().replace(/\s+/g, "-");
+    const url = `${window.location.origin}/${category}/${blog.slug}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedSlug(blog.slug);
+      setTimeout(() => setCopiedSlug(null), 1800);
+    });
+  }, []);
 
   const handleRecalculate = async (blogId) => {
     setRecalculating((prev) => ({ ...prev, [blogId]: true }));
@@ -149,7 +159,10 @@ const BlogList = ({
           <thead>
             <tr>
               <th className="col-xxl text-left">Title</th>
-              <th className="col-sm text-left">Slug</th>
+              <th className="col-sm text-left">
+                Slug
+                <div style={{ fontSize: "0.62rem", fontWeight: 400, color: "#94a3b8", marginTop: 2 }}>click to copy</div>
+              </th>
               <th className="col-sm text-center">Status</th>
               <th className="col-md text-left">Updated</th>
               {isAdmin && <th className="col-xs text-center">Exc</th>}
@@ -216,9 +229,39 @@ const BlogList = ({
                     )}
                   </td>
                   <td className="col-sm text-left no-wrap">
-                    <code className="truncate-1" style={{ fontSize: "0.75rem", color: "#64748b", maxWidth: "80px" }}>
-                      {blog.slug || "—"}
-                    </code>
+                    {blog.slug ? (
+                      <button
+                        title={blog.slug}
+                        onClick={() => copySlug(blog)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          padding: 0,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          maxWidth: 90,
+                        }}
+                      >
+                        <code style={{
+                          fontSize: "0.75rem",
+                          color: copiedSlug === blog.slug ? "#16a34a" : "#64748b",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: 72,
+                          display: "block",
+                        }}>
+                          {blog.slug.split("-")[0]}…
+                        </code>
+                        <i className={`bi ${copiedSlug === blog.slug ? "bi-check2" : "bi-copy"}`}
+                          style={{ fontSize: "0.7rem", color: copiedSlug === blog.slug ? "#16a34a" : "#94a3b8", flexShrink: 0 }}
+                        />
+                      </button>
+                    ) : (
+                      <span style={{ color: "#cbd5e1", fontSize: "0.75rem" }}>—</span>
+                    )}
                   </td>
                   <td className="col-sm text-center">
                     {blog.status === "approved" ||

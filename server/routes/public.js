@@ -41,7 +41,9 @@ router.get(['/get_homepage_data.php', '/homepage'], async (req, res) => {
   try {
     const nowUtc = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-    const [heroArticles] = await db.execute(
+    // Featured Insights: admin-curated blogs (homepage_featured_order set on the
+    // dedicated admin page). Falls back to the latest 3 when none are curated.
+    let [heroArticles] = await db.execute(
       `SELECT b.*, b.view_count, b.category,
         (SELECT COUNT(*) FROM comments c2 WHERE c2.post_id = b.slug AND c2.status = 'approved') AS comment_count,
         ${AUTHOR_FIELDS}
@@ -50,9 +52,31 @@ router.get(['/get_homepage_data.php', '/homepage'], async (req, res) => {
        LEFT JOIN contributors c ON u.contributor_id = c.id
        WHERE b.status IN ('approved','published') AND b.date <= ?
          AND (b.type IS NULL OR b.type = 'blog')
-       ORDER BY b.date DESC, b.id DESC LIMIT 3`,
+         AND b.homepage_featured_order > 0
+       ORDER BY b.homepage_featured_order ASC, b.id ASC LIMIT 3`,
       [nowUtc]
     );
+
+    if (!heroArticles.length) {
+      [heroArticles] = await db.execute(
+        `SELECT b.*, b.view_count, b.category,
+          (SELECT COUNT(*) FROM comments c2 WHERE c2.post_id = b.slug AND c2.status = 'approved') AS comment_count,
+          ${AUTHOR_FIELDS}
+         FROM blogs b
+         LEFT JOIN users u ON b.author_id = u.id
+         LEFT JOIN contributors c ON u.contributor_id = c.id
+         WHERE b.status IN ('approved','published') AND b.date <= ?
+           AND (b.type IS NULL OR b.type = 'blog')
+         ORDER BY b.date DESC, b.id DESC LIMIT 3`,
+        [nowUtc]
+      );
+    }
+
+    // Independent homepage image with fallback to the blog's featured image.
+    heroArticles = heroArticles.map(h => ({
+      ...h,
+      hero_image: h.homepage_featured_image || h.image || null,
+    }));
 
     const heroIds = heroArticles.map(h => h.id);
     const excludeSql = heroIds.length ? `AND b.id NOT IN (${heroIds.map(() => '?').join(',')})` : '';
@@ -344,7 +368,7 @@ router.get(['/sitemap.php', '/sitemap.xml'], async (req, res) => {
   const db = req.db;
   try {
     // Always use the canonical production domain — never localhost
-    const siteUrl = (process.env.CANONICAL_URL || 'https://sap.webanatomy.in').replace(/\/$/, '');
+    const siteUrl = (process.env.CANONICAL_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
     const today = new Date().toISOString().slice(0, 10);
 
     const [blogs] = await db.execute(
@@ -441,7 +465,7 @@ const DEFAULT_META = {
 router.get('/seo-meta', async (req, res) => {
   const db = req.db;
   const path = (req.query.path || '/').replace(/\?.*$/, '');
-  const siteUrl = (process.env.CANONICAL_URL || 'https://sap.webanatomy.in').replace(/\/$/, '');
+  const siteUrl = (process.env.CANONICAL_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
 
   res.setHeader('Cache-Control', 'public, max-age=300');
 

@@ -133,8 +133,8 @@ const TermsConditions = () => {
         </p>
         <p>
           Official Website:{" "}
-          <a className="legal-links" href="https://sap.webanatomy.in">
-            sap.webanatomy.in
+          <a className="legal-links" href="http://dev.sapsecurityexpert.com">
+            dev.sapsecurityexpert.com
           </a>
           .
         </p>

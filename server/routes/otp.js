@@ -105,7 +105,7 @@ router.post(['/forgot_password.php', '/forgot-password'], rateLimit('forgot_pass
       [email, token, expiry]
     );
 
-    const siteUrl = (process.env.SITE_URL || 'https://sap.webanatomy.in').replace(/\/$/, '');
+    const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
     const resetUrl = `${siteUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
     const mailService = MailService.getInstance(db);

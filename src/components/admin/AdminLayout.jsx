@@ -161,13 +161,18 @@ const AdminLayout = () => {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === "/admin-dashboard" || path === "/admin")
-      return "Dashboard Overview";
-    if (path.includes("contributors")) return "Contributor Management";
-    if (path.includes("comments")) return "Comment Moderation";
-    if (path.includes("announcements")) return "Announcements";
-    if (path.includes("blogs")) return "Blog Management";
-    if (path.includes("ads")) return "Ads & Promotions";
+    if (path === "/admin" || path === "/admin/") return "Dashboard Overview";
+    if (path.includes("blog-review")) return "Blog Review";
+    if (path.includes("blogs")) return "Manage Blogs";
+    if (path.includes("contributors")) return "Manage Contributors";
+    if (path.includes("comments")) return "Manage Comments";
+    if (path.includes("announcements")) return "Manage Announcements";
+    if (path.includes("ads")) return "Manage Ads & Promos";
+    if (path.includes("users")) return "Manage Members";
+    if (path.includes("news")) return "News & Updates";
+    if (path.includes("learnings")) return "Learning Hub";
+    if (path.includes("bundles")) return "Bundles & Coupons";
+    if (path.includes("featured-insights")) return "Featured Insights";
     return "Admin Dashboard";
   };
 

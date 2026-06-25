@@ -133,7 +133,7 @@ router.put('/:id/review', requireAuth(), checkPermission('can_review_blogs'), as
 
       cache.invalidate('homepage_data_public');
 
-      const siteUrl = (process.env.SITE_URL || 'https://sap.webanatomy.in').replace(/\/$/, '');
+      const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
       const postUrl = `${siteUrl}/${blog.category}/${blog.slug}`;
       if (blog.author_email) notifier.notifyBlogApproved(blog.author_email, blog.title, postUrl).catch(() => {});
 

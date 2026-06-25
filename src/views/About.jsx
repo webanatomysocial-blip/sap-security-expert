@@ -80,7 +80,7 @@ export default function About() {
           name="description"
           content="SAP Security Expert is the leading practitioner community for SAP Security, GRC, BTP, and Identity professionals. Learn about our mission, contributors, and editorial standards."
         />
-        <link rel="canonical" href="https://sap.webanatomy.in/about" />
+        <link rel="canonical" href="http://dev.sapsecurityexpert.com/about" />
       </Helmet>
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}

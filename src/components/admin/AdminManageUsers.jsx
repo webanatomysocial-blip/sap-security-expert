@@ -257,7 +257,6 @@ const AdminManageUsers = () => {
       </Helmet>
 
       <div className="page-header">
-        <h3>Manage Members</h3>
         <div className="status-filter-tabs" style={{ margin: 0 }}>
           {["all", "pending", "approved", "rejected", "deleted"].map((s) => (
             <button key={s} className={filterStatus === s ? "active" : ""} onClick={() => setFilterStatus(s)}>

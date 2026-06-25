@@ -234,12 +234,6 @@ const AdminAnnouncements = () => {
   return (
     <div className="admin-page-wrapper">
       <div className="page-header">
-        <div>
-          <h3 style={{ margin: 0 }}>Announcements</h3>
-          <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
-            Manage site announcements
-          </p>
-        </div>
         <div className="status-filter-tabs" style={{ margin: 0 }}>
           <button
             className={activeTab === "published" ? "active" : ""}
