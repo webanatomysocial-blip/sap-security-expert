@@ -109,44 +109,23 @@ const AdminManageUsers = () => {
         return;
       }
 
-      // Step 1: send OTP to member's email
       openConfirm({
         title: "Delete Member Account",
-        message: "This will permanently delete the member account. An OTP will be sent to the member's email address to confirm. Proceed?",
-        confirmText: "Send OTP & Delete",
+        message: "Are you sure you want to deactivate this member account? This action cannot be undone.",
+        confirmText: "Delete",
         isDanger: true,
         onConfirm: async () => {
           try {
             const res = await manageAdminMember({ id, action: "delete" });
-            if (res.data?.status === "otp_sent") {
-              // Step 2: ask admin to enter the OTP the member received
-              openConfirm({
-                title: "Enter Deletion OTP",
-                message: res.data.message,
-                confirmText: "Confirm Delete",
-                isDanger: true,
-                showInput: true,
-                inputPlaceholder: "Enter 6-digit OTP",
-                onConfirm: async (otp) => {
-                  try {
-                    const res2 = await manageAdminMember({ id, action: "delete_confirm", otp });
-                    if (res2.data?.status === "success") {
-                      addToast("Member account permanently deleted.", "success");
-                      if (selectedMember?.id === id) setSelectedMember(null);
-                      fetchMembers();
-                    } else {
-                      addToast(res2.data?.message || "OTP verification failed.", "error");
-                    }
-                  } catch (err) {
-                    addToast(err.response?.data?.message || "Invalid or expired OTP.", "error");
-                  }
-                },
-              });
+            if (res.data?.status === "success") {
+              addToast("Member account deactivated.", "success");
+              if (selectedMember?.id === id) setSelectedMember(null);
+              fetchMembers();
             } else {
-              addToast(res.data?.message || "Failed to initiate deletion.", "error");
+              addToast(res.data?.message || "Failed to delete account.", "error");
             }
           } catch (err) {
-            addToast("Error initiating deletion.", "error");
+            addToast("Error deleting account.", "error");
           }
         },
       });
