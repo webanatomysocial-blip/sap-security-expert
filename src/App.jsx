@@ -54,6 +54,7 @@ import LearningHub from "./views/LearningHub";
 import LearningModulePage from "./views/LearningModulePage";
 import AdminManageUsers from "./components/admin/AdminManageUsers";
 import AdminCreditBundles from "./components/admin/AdminCreditBundles";
+import AdminFeaturedInsights from "./components/admin/AdminFeaturedInsights";
 import ForgotPassword from "./views/ForgotPassword";
 import ResetPassword from "./views/ResetPassword";
 import MembershipPage from "./views/MembershipPage";
@@ -280,6 +281,14 @@ function App() {
           element={
             <ProtectedRoute adminOnly>
               <AdminCreditBundles />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="featured-insights"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminFeaturedInsights />
             </ProtectedRoute>
           }
         />

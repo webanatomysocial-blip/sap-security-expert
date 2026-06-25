@@ -358,16 +358,39 @@
 /* Featured Insight Card */
 .featured-insight-card {
   position: relative;
-  background: linear-gradient(135deg, #3b5998 0%, #3b5998 100%);
-  padding: 60px 40px 40px 40px !important; /* 80px bottom = room for the 80px-tall wave */
+/* background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(10, 20, 50, 0.9)
+); */
+  background-size: cover;
+  background-position: center;
+  padding: 28px 32px 24px 32px !important;
   color: #ffffff !important;
   margin-bottom: 0;
   overflow: hidden;
   border: none !important;
+  border-radius: 16px;
   flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 460px;
 }
 
-.featured-insight-card > *:not(.fi-wave-divider) {
+/* Dark blue overlay so the title/footer stay readable over any image */
+.featured-insight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(10, 20, 50, 0.9)
+);
+}
+
+.featured-insight-card > * {
   position: relative;
   z-index: 2;
   color: white !important;
@@ -375,36 +398,97 @@
 
 .featured-badge {
   display: inline-block;
-  padding: 6px 14px;
-  background: #ee5e42; /* Changed to orange */
+  align-self: flex-start;
+  padding: 7px 16px;
+  background: #ee5e42;
   color: #ffffff;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 20px;
+  letter-spacing: 1px;
+  border-radius: 999px;
+  margin-bottom: 0;
+}
+
+/* Carousel content fills the space between the badge and the footer */
+.hero-carousel-content {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: end;
+  position: relative;
+  margin: 40px 0;
+}
+
+/* Translucent title panel — the description reveals on hover */
+.fi-title-box {
+  display: block;
+  width: 100%;
+  padding: 26px 28px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-decoration: none;
+  color: #ffffff;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.fi-title-box:visited,
+.fi-title-box h2,
+.fi-title-box .fi-desc {
+  color: #ffffff;
+}
+
+.fi-title-box:hover,
+.fi-title-box:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .featured-insight-card h2 {
-  font-size: 1.8rem;
-  font-weight: 500;
-  /* margin-bottom: 16px; */
-  line-height: 1.3;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
 }
 
-.featured-insight-card p {
-  font-size: 1rem;
+.fi-desc {
+  font-size: 0.98rem;
   line-height: 1.6;
-  margin-bottom: 20px;
-  opacity: 0.95;
+  margin: 0;
+  opacity: 0.9;
+  max-height: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.4s ease,
+    opacity 0.35s ease,
+    margin-top 0.35s ease;
+}
+
+.fi-title-box:hover .fi-desc,
+.fi-title-box:focus-visible .fi-desc {
+  max-height: 160px;
+  opacity: 0.92;
+  margin-top: 16px;
+}
+
+/* Footer row: meta (left) · dots (centered) · Read Insight (right) */
+.fi-footer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .featured-meta {
   display: flex;
-  gap: 20px;
-  margin-bottom: 24px;
-  font-size: 0.9rem;
-  opacity: 0.9;
+  gap: 22px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  opacity: 0.95;
 }
 
 .featured-meta span {
@@ -413,22 +497,63 @@
   gap: 6px;
 }
 
-.btn-read-insight {
-  display: inline-block;
-  padding: 12px 28px;
-  background: #ee5e42; /* Changed to orange */
-  color: #ffffff;
-  font-size: 0.95rem;
-  font-weight: 500;
-  text-decoration: none;
+.featured-meta svg {
+  color: #ee5e42;
+}
+
+.hero-carousel-dots {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+.hero-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
   transition: all 0.3s ease;
-  border-radius: 4px; /* Matches slightly rounded corners in image */
+}
+
+.hero-dot.active {
+  width: 24px;
+  border-radius: 5px;
+  background: #ee5e42;
+}
+
+.btn-read-insight {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.btn-read-insight svg {
+  transition: transform 0.3s ease;
 }
 
 .btn-read-insight:hover {
-  background: #d1442f; /* Darker orange for hover */
+  color: #ee5e42;
+}
+
+.btn-read-insight:hover svg {
   transform: translateX(4px);
-  color: white;
 }
 
 /* Recent Activity */
@@ -756,7 +881,8 @@
   }
 
   .featured-insight-card {
-    padding: 30px 20px 80px 20px !important; /* match 80px wave height on mobile */
+    padding: 24px 20px 22px 20px !important;
+    min-height: 340px;
   }
 
   .featured-insight-card h2 {
@@ -795,9 +921,17 @@
   .featured-insight-card h2 {
     font-size: 1.3rem;
   }
-  .btn-read-insight {
+  .fi-footer {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+  }
+  .hero-carousel-dots {
+    position: static;
+    transform: none;
+    order: -1;
     width: 100%;
-    text-align: center;
+    justify-content: center;
   }
 }
 

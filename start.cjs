@@ -41,7 +41,7 @@ const PORT     = isPipe ? PORT_ENV : parseInt(PORT_ENV, 10);
 //    same process, so we loop back on 127.0.0.1:PORT.
 //    Unix socket fallback: use the public SITE_URL for SSR API calls.
 process.env.INTERNAL_API_URL = isPipe
-  ? (process.env.SITE_URL || 'https://sap.webanatomy.in').replace(/\/$/, '')
+  ? (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '')
   : `http://127.0.0.1:${PORT}`;
 
 // 4. Ensure NODE_ENV is production (PM2 sets this via env_production).

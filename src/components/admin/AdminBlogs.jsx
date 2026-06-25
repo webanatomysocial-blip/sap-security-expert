@@ -363,7 +363,6 @@ const AdminBlogs = () => {
   return (
     <div className="admin-page-wrapper">
       <div className="page-header">
-        <h3>Blog Management</h3>
         {view === "list" && (
           <div className="status-filter-tabs" style={{ margin: 0 }}>
             <button

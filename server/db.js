@@ -122,6 +122,8 @@ if (isSQLite) {
     { name: 'article_section',            def: "TEXT DEFAULT NULL" },
     { name: 'send_notification_email',    def: "TINYINT DEFAULT 0" },
     { name: 'credits_required',            def: "INTEGER NOT NULL DEFAULT 0" },
+    { name: 'homepage_featured_image',     def: "TEXT DEFAULT NULL"  },
+    { name: 'homepage_featured_order',     def: "INTEGER DEFAULT NULL" },
   ];
   const existing = sqliteDb.prepare("PRAGMA table_info(blogs)").all().map(r => r.name);
   for (const col of blogsColumns) {

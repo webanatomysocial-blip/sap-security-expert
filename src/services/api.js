@@ -71,6 +71,10 @@ export const uploadBlogImage = (formData) => api.post('/upload-blog-image', form
     timeout: 60000,
 });
 
+// ── Homepage Featured Insights (Admin) ───────────────────────────────────────
+export const getFeaturedInsights = () => api.get('/admin/featured-insights');
+export const saveFeaturedInsights = (items) => api.post('/admin/featured-insights', { items });
+
 // ── Contributors Management (Admin) ───────────────────────────────────────────
 export const getContributors = () => api.get('/admin/contributors');
 export const updateContributorStatus = (data) => api.post('/admin/contributors', data);

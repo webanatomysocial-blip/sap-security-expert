@@ -173,7 +173,6 @@ const AdminContributors = () => {
         <title>Contributor Management - Admin</title>
       </Helmet>
       <div className="page-header">
-        <h3>Contributor Management</h3>
         <div className="status-filter-tabs" style={{ margin: 0 }}>
           <button
             className={filterStatus === "approved" ? "active" : ""}

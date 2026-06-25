@@ -151,6 +151,26 @@ export default function CommunitySection() {
     }
   };
 
+  // Estimated read time (~200 wpm) from content/excerpt
+  const readTime = (a) => {
+    const text = (a?.content || a?.excerpt || "").replace(/<[^>]+>/g, " ");
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.round(words / 200));
+  };
+
+  const catLabel = (c) => (c ? c.replace(/-/g, " ").toUpperCase() : "");
+
+  const blogPath = (a) =>
+    a?.category
+      ? `/${a.category.toLowerCase().replace(/\s+/g, "-")}/${a.slug || a.id}`
+      : `/blogs/${a?.slug || a?.id}`;
+
+  const activeArticle = heroArticles[currentHeroIndex] || heroArticles[0] || {};
+  const activeBg =
+    activeArticle.hero_image ||
+    activeArticle.homepage_featured_image ||
+    activeArticle.image;
+
   return (
     <section className="community-section">
       <div className="container">
@@ -312,89 +332,77 @@ export default function CommunitySection() {
             {/* Featured Insight */}
             {/* Featured Insight Carousel */}
             {heroArticles && heroArticles.length > 0 && (
-              <div className="featured-insight-card">
+              <div
+                className="featured-insight-card"
+                style={
+                  activeBg
+                    ? {
+                        backgroundImage: `url(${getImageUrl(activeBg)})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }
+                    : undefined
+                }
+              >
                 <span className="featured-badge">Featured Insight</span>
-                
-                <div className="hero-carousel-content" style={{ minHeight: "180px", position: "relative" }}>
+
+                <div className="hero-carousel-content">
                   {heroArticles.map((article, index) => {
                     const isVisible = index === currentHeroIndex;
                     return (
-                      <div
+                      <Link
                         key={article.id}
-                        className={`hero-carousel-slide ${isVisible ? "active" : ""}`}
+                        to={blogPath(article)}
+                        className={`hero-carousel-slide fi-title-box ${isVisible ? "active" : ""}`}
                         style={{
                           display: isVisible ? "block" : "none",
                           animation: isVisible ? "fadeIn 0.5s ease-in-out" : "none",
                         }}
                       >
-                        <h2 style={{ minHeight: "68px" }}>{article.title}</h2>
-                        <p style={{ minHeight: "72px" }}>{article.excerpt}</p>
-                        <div className="featured-meta">
-                          <span>
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            6 min read
-                          </span>
-                          <span>
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                            {article.view_count || article.views || 0}
-                          </span>
-                          <span>
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                            </svg>
-                            {article.comment_count || 0}
-                          </span>
-                        </div>
-                        <Link
-                          to={
-                            article.category
-                              ? `/${article.category.toLowerCase().replace(/\s+/g, "-")}/${article.slug || article.id}`
-                              : `/blogs/${article.slug || article.id}`
-                          }
-                          className="btn-read-insight"
-                          style={{ marginTop: "20px", display: "inline-block" }}
-                        >
-                          Read Full Insight →
-                        </Link>
-                      </div>
+                        <h2>{article.title}</h2>
+                        {article.excerpt && <p className="fi-desc">{article.excerpt}</p>}
+                      </Link>
                     );
                   })}
                 </div>
 
-                {/* Carousel dots indicator */}
-                {heroArticles.length > 1 && (
-                  <div className="hero-carousel-dots" style={{ display: "flex", gap: "8px", marginTop: "15px", zIndex: 10, position: "relative" }}>
-                    {heroArticles.map((_, index) => (
-                      <button
-                        key={index}
-                        className={`hero-dot ${index === currentHeroIndex ? "active" : ""}`}
-                        onClick={() => setCurrentHeroIndex(index)}
-                        style={{
-                          width: "8px",
-                          height: "8px",
-                          borderRadius: "50%",
-                          border: "none",
-                          backgroundColor: index === currentHeroIndex ? "#fff" : "rgba(255,255,255,0.4)",
-                          cursor: "pointer",
-                          padding: 0,
-                          transition: "all 0.3s ease",
-                        }}
-                      />
-                    ))}
+                <div className="fi-footer">
+                  <div className="featured-meta">
+                    <span>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                      {readTime(activeArticle)} MIN READ
+                    </span>
+                    {activeArticle.category && (
+                      <span>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        {catLabel(activeArticle.category)}
+                      </span>
+                    )}
                   </div>
-                )}
 
-                {/* Layered wave divider — keeping exactly the same */}
-                <div className="fi-wave-divider">
-                  <svg data-name="Layered Waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 200" preserveAspectRatio="none">
-                    <path d="M0,130 C400,160 800,90 1200,70 L1200,200 L0,200 Z" fill="rgba(255, 255, 255, 0.15)"></path>
-                    <path d="M0,160 C500,180 900,110 1200,90 L1200,200 L0,200 Z" fill="rgba(255, 255, 255, 0.25)"></path>
-                    <path d="M0,200 C300,200 800,140 1200,110 L1200,200 L0,200 Z" fill="#f8f9fa"></path>
-                  </svg>
+                  {heroArticles.length > 1 && (
+                    <div className="hero-carousel-dots">
+                      {heroArticles.map((_, index) => (
+                        <button
+                          key={index}
+                          aria-label={`Go to slide ${index + 1}`}
+                          className={`hero-dot ${index === currentHeroIndex ? "active" : ""}`}
+                          onClick={() => setCurrentHeroIndex(index)}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  <Link to={blogPath(activeArticle)} className="btn-read-insight">
+                    Read Insight
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                  </Link>
                 </div>
               </div>
             )}
