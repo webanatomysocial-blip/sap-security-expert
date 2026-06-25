@@ -166,14 +166,6 @@ const AdminBlogReview = () => {
   return (
     <div className="admin-page-wrapper">
       <div className="page-header">
-        <div>
-          <h3 style={{ margin: 0 }}>Blog Review</h3>
-          <p
-            style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "#64748b" }}
-          >
-            Contributor submissions awaiting admin review
-          </p>
-        </div>
         <div className="status-filter-tabs" style={{ margin: 0 }}>
           <button
             className={activeTab === "pending" ? "active" : ""}

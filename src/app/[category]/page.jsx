@@ -2,7 +2,7 @@ import Link from 'next/link';
 import ClientApp from '../[[...slug]]/ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sap.webanatomy.in').replace(/\/$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
 
 const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next']);
 

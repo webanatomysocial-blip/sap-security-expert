@@ -167,7 +167,6 @@ const AdminComments = () => {
   return (
     <div className="admin-page-wrapper">
       <div className="page-header">
-        <h3>Comments</h3>
         <div className="status-filter-tabs" style={{ margin: 0 }}>
           <button
             className={`btn-filter ${filter === "pending" ? "active" : ""}`}

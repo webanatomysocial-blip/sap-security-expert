@@ -2,7 +2,7 @@
 # =============================================================================
 # SAP Security Expert — AWS Lightsail one-time server setup
 # Target: Debian 12, Node 18.20.4, PM2, MariaDB 10.11, Nginx
-# Domain: https://sap.webanatomy.in
+# Domain: http://dev.sapsecurityexpert.com
 #
 # Usage (as root or sudo-capable user):
 #   chmod +x deploy/setup.sh
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 APP_DIR="/var/www/sap-security-expert"
-DOMAIN="sap.webanatomy.in"
+DOMAIN="dev.sapsecurityexpert.com"
 NODE_USER="${SUDO_USER:-$(whoami)}"
 
 echo "================================================================"

@@ -43,6 +43,11 @@ const AdminSidebar = ({
       icon: "bi-layout-text-window-reverse",
     },
     {
+      label: "Featured Insights",
+      path: "/admin/featured-insights",
+      icon: "bi-star-fill",
+    },
+    {
       label: "Blog Review",
       path: "/admin/blog-review",
       icon: "bi-hourglass-split",

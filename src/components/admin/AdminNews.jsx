@@ -202,8 +202,6 @@ const AdminNews = () => {
   return (
     <div className="admin-page-wrapper">
       <div className="page-header">
-        <h3>News &amp; Updates</h3>
-
         {view === "list" && (
           <div className="status-filter-tabs" style={{ margin: 0 }}>
             <button className={activeTab === "live" ? "active" : ""} onClick={() => setActiveTab("live")}>

@@ -358,7 +358,7 @@ function ShareModal({ open, onClose, result }) {
 
   function shareTo(platform) {
     const text = `I scored ${result.pct}% (${result.band}) on the ${result.topic} capability test at SAP Security Expert.`;
-    const url = 'https://sap.webanatomy.in';
+    const url = 'http://dev.sapsecurityexpert.com';
     if (platform === 'linkedin') {
       window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url), '_blank');
     } else if (platform === 'twitter') {
@@ -388,7 +388,7 @@ function ShareModal({ open, onClose, result }) {
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{result.topic}</div>
             <div style={{ fontSize: 12, opacity: .7 }}>{result.correct} of {result.total} correct · capability test</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, fontSize: 12, opacity: .6 }}>
-              <span>sap.webanatomy.in</span>
+              <span>dev.sapsecurityexpert.com</span>
               <strong>#SAPSecurity</strong>
             </div>
           </div>
