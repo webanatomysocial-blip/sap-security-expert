@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 const { requireAdmin } = require('../../middleware/auth');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
-const OTPService = require('../../services/OTPService');
 
 // GET /api/admin/members?status=all|pending|approved|rejected
 router.get('/', requireAdmin, async (req, res) => {
@@ -26,7 +25,7 @@ router.get('/', requireAdmin, async (req, res) => {
 // POST /api/admin/members — approve/reject/delete/suspend
 router.post('/', requireAdmin, async (req, res) => {
   const db = req.db;
-  const { id, action, reason, rejection_reason, otp } = req.body || {};
+  const { id, action, reason, rejection_reason } = req.body || {};
   const rejectReason = rejection_reason || reason || 'Application not approved.';
   if (!id || !action) return res.status(400).json({ status: 'error', message: 'id and action are required' });
 
@@ -66,18 +65,7 @@ router.post('/', requireAdmin, async (req, res) => {
         return res.json({ status: 'success', message: 'Deleted user record permanently removed.' });
       }
 
-      // Active member — Step 1: send OTP to their email for confirmation
-      const otpService = new OTPService(db);
-      const code = await otpService.generateOTP(member.email, 'account_deletion', req.ip);
-      notifier.notifyAccountDeletionOTP(member.email, member.name, code).catch(() => {});
-      return res.json({ status: 'otp_sent', message: `A deletion verification code has been sent to ${member.email}. Enter it below to confirm.` });
-
-    } else if (action === 'delete_confirm') {
-      // Step 2: verify OTP then soft-delete (deactivate)
-      if (!otp) return res.status(400).json({ status: 'error', message: 'OTP is required to confirm deletion.' });
-      const otpService = new OTPService(db);
-      await otpService.verifyOTP(member.email, otp, 'account_deletion');
-
+      // Active member — deactivate directly (no OTP required)
       await db.execute("UPDATE members SET is_deleted=1, deleted_at=CURRENT_TIMESTAMP, status='deactivated' WHERE id=?", [id]);
       await db.execute("UPDATE users SET is_active=0, is_deleted=1, deleted_at=CURRENT_TIMESTAMP WHERE LOWER(email)=LOWER(?)", [member.email]).catch(() => {});
       await db.execute("UPDATE contributors SET is_deleted=1, deleted_at=CURRENT_TIMESTAMP, status='deactivated' WHERE LOWER(email)=LOWER(?)", [member.email]).catch(() => {});
