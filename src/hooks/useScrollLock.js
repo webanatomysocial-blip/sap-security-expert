@@ -3,8 +3,17 @@ import { useEffect, useRef } from 'react';
 // Global counter to handle nested/stacked modals
 let lockCount = 0;
 
+// Lenis v1 respects `data-lenis-prevent` on scrollable elements — it won't
+// call preventDefault() on wheel/touch events that originate inside them.
+// We stamp it on every .modal-body so modal content scrolls natively.
+function setLenisPrevent(enable) {
+  document.querySelectorAll('.modal-body').forEach(el => {
+    if (enable) el.setAttribute('data-lenis-prevent', '');
+    else el.removeAttribute('data-lenis-prevent');
+  });
+}
+
 const useScrollLock = (isOpen) => {
-  // Use a ref to track if this specific hook instance has incremented the counter
   const isLocked = useRef(false);
 
   useEffect(() => {
@@ -15,12 +24,13 @@ const useScrollLock = (isOpen) => {
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         document.body.classList.add('modal-open');
-        
-        // Stop Lenis safely
+
         if (window.lenis && typeof window.lenis.stop === 'function') {
-            window.lenis.stop();
+          window.lenis.stop();
         }
       }
+      // Synchronous so the attribute is present before the first wheel event
+      setLenisPrevent(true);
     }
 
     return () => {
@@ -31,11 +41,11 @@ const useScrollLock = (isOpen) => {
           document.body.style.overflow = '';
           document.documentElement.style.overflow = '';
           document.body.classList.remove('modal-open');
-          
-          // Start Lenis safely
+
           if (window.lenis && typeof window.lenis.start === 'function') {
-              window.lenis.start();
+            window.lenis.start();
           }
+          setLenisPrevent(false);
         }
       }
     };

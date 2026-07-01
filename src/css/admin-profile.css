@@ -89,7 +89,7 @@
   box-shadow:
     0 10px 25px rgba(0, 0, 0, 0.12),
     0 4px 10px rgba(0, 0, 0, 0.06);
-  z-index: 1000;
+  z-index: 1100;
   padding: 6px 0;
   animation: profileDropdown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -159,7 +159,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 9999;
   padding: 20px;
 }
 

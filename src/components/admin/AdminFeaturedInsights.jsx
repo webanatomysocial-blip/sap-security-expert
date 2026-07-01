@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { BlockSkeleton } from "./AdminSkeletons.jsx";
 import {
   getFeaturedInsights,
   saveFeaturedInsights,
@@ -114,8 +115,10 @@ const AdminFeaturedInsights = () => {
 
   if (loading) {
     return (
-      <div className="admin-page">
-        <p style={{ padding: "20px" }}>Loading…</p>
+      <div className="admin-page-wrapper">
+        <div className="admin-card" style={{ padding: 24 }}>
+          <BlockSkeleton rows={4} />
+        </div>
       </div>
     );
   }

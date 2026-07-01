@@ -1,15 +1,66 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Helmet } from "react-helmet-async";
-import "../css/ContactForm.css"; // Reuse existing clean form styles
+import "../css/ContactForm.css";
+
+// Modal shown to contributors asking which area to enter
+const ContributorChoiceModal = ({ username, onDashboard, onMember }) => createPortal(
+  <div style={{
+    position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
+    backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
+    justifyContent: "center", zIndex: 9999, padding: 20,
+  }}>
+    <div style={{
+      background: "#fff", borderRadius: 20, padding: "40px 36px",
+      maxWidth: 440, width: "100%", textAlign: "center",
+      boxShadow: "0 24px 60px rgba(0,0,0,0.18)",
+      animation: "slideUp 0.3s cubic-bezier(0.16,1,0.3,1)",
+    }}>
+      <div style={{ fontSize: "2.2rem", marginBottom: 12 }}>👋</div>
+      <h3 style={{ margin: "0 0 8px", fontSize: "1.2rem", color: "#1e293b" }}>
+        Welcome back, {username}!
+      </h3>
+      <p style={{ margin: "0 0 28px", color: "#64748b", fontSize: "0.9rem", lineHeight: 1.6 }}>
+        You have a contributor account. Where would you like to go?
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <button
+          onClick={onDashboard}
+          style={{
+            padding: "14px 20px", background: "#1e293b", color: "#fff",
+            border: "none", borderRadius: 10, fontSize: "0.95rem",
+            fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
+        >
+          ✍️ Go to Contributor Dashboard
+        </button>
+        <button
+          onClick={onMember}
+          style={{
+            padding: "14px 20px", background: "#f8fafc", color: "#334155",
+            border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: "0.95rem",
+            fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}
+        >
+          🌐 Continue as Member
+        </button>
+      </div>
+    </div>
+  </div>,
+  document.body
+);
 
 const MemberLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [contributorChoice, setContributorChoice] = useState(null); // holds login response when contributor
   const { login: memberLogin } = useMemberAuth();
   const { setAuth: adminSetAuth } = useAuth();
   const { addToast } = useToast();
@@ -24,24 +75,15 @@ const MemberLogin = () => {
       const res = await apiMemberLogin({ email, password });
 
       if (res.data.status === "success" && res.data.member) {
-        // 1. Log in as a member (frontend)
         memberLogin(res.data.member, res.data.token, res.data.is_contributor, res.data.subscription || null);
 
-        // 2. If it's a contributor, also log in to the admin/dashboard side
         if (res.data.is_contributor) {
-            adminSetAuth({
-                user: res.data.admin_user,
-                role: res.data.admin_user.role,
-                permissions: res.data.permissions,
-                csrf_token: res.data.csrf_token
-            });
-            addToast("Welcome back! Redirecting to Dashboard...", "success");
-            navigate("/admin", { replace: true });
-            return;
+          // Store response and show choice modal instead of auto-redirecting
+          setContributorChoice(res.data);
+          return;
         }
 
         addToast("Welcome back!", "success");
-        // Return to the page they came from, unless it was an auth flow
         const returnTo = location.state?.fromAuth ? "/" : (location.state?.from || "/");
         navigate(returnTo, { replace: true });
       } else {
@@ -49,9 +91,7 @@ const MemberLogin = () => {
       }
     } catch (err) {
       addToast(
-        err.response?.data?.message ||
-          err.message ||
-          "An error occurred during login.",
+        err.response?.data?.message || err.message || "An error occurred during login.",
         "error",
       );
     } finally {
@@ -59,10 +99,35 @@ const MemberLogin = () => {
     }
   };
 
+  const goToDashboard = () => {
+    adminSetAuth({
+      user: contributorChoice.admin_user,
+      role: contributorChoice.admin_user.role,
+      permissions: contributorChoice.permissions,
+      csrf_token: contributorChoice.csrf_token,
+    });
+    addToast("Welcome back! Redirecting to Dashboard...", "success");
+    navigate("/admin", { replace: true });
+  };
+
+  const goToMember = () => {
+    addToast("Welcome back!", "success");
+    const returnTo = location.state?.fromAuth ? "/" : (location.state?.from || "/");
+    navigate(returnTo, { replace: true });
+  };
+
   return (
+    <>
+    {contributorChoice && (
+      <ContributorChoiceModal
+        username={contributorChoice.member?.full_name || contributorChoice.member?.username}
+        onDashboard={goToDashboard}
+        onMember={goToMember}
+      />
+    )}
     <div
       className="contact-form-container"
-      style={{ paddingTop: "80px", minHeight: "80vh" }}
+      style={{ minHeight: "80vh" }}
     >
       <Helmet>
         <title>Member Login | SAP Security Expert</title>
@@ -148,6 +213,7 @@ const MemberLogin = () => {
         </div>
       </form>
     </div>
+    </>
   );
 };
 

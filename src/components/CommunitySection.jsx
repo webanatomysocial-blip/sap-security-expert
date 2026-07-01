@@ -10,6 +10,7 @@ import {
   getPublicAnnouncements,
   getPublicAds,
   getCommunityStats,
+  getPopularTags,
 } from "../services/api";
 
 export default function CommunitySection() {
@@ -33,8 +34,11 @@ export default function CommunitySection() {
     });
   };
 
+  const [popularTags, setPopularTags] = useState([]);
   const [contributorCount, setContributorCount] = useState(0);
   const [memberCount, setMemberCount] = useState(0);
+  const [articleCount, setArticleCount] = useState(0);
+  const [commentCount, setCommentCount] = useState(0);
   const [contributors, setContributors] = useState([]);
 
   // State for announcements
@@ -49,6 +53,9 @@ export default function CommunitySection() {
   // Dynamic Data State
   const [heroArticles, setHeroArticles] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [expertPicks, setExpertPicks] = useState([]);
+  const [premiumArticles, setPremiumArticles] = useState([]);
+  const [activeTab, setActiveTab] = useState("recent");
   const [trending, setTrending] = useState([]);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
  
@@ -75,6 +82,8 @@ export default function CommunitySection() {
                 ) <= new Date(),
             ),
           );
+          setExpertPicks(data.expertPicks || []);
+          setPremiumArticles(data.premiumArticles || []);
           setTrending(data.trending || []);
           setContributors(data.contributors || []);
           setContributorCount(data.contributors ? data.contributors.length : 0);
@@ -120,14 +129,16 @@ export default function CommunitySection() {
     getCommunityStats()
       .then((res) => {
         const data = res.data;
-        if (data && data.active_contributors) {
-          setContributorCount(parseInt(data.active_contributors));
-        }
-        if (data && data.total_members) {
-          setMemberCount(parseInt(data.total_members));
-        }
+        if (data && data.active_contributors) setContributorCount(parseInt(data.active_contributors));
+        if (data && data.total_members) setMemberCount(parseInt(data.total_members));
+        if (data && data.total_articles) setArticleCount(parseInt(data.total_articles));
+        if (data && data.total_comments) setCommentCount(parseInt(data.total_comments));
       })
       .catch((err) => console.warn("Stats failed", err));
+
+    getPopularTags()
+      .then((res) => setPopularTags(res.data?.tags || []))
+      .catch(() => {});
   }, []);
 
   // Format date
@@ -184,147 +195,104 @@ export default function CommunitySection() {
           <div className="community-left">
 
             {/* Recent Topics */}
-            <div className="widget">
+            <div className="widget" style={{ flex: 1 }}>
               <div className="widget-header">
-                <h3>Recent Topics</h3>
+                <h3><i className="bi bi-bookmark-fill" style={{ marginRight: 7, color: "#e84a3d" }}></i>Recent Topics</h3>
+                <a href="#featured-insights" className="widget-view-all" onClick={(e) => scrollToSection(e, "featured-insights")}>View all</a>
               </div>
               <div className="topics-list">
-                {recentActivity.slice(0, 5).map((post) => (
+                {recentActivity.slice(0, 8).map((post) => (
                   <Link
                     key={post.slug || post.id}
-                    to={
-                      post.category
-                        ? `/${post.category.toLowerCase().replace(/\s+/g, "-")}/${post.slug || post.id}`
-                        : `/blogs/${post.slug || post.id}`
-                    }
-                    className="topic-item"
+                    to={post.category ? `/${post.category.toLowerCase().replace(/\s+/g, "-")}/${post.slug || post.id}` : `/blogs/${post.slug || post.id}`}
+                    className="rt-item"
                   >
-                    {/* Author Avatar */}
-                    {post.author_image ? (
-                      <img
-                        src={getImageUrl(post.author_image)}
-                        alt={post.author_name || post.author}
-                        style={{
-                          width: "36px",
-                          height: "36px",
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          flexShrink: 0,
-                          border: "2px solid #e2e8f0",
-                        }}
-                        onError={(e) => {
-                          e.target.src =
-                            "https://placehold.co/100x100?text=Author";
-                        }}
-                      />
-                    ) : (
-                      <span className="topic-label">
-                        {(post.author_name || post.author || "G")
-                          .charAt(0)
-                          .toUpperCase()}
-                      </span>
-                    )}
-                    <div className="topic-info">
-                      <span className="topic-title">
-                        {post.title}
-                      </span>
-                      {post.is_members_only == 1 && (
-                        <div className="exclusive-mini-badge-v2">
-                          <i className="bi bi-lock-fill"></i> Exclusive
-                        </div>
+                    {/* Avatar */}
+                    <div className="rt-avatar">
+                      {post.author_image ? (
+                        <img src={getImageUrl(post.author_image)} alt={post.author_name} onError={(e) => { e.target.src = "https://placehold.co/100x100?text=A"; }} />
+                      ) : (
+                        <span>{(post.author_name || "G").charAt(0).toUpperCase()}</span>
                       )}
-                      <span className="topic-meta">
-                        By {post.author_name || "Guest Author"}
-                      </span>
+                    </div>
+                    {/* Info */}
+                    <div className="rt-info">
+                      <span className="rt-title">{post.title}</span>
+                      {post.is_premium == 1 ? (
+                        <span className="rt-badge rt-badge--paid"><i className="bi bi-star-fill"></i> Paid Article</span>
+                      ) : post.is_members_only == 1 ? (
+                        <span className="rt-badge"><i className="bi bi-lock-fill"></i> Exclusive</span>
+                      ) : null}
+                      <div className="rt-meta">
+                        <span>By {post.author_name || "Guest Author"}</span>
+                        <span>{readTime(post)} min read</span>
+                      </div>
                     </div>
                   </Link>
                 ))}
               </div>
-              <a
-                href="#featured-insights"
-                className="view-all-link"
-                onClick={(e) => scrollToSection(e, "featured-insights")}
-              >
-                Browse All Topics →
-              </a>
             </div>
 
-            {/* Promotion */}
+            {/* Ad */}
             <div className="widget promo-widget">
               {adsConfig.community_left.active ? (
                 <div className="promo-box">
-                  <a
-                    href={adsConfig.community_left.link || "#"}
-                    target={adsConfig.community_left.link ? "_blank" : "_self"}
-                    rel="noreferrer"
-                    onClick={() => handleAdClick("community_left")}
-                  >
-                    <img src={getImageUrl(adsConfig.community_left.image)} alt="Ad 1" />
+                  <a href={adsConfig.community_left.link || "#"} target={adsConfig.community_left.link ? "_blank" : "_self"} rel="noreferrer" onClick={() => handleAdClick("community_left")}>
+                    <img src={getImageUrl(adsConfig.community_left.image)} alt="Ad" />
                   </a>
                 </div>
               ) : (
-                <img src={ads1} alt="Promotion 1" />
+                <img src={ads1} alt="Promotion" />
               )}
             </div>
 
-            {/* Our Contributors (Left Side) */}
+            {/* Top Contributors */}
             {contributors.length > 0 && (
               <div className="widget">
                 <div className="widget-header">
-                  <h3>Our Contributors</h3>
+                  <h3><i className="bi bi-person-badge-fill" style={{ marginRight: 7, color: "#e84a3d" }}></i>Top Contributors</h3>
+                  <Link to="/become-a-contributor" className="widget-view-all">View all</Link>
                 </div>
-                <div className="contributors-list-left" data-lenis-prevent>
-                  {contributors.map((contributor, index) => (
-                    <Link
-                      key={index}
-                      to={`/contributor/${contributor.id}`}
-                      className="contributor-card-new"
-                      style={{ textDecoration: "none", color: "inherit" }}
-                    >
-                      <div className="contributor-avatar">
-                        {contributor.profile_image ? (
-                          <img
-                            src={getImageUrl(contributor.profile_image)}
-                            alt={contributor.full_name}
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.style.display = "none";
-                              e.target.nextSibling.style.display = "flex";
-                            }}
-                          />
-                        ) : null}
-                        <div
-                          className="avatar-fallback"
-                          style={{
-                            display: contributor.profile_image
-                              ? "none"
-                              : "flex",
-                          }}
-                        >
-                          {contributor.full_name
-                            ? contributor.full_name.charAt(0)
-                            : "C"}
+                <div className="top-contributors-list">
+                  {contributors.slice(0, 3).map((contributor, index) => {
+                    const medals = ["🥇", "🥈", "🥉"];
+                    return (
+                      <Link key={index} to={`/contributor/${contributor.id}`} className="top-contributor-row">
+                        <span className="tc-medal">{medals[index]}</span>
+                        <div className="tc-avatar">
+                          {contributor.profile_image ? (
+                            <img src={getImageUrl(contributor.profile_image)} alt={contributor.full_name} onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
+                          ) : null}
+                          <div className="avatar-fallback" style={{ display: contributor.profile_image ? "none" : "flex" }}>
+                            {contributor.full_name ? contributor.full_name.charAt(0) : "C"}
+                          </div>
                         </div>
-                      </div>
-                      <div className="contributor-info" style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                        <h4 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>{contributor.full_name}</h4>
-                        {contributor.role && (
-                          <span className="contributor-role" style={{ fontSize: "0.8rem", color: "#475569", fontWeight: 500 }}>
-                            {contributor.role}
-                          </span>
-                        )}
-                        <span className="joined-date" style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                          Joined: {formatDate(contributor.created_at || new Date())}
-                        </span>
-                        <span className="contributions-count" style={{ fontSize: "0.75rem", color: "#2563eb", fontWeight: 600 }}>
-                          Contributions: {contributor.contributions_count || 0} {Number(contributor.contributions_count) === 1 ? "Article" : "Articles"}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
+                        <div className="tc-info">
+                          <span className="tc-name">{contributor.full_name}</span>
+                          <span className="tc-count">{contributor.contributions_count || 0} Contributions</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
+                <Link to="/leaderboard" className="widget-leaderboard-link">See Leaderboard →</Link>
               </div>
             )}
+
+            {/* Popular Tags */}
+            <div className="widget">
+              <div className="widget-header">
+                <h3><i className="bi bi-hash" style={{ marginRight: 4, color: "#e84a3d", fontSize: "1.1rem" }}></i>Popular Tags</h3>
+              </div>
+              <div className="popular-tags-list">
+                {(popularTags.length > 0 ? popularTags : ["SAP Security","GRC","S/4HANA","IAM","BTP","Fiori","Authorization","Audit","Compliance","Role Design"]).slice(0, 9).map((tag, i) => (
+                  <Link key={i} to={`/blogs?tag=${encodeURIComponent(tag)}`} className="popular-tag-pill">
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
+              <Link to="/blogs" className="widget-leaderboard-link" style={{ marginTop: 12 }}>View all tags →</Link>
+            </div>
           </div>
 
           {/* CENTER COLUMN */}
@@ -409,103 +377,118 @@ export default function CommunitySection() {
 
 
 
-            {/* Recent Activity */}
-            {recentActivity && recentActivity.length > 0 && (
-              <div className="widget">
-                <div className="widget-header">
-                  <h3>Recent Activity</h3>
-                </div>
-                <div className="activity-list">
-                  {recentActivity.slice(0, 3).map((activity) => (
-                    <Link
-                      key={activity.slug || activity.id}
-                      to={
-                        activity.category
-                          ? `/${activity.category.toLowerCase().replace(/\s+/g, "-")}/${activity.slug || activity.id}`
-                          : `/blogs/${activity.slug || activity.id}`
-                      }
-                      className="activity-item"
-                    >
-                      <div className="activity-img-wrapper" style={{ flexShrink: 0 }}>
-                        <img
-                          src={activity.image ? getImageUrl(activity.image) : "https://placehold.co/600x400?text=No+Image"}
-                          alt={activity.title}
-                          onError={(e) => {
-                            e.target.src = "https://placehold.co/600x400?text=No+Image";
-                          }}
-                        />
-                      </div>
-                      <div className="activity-content">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                          <span className="activity-badge">
-                            {activity.category
-                              ? activity.category
-                                  .replace("sap-", "")
-                                  .toUpperCase()
-                              : "BLOG"}
-                          </span>
-                          {activity.is_members_only == 1 && (
-                            <span className="exclusive-mini-badge-inline">
-                              <i className="bi bi-lock-fill"></i> Exclusive
-                            </span>
-                          )}
-                        </div>
-                        <h4>
-                          {activity.title}
-                        </h4>
-                        <p>
-                          {activity.excerpt
-                            ? activity.excerpt.substring(0, 100)
-                            : ""}
-                          ...
-                        </p>
-                        <div className="activity-meta">
-                          <span
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "6px",
-                            }}
-                          >
-                            {activity.author_image ? (
-                              <img
-                                src={getImageUrl(activity.author_image)}
-                                alt={activity.author_name || activity.author}
-                                style={{
-                                  width: "22px",
-                                  height: "22px",
-                                  borderRadius: "50%",
-                                  objectFit: "cover",
-                                  border: "1px solid #e2e8f0",
-                                }}
-                                onError={(e) => {
-                                  e.target.src =
-                                    "https://placehold.co/100x100?text=Author";
-                                }}
-                              />
-                            ) : (
-                              <i className="bi bi-person-circle"></i>
-                            )}
-                            {activity.author_name || "Guest Author"}
-                          </span>
-                          <span>{formatDate(activity.date)}</span>
-                        </div>
-                        <span className="activity-link">
-                          Read & Join Discussion →
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                {/* FIXED: Using Link for navigation */}
-                <Link
-                  to="/become-a-contributor"
-                  className="view-all-link-center"
-                >
-                  Join the Community →
-                </Link>
+            {/* Recent Activity — tabbed */}
+            <div className="widget">
+              <div className="widget-header">
+                <h3>Recent Activity</h3>
               </div>
-            )}
+
+              {/* Tab strip */}
+              <div className="ra-tabs">
+                {[
+                  { key: "recent",  label: "Recent Articles",       icon: "bi-clock-history" },
+                  { key: "expert",  label: "Expert Recommendations", icon: "bi-patch-check-fill" },
+                  { key: "premium", label: "Premium Content",        icon: "bi-star-fill" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    className={`ra-tab-btn${activeTab === tab.key ? " active" : ""}`}
+                    onClick={() => setActiveTab(tab.key)}
+                  >
+                    <i className={`bi ${tab.icon}`}></i>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab content */}
+              {(() => {
+                const tabData =
+                  activeTab === "expert"  ? expertPicks :
+                  activeTab === "premium" ? premiumArticles :
+                  recentActivity;
+
+                if (!tabData || tabData.length === 0) {
+                  return (
+                    <div className="ra-empty">
+                      {activeTab === "expert"
+                        ? "No expert recommendations yet. Admins can mark articles as Expert Picks from the blog list."
+                        : activeTab === "premium"
+                        ? "No premium content available yet."
+                        : "No recent articles."}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="activity-list">
+                    {tabData.slice(0, 4).map((activity) => (
+                      <Link
+                        key={activity.slug || activity.id}
+                        to={
+                          activity.category
+                            ? `/${activity.category.toLowerCase().replace(/\s+/g, "-")}/${activity.slug || activity.id}`
+                            : `/blogs/${activity.slug || activity.id}`
+                        }
+                        className="activity-item"
+                      >
+                        <div className="activity-img-wrapper" style={{ flexShrink: 0 }}>
+                          <img
+                            src={activity.image ? getImageUrl(activity.image) : "https://placehold.co/600x400?text=No+Image"}
+                            alt={activity.title}
+                            onError={(e) => { e.target.src = "https://placehold.co/600x400?text=No+Image"; }}
+                          />
+                        </div>
+                        <div className="activity-content">
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+                            <span className="activity-badge">
+                              {activity.category ? activity.category.replace("sap-", "").toUpperCase() : "BLOG"}
+                            </span>
+                            {activity.is_premium == 1 ? (
+                              <span className="exclusive-mini-badge-inline" style={{ background: "#d97706" }}>
+                                <i className="bi bi-star-fill"></i> Paid
+                              </span>
+                            ) : activity.is_members_only == 1 ? (
+                              <span className="exclusive-mini-badge-inline">
+                                <i className="bi bi-lock-fill"></i> Exclusive
+                              </span>
+                            ) : null}
+                            {activity.is_expert_pick == 1 && (
+                              <span className="exclusive-mini-badge-inline" style={{ background: "#7c3aed" }}>
+                                <i className="bi bi-patch-check-fill"></i> Expert Pick
+                              </span>
+                            )}
+                          </div>
+                          <h4>{activity.title}</h4>
+                          <p>{activity.excerpt ? activity.excerpt.substring(0, 100) : ""}...</p>
+                          <div className="activity-meta">
+                            <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              {activity.author_image ? (
+                                <img
+                                  src={getImageUrl(activity.author_image)}
+                                  alt={activity.author_name || activity.author}
+                                  style={{ width: "22px", height: "22px", borderRadius: "50%", objectFit: "cover", border: "1px solid #e2e8f0" }}
+                                  onError={(e) => { e.target.src = "https://placehold.co/100x100?text=Author"; }}
+                                />
+                              ) : (
+                                <i className="bi bi-person-circle"></i>
+                              )}
+                              {activity.author_name || "Guest Author"}
+                            </span>
+                            <span>{formatDate(activity.date)}</span>
+                          </div>
+                          <span className="activity-link">Read & Join Discussion →</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              <Link to="/become-a-contributor" className="view-all-link-center">
+                Join the Community →
+              </Link>
+            </div>
           </div>
 
           {/* RIGHT COLUMN */}
@@ -513,27 +496,25 @@ export default function CommunitySection() {
 
             {/* New to SAP Security? Box */}
             <div className="widget new-to-sap-box">
-              <div className="widget-header">
-                <h3>New to SAP Security?</h3>
+              <div className="nts-icon-wrap">
+                <i className="bi bi-mortarboard-fill"></i>
               </div>
-              <div className="new-to-sap-content">
-                <p>Start with the basics and build your knowledge.</p>
-                <Link to="/learning-hub" className="start-here-btn">
-                  Start Here
-                </Link>
-              </div>
+              <h3 className="nts-heading">New to SAP Security?</h3>
+              <p className="nts-desc">Start with the basics and build your knowledge.</p>
+              <Link to="/learning-hub" className="start-here-btn">
+                Start Here <i className="bi bi-arrow-right"></i>
+              </Link>
             </div>
 
             {/* Announcements */}
             <div className="widget">
               <div className="widget-header">
-                <h3>Announcements</h3>
+                <h3><i className="bi bi-megaphone-fill" style={{ marginRight: 8, color: "#e84a3d" }}></i>Announcements</h3>
+                <Link to="/announcements" className="widget-view-all">View all</Link>
               </div>
               <div className="announcements-list" data-lenis-prevent>
                 {!Array.isArray(announcements) || announcements.length === 0 ? (
-                  <p style={{ fontSize: "0.9rem", color: "#666" }}>
-                    No announcements yet.
-                  </p>
+                  <p style={{ fontSize: "0.9rem", color: "#666" }}>No announcements yet.</p>
                 ) : (
                   announcements.map((announcement, i) => {
                     const raw = announcement.date || "";
@@ -541,36 +522,42 @@ export default function CommunitySection() {
                     const d = new Date(isoStr);
                     const dateLabel = isNaN(d.getTime()) ? raw : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
                     const hasDetail = !!(announcement.slug && (announcement.content || announcement.image));
-                    return (
-                    <div key={i} className="announcement-item">
-                      {hasDetail ? (
-                        <Link to={`/announcements/${announcement.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
-                          <h4 style={{ cursor: "pointer" }}>{announcement.title}</h4>
-                        </Link>
-                      ) : (
-                        <h4>{announcement.title}</h4>
-                      )}
-                      <div className="announcement-meta">
-                        <span>{dateLabel}</span>
-                        {announcement.link && (
-                          <a href={announcement.link} target="_blank" rel="noopener noreferrer" style={{ marginLeft: "10px" }}>
-                            <i className="bi bi-box-arrow-up-right"></i>
-                          </a>
-                        )}
-                        {hasDetail && (
-                          <Link to={`/announcements/${announcement.slug}`} style={{ marginLeft: "10px", color: "#e84a3d", fontSize: "0.78rem", fontWeight: 600 }}>
-                            Read more →
-                          </Link>
-                        )}
+                    const iconColors = [
+                      { bg: "#eff6ff", color: "#2563eb" },
+                      { bg: "#f0fdf4", color: "#16a34a" },
+                      { bg: "#f5f3ff", color: "#7c3aed" },
+                      { bg: "#fff7ed", color: "#ea580c" },
+                    ];
+                    const ic = iconColors[i % iconColors.length];
+                    const inner = (
+                      <div className="ann-item">
+                        <div className="ann-icon" style={{ background: ic.bg, color: ic.color }}>
+                          <i className="bi bi-calendar-event-fill"></i>
+                        </div>
+                        <div className="ann-body">
+                          <span className="ann-date">{dateLabel}</span>
+                          <p className="ann-title">{announcement.title}</p>
+                          {announcement.link && (
+                            <a href={announcement.link} target="_blank" rel="noopener noreferrer" className="ann-link">
+                              Learn more <i className="bi bi-arrow-right"></i>
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
+                    );
+                    return hasDetail ? (
+                      <Link key={i} to={`/announcements/${announcement.slug}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div key={i}>{inner}</div>
+                    );
                   })
                 )}
               </div>
-              {/* <Link to="/announcements" className="view-all-link">
-                View All Announcements →
-              </Link> */}
+              <Link to="/announcements" className="ann-view-all-btn">
+                View All Announcements
+              </Link>
             </div>
 
             {/* Promotion */}
@@ -591,54 +578,54 @@ export default function CommunitySection() {
               )}
             </div>
 
-            {/* Community Stats / Participants - Unhidden & Dynamic */}
+            {/* Community at a Glance */}
             <div className="widget">
               <div className="widget-header">
-                <h3>Community</h3>
+                <h3>Community at a Glance</h3>
               </div>
-              <div className="community-stats" style={{ padding: "0 10px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "2rem",
-                      fontWeight: "bold",
-                      color: "#2563eb",
-                    }}
-                  >
-                    {contributorCount + memberCount}
+              <div className="cag-grid">
+                <div className="cag-stat">
+                  <div className="cag-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>
+                    <i className="bi bi-people-fill"></i>
                   </div>
-                  <div style={{ fontSize: "0.9rem", color: "#64748b" }}>
-                    Total Community Members & Experts
-                  </div>
+                  <div className="cag-number">{(memberCount).toLocaleString()}</div>
+                  <div className="cag-label">Members</div>
                 </div>
-                <p style={{ fontSize: "0.85rem", color: "#475569", lineHeight: "1.5" }}>
-                  Join <strong>{memberCount} members</strong> and{" "}
-                  <strong>{contributorCount} contributors</strong> who are
-                  actively securing the SAP ecosystem.
-                </p>
+                <div className="cag-stat">
+                  <div className="cag-icon" style={{ background: "#fef2f2", color: "#e84a3d" }}>
+                    <i className="bi bi-file-earmark-text-fill"></i>
+                  </div>
+                  <div className="cag-number">{(articleCount).toLocaleString()}</div>
+                  <div className="cag-label">Articles</div>
+                </div>
+                <div className="cag-stat">
+                  <div className="cag-icon" style={{ background: "#f0fdf4", color: "#16a34a" }}>
+                    <i className="bi bi-chat-dots-fill"></i>
+                  </div>
+                  <div className="cag-number">{(commentCount).toLocaleString()}</div>
+                  <div className="cag-label">Comments</div>
+                </div>
+                <div className="cag-stat">
+                  <div className="cag-icon" style={{ background: "#fff7ed", color: "#ea580c" }}>
+                    <i className="bi bi-person-check-fill"></i>
+                  </div>
+                  <div className="cag-number">{(contributorCount).toLocaleString()}</div>
+                  <div className="cag-label">Contributors</div>
+                </div>
               </div>
             </div>
 
-            {/* Approved Contributors List - Removed from Right (Moved to Left) */}
-
-            {/* Newsletter */}
-            <div className="widget newsletter-widget">
-              <div className="newsletter-icon">
-                <i className="bi bi-shield-lock-fill"></i>
+            {/* Join Our Community */}
+            <div className="widget join-community-widget">
+              <div className="jcw-icon">
+                <i className="bi bi-people-fill"></i>
               </div>
               <h3>Join Our Community</h3>
-              <p>Get exclusive SAP security insights delivered to your inbox.</p>
-              <Link to="/member/signup" className="btn-newsletter-widget">
-                <i className="bi bi-person-plus-fill"></i> Create Free Account
+              <p>Share knowledge, earn credits, and grow together with SAP security experts.</p>
+              <Link to="/member/signup" className="jcw-btn-primary">
+                Create Free Account
               </Link>
-              <Link to="/member/login" style={{ display: "block", textAlign: "center", marginTop: "8px", fontSize: "0.8rem", color: "#64748b" }}>
+              <Link to="/member/login" className="jcw-btn-secondary">
                 Already a member? Sign in
               </Link>
             </div>

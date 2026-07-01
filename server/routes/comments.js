@@ -15,6 +15,7 @@ router.get(['/get_comments.php', '/get-comments'], async (req, res) => {
               c.user_name  AS author,
               c.content    AS text,
               c.timestamp  AS date,
+              c.member_id  AS member_id,
               p.user_name  AS parent_author,
               p.content    AS parent_text
        FROM comments c
@@ -64,10 +65,13 @@ router.post(['/save_comment.php', '/comments'], rateLimit('comment', 5, 60), asy
     );
     const articleTitle = blogRows[0]?.title || post_id;
 
+    const member_id = req.session?.member_logged_in
+      ? (req.session.member_id || null)
+      : (body.member_id ? parseInt(body.member_id) || null : null);
     await db.execute(
-      `INSERT INTO comments (post_id, user_name, email, content, parent_id, status, timestamp)
-       VALUES (?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
-      [post_id, user_name, email, content, parent_id || null]
+      `INSERT INTO comments (post_id, user_name, email, content, parent_id, member_id, status, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+      [post_id, user_name, email, content, parent_id || null, member_id]
     );
 
     const mailService = MailService.getInstance(db);

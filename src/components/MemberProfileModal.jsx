@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import {
   LuUser,
   LuPhone,
@@ -9,6 +11,8 @@ import {
   LuShieldCheck,
   LuKey,
   LuTrash2,
+  LuCoins,
+  LuEye,
 } from "react-icons/lu";
 import useScrollLock from "../hooks/useScrollLock";
 import { updateMemberProfile } from "../services/api";
@@ -16,6 +20,7 @@ import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 
 const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
+  const navigate = useNavigate();
   const { member, updateMember } = useMemberAuth();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(false);
@@ -30,6 +35,15 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
   });
   const [preview, setPreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [visibility, setVisibility] = useState({
+    show_name: true,
+    show_picture: true,
+    show_company: false,
+    show_email: false,
+    show_stats: true,
+    show_badges: true,
+  });
+  const [visibilitySaving, setVisibilitySaving] = useState(false);
   const fileInputRef = useRef(null);
   const { addToast } = useToast();
 
@@ -50,6 +64,13 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
         setPreview(member.profile_image || null);
         setError("");
         setImageFile(null);
+        const defaultVis = { show_name: true, show_picture: true, show_company: false, show_email: false, show_stats: true, show_badges: true };
+        try {
+          const parsed = member.profile_visibility ? JSON.parse(member.profile_visibility) : {};
+          setVisibility({ ...defaultVis, ...parsed });
+        } catch {
+          setVisibility(defaultVis);
+        }
       }
     }
   }, [isOpen, member, initialTab]);
@@ -119,9 +140,30 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
     window.dispatchEvent(new CustomEvent('open-delete-account'));
   };
 
+  const handleVisibilitySave = async () => {
+    setVisibilitySaving(true);
+    try {
+      const data = new FormData();
+      data.append("profile_visibility", JSON.stringify(visibility));
+      // Include required name field so the update endpoint doesn't null it
+      data.append("name", formData.name || member?.name || "");
+      const res = await updateMemberProfile(data);
+      if (res.data.status === "success") {
+        addToast("Visibility settings saved", "success");
+        updateMember(res.data.member);
+      } else {
+        addToast(res.data.message || "Failed to save visibility", "error");
+      }
+    } catch {
+      addToast("Failed to save visibility settings", "error");
+    } finally {
+      setVisibilitySaving(false);
+    }
+  };
+
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container profile-modal-compact" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -168,10 +210,94 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
             <LuShieldCheck size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
             Security & Privacy
           </button>
+          <button
+            className={`tab-btn ${activeTab === 'visibility' ? 'active' : ''}`}
+            onClick={() => setActiveTab('visibility')}
+            style={{
+              padding: '12px 16px',
+              border: 'none',
+              background: 'none',
+              fontSize: '0.9rem',
+              fontWeight: activeTab === 'visibility' ? '600' : '400',
+              color: activeTab === 'visibility' ? '#1e293b' : '#64748b',
+              borderBottom: activeTab === 'visibility' ? '2px solid #ee5e42' : '2px solid transparent',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            <LuEye size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+            Visibility
+          </button>
+          <button
+            className="tab-btn"
+            onClick={() => { onClose(); navigate("/member/credits"); }}
+            style={{
+              padding: '12px 16px',
+              border: 'none',
+              background: 'none',
+              fontSize: '0.9rem',
+              fontWeight: '400',
+              color: '#64748b',
+              borderBottom: '2px solid transparent',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            <LuCoins size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+            Credits
+          </button>
         </div>
 
         <div className="modal-body" data-lenis-prevent="true" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '24px' }}>
-          {activeTab === 'profile' ? (
+          {activeTab === 'visibility' ? (
+            <div className="visibility-settings">
+              <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '24px', lineHeight: '1.6' }}>
+                Control what information is visible to others on your public profile.
+              </p>
+
+              <div style={{ marginBottom: '24px' }}>
+                <h4 style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+                  Public Profile
+                </h4>
+                {[
+                  { key: 'show_name',    label: 'Display my name' },
+                  { key: 'show_picture', label: 'Display my profile picture' },
+                  { key: 'show_company', label: 'Display company' },
+                  { key: 'show_email',   label: 'Display email' },
+                ].map(({ key, label }) => (
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!visibility[key]}
+                      onChange={(e) => setVisibility((v) => ({ ...v, [key]: e.target.checked }))}
+                      style={{ width: '18px', height: '18px', accentColor: '#ee5e42', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '0.9rem', color: '#1e293b' }}>{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+                  Activity & Achievements
+                </h4>
+                {[
+                  { key: 'show_stats',  label: 'Show contribution statistics' },
+                  { key: 'show_badges', label: 'Show badges' },
+                ].map(({ key, label }) => (
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!visibility[key]}
+                      onChange={(e) => setVisibility((v) => ({ ...v, [key]: e.target.checked }))}
+                      style={{ width: '18px', height: '18px', accentColor: '#ee5e42', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '0.9rem', color: '#1e293b' }}>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : activeTab === 'profile' ? (
             <form id="member-profile-form" onSubmit={handleSubmit}>
               {error && (
                 <div className="form-error" style={{ marginBottom: "20px", padding: "12px", background: "#fef2f2", color: "#991b1b", borderRadius: "8px", fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -318,8 +444,19 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
             </button>
           </div>
         )}
+        {activeTab === 'visibility' && (
+          <div className="modal-footer" style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
+            <button type="button" className="btn-cancel" onClick={onClose} style={{ flex: 1, padding: '10px' }}>
+              Cancel
+            </button>
+            <button type="button" onClick={handleVisibilitySave} disabled={visibilitySaving} className="btn-primary" style={{ flex: 1, backgroundColor: "#ee5e42", padding: '10px' }}>
+              {visibilitySaving ? "Saving..." : "Save Visibility"}
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

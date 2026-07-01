@@ -199,10 +199,16 @@ export default function FeaturedInsights({ id }) {
             >
               <div className="latest-blog-image">
                 <Image src={blog.image} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
-                {blog.is_members_only == 1 && (
-                  <div className="exclusive-badge-overlay">
-                    <i className="bi bi-lock-fill"></i> Exclusive
+                {blog.is_premium == 1 ? (
+                  <div className="exclusive-badge-overlay" style={{ background: "#d97706" }}>
+                    <i className="bi bi-star-fill"></i> Paid Article
                   </div>
+                ) : (
+                  blog.is_members_only == 1 && (
+                    <div className="exclusive-badge-overlay">
+                      <i className="bi bi-lock-fill"></i> Exclusive
+                    </div>
+                  )
                 )}
               </div>
               <div className="latest-blog-content">

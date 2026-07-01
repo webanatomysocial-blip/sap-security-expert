@@ -338,8 +338,8 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
                   <p style={{ fontSize: 12, color: "#16a34a", marginTop: 4 }}>
                     <i className="bi bi-check-circle-fill" style={{ marginRight: 4 }}></i>
                     {couponData.discount_type === "percentage"
-                      ? `${couponData.discount_value}% off applied`
-                      : `₹${couponData.discount_value} off applied`}
+                      ? `₹${(couponData.discount_paise / 100).toFixed(0)} off applied`
+                      : `₹${(couponData.discount_paise / 100).toFixed(0)} off applied`}
                   </p>
                 )}
               </div>

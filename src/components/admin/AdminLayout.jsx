@@ -7,6 +7,7 @@ import ContributorDashboard from "./ContributorDashboard";
 // next-disabled: import "../../css/admin-profile.css";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
+import { useMemberAuth } from "../../context/MemberAuthContext";
 import { LuChevronDown, LuUser, LuKey, LuLogOut, LuGlobe, LuShieldCheck, LuTrash2 } from "react-icons/lu";
 import { Link } from "react-router-dom";
 import ProfileEditModal from "./ProfileEditModal";
@@ -21,6 +22,7 @@ import {
 const AdminLayout = () => {
   const { addToast } = useToast();
   const { isAuthenticated, role, permissions, setAuth, clearAuth } = useAuth();
+  const { logout: memberLogout } = useMemberAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [adminData, setAdminData] = useState({
@@ -111,6 +113,10 @@ const AdminLayout = () => {
       const res = await getAdminProfile();
       if (isMounted.current && res.data.status === "success") {
         setAdminData(res.data.user);
+        // Keep localStorage CSRF token in sync with the live session token
+        if (res.data.csrf_token) {
+          localStorage.setItem("csrf_token", res.data.csrf_token);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch admin profile", err);
@@ -151,6 +157,7 @@ const AdminLayout = () => {
   const handleLogout = () => {
     const isContributor = role === "contributor";
     clearAuth();
+    memberLogout();
     if (isContributor) {
       navigate("/");
     } else {
@@ -262,6 +269,7 @@ const AdminLayout = () => {
             onClick={() => setShowDropdown((prev) => !prev)}
             ref={dropdownRef}
             style={{
+              position: "relative",
               padding: "8px",
               background: "#fff",
               border: "1.5px solid var(--slate-200)",
@@ -308,6 +316,7 @@ const AdminLayout = () => {
               >
                  {isAuthenticated && (
                    <button
+                     type="button"
                      className="dropdown-item"
                      onClick={(e) => {
                        e.stopPropagation();

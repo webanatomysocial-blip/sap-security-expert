@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { TableSkeleton } from "./AdminSkeletons.jsx";
+import ColumnToggle from "./ColumnToggle.jsx";
 import { Helmet } from "react-helmet-async";
 // next-disabled: import "../../css/AdminDashboard.css";
 import ActionMenu from "./ActionMenu";
@@ -19,6 +21,16 @@ const AdminContributors = () => {
   // No mock data needed, fetching from API
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const CONTRIB_COLS = [
+    { key: "name",   label: "Name" },
+    { key: "email",  label: "Email" },
+    { key: "role",   label: "Role", optional: true },
+    { key: "status", label: "Status" },
+    { key: "date",   label: "Date", optional: true },
+    { key: "actions",label: "Actions" },
+  ];
+  const [visibleCols, setVisibleCols] = useState(new Set(CONTRIB_COLS.filter(c => !c.optional).map(c => c.key)));
+  const show = (key) => visibleCols.has(key);
   const [filterStatus, setFilterStatus] = useState("approved"); // Default to approved
   const [selectedApp, setSelectedApp] = useState(null);
   const [managingContributor, setManagingContributor] = useState(null);
@@ -225,9 +237,12 @@ const AdminContributors = () => {
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <div className="admin-card"><TableSkeleton cols={7} rows={8} /></div>
       ) : (
         <div className="admin-card">
+          <div className="admin-table-controls">
+            <ColumnToggle columns={CONTRIB_COLS} visible={visibleCols} onChange={setVisibleCols} />
+          </div>
           <TableScrollContainer>
             <table className="admin-table">
               <thead>
@@ -236,15 +251,15 @@ const AdminContributors = () => {
                   <th className="col-lg text-left">Email</th>
                   {filterStatus === "deleted" ? (
                     <>
-                      <th className="col-md text-left">Deleted At</th>
-                      <th className="col-md text-left">IP Address</th>
-                      <th className="col-md text-left">Method</th>
+                      {show("role") && <th className="col-md text-left">Deleted At</th>}
+                      {show("role") && <th className="col-md text-left">IP Address</th>}
+                      {show("role") && <th className="col-md text-left">Method</th>}
                     </>
                   ) : (
-                    <th className="col-xl text-left">Role</th>
+                    show("role") && <th className="col-xl text-left">Role</th>
                   )}
                   <th className="col-sm text-center">Status</th>
-                  <th className="col-md text-left">Date</th>
+                  {show("date") && <th className="col-md text-left">Date</th>}
                   <th className="col-actions text-center">Actions</th>
                 </tr>
               </thead>
@@ -264,22 +279,16 @@ const AdminContributors = () => {
                       <td className="col-lg text-left no-wrap" style={{ fontSize: "0.8rem" }}>{app.email}</td>
                       {filterStatus === "deleted" ? (
                         <>
-                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
-                            {app.deleted_at ? new Date(app.deleted_at).toLocaleString() : "—"}
-                          </td>
-                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
-                            {app.deletion_ip || "—"}
-                          </td>
-                          <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>
-                            {app.deletion_method || "—"}
-                          </td>
+                          {show("role") && <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>{app.deleted_at ? new Date(app.deleted_at).toLocaleString() : "—"}</td>}
+                          {show("role") && <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>{app.deletion_ip || "—"}</td>}
+                          {show("role") && <td className="col-md text-left no-wrap" style={{ fontSize: "0.8rem" }}>{app.deletion_method || "—"}</td>}
                         </>
                       ) : (
-                        <td className="col-xl text-left wrap-text">
-                          <div className="truncate-2" style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                            {app.role}
-                          </div>
-                        </td>
+                        show("role") && (
+                          <td className="col-xl text-left wrap-text">
+                            <div className="truncate-2" style={{ fontSize: "0.8rem", color: "#64748b" }}>{app.role}</div>
+                          </td>
+                        )
                       )}
                       <td className="col-sm text-center">
                         <span
@@ -297,18 +306,13 @@ const AdminContributors = () => {
                                 : app.status}
                         </span>
                       </td>
-                      <td className="col-md text-left">
-                        <div style={{ fontSize: "0.8rem" }}>
-                          {new Date(app.created_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            },
-                          )}
-                        </div>
-                      </td>
+                      {show("date") && (
+                        <td className="col-md text-left">
+                          <div style={{ fontSize: "0.8rem" }}>
+                            {new Date(app.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </div>
+                        </td>
+                      )}
                         <td className="col-actions text-center">
                           <ActionMenu>
                             <button

@@ -8,7 +8,7 @@ import { FaChevronDown } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 
-import { LuSettings, LuUser, LuKey, LuLogOut, LuShieldCheck, LuChevronRight, LuChevronDown, LuX, LuTrash2 } from "react-icons/lu";
+import { LuSettings, LuUser, LuKey, LuLogOut, LuShieldCheck, LuChevronRight, LuChevronDown, LuX, LuTrash2, LuCoins, LuBookOpen } from "react-icons/lu";
 import MemberProfileModal from "./MemberProfileModal";
 import ResetPasswordModal from "./admin/ResetPasswordModal";
 import DeleteAccountModal from "./DeleteAccountModal";
@@ -21,7 +21,7 @@ const Header = () => {
     resources: false,
   });
 
-  const { isAuthenticated: isLoggedIn, role, user } = useAuth();
+  const { isAuthenticated: isLoggedIn, role, user, clearAuth } = useAuth();
   const {
     isLoggedIn: isMemberLoggedIn,
     member,
@@ -29,6 +29,12 @@ const Header = () => {
     logout: memberLogout,
     creditBalance,
   } = useMemberAuth();
+
+  // Full logout: clears both member and admin/contributor sessions
+  const handleFullLogout = () => {
+    memberLogout();
+    clearAuth();
+  };
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -232,6 +238,24 @@ const Header = () => {
                     >
                       <LuUser className="dropdown-icon" /> Profile Settings
                     </button>
+                    <button
+                      className="member-dropdown-item"
+                      onClick={() => {
+                        setIsMemberDropdownOpen(false);
+                        navigate("/member/credits");
+                      }}
+                    >
+                      <LuCoins className="dropdown-icon" /> My Credits &amp; Transactions
+                    </button>
+                    <button
+                      className="member-dropdown-item"
+                      onClick={() => {
+                        setIsMemberDropdownOpen(false);
+                        navigate("/member/credits?tab=unlocks");
+                      }}
+                    >
+                      <LuBookOpen className="dropdown-icon" /> My Unlocked Articles
+                    </button>
                     {isContributor && (
                       <button
                         className="member-dropdown-item"
@@ -304,7 +328,7 @@ const Header = () => {
                     <button
                       className="member-dropdown-item logout"
                       onClick={() => {
-                        memberLogout();
+                        handleFullLogout();
                         setIsMemberDropdownOpen(false);
                         navigate("/member/login");
                       }}
@@ -402,7 +426,7 @@ const Header = () => {
                 <button
                   className="mobile-profile-btn logout"
                   onClick={() => {
-                    memberLogout();
+                    handleFullLogout();
                     closeMenu();
                     navigate("/member/login");
                   }}

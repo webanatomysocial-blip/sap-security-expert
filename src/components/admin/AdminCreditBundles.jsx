@@ -3,11 +3,12 @@ import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
 import TableScrollContainer from "./TableScrollContainer";
 import ActionMenu from "./ActionMenu";
-import { LuX, LuPlus, LuPackage, LuTicket } from "react-icons/lu";
+import { LuX, LuPlus, LuPackage, LuTicket, LuCoins, LuGift } from "react-icons/lu";
 import {
   getAdminBundles, saveBundle, deleteBundle,
   getAdminCoupons, saveCoupon, deleteCoupon,
-  getCreditStats,
+  getCreditStats, getAllCreditTransactions, grantAdminCredits,
+  getAdminMembers,
 } from "../../services/api";
 import { downloadCSV } from "../../services/exportUtils";
 
@@ -35,6 +36,19 @@ export default function AdminCreditBundles() {
   const [couponErrors, setCouponErrors] = useState({});
   const [savingCoupon, setSavingCoupon] = useState(false);
 
+  // Transactions tab
+  const [transactions, setTransactions] = useState([]);
+  const [txLoading, setTxLoading] = useState(false);
+  const [txFilter, setTxFilter] = useState("");
+
+  // Grant Credits tab
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [grantForm, setGrantForm] = useState({ member_id: "", amount: "", note: "" });
+  const [grantErrors, setGrantErrors] = useState({});
+  const [granting, setGranting] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -53,7 +67,59 @@ export default function AdminCreditBundles() {
     }
   }, [addToast]);
 
+  const fetchTransactions = useCallback(async () => {
+    setTxLoading(true);
+    try {
+      const res = await getAllCreditTransactions(1, 200);
+      setTransactions(res.data?.transactions || []);
+    } catch {
+      addToast("Failed to load transactions", "error");
+    } finally {
+      setTxLoading(false);
+    }
+  }, [addToast]);
+
+  const fetchMembers = useCallback(async () => {
+    setMembersLoading(true);
+    try {
+      const res = await getAdminMembers("all");
+      setMembers(res.data?.members || []);
+    } catch {
+      addToast("Failed to load members", "error");
+    } finally {
+      setMembersLoading(false);
+    }
+  }, [addToast]);
+
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Lazy-load transactions / members when tab is switched
+  useEffect(() => {
+    if (tab === "transactions" && transactions.length === 0) fetchTransactions();
+    if (tab === "grant" && members.length === 0) fetchMembers();
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Grant Credits handler ─────────────────────────────────────────────────
+  const handleGrant = async () => {
+    const errs = {};
+    if (!grantForm.member_id) errs.member_id = "Select a member";
+    const amt = parseInt(grantForm.amount);
+    if (!grantForm.amount || isNaN(amt) || amt === 0) errs.amount = "Enter a non-zero amount";
+    setGrantErrors(errs);
+    if (Object.keys(errs).length) return;
+    setGranting(true);
+    try {
+      const res = await grantAdminCredits(grantForm.member_id, amt, grantForm.note || undefined);
+      addToast(res.data.message || "Credits granted", "success");
+      setGrantForm({ member_id: "", amount: "", note: "" });
+      setMemberSearch("");
+      getCreditStats().then((r) => setStats(r.data?.stats || null)).catch(() => {});
+    } catch (err) {
+      addToast(err.response?.data?.message || "Failed to grant credits", "error");
+    } finally {
+      setGranting(false);
+    }
+  };
 
   // ── Bundle handlers ───────────────────────────────────────────────────────
 
@@ -273,6 +339,8 @@ export default function AdminCreditBundles() {
         {[
           { key: "bundles", label: "Credit Bundles", icon: "bi-stack" },
           { key: "coupons", label: "Coupons", icon: "bi-ticket-perforated-fill" },
+          { key: "transactions", label: "Transactions", icon: "bi-receipt" },
+          { key: "grant", label: "Grant Credits", icon: "bi-gift-fill" },
         ].map((t) => (
           <button
             key={t.key}
@@ -467,6 +535,165 @@ export default function AdminCreditBundles() {
               </tbody>
             </table>
           </TableScrollContainer>
+        </div>
+      )}
+
+      {/* ── TRANSACTIONS ────────────────────────────────────────────────────── */}
+      {tab === "transactions" && (
+        <div className="admin-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #e2e8f0", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Credit Transactions</h2>
+              <p style={{ margin: "2px 0 0", fontSize: 13, color: "#94a3b8" }}>All credit purchases and admin adjustments</p>
+            </div>
+            <input
+              className="form-control"
+              placeholder="Filter by name or email…"
+              value={txFilter}
+              onChange={(e) => setTxFilter(e.target.value)}
+              style={{ width: 240 }}
+            />
+          </div>
+          {txLoading ? (
+            <div style={{ padding: 40, textAlign: "center", color: "#94a3b8" }}>Loading…</div>
+          ) : (
+            <TableScrollContainer>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Email</th>
+                    <th>Type</th>
+                    <th>Credits</th>
+                    <th>Amount</th>
+                    <th>Bundle</th>
+                    <th>Note</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions
+                    .filter((t) => {
+                      if (!txFilter.trim()) return true;
+                      const q = txFilter.toLowerCase();
+                      return (
+                        t.member_name?.toLowerCase().includes(q) ||
+                        t.member_email?.toLowerCase().includes(q)
+                      );
+                    })
+                    .map((t) => (
+                      <tr key={t.id}>
+                        <td style={{ fontWeight: 600 }}>{t.member_name}</td>
+                        <td style={{ color: "#64748b", fontSize: 13 }}>{t.member_email}</td>
+                        <td>
+                          <span style={{
+                            padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700,
+                            background: t.type === "purchase" ? "#dcfce7" : t.type === "admin_adjustment" ? "#eff6ff" : "#f1f5f9",
+                            color: t.type === "purchase" ? "#15803d" : t.type === "admin_adjustment" ? "#1d4ed8" : "#64748b",
+                          }}>
+                            {t.type === "purchase" ? "Purchase" : t.type === "admin_adjustment" ? "Admin Grant" : t.type}
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 700, color: t.credits_delta > 0 ? "#16a34a" : "#dc2626" }}>
+                          {t.credits_delta > 0 ? "+" : ""}{t.credits_delta}
+                        </td>
+                        <td>{t.amount_paise > 0 ? `₹${(t.amount_paise / 100).toFixed(0)}` : "—"}</td>
+                        <td>{t.bundle_name || "—"}</td>
+                        <td style={{ color: "#64748b", fontSize: 13, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.note || "—"}</td>
+                        <td style={{ color: "#94a3b8", fontSize: 13, whiteSpace: "nowrap" }}>
+                          {new Date(t.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </td>
+                      </tr>
+                    ))}
+                  {transactions.length === 0 && (
+                    <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#94a3b8" }}>No transactions yet</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </TableScrollContainer>
+          )}
+        </div>
+      )}
+
+      {/* ── GRANT CREDITS ────────────────────────────────────────────────────── */}
+      {tab === "grant" && (
+        <div className="admin-card" style={{ maxWidth: 560 }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
+            <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Grant / Deduct Credits</h2>
+            <p style={{ margin: "2px 0 0", fontSize: 13, color: "#94a3b8" }}>Manually adjust a member's credit balance. Use a negative amount to deduct.</p>
+          </div>
+          <div className="modal-body" style={{ padding: 24 }}>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="form-label">Search Member</label>
+              <input
+                className="form-control"
+                placeholder="Type name or email…"
+                value={memberSearch}
+                onChange={(e) => { setMemberSearch(e.target.value); setGrantForm((p) => ({ ...p, member_id: "" })); }}
+              />
+            </div>
+            {memberSearch.trim().length > 1 && (
+              <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 16, maxHeight: 200, overflowY: "auto" }}>
+                {membersLoading ? (
+                  <div style={{ padding: 16, color: "#94a3b8", fontSize: 13 }}>Loading members…</div>
+                ) : (
+                  members
+                    .filter((m) => {
+                      const q = memberSearch.toLowerCase();
+                      return m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q);
+                    })
+                    .slice(0, 10)
+                    .map((m) => (
+                      <div
+                        key={m.id}
+                        onClick={() => { setGrantForm((p) => ({ ...p, member_id: m.id })); setMemberSearch(`${m.name} (${m.email})`); }}
+                        style={{
+                          padding: "10px 16px", cursor: "pointer", fontSize: 14,
+                          background: grantForm.member_id === m.id ? "#eff6ff" : "transparent",
+                          borderBottom: "1px solid #f1f5f9",
+                        }}
+                      >
+                        <strong>{m.name}</strong> <span style={{ color: "#94a3b8", fontSize: 12 }}>{m.email}</span>
+                      </div>
+                    ))
+                )}
+              </div>
+            )}
+            {grantErrors.member_id && <p style={{ color: "#dc2626", fontSize: 12, marginBottom: 12 }}>{grantErrors.member_id}</p>}
+
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="form-label">Credits Amount <span style={{ color: "#94a3b8", fontWeight: 400 }}>(negative to deduct)</span></label>
+              <input
+                className="form-control"
+                type="number"
+                placeholder="e.g. 5 or -2"
+                value={grantForm.amount}
+                onChange={(e) => setGrantForm((p) => ({ ...p, amount: e.target.value }))}
+                style={grantErrors.amount ? { borderColor: "#dc2626" } : {}}
+              />
+              {grantErrors.amount && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{grantErrors.amount}</p>}
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 24 }}>
+              <label className="form-label">Note <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+              <input
+                className="form-control"
+                placeholder="e.g. Complimentary access, Refund…"
+                value={grantForm.note}
+                onChange={(e) => setGrantForm((p) => ({ ...p, note: e.target.value }))}
+              />
+            </div>
+
+            <button
+              className="btn-primary"
+              onClick={handleGrant}
+              disabled={granting}
+              style={{ padding: "10px 28px", opacity: granting ? 0.7 : 1 }}
+            >
+              <LuGift size={16} style={{ marginRight: 8, verticalAlign: "middle" }} />
+              {granting ? "Processing…" : "Apply Credits"}
+            </button>
+          </div>
         </div>
       )}
 

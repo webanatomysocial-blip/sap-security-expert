@@ -127,9 +127,8 @@
 .blog-featured-image img {
   width: 100%;
   max-width: 100%;
-  max-height: 400px;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   display: block;
   margin: 0 auto 25px auto;
   border-radius: 8px;
@@ -320,6 +319,37 @@
   max-width: 100%;
   height: auto;
   display: block;
+}
+
+/* In-article ad wrappers — reset block margins so ads align with content edges */
+.blog-content-body .in-article-ad {
+  margin: 24px 0;
+  width: 100%;
+  display: block;
+  clear: both;
+}
+
+.blog-content-body .in-article-ad img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.blog-content-body .strip-ad {
+  margin: 32px 0 0;
+  width: 100%;
+  display: block;
+  clear: both;
+}
+
+.blog-content-body .strip-ad img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
 }
 
 /* Image Alignment Classes */

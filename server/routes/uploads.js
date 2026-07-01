@@ -67,21 +67,17 @@ router.post(
 const adStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, getUploadDir('ads')),
   filename: (req, file, cb) => {
-    const mimeToExt = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-    const ext = mimeToExt[file.mimetype] || 'jpg';
+    const mimeToExt = {
+      'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png',
+      'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg',
+    };
+    const ext = mimeToExt[file.mimetype] || path.extname(file.originalname).replace('.', '') || 'jpg';
     cb(null, `ad_${crypto.randomBytes(8).toString('hex')}.${ext}`);
   },
 });
 
-const adUpload = multer({
-  storage: adStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.mimetype)) return cb(new Error('Please upload a valid image file.'));
-    cb(null, true);
-  },
-});
+// No file size limit for ads — admins upload banners/strips which can be large
+const adUpload = multer({ storage: adStorage });
 
 router.post(
   ['/upload_ad_image.php', '/upload-ad-image'],

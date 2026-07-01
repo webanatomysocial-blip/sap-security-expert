@@ -135,6 +135,23 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     cleanAndDispatch();
   };
 
+  const handleKeyDown = (e) => {
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (ctrl && e.key === 'z' && !e.shiftKey) {
+      // Let the browser handle undo natively; sync React state afterward
+      setTimeout(() => cleanAndDispatch(), 0);
+      return;
+    }
+    if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      setTimeout(() => cleanAndDispatch(), 0);
+      return;
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      document.execCommand('insertText', false, '    ');
+    }
+  };
+
   const formatHTML = (html) => {
     let formatted = "";
     let indent = 0;
@@ -287,18 +304,19 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
         return el;
       };
 
-      const fragment = document.createDocumentFragment();
+      // Serialize sanitized nodes back to HTML string
+      const tempDiv = document.createElement("div");
       doc.body.childNodes.forEach((child) => {
         const clean = sanitizeNode(child);
-        if (clean) fragment.appendChild(clean);
+        if (clean) tempDiv.appendChild(clean);
       });
+      const cleanedHTML = tempDiv.innerHTML;
 
-      const sel = window.getSelection();
-      if (sel.rangeCount) {
-        const range = sel.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(fragment);
-      }
+      // Use execCommand('insertHTML') so the browser correctly handles
+      // block-level elements (p, ul, h2 etc.) at the cursor position.
+      // range.insertNode() would nest blocks inside the current paragraph,
+      // causing the browser to reorganize the DOM and wipe previous content.
+      document.execCommand("insertHTML", false, cleanedHTML);
 
       cleanAndDispatch();
     } else if (plainText) {
@@ -392,21 +410,11 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
 
   const insertImageWithAlt = (url, alt) => {
     restoreSelection();
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      range.deleteContents();
-      const img = document.createElement("img");
-      img.src = url;
-      img.alt = alt || "";
-      img.classList.add("align-center");
-      range.insertNode(img);
-      range.setStartAfter(img);
-      range.setEndAfter(img);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      handleChange();
-    }
+    editorRef.current?.focus();
+    // Use execCommand so the insertion is tracked in the browser's undo history
+    const imgHtml = `<img src="${url}" alt="${alt || ''}" class="align-center" />`;
+    document.execCommand('insertHTML', false, imgHtml);
+    cleanAndDispatch();
   };
 
   const handleImageClick = async () => {
@@ -521,43 +529,9 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     const safeHtml = sanitizeInsertedHtml(html);
     if (!safeHtml.trim()) return;
     restoreSelection();
-    const sel = window.getSelection();
-    const selectionInEditor =
-      sel &&
-      sel.rangeCount > 0 &&
-      editorRef.current &&
-      editorRef.current.contains(sel.getRangeAt(0).commonAncestorContainer);
-
-    let insertedNode = null;
-
-    if (selectionInEditor) {
-      const range = sel.getRangeAt(0);
-      range.deleteContents();
-      const frag = document.createRange().createContextualFragment(safeHtml);
-      insertedNode = frag.lastChild;
-      range.insertNode(frag);
-    } else {
-      const frag = document.createRange().createContextualFragment(safeHtml);
-      insertedNode = frag.lastChild;
-      editorRef.current.appendChild(frag);
-    }
-
-    // Always place cursor in a fresh paragraph AFTER the inserted block
-    // so pressing Enter doesn't clone the block's styling
-    const p = document.createElement('p');
-    p.innerHTML = '<br>';
-    if (insertedNode && insertedNode.parentNode) {
-      insertedNode.parentNode.insertBefore(p, insertedNode.nextSibling);
-    } else {
-      editorRef.current.appendChild(p);
-    }
-    const newRange = document.createRange();
-    newRange.setStart(p, 0);
-    newRange.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
-
-    editorRef.current.focus();
+    editorRef.current?.focus();
+    // Use execCommand so the insertion is in the browser's undo history
+    document.execCommand('insertHTML', false, safeHtml + '<p><br></p>');
     cleanAndDispatch();
   };
 
@@ -633,22 +607,12 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
             onClick={() => {
               if (isSourceView) return;
               const selection = window.getSelection();
-              if (selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                const content = range.extractContents();
-                const pre = document.createElement("pre");
-                const code = document.createElement("code");
-                code.appendChild(content);
-                pre.appendChild(code);
-                range.insertNode(pre);
-                
-                // If it's empty, add a placeholder
-                if (pre.textContent.trim() === "") {
-                  code.innerHTML = "// Paste your code here";
-                }
-                
-                cleanAndDispatch();
-              }
+              const selectedText = selection && selection.rangeCount > 0
+                ? selection.toString()
+                : '';
+              const codeContent = selectedText.trim() || '// Paste your code here';
+              document.execCommand('insertHTML', false, `<pre><code>${codeContent}</code></pre><p><br></p>`);
+              cleanAndDispatch();
             }}
             title="Code Block"
             disabled={isSourceView}
@@ -769,6 +733,25 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
           </button>
         </div>
 
+        <div className="rte-group">
+          <button
+            type="button"
+            onClick={() => execCmd("undo")}
+            title="Undo (Ctrl+Z)"
+            disabled={isSourceView}
+          >
+            <i className="bi bi-arrow-counterclockwise"></i>
+          </button>
+          <button
+            type="button"
+            onClick={() => execCmd("redo")}
+            title="Redo (Ctrl+Y)"
+            disabled={isSourceView}
+          >
+            <i className="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={toggleSourceView}
@@ -815,6 +798,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
           ref={editorRef}
           onInput={handleChange}
           onBlur={handleChange}
+          onKeyDown={handleKeyDown}
           onMouseUp={saveSelection}
           onKeyUp={saveSelection}
           onPaste={handlePaste}
