@@ -3,6 +3,7 @@ const { requireAuth } = require('../../middleware/auth');
 const { checkPermission } = require('../../middleware/permissions');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
+const { grantBonus } = require('../../services/CreditHelper');
 
 // GET /api/admin/comments
 router.get('/', requireAuth(), checkPermission('can_manage_comments'), async (req, res) => {
@@ -49,8 +50,16 @@ router.post('/', requireAuth(), checkPermission('can_manage_comments'), async (r
     if (comm.length) {
       const mailService = MailService.getInstance(db);
       const notifier = new NotificationService(mailService);
-      if (status === 'approved') notifier.notifyCommentApproved(comm[0].email, comm[0].user_name).catch(() => {});
-      else if (status === 'rejected') notifier.notifyCommentRejected(comm[0].email, comm[0].user_name, rejection_reason || 'Does not follow community guidelines.').catch(() => {});
+      if (status === 'approved') {
+        notifier.notifyCommentApproved(comm[0].email, comm[0].user_name).catch(() => {});
+        // Grant +2 credits to the member who posted the comment (once per comment)
+        const [mRows] = await db.execute('SELECT id FROM members WHERE LOWER(email)=LOWER(?) LIMIT 1', [comm[0].email]);
+        if (mRows.length) {
+          grantBonus(db, mRows[0].id, 2, `Approved comment #${id}`).catch(() => {});
+        }
+      } else if (status === 'rejected') {
+        notifier.notifyCommentRejected(comm[0].email, comm[0].user_name, rejection_reason || 'Does not follow community guidelines.').catch(() => {});
+      }
     }
 
     return res.json({ status: 'success', message: 'Comment status updated' });

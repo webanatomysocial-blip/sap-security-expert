@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { TableSkeleton } from "./AdminSkeletons.jsx";
 // next-disabled: import "../../css/AdminDashboard.css";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
@@ -9,6 +10,15 @@ import SeoSettings from "./blogs/SeoSettings";
 import CtaSettings from "./blogs/CtaSettings";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
+import ColumnToggle from "./ColumnToggle.jsx";
+
+const NEWS_COLS = [
+  { key: "title",   label: "Title" },
+  { key: "status",  label: "Status" },
+  { key: "date",    label: "Date", optional: true },
+  { key: "views",   label: "Views", optional: true },
+  { key: "actions", label: "Actions" },
+];
 
 const initialFormState = {
   id: "",
@@ -74,9 +84,13 @@ const AdminNews = () => {
   const [view, setView] = useState("list"); // 'list' | 'editor'
   const [formData, setFormData] = useState(initialFormState);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [imageVersion, setImageVersion] = useState(Date.now());
   const [activeTab, setActiveTab] = useState("live"); // 'live' | 'drafts'
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [visibleCols, setVisibleCols] = useState(new Set(NEWS_COLS.filter(c => !c.optional).map(c => c.key)));
+  const show = (key) => visibleCols.has(key);
 
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
@@ -84,6 +98,7 @@ const AdminNews = () => {
   useEffect(() => { fetchItems(); }, []);
 
   const fetchItems = async () => {
+    setLoading(true);
     try {
       const res = await getAdminNews();
       if (res.data) {
@@ -95,6 +110,8 @@ const AdminNews = () => {
     } catch (err) {
       console.error(err);
       addToast("Could not load news items.", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -241,7 +258,9 @@ const AdminNews = () => {
             </div>
           </div>
 
-          {visibleItems.length === 0 ? (
+          {loading ? (
+            <div className="admin-card"><TableSkeleton cols={4} rows={6} /></div>
+          ) : visibleItems.length === 0 ? (
             <div className="admin-card" style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
               <i className="bi bi-newspaper" style={{ fontSize: "2.5rem", marginBottom: "12px", display: "block" }}></i>
               <p style={{ marginBottom: "16px" }}>{activeTab === "live" ? "No published news yet." : "No drafts yet."}</p>
@@ -251,14 +270,17 @@ const AdminNews = () => {
             </div>
           ) : (
             <div className="admin-card">
+              <div className="admin-table-controls">
+                <ColumnToggle columns={NEWS_COLS} visible={visibleCols} onChange={setVisibleCols} />
+              </div>
               <TableScrollContainer>
                 <table className="admin-table">
                   <thead>
                     <tr>
                       <th className="col-xxl text-left">Title</th>
                       <th className="col-sm text-center">Status</th>
-                      <th className="col-md text-left">Date</th>
-                      <th className="col-sm text-center">Views</th>
+                      {show("date") && <th className="col-md text-left">Date</th>}
+                      {show("views") && <th className="col-sm text-center">Views</th>}
                       <th className="col-actions text-center">Actions</th>
                     </tr>
                   </thead>
@@ -280,15 +302,19 @@ const AdminNews = () => {
                               {isLive ? "Live" : "Draft"}
                             </span>
                           </td>
+                          {show("date") && (
                           <td className="col-md text-left">
                             <span style={{ fontSize: "0.80rem", color: "var(--slate-500)", fontWeight: "500" }}>
                               {formatDateLabel(item.date || item.created_at)}
                             </span>
                           </td>
+                          )}
+                          {show("views") && (
                           <td className="col-sm text-center" style={{ fontSize: "0.80rem", color: "#64748b" }}>
                             <i className="bi bi-eye" style={{ marginRight: "4px" }} />
                             {item.view_count || 0}
                           </td>
+                          )}
                           <td className="col-actions text-center">
                             <ActionMenu>
                               <button className="action-menu-item" onClick={() => handleEdit(item)}>

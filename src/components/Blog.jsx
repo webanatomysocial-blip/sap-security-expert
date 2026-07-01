@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Image from "next/image";
 import BlogSidebar from "./BlogSidebar";
 import { getBlogs } from "../services/api";
@@ -46,6 +46,9 @@ const formatDate = (str) => {
 };
 
 const Blogs = () => {
+  const [searchParams] = useSearchParams();
+  const tagParam = searchParams.get("tag") || "";
+
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -80,9 +83,15 @@ const Blogs = () => {
         !search ||
         b.title?.toLowerCase().includes(search.toLowerCase()) ||
         (b.author_name || "").toLowerCase().includes(search.toLowerCase());
-      return matchCat && matchSearch;
+      const matchTag = !tagParam || (() => {
+        try {
+          const tags = typeof b.tags === "string" ? JSON.parse(b.tags) : (b.tags || []);
+          return Array.isArray(tags) && tags.some((t) => t.toLowerCase() === tagParam.toLowerCase());
+        } catch { return false; }
+      })();
+      return matchCat && matchSearch && matchTag;
     });
-  }, [blogs, activeCategory, search]);
+  }, [blogs, activeCategory, search, tagParam]);
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
@@ -149,11 +158,12 @@ const Blogs = () => {
             {/* Result count */}
             {!loading && !error && (
               <div className="blogs-all-result-count">
-                {search || activeCategory !== "all" ? (
+                {search || activeCategory !== "all" || tagParam ? (
                   <span>
                     <strong>{filtered.length}</strong> result{filtered.length !== 1 ? "s" : ""}
                     {search && <> for "<em>{search}</em>"</>}
                     {activeCategory !== "all" && <> in <em>{CATEGORY_LABELS[activeCategory] || activeCategory}</em></>}
+                    {tagParam && <> tagged <em>{tagParam}</em></>}
                     <button className="blogs-clear-filters" onClick={() => { setSearch(""); setActiveCategory("all"); setVisibleCount(12); }}>
                       Clear filters
                     </button>
@@ -194,7 +204,7 @@ const Blogs = () => {
                           />
                           {blog.is_premium == 1 && (
                             <div className="exclusive-badge" style={{ background: "#d97706" }}>
-                              <i className="bi bi-star-fill" /> Premium
+                              <i className="bi bi-star-fill" /> Paid Article
                             </div>
                           )}
                           {blog.is_members_only == 1 && blog.is_premium != 1 && (

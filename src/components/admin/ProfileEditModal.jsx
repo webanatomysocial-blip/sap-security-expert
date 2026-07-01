@@ -119,10 +119,10 @@ const ProfileEditModal = ({ isOpen, onClose, onUpdate }) => {
       className="modal-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal-container">
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Edit Profile</h3>
-          <button className="close-btn" onClick={onClose} aria-label="Close">
+          <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
             <LuX />
           </button>
         </div>

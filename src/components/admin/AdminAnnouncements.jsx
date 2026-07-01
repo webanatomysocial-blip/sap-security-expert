@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { TableSkeleton } from "./AdminSkeletons.jsx";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
 import { useAuth } from "../../context/AuthContext";
@@ -11,6 +12,14 @@ import api from "../../services/api";
 import SimpleRTE from "./SimpleRTE.jsx";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
+import ColumnToggle from "./ColumnToggle.jsx";
+
+const ANNC_COLS = [
+  { key: "title",   label: "Title" },
+  { key: "status",  label: "Status" },
+  { key: "date",    label: "Date", optional: true },
+  { key: "actions", label: "Actions" },
+];
 
 const initialFormState = {
   id: "",
@@ -43,8 +52,12 @@ const AdminAnnouncements = () => {
   const [view, setView] = useState("list");
   const [formData, setFormData] = useState(initialFormState);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("published"); // "published" | "review" | "draft"
+
+  const [visibleCols, setVisibleCols] = useState(new Set(ANNC_COLS.filter(c => !c.optional).map(c => c.key)));
+  const show = (key) => visibleCols.has(key);
 
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
@@ -52,11 +65,14 @@ const AdminAnnouncements = () => {
   const isAdmin = role === "admin";
 
   const fetchItems = async () => {
+    setLoading(true);
     try {
       const res = await getAnnouncements(true);
       if (res.data) setItems(Array.isArray(res.data) ? res.data : []);
     } catch {
       addToast("Failed to load announcements", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -295,13 +311,17 @@ const AdminAnnouncements = () => {
       </div>
 
       <div className="admin-card">
-        <TableScrollContainer>
+        {loading ? <TableSkeleton cols={4} rows={7} /> : null}
+        <div className="admin-table-controls">
+          <ColumnToggle columns={ANNC_COLS} visible={visibleCols} onChange={setVisibleCols} />
+        </div>
+        <TableScrollContainer style={loading ? { display: "none" } : {}}>
           <table className="admin-table">
             <thead>
               <tr>
                 <th className="col-xxl text-left">Title</th>
                 <th className="col-sm text-center">Status</th>
-                <th className="col-md text-left">Date</th>
+                {show("date") && <th className="col-md text-left">Date</th>}
                 <th className="col-actions text-center">Actions</th>
               </tr>
             </thead>
@@ -342,11 +362,13 @@ const AdminAnnouncements = () => {
                         <span className="status-badge status-draft" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Draft</span>
                       )}
                     </td>
+                    {show("date") && (
                     <td className="col-md text-left">
                       <span style={{ fontSize: "0.80rem", color: "var(--slate-500)", fontWeight: "500" }}>
                         {formatDateLabel(item.date || item.created_at)}
                       </span>
                     </td>
+                    )}
                     <td className="col-actions text-center">
                       <ActionMenu>
                         {item.submission_status === "pending" && (

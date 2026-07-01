@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { TableSkeleton } from "./AdminSkeletons.jsx";
+import ColumnToggle from "./ColumnToggle.jsx";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { getAdminMembers, manageAdminMember } from "../../services/api";
@@ -18,6 +20,17 @@ const AdminManageUsers = () => {
 
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const USER_COLS = [
+    { key: "name",    label: "Name" },
+    { key: "email",   label: "Email" },
+    { key: "phone",   label: "Phone", optional: true },
+    { key: "company", label: "Company / Role", optional: true },
+    { key: "status",  label: "Status" },
+    { key: "regdate", label: "Reg. Date", optional: true },
+    { key: "actions", label: "Actions" },
+  ];
+  const [visibleCols, setVisibleCols] = useState(new Set(USER_COLS.filter(c => !c.optional).map(c => c.key)));
+  const show = (key) => visibleCols.has(key);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMember, setSelectedMember] = useState(null);
@@ -266,9 +279,12 @@ const AdminManageUsers = () => {
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <div className="admin-card"><TableSkeleton cols={6} rows={8} /></div>
       ) : (
         <div className="admin-card">
+            <div className="admin-table-controls">
+              <ColumnToggle columns={USER_COLS} visible={visibleCols} onChange={setVisibleCols} />
+            </div>
           <TableScrollContainer>
             <table className="admin-table">
               <thead>
@@ -277,17 +293,17 @@ const AdminManageUsers = () => {
                   <th className="col-lg text-left">Email</th>
                   {filterStatus === "deleted" ? (
                     <>
-                      <th className="col-md text-left">Deleted At</th>
-                      <th className="col-md text-left">Method</th>
+                      {show("phone") && <th className="col-md text-left">Deleted At</th>}
+                      {show("company") && <th className="col-md text-left">Method</th>}
                     </>
                   ) : (
                     <>
-                      <th className="col-md text-left">Phone</th>
-                      <th className="col-lg text-left">Company / Role</th>
+                      {show("phone") && <th className="col-md text-left">Phone</th>}
+                      {show("company") && <th className="col-lg text-left">Company / Role</th>}
                     </>
                   )}
                   <th className="col-sm text-center">Status</th>
-                  <th className="col-md text-left">Reg. Date</th>
+                  {show("regdate") && <th className="col-md text-left">Reg. Date</th>}
                   <th className="col-actions text-center">Actions</th>
                 </tr>
               </thead>
@@ -309,26 +325,18 @@ const AdminManageUsers = () => {
                       </td>
                       {filterStatus === "deleted" ? (
                         <>
-                          <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                            {m.deleted_at ? new Date(m.deleted_at).toLocaleDateString() : "—"}
-                          </td>
-                          <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                            {m.deletion_method || "—"}
-                          </td>
+                          {show("phone") && <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.deleted_at ? new Date(m.deleted_at).toLocaleDateString() : "—"}</td>}
+                          {show("company") && <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.deletion_method || "—"}</td>}
                         </>
                       ) : (
                         <>
-                          <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                            {m.phone || <span style={{ color: "#cbd5e1" }}>—</span>}
-                          </td>
-                          <td className="col-lg text-left wrap-text">
-                            {m.company_name ? (
-                              <strong style={{ fontSize: "0.83rem", display: "block" }}>{m.company_name}</strong>
-                            ) : null}
-                            {m.job_role ? (
-                              <span style={{ fontSize: "0.78rem", color: "#64748b" }}>{m.job_role}</span>
-                            ) : (!m.company_name ? <span style={{ color: "#cbd5e1" }}>—</span> : null)}
-                          </td>
+                          {show("phone") && <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.phone || <span style={{ color: "#cbd5e1" }}>—</span>}</td>}
+                          {show("company") && (
+                            <td className="col-lg text-left wrap-text">
+                              {m.company_name ? <strong style={{ fontSize: "0.83rem", display: "block" }}>{m.company_name}</strong> : null}
+                              {m.job_role ? <span style={{ fontSize: "0.78rem", color: "#64748b" }}>{m.job_role}</span> : (!m.company_name ? <span style={{ color: "#cbd5e1" }}>—</span> : null)}
+                            </td>
+                          )}
                         </>
                       )}
                       <td className="col-sm text-center">
@@ -336,9 +344,11 @@ const AdminManageUsers = () => {
                           {m.status === "approved" ? "Active" : m.status.charAt(0).toUpperCase() + m.status.slice(1)}
                         </span>
                       </td>
-                      <td className="col-md text-left" style={{ fontSize: "0.80rem", color: "var(--slate-500)", fontWeight: 500 }}>
-                        {new Date(m.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
-                      </td>
+                      {show("regdate") && (
+                        <td className="col-md text-left" style={{ fontSize: "0.80rem", color: "var(--slate-500)", fontWeight: 500 }}>
+                          {new Date(m.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
+                        </td>
+                      )}
                       <td className="col-actions text-center">
                         <ActionMenu>
                           <button className="action-menu-item" onClick={() => setSelectedMember(m)}>

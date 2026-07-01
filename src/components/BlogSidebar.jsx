@@ -191,7 +191,12 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
                 <li key={post.id} className="latest-post-item">
                   <Link to={`/${(post.category || "blogs").toLowerCase().replace(/\s+/g, "-")}/${post.slug || post.id}`}>
                     {highlightSearch(post.title)}
-                    {Number(post.is_members_only) === 1 && (
+                    {Number(post.is_premium) === 1 && (
+                      <span className="sidebar-exclusive-tag" style={{ background: "#d97706" }}>
+                        <i className="bi bi-star-fill"></i> Paid Article
+                      </span>
+                    )}
+                    {Number(post.is_members_only) === 1 && Number(post.is_premium) !== 1 && (
                       <span className="sidebar-exclusive-tag">
                         <i className="bi bi-lock-fill"></i> Exclusive
                       </span>
@@ -281,7 +286,12 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
                     </div>
                     <div className="related-post-content">
                       <span className="related-post-title">{post.title}</span>
-                      {Number(post.is_members_only) === 1 && (
+                      {Number(post.is_premium) === 1 && (
+                        <span className="sidebar-exclusive-tag" style={{ background: "#d97706" }}>
+                          <i className="bi bi-star-fill"></i> Paid Article
+                        </span>
+                      )}
+                      {Number(post.is_members_only) === 1 && Number(post.is_premium) !== 1 && (
                         <span className="sidebar-exclusive-tag">
                           <i className="bi bi-lock-fill"></i> Exclusive
                         </span>

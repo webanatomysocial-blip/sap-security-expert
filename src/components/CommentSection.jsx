@@ -30,7 +30,13 @@ const CommentItem = ({ comment, depth = 0, replyMap, onReply }) => {
     <div className={`comment-item ${depth > 0 ? "reply-item" : ""}`}>
       <div className="comment-content-wrapper">
         <div className="comment-header">
-          <span className="comment-author">{decodeEntities(comment.author)}</span>
+          {comment.member_id ? (
+            <Link to={`/member/${comment.member_id}`} className="comment-author" style={{ textDecoration: "none" }}>
+              {decodeEntities(comment.author)}
+            </Link>
+          ) : (
+            <span className="comment-author">{decodeEntities(comment.author)}</span>
+          )}
           <span className="comment-date">
             {new Date(comment.date).toLocaleDateString("en-US", {
               month: "long",
@@ -154,6 +160,7 @@ const CommentSection = ({ blogId, onCommentAdded, isExclusive }) => {
       email: email,
       text: newComment,
       parent_id: replyTo ? replyTo.id : null,
+      member_id: (isLoggedIn && member?.id) ? member.id : null,
     };
 
     setIsSubmitting(true);

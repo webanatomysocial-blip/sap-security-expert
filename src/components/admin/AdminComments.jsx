@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { TableSkeleton } from "./AdminSkeletons.jsx";
+import ColumnToggle from "./ColumnToggle.jsx";
 // next-disabled: import "../../css/AdminDashboard.css";
 import useScrollLock from "../../hooks/useScrollLock";
 // import { API_BASE_URL } from "../../config";
@@ -19,6 +21,16 @@ const AdminComments = () => {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
   const [processingId, setProcessingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const COMMENT_COLS = [
+    { key: "author",  label: "Author" },
+    { key: "comment", label: "Comment" },
+    { key: "date",    label: "Date", optional: true },
+    { key: "status",  label: "Status" },
+    { key: "actions", label: "Actions" },
+  ];
+  const [visibleCols, setVisibleCols] = useState(new Set(COMMENT_COLS.filter(c => !c.optional).map(c => c.key)));
+  const show = (key) => visibleCols.has(key);
   const [editText, setEditText] = useState("");
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
@@ -50,6 +62,8 @@ const AdminComments = () => {
           console.error("Fetch comments failed", error);
           addToast("Failed to fetch comments", "error");
         }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     loadComments();
@@ -213,13 +227,17 @@ const AdminComments = () => {
       </div>
 
       <div className="admin-card">
-        <TableScrollContainer>
+        {loading ? <TableSkeleton cols={5} rows={8} /> : null}
+        <div className="admin-table-controls">
+          <ColumnToggle columns={COMMENT_COLS} visible={visibleCols} onChange={setVisibleCols} />
+        </div>
+        <TableScrollContainer style={loading ? { display: "none" } : {}}>
           <table className="admin-table">
             <thead>
                 <tr>
                   <th className="col-md text-left">Author</th>
                   <th className="col-auto text-left">Comment</th>
-                  <th className="col-md text-left">Date</th>
+                  {show("date") && <th className="col-md text-left">Date</th>}
                   <th className="col-sm text-center">Status</th>
                   <th className="col-actions text-center">Actions</th>
                 </tr>
@@ -310,6 +328,7 @@ const AdminComments = () => {
                          )}
                        </div>
                      </td>
+                     {show("date") && (
                      <td className="col-md text-left">
                        <span className="comment-date" style={{ fontSize: "0.8rem", color: "#64748b" }}>
                          {new Date(comment.date).toLocaleDateString("en-US", {
@@ -319,6 +338,7 @@ const AdminComments = () => {
                          })}
                        </span>
                      </td>
+                     )}
                      <td className="col-sm text-center">
                        <span
                          className={`status-badge status-${comment.status || "pending"}`}

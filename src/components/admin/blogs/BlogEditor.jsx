@@ -248,7 +248,12 @@ const BlogEditor = ({
                   type="checkbox"
                   name="is_premium"
                   checked={formData.is_premium == 1}
-                  onChange={(e) => handleInputChange({ target: { name: "is_premium", value: e.target.checked ? 1 : 0 } })}
+                  onChange={(e) => {
+                  const val = e.target.checked ? 1 : 0;
+                  handleInputChange({ target: { name: "is_premium", value: val } });
+                  // Premium and Exclusive are mutually exclusive — clear members-only when premium is enabled
+                  if (val === 1) handleInputChange({ target: { name: "is_members_only", value: 0 } });
+                }}
                   style={{ width: "16px", height: "16px", accentColor: "#d97706" }}
                 />
                 <i className="bi bi-star-fill" style={{ color: "#d97706" }}></i>

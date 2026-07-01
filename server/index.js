@@ -178,6 +178,9 @@ app.use('/api', require('./routes/public'));
 const adsRouter = require('./routes/admin/ads');
 app.use('/api/ads', adsRouter);
 app.use('/api/admin/ads', adsRouter);
+const blogAdsRouter = require('./routes/admin/blog-ads');
+app.use('/api/admin/blog-ads', blogAdsRouter);
+app.use('/api/blog-ads', blogAdsRouter);
 
 // Admin — announcements
 const announcementsRouter = require('./routes/admin/announcements');
@@ -222,6 +225,12 @@ app.use('/api/admin/comments', require('./routes/admin/comments'));
 
 // Homepage Featured Insights (admin-curated)
 app.use('/api/admin/featured-insights', require('./routes/admin/featured'));
+
+// Email templates
+app.use('/api/admin/email-templates', require('./routes/admin/email-templates'));
+
+// Changelog
+app.use('/api/admin/changelog', require('./routes/admin/changelog'));
 
 // Cron endpoint (secured by CRON_SECRET)
 app.post('/api/cron/send-emails', async (req, res) => {

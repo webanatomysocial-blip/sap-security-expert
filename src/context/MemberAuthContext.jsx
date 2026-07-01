@@ -77,6 +77,13 @@ export const MemberAuthProvider = ({ children }) => {
     localStorage.setItem("isContributor", isContrib ? "true" : "false");
     // Fetch credits after login
     setTimeout(() => refreshCredits(), 200);
+    // Claim LinkedIn share bonus if member shared before logging in
+    if (localStorage.getItem("linkedin_shared_pending") === "1") {
+      localStorage.removeItem("linkedin_shared_pending");
+      import("../services/api").then(({ claimLinkedInBonus }) => {
+        claimLinkedInBonus().then(() => refreshCredits()).catch(() => {});
+      });
+    }
   };
 
   const updateMember = (updatedMemberData) => {

@@ -5,6 +5,7 @@ const { checkPermission } = require('../../middleware/permissions');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
 const CacheService = require('../../services/CacheService');
+const { grantBonus } = require('../../services/CreditHelper');
 
 const cache = new CacheService(1800);
 
@@ -137,6 +138,14 @@ router.put('/:id/review', requireAuth(), checkPermission('can_review_blogs'), as
       const postUrl = `${siteUrl}/${blog.category}/${blog.slug}`;
       if (blog.author_email) notifier.notifyBlogApproved(blog.author_email, blog.title, postUrl).catch(() => {});
 
+      // Grant +20 credits to the member account matching the blog author's email (once per blog)
+      if (blog.author_email) {
+        const [mRows] = await db.execute('SELECT id FROM members WHERE LOWER(email)=LOWER(?) LIMIT 1', [blog.author_email]);
+        if (mRows.length) {
+          grantBonus(db, mRows[0].id, 20, `Article published: blog #${id}`).catch(() => {});
+        }
+      }
+
       return res.json({ status: 'success', message: 'Blog approved and published.' });
 
     } else if (action === 'reject') {
@@ -222,6 +231,13 @@ router.post('/toggle-exclusive', requireAdmin, async (req, res) => {
   const { id, is_members_only } = req.body || {};
   if (!id) return res.status(400).json({ status: 'error', message: 'ID required' });
   try {
+    // Block enabling exclusive on a premium article
+    if (is_members_only) {
+      const [[blog]] = await db.execute('SELECT is_premium FROM blogs WHERE id=?', [id]);
+      if (blog && Number(blog.is_premium) === 1) {
+        return res.status(400).json({ status: 'error', message: 'Premium articles cannot be set as Exclusive.' });
+      }
+    }
     await db.execute('UPDATE blogs SET is_members_only=? WHERE id=?', [is_members_only ? 1 : 0, id]);
     return res.json({ status: 'success', message: 'Exclusive content setting updated.' });
   } catch (err) {
@@ -245,6 +261,19 @@ router.post('/toggle-premium', requireAdmin, async (req, res) => {
       await db.execute('UPDATE blogs SET is_premium=? WHERE id=?', [isPremium, id]);
     }
     return res.json({ status: 'success', message: 'Premium setting updated.' });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// POST /api/admin/blogs/toggle-expert-pick
+router.post('/toggle-expert-pick', requireAdmin, async (req, res) => {
+  const db = req.db;
+  const { id, is_expert_pick } = req.body || {};
+  if (!id) return res.status(400).json({ status: 'error', message: 'ID required' });
+  try {
+    await db.execute('UPDATE blogs SET is_expert_pick=? WHERE id=?', [is_expert_pick ? 1 : 0, id]);
+    return res.json({ status: 'success', message: 'Expert pick setting updated.' });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
   }

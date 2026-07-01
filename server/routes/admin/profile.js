@@ -38,7 +38,7 @@ router.get('/profile', requireAuth(), async (req, res) => {
       [req.session.admin_id]
     );
     if (!rows.length) return res.status(404).json({ status: 'error', message: 'Profile not found' });
-    return res.json({ status: 'success', user: rows[0] });
+    return res.json({ status: 'success', user: rows[0], csrf_token: req.session.csrf_token || null });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
   }

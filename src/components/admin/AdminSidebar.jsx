@@ -72,6 +72,16 @@ const AdminSidebar = ({
       path: "/admin/bundles",
       icon: "bi-stack",
     },
+    {
+      label: "Email Templates",
+      path: "/admin/email-templates",
+      icon: "bi-envelope-open-text",
+    },
+    {
+      label: "Change Logs",
+      path: "/admin/changelog",
+      icon: "bi-clock-history",
+    },
   ];
 
   // Contributor sees only their permitted modules

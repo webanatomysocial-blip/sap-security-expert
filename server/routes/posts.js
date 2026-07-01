@@ -26,6 +26,24 @@ const AUTHOR_FIELDS = `
   COALESCE(c.personal_website, u.personal_website) as author_website
 `;
 
+// GET /api/posts/exclusive-count — number of exclusive+premium articles
+router.get('/exclusive-count', async (req, res) => {
+  const db = req.db;
+  try {
+    const [rows] = await db.execute(
+      `SELECT
+        COUNT(CASE WHEN is_members_only = 1 THEN 1 END) AS exclusive_count,
+        COUNT(CASE WHEN is_premium = 1 THEN 1 END)      AS premium_count
+       FROM blogs
+       WHERE status IN ('approved','published')`
+    );
+    const row = rows[0] || {};
+    res.json({ exclusive_count: row.exclusive_count || 0, premium_count: row.premium_count || 0 });
+  } catch {
+    res.json({ exclusive_count: 0, premium_count: 0 });
+  }
+});
+
 // GET /api/posts  or  GET /api/posts/:idOrSlug
 router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) => {
   const db = req.db;
@@ -167,6 +185,7 @@ router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) =
     rows.forEach(b => {
       if (!b.author_name) { b.author_name = 'Guest Author'; b.author_image = 'https://placehold.co/100x100?text=Author'; }
       try { b.co_authors = b.co_authors ? JSON.parse(b.co_authors) : []; } catch { b.co_authors = []; }
+      try { b.secondary_categories = b.secondary_categories ? JSON.parse(b.secondary_categories) : []; } catch { b.secondary_categories = []; }
     });
 
     return res.json(rows);
