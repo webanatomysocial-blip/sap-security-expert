@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { TableSkeleton } from "./AdminSkeletons.jsx";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
 import {
@@ -89,6 +90,7 @@ const AdminLearnings = () => {
   const [view, setView] = useState("list");
   const [formData, setFormData] = useState(initialFormState);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [imageVersion, setImageVersion] = useState(Date.now());
   const [activeTab, setActiveTab] = useState("live");
   const [searchQuery, setSearchQuery] = useState("");
@@ -100,6 +102,7 @@ const AdminLearnings = () => {
   useEffect(() => { fetchLearnings(); }, []);
 
   const fetchLearnings = async () => {
+    setLoading(true);
     try {
       const res = await getAdminLearnings();
       if (res.data) {
@@ -112,6 +115,7 @@ const AdminLearnings = () => {
         })));
       }
     } catch { addToast("Could not load learnings.", "error"); }
+    finally { setLoading(false); }
   };
 
   const handleInputChange = (e) => {
@@ -293,7 +297,9 @@ const AdminLearnings = () => {
         </div>
       )}
 
-      {view === "list" ? (
+      {view === "list" && loading ? (
+        <div className="admin-card"><TableSkeleton cols={5} rows={7} /></div>
+      ) : view === "list" ? (
         <BlogList
           blogs={visibleItems}
           setBlogs={setLearnings}

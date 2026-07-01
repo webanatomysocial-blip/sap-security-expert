@@ -105,10 +105,32 @@ router.get(['/get_homepage_data.php', '/homepage'], async (req, res) => {
       `SELECT id, full_name, role, image AS profile_image, created_at,
          (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
           WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count
-       FROM contributors WHERE status = 'approved' ORDER BY created_at DESC`
+       FROM contributors WHERE status = 'approved' ORDER BY contributions_count DESC, created_at DESC`
     );
 
-    const payload = JSON.stringify({ status: 'success', heroArticles, recent, trending, contributors });
+    const [expertPicks] = await db.execute(
+      `SELECT b.id, b.title, b.slug, b.category, b.image, b.excerpt, b.date, b.is_premium, b.is_members_only, b.is_expert_pick,
+        ${AUTHOR_FIELDS}
+       FROM blogs b
+       LEFT JOIN users u ON b.author_id = u.id
+       LEFT JOIN contributors c ON u.contributor_id = c.id
+       WHERE b.status = 'approved' AND b.is_expert_pick = 1 AND b.date <= ?
+       ORDER BY b.date DESC, b.id DESC LIMIT 8`,
+      [nowUtc]
+    );
+
+    const [premiumArticles] = await db.execute(
+      `SELECT b.id, b.title, b.slug, b.category, b.image, b.excerpt, b.date, b.is_premium, b.is_members_only, b.credits_required,
+        ${AUTHOR_FIELDS}
+       FROM blogs b
+       LEFT JOIN users u ON b.author_id = u.id
+       LEFT JOIN contributors c ON u.contributor_id = c.id
+       WHERE b.status = 'approved' AND (b.is_premium = 1 OR b.is_members_only = 1) AND b.date <= ?
+       ORDER BY b.is_premium DESC, b.date DESC, b.id DESC LIMIT 8`,
+      [nowUtc]
+    );
+
+    const payload = JSON.stringify({ status: 'success', heroArticles, recent, trending, contributors, expertPicks, premiumArticles });
     if (!isAdmin && !isLocal) cache.set(cacheKey, payload);
     else cache.invalidate(cacheKey);
 
@@ -119,13 +141,87 @@ router.get(['/get_homepage_data.php', '/homepage'], async (req, res) => {
   }
 });
 
+// GET /api/popular-tags
+router.get('/popular-tags', async (req, res) => {
+  const db = req.db;
+  try {
+    const [rows] = await db.execute(
+      "SELECT tags FROM blogs WHERE status IN ('approved','published') AND tags IS NOT NULL AND tags != '' LIMIT 200"
+    );
+    const freq = {};
+    rows.forEach(({ tags }) => {
+      try {
+        const list = typeof tags === 'string' ? JSON.parse(tags) : tags;
+        if (Array.isArray(list)) list.forEach(t => { const k = t.trim(); if (k) freq[k] = (freq[k] || 0) + 1; });
+      } catch { /* skip malformed */ }
+    });
+    const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([tag]) => tag);
+    return res.json({ tags: sorted });
+  } catch {
+    return res.json({ tags: [] });
+  }
+});
+
+// GET /api/contributors/leaderboard
+router.get('/contributors/leaderboard', async (req, res) => {
+  const db = req.db;
+  try {
+    const [rows] = await db.execute(
+      `SELECT c.id, c.full_name AS name, c.role, c.image AS profile_image, c.short_bio, c.created_at,
+         (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
+          WHERE u.contributor_id = c.id AND b.status IN ('approved','published')) AS contributions_count
+       FROM contributors c WHERE c.status = 'approved'
+       ORDER BY contributions_count DESC, c.created_at ASC`
+    );
+    return res.json(rows);
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// GET /api/members/:id/public — public member profile
+router.get('/members/:id/public', async (req, res) => {
+  const db = req.db;
+  try {
+    const [rows] = await db.execute(
+      `SELECT id, name, profile_image, job_role, company_name, location, profile_visibility, created_at FROM members WHERE id = ? AND status = 'approved' LIMIT 1`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ status: 'error', message: 'Member not found' });
+    const m = rows[0];
+    const vis = (() => {
+      try { return m.profile_visibility ? JSON.parse(m.profile_visibility) : {}; } catch { return {}; }
+    })();
+    const defaults = { show_name: true, show_picture: true, show_company: false, show_email: false, show_stats: true, show_badges: true };
+    const v = { ...defaults, ...vis };
+    const [[{ comment_count }]] = await db.execute(
+      "SELECT COUNT(*) AS comment_count FROM comments WHERE member_id = ? AND status = 'approved'",
+      [m.id]
+    ).catch(() => [[{ comment_count: 0 }]]);
+    return res.json({
+      id: m.id,
+      name: v.show_name ? m.name : 'Community Member',
+      profile_image: v.show_picture ? m.profile_image : null,
+      job_role: m.job_role || null,
+      company_name: v.show_company ? m.company_name : null,
+      location: m.location || null,
+      joined: m.created_at,
+      comment_count: v.show_stats ? comment_count : null,
+    });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // GET /api/stats/community  or  GET /api/get_community_stats.php
 router.get(['/stats/community', '/get_community_stats.php'], async (req, res) => {
   const db = req.db;
   try {
     const [[c]] = await db.execute("SELECT COUNT(*) as c FROM contributors WHERE status = 'approved'");
     const [[m]] = await db.execute("SELECT COUNT(*) as c FROM members WHERE status = 'approved'");
-    return res.json({ active_contributors: c.c, total_members: m.c });
+    const [[a]] = await db.execute("SELECT COUNT(*) as c FROM blogs WHERE status IN ('approved','published')");
+    const [[cm]] = await db.execute("SELECT COUNT(*) as c FROM comments WHERE status = 'approved'");
+    return res.json({ active_contributors: c.c, total_members: m.c, total_articles: a.c, total_comments: cm.c });
   } catch {
     return res.json({ active_contributors: 0, total_members: 0 });
   }

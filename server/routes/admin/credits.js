@@ -140,6 +140,31 @@ router.post('/grant-credits', requireAdmin, async (req, res) => {
   }
 });
 
+// ── GET /api/admin/credit-transactions — all transactions across all members ──
+router.get('/credit-transactions', requireAdmin, async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+  const offset = (page - 1) * limit;
+  try {
+    const [rows] = await req.db.execute(
+      `SELECT ct.id, ct.type, ct.credits_delta, ct.amount_paise, ct.note, ct.created_at,
+              m.id AS member_id, m.name AS member_name, m.email AS member_email,
+              cb.name AS bundle_name
+       FROM credit_transactions ct
+       JOIN members m ON m.id = ct.member_id
+       LEFT JOIN payment_orders po ON po.razorpay_order_id = ct.razorpay_order_id
+       LEFT JOIN credit_bundles cb ON cb.id = po.bundle_id
+       ORDER BY ct.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset]
+    );
+    const [[{ total }]] = await req.db.execute('SELECT COUNT(*) AS total FROM credit_transactions');
+    return res.json({ status: 'success', transactions: rows, total, page, limit });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // ── GET /api/admin/member-credits/:id — get a specific member's balance ────────
 router.get('/member-credits/:id', requireAdmin, async (req, res) => {
   try {

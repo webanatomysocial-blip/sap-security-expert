@@ -1,13 +1,75 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 import BlogLayout from "./BlogLayout";
+import ScrollNudgeModal from "./ScrollNudgeModal";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import {
   getPostBySlug,
   getCommentsByBlogId,
   updatePostViews,
   getAdsByZone,
+  getBlogAdsForSlug,
+  trackBlogAdClick,
 } from "../services/api";
+
+function InlineAd({ ad }) {
+  const handleClick = () => {
+    trackBlogAdClick(ad.id).catch(() => {});
+    if (ad.link) window.open(ad.link, "_blank", "noopener,noreferrer");
+  };
+  return (
+    <div className="in-article-ad" onClick={handleClick} style={{ cursor: ad.link ? "pointer" : "default" }}>
+      <img src={ad.image} alt={ad.title || "Advertisement"} />
+    </div>
+  );
+}
+
+function StripAd({ ad }) {
+  const handleClick = () => {
+    trackBlogAdClick(ad.id).catch(() => {});
+    if (ad.link) window.open(ad.link, "_blank", "noopener,noreferrer");
+  };
+  return (
+    <div className="strip-ad" onClick={handleClick} style={{ cursor: ad.link ? "pointer" : "default" }}>
+      <img src={ad.image} alt={ad.title || "Advertisement"} />
+    </div>
+  );
+}
+
+function buildContentWithAds(html, inlineAds) {
+  if (!html || !inlineAds.length)
+    return <div className="blog-content-body" dangerouslySetInnerHTML={{ __html: html }} />;
+
+  const sorted = [...inlineAds].sort((a, b) => a.position - b.position);
+  const nodes = [];
+  let remaining = html;
+  let paraCount = 0;
+  let key = 0;
+
+  while (remaining.length) {
+    const idx = remaining.indexOf('</p>');
+    if (idx === -1) {
+      // Tail content after the last </p>
+      nodes.push(<div key={key++} dangerouslySetInnerHTML={{ __html: remaining }} />);
+      break;
+    }
+
+    paraCount++;
+    const chunk = remaining.slice(0, idx + 4); // up to and including </p>
+    remaining = remaining.slice(idx + 4);
+
+    nodes.push(<div key={key++} dangerouslySetInnerHTML={{ __html: chunk }} />);
+
+    // Insert every ad whose position matches this paragraph count
+    for (const ad of sorted) {
+      if (ad.position === paraCount) {
+        nodes.push(<InlineAd key={`ad-${ad.id}-${paraCount}`} ad={ad} />);
+      }
+    }
+  }
+
+  return <div className="blog-content-body">{nodes}</div>;
+}
 
 export default function DynamicBlog() {
   const { blogId } = useParams(); // Expecting slug
@@ -23,6 +85,8 @@ export default function DynamicBlog() {
     image: "",
     link: "",
   });
+  const [inlineAds, setInlineAds] = useState([]);
+  const [stripAds, setStripAds] = useState([]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,7 +101,7 @@ export default function DynamicBlog() {
     let visitorToken = localStorage.getItem("visitor_token");
     if (!visitorToken) {
       visitorToken =
-        "visitor_" + Math.random().toString(36).substr(2, 9) + Date.now();
+        "visitor_" + Math.random().toString(36).substring(2, 11) + Date.now();
       localStorage.setItem("visitor_token", visitorToken);
     }
 
@@ -140,9 +204,16 @@ export default function DynamicBlog() {
           setSidebarAd(data);
         }
       })
-      .catch(() => {
-        // Silent fail for ads
-      });
+      .catch(() => {});
+
+    // Fetch in-article & strip ads
+    getBlogAdsForSlug(blogId)
+      .then((res) => {
+        const ads = res.data?.ads || [];
+        setInlineAds(ads.filter(a => a.ad_type === "inline"));
+        setStripAds(ads.filter(a => a.ad_type === "strip"));
+      })
+      .catch(() => {});
 
     // Fetch comments count
     if (blogId) {
@@ -224,10 +295,10 @@ export default function DynamicBlog() {
         blogId={blogId}
         title={blog.title}
         content={
-          <div
-            className="blog-content-body"
-            dangerouslySetInnerHTML={{ __html: blog.content }}
-          />
+          <>
+            {buildContentWithAds(blog.content, inlineAds)}
+            {stripAds.map(ad => <StripAd key={ad.id} ad={ad} />)}
+          </>
         }
         isPremium={!isLearningPath && Number(blog.is_premium) === 1}
         isPremiumLocked={!isLearningPath && premiumLocked}
@@ -277,6 +348,9 @@ export default function DynamicBlog() {
           buttonText: blog.cta_button_text,
           buttonLink: blog.cta_button_link,
         }}
+      />
+      <ScrollNudgeModal
+        isFreeArticle={!isExclusive && !premiumLocked && Number(blog.is_premium) !== 1}
       />
     </>
   );

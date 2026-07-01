@@ -1,9 +1,11 @@
 import { useState, useCallback } from "react";
 import ActionMenu from "../ActionMenu";
+import ColumnToggle from "../ColumnToggle";
 import {
   recalculatePlagiarism,
   toggleExclusiveContent,
   togglePremiumContent,
+  toggleExpertPick,
 } from "../../../services/api";
 import { useToast } from "../../../context/ToastContext";
 import TableScrollContainer from "../TableScrollContainer";
@@ -20,10 +22,27 @@ const BlogList = ({
 }) => {
   const [recalculating, setRecalculating] = useState({});
   const [togglingMap, setTogglingMap] = useState({});
-  const [premiumModal, setPremiumModal] = useState(null); // { blog } when asking for credits
+  const [premiumModal, setPremiumModal] = useState(null);
   const [premiumCredits, setPremiumCredits] = useState("1");
   const [copiedSlug, setCopiedSlug] = useState(null);
   const { addToast } = useToast();
+
+  // Column definitions — optional cols hidden by default
+  const COL_DEFS = [
+    { key: "title",   label: "Title" },
+    { key: "slug",    label: "Slug" },
+    { key: "status",  label: "Status" },
+    { key: "updated", label: "Updated date", optional: true },
+    { key: "exc",     label: "Exclusive toggle" },
+    { key: "paid",    label: "Paid toggle" },
+    { key: "expert",  label: "Expert Pick" },
+    { key: "seo",     label: "SEO score", optional: true },
+    { key: "plag",    label: "Plagiarism score", optional: true },
+    { key: "actions", label: "Actions" },
+  ];
+  const DEFAULT_VISIBLE = new Set(COL_DEFS.filter((c) => !c.optional).map((c) => c.key));
+  const [visibleCols, setVisibleCols] = useState(DEFAULT_VISIBLE);
+  const show = (key) => visibleCols.has(key);
 
   const copySlug = useCallback((blog) => {
     const category = (blog.category || "blogs").toLowerCase().replace(/\s+/g, "-");
@@ -66,6 +85,11 @@ const BlogList = ({
   };
 
   const handleToggleExclusive = async (blog) => {
+    // Premium and Exclusive are mutually exclusive
+    if (Number(blog.is_premium) === 1) {
+      addToast("Premium articles cannot be set as Exclusive. Remove the Premium flag first.", "error");
+      return;
+    }
     const newVal = Number(blog.is_members_only) === 1 ? 0 : 1;
     setTogglingMap((prev) => ({ ...prev, [blog.id]: true }));
     try {
@@ -118,7 +142,13 @@ const BlogList = ({
         addToast(`Premium ${newVal ? "enabled" : "disabled"}.`, "success");
         setBlogs((prev) =>
           prev.map((b) => b.id === blog.id
-            ? { ...b, is_premium: newVal, ...(newVal === 1 && credits != null ? { credits_required: parseInt(credits) || 1 } : {}) }
+            ? {
+                ...b,
+                is_premium: newVal,
+                // Enabling premium clears exclusive — they are mutually exclusive
+                ...(newVal === 1 ? { is_members_only: 0 } : {}),
+                ...(newVal === 1 && credits != null ? { credits_required: parseInt(credits) || 1 } : {}),
+              }
             : b)
         );
       } else {
@@ -128,6 +158,24 @@ const BlogList = ({
       addToast("Error updating premium flag", "error");
     } finally {
       setTogglingMap((prev) => ({ ...prev, [`p_${blog.id}`]: false }));
+    }
+  };
+
+  const handleToggleExpertPick = async (blog) => {
+    const newVal = Number(blog.is_expert_pick) === 1 ? 0 : 1;
+    setTogglingMap((prev) => ({ ...prev, [`ep_${blog.id}`]: true }));
+    try {
+      const res = await toggleExpertPick({ id: blog.id, is_expert_pick: newVal });
+      if (res.data?.status === "success") {
+        addToast(`Expert Pick ${newVal ? "enabled" : "disabled"}.`, "success");
+        setBlogs((prev) => prev.map((b) => b.id === blog.id ? { ...b, is_expert_pick: newVal } : b));
+      } else {
+        addToast(res.data?.message || "Failed to update expert pick", "error");
+      }
+    } catch {
+      addToast("Error updating expert pick flag", "error");
+    } finally {
+      setTogglingMap((prev) => ({ ...prev, [`ep_${blog.id}`]: false }));
     }
   };
 
@@ -149,10 +197,11 @@ const BlogList = ({
   return (
     <>
     <div className="admin-card">
-      <div className="card-header-actions" style={{ padding: "16px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+      <div className="admin-table-controls">
         <button onClick={handleExport} className="btn-filter" title="Export to CSV">
           <i className="bi bi-download"></i> Export
         </button>
+        <ColumnToggle columns={COL_DEFS} visible={visibleCols} onChange={setVisibleCols} />
       </div>
       <TableScrollContainer>
         <table className="admin-table">
@@ -164,11 +213,12 @@ const BlogList = ({
                 <div style={{ fontSize: "0.62rem", fontWeight: 400, color: "#94a3b8", marginTop: 2 }}>click to copy</div>
               </th>
               <th className="col-sm text-center">Status</th>
-              <th className="col-md text-left">Updated</th>
-              {isAdmin && <th className="col-xs text-center">Exc</th>}
-              {isAdmin && <th className="col-xs text-center" style={{ color: "#d97706" }}>★ Paid</th>}
-              <th className="col-xs text-center">SEO</th>
-              <th className="col-xs text-center">Plag</th>
+              {show("updated") && <th className="col-md text-left">Updated</th>}
+              {isAdmin && show("exc") && <th className="col-xs text-center">Exc</th>}
+              {isAdmin && show("paid") && <th className="col-xs text-center" style={{ color: "#d97706" }}>★ Paid</th>}
+              {isAdmin && show("expert") && <th className="col-xs text-center" style={{ color: "#7c3aed" }}>⭐ Expert</th>}
+              {show("seo") && <th className="col-xs text-center">SEO</th>}
+              {show("plag") && <th className="col-xs text-center">Plag</th>}
               <th className="col-actions text-center">Actions</th>
             </tr>
           </thead>
@@ -274,33 +324,31 @@ const BlogList = ({
                       <span className="status-badge status-draft" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Drt</span>
                     )}
                   </td>
-                  <td className="col-md text-left">
-                    <span
-                      style={{
-                        fontSize: "0.8rem",
-                        color: "var(--slate-500)",
-                        fontWeight: "500",
-                      }}
-                    >
-                      {formatDate(blog.date)}
-                    </span>
-                  </td>
-                  {isAdmin && (
+                  {show("updated") && (
+                    <td className="col-md text-left">
+                      <span style={{ fontSize: "0.8rem", color: "var(--slate-500)", fontWeight: "500" }}>
+                        {formatDate(blog.date)}
+                      </span>
+                    </td>
+                  )}
+                  {isAdmin && show("exc") && (
                     <td className="col-xs text-center">
                       <label
                         className={`toggle-switch ${togglingMap[blog.id] ? "toggle-loading" : ""}`}
+                        title={Number(blog.is_premium) === 1 ? "Disabled — Premium articles cannot also be Exclusive" : ""}
+                        style={Number(blog.is_premium) === 1 ? { opacity: 0.35, cursor: "not-allowed", pointerEvents: "none" } : {}}
                       >
                         <input
                           type="checkbox"
                           checked={Number(blog.is_members_only) === 1}
                           onChange={() => handleToggleExclusive(blog)}
-                          disabled={togglingMap[blog.id]}
+                          disabled={togglingMap[blog.id] || Number(blog.is_premium) === 1}
                         />
                         <span className="toggle-slider" style={{ transform: "scale(0.8)" }}></span>
                       </label>
                     </td>
                   )}
-                  {isAdmin && (
+                  {isAdmin && show("paid") && (
                     <td className="col-xs text-center">
                       <label
                         className={`toggle-switch ${togglingMap[`p_${blog.id}`] ? "toggle-loading" : ""}`}
@@ -317,58 +365,68 @@ const BlogList = ({
                       </label>
                     </td>
                   )}
-                  <td className="col-xs text-center">
-                    <span
-                      style={{
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        fontSize: "0.75rem",
-                        fontWeight: "600",
-                        background: getScoreColor(blog.seo_score || 0).bg,
-                        color: getScoreColor(blog.seo_score || 0).text,
-                      }}
-                    >
-                      {blog.seo_score || 0}
-                    </span>
-                  </td>
-                  <td className="col-xs text-center">
-                    <span
-                      style={{
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        fontSize: "0.75rem",
-                        fontWeight: "600",
-                        background:
-                          blog.plagiarism_score === -1
-                            ? "#fee2e2"
-                            : blog.plagiarism_score >= 95
-                              ? "#dcfce7"
-                              : blog.plagiarism_score >= 85
-                                ? "#ffedd5"
-                                : blog.plagiarism_score > 0
-                                  ? "#fee2e2"
-                                  : "#f1f5f9",
-                        color:
-                          blog.plagiarism_score === -1
-                            ? "#991b1b"
-                            : blog.plagiarism_score >= 95
-                              ? "#166534"
-                              : blog.plagiarism_score >= 85
-                                ? "#c2410c"
-                                : blog.plagiarism_score > 0
-                                  ? "#991b1b"
-                                  : "#64748b",
-                      }}
-                    >
-                      {recalculating[blog.id]
-                        ? "..."
-                        : blog.plagiarism_score === -1
-                          ? "Fail"
-                          : blog.plagiarism_score > 0
-                            ? `${blog.plagiarism_score}%`
-                            : "N/A"}
-                    </span>
-                  </td>
+                  {isAdmin && show("expert") && (
+                    <td className="col-xs text-center">
+                      <label
+                        className={`toggle-switch ${togglingMap[`ep_${blog.id}`] ? "toggle-loading" : ""}`}
+                        title={Number(blog.is_expert_pick) === 1 ? "Expert Pick — click to remove" : "Mark as Expert Pick"}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={Number(blog.is_expert_pick) === 1}
+                          onChange={() => handleToggleExpertPick(blog)}
+                          disabled={togglingMap[`ep_${blog.id}`]}
+                          style={{ accentColor: "#7c3aed" }}
+                        />
+                        <span className="toggle-slider" style={{ transform: "scale(0.8)", background: Number(blog.is_expert_pick) === 1 ? "#7c3aed" : undefined }}></span>
+                      </label>
+                    </td>
+                  )}
+                  {show("seo") && (
+                    <td className="col-xs text-center">
+                      <span
+                        style={{
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "0.75rem",
+                          fontWeight: "600",
+                          background: getScoreColor(blog.seo_score || 0).bg,
+                          color: getScoreColor(blog.seo_score || 0).text,
+                        }}
+                      >
+                        {blog.seo_score || 0}
+                      </span>
+                    </td>
+                  )}
+                  {show("plag") && (
+                    <td className="col-xs text-center">
+                      <span
+                        style={{
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "0.75rem",
+                          fontWeight: "600",
+                          background:
+                            blog.plagiarism_score === -1 ? "#fee2e2"
+                            : blog.plagiarism_score >= 95 ? "#dcfce7"
+                            : blog.plagiarism_score >= 85 ? "#ffedd5"
+                            : blog.plagiarism_score > 0  ? "#fee2e2"
+                            : "#f1f5f9",
+                          color:
+                            blog.plagiarism_score === -1 ? "#991b1b"
+                            : blog.plagiarism_score >= 95 ? "#166534"
+                            : blog.plagiarism_score >= 85 ? "#c2410c"
+                            : blog.plagiarism_score > 0  ? "#991b1b"
+                            : "#64748b",
+                        }}
+                      >
+                        {recalculating[blog.id] ? "..."
+                          : blog.plagiarism_score === -1 ? "Fail"
+                          : blog.plagiarism_score > 0 ? `${blog.plagiarism_score}%`
+                          : "N/A"}
+                      </span>
+                    </td>
+                  )}
                   <td className="col-actions text-center">
                     <ActionMenu>
                       <button

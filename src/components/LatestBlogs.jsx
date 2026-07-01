@@ -121,7 +121,7 @@ export default function LatestBlogs() {
                 </span>
                 {blog.is_premium == 1 && (
                   <div className="exclusive-badge-overlay" style={{ background: "#d97706" }}>
-                    <i className="bi bi-star-fill"></i> Premium
+                    <i className="bi bi-star-fill"></i> Paid Article
                   </div>
                 )}
                 {blog.is_members_only == 1 && blog.is_premium != 1 && (

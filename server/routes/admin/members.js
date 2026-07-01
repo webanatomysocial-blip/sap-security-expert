@@ -3,17 +3,25 @@ const bcrypt = require('bcryptjs');
 const { requireAdmin } = require('../../middleware/auth');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
+const { grantBonus } = require('../../services/CreditHelper');
 
-// GET /api/admin/members?status=all|pending|approved|rejected
+// GET /api/admin/members?status=all|pending|approved|rejected|deleted
 router.get('/', requireAdmin, async (req, res) => {
   const db = req.db;
   const status = req.query.status || 'all';
   try {
     let sql = 'SELECT id, name, email, username, phone, location, company_name, job_role, status, profile_image, created_at, is_deleted FROM members';
     const params = [];
-    if (status !== 'all') {
-      sql += ' WHERE status = ?'; params.push(status);
+    if (status === 'deleted') {
+      // 'deleted' tab shows deactivated/soft-deleted accounts
+      sql += ' WHERE (status = ? OR status = ? OR is_deleted = 1)';
+      params.push('deactivated', 'deleted');
+    } else if (status !== 'all') {
+      // for pending/approved/rejected/suspended — exact match, exclude soft-deleted
+      sql += ' WHERE status = ? AND (is_deleted = 0 OR is_deleted IS NULL)';
+      params.push(status);
     }
+    // 'all' returns everything — client-side filter removes deactivated from default view
     sql += ' ORDER BY created_at DESC';
     const [rows] = await db.execute(sql, params);
     return res.json({ status: 'success', members: rows });
@@ -40,6 +48,10 @@ router.post('/', requireAdmin, async (req, res) => {
     if (action === 'approve') {
       await db.execute("UPDATE members SET status='approved', approved_at=CURRENT_TIMESTAMP WHERE id=?", [id]);
       notifier.notifyMemberApproved(member.email, member.name).catch(() => {});
+
+      // Grant 10 registration welcome credits (once only)
+      grantBonus(db, id, 10, 'Registration welcome bonus').catch(e => console.error('[approve_credits]', e.message));
+
       return res.json({ status: 'success', message: 'Member approved.' });
 
     } else if (action === 'reject') {

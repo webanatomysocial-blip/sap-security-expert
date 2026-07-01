@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 
 const ActionMenu = ({ children, items }) => {
@@ -11,24 +11,31 @@ const ActionMenu = ({ children, items }) => {
     if (isOpen && menuRef.current) {
       const rect = menuRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      const estimatedDropdownHeight = 180; // approximate height of the actions menu
-      
-      let topPos = `${rect.bottom + 8}px`;
-      let bottomPos = 'auto';
-      
-      // If there's not enough space below, but space above, render drop-up
+      const viewportWidth = window.innerWidth;
+      const estimatedDropdownHeight = 180;
+      const estimatedDropdownWidth = 180;
+
+      // Vertical: open upward if not enough space below
+      let topPos, bottomPos;
       if (viewportHeight - rect.bottom < estimatedDropdownHeight && rect.top > estimatedDropdownHeight) {
         topPos = 'auto';
         bottomPos = `${viewportHeight - rect.top + 8}px`;
+      } else {
+        topPos = `${rect.bottom + 8}px`;
+        bottomPos = 'auto';
       }
+
+      // Horizontal: align to right edge of button, but clamp so it doesn't escape left/right
+      let leftPos = rect.right - estimatedDropdownWidth;
+      if (leftPos < 8) leftPos = 8;
+      if (leftPos + estimatedDropdownWidth > viewportWidth - 8) leftPos = viewportWidth - estimatedDropdownWidth - 8;
 
       setDropdownStyle({
         position: 'fixed',
         top: topPos,
         bottom: bottomPos,
-        left: `${rect.right}px`,
-        transform: 'translateX(-100%)',
-        zIndex: 99999
+        left: `${leftPos}px`,
+        zIndex: 99999,
       });
     }
   }, [isOpen]);

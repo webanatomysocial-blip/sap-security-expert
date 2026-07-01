@@ -2,6 +2,7 @@ const router = require('express').Router();
 const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const { rateLimit } = require('../middleware/rateLimit');
+const { grantBonus } = require('../services/CreditHelper');
 
 function getRazorpay() {
   return new Razorpay({
@@ -82,6 +83,83 @@ router.get('/my-unlocks', async (req, res) => {
     return res.json({ status: 'success', unlocks: rows });
   } catch {
     return res.status(500).json({ status: 'error', message: 'Failed to fetch unlocks.' });
+  }
+});
+
+// ── GET /api/payments/my-transactions — full credit history for the member ───
+router.get('/my-transactions', async (req, res) => {
+  if (!req.session.member_logged_in) {
+    return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  }
+  const memberId = req.session.member_id;
+  try {
+    const [purchases] = await req.db.execute(
+      `SELECT
+         ct.id, ct.type, ct.credits_delta, ct.amount_paise, ct.note,
+         ct.created_at,
+         cb.name AS bundle_name
+       FROM credit_transactions ct
+       LEFT JOIN payment_orders po ON po.razorpay_order_id = ct.razorpay_order_id
+       LEFT JOIN credit_bundles cb ON cb.id = po.bundle_id
+       WHERE ct.member_id = ?
+       ORDER BY ct.created_at DESC
+       LIMIT 100`,
+      [memberId]
+    );
+
+    const [unlocks] = await req.db.execute(
+      `SELECT
+         u.blog_slug, u.credits_spent, u.unlocked_at,
+         b.title AS blog_title, b.category
+       FROM member_blog_unlocks u
+       LEFT JOIN blogs b ON b.slug = u.blog_slug
+       WHERE u.member_id = ?
+       ORDER BY u.unlocked_at DESC
+       LIMIT 100`,
+      [memberId]
+    );
+
+    const [creditRow] = await req.db.execute(
+      'SELECT balance FROM member_credits WHERE member_id = ? LIMIT 1',
+      [memberId]
+    );
+
+    return res.json({
+      status: 'success',
+      balance: creditRow[0]?.balance || 0,
+      transactions: purchases,
+      unlocks,
+    });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch transactions.' });
+  }
+});
+
+// ── GET /api/payments/invoice/:txId — generate invoice data for a purchase ───
+router.get('/invoice/:txId', async (req, res) => {
+  if (!req.session.member_logged_in) {
+    return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  }
+  try {
+    const [rows] = await req.db.execute(
+      `SELECT ct.id, ct.credits_delta, ct.amount_paise, ct.created_at, ct.razorpay_order_id,
+              cb.name AS bundle_name,
+              m.name AS member_name, m.email AS member_email,
+              po.final_price_paise, po.bundle_price_paise, co.code AS coupon_code,
+              co.discount_type, co.discount_value
+       FROM credit_transactions ct
+       JOIN members m ON m.id = ct.member_id
+       LEFT JOIN payment_orders po ON po.razorpay_order_id = ct.razorpay_order_id
+       LEFT JOIN credit_bundles cb ON cb.id = po.bundle_id
+       LEFT JOIN coupons co ON co.id = po.coupon_id
+       WHERE ct.id = ? AND ct.member_id = ? AND ct.type = 'purchase'
+       LIMIT 1`,
+      [req.params.txId, req.session.member_id]
+    );
+    if (!rows.length) return res.status(404).json({ status: 'error', message: 'Invoice not found' });
+    return res.json({ status: 'success', invoice: rows[0] });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
   }
 });
 
@@ -388,6 +466,73 @@ router.post('/webhook', express_raw_body, async (req, res) => {
     return res.json({ status: 'ok' });
   } catch {
     return res.status(500).send('Error');
+  }
+});
+
+// ── POST /api/payments/linkedin-bonus ────────────────────────────────────────
+router.post('/linkedin-bonus', async (req, res) => {
+  if (!req.session.member_logged_in) return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  try {
+    const granted = await grantBonus(req.db, req.session.member_id, 5, 'LinkedIn share bonus');
+    if (!granted) return res.json({ status: 'already_claimed', message: 'LinkedIn bonus already credited.' });
+    return res.json({ status: 'success', message: '+5 credits added for sharing on LinkedIn!' });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// ── POST /api/payments/complete-profile-bonus ─────────────────────────────────
+router.post('/complete-profile-bonus', async (req, res) => {
+  if (!req.session.member_logged_in) return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  try {
+    const memberId = req.session.member_id;
+    // Verify profile is actually complete before granting
+    const [rows] = await req.db.execute(
+      'SELECT name, phone, location, company_name, job_role, profile_image FROM members WHERE id=? LIMIT 1', [memberId]
+    );
+    if (!rows.length) return res.status(404).json({ status: 'error', message: 'Member not found' });
+    const m = rows[0];
+    const isComplete = m.name && m.phone && m.location && m.company_name && m.job_role && m.profile_image;
+    if (!isComplete) return res.status(400).json({ status: 'error', message: 'Please complete all profile fields (name, phone, location, company, job role, profile photo) to earn this bonus.' });
+    const granted = await grantBonus(req.db, memberId, 2, 'Complete profile bonus');
+    if (!granted) return res.json({ status: 'already_claimed', message: 'Profile bonus already credited.' });
+    return res.json({ status: 'success', message: '+2 credits added for completing your profile!' });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// ── POST /api/payments/report-error ──────────────────────────────────────────
+router.post('/report-error', rateLimit('report_error', 5, 3600), async (req, res) => {
+  if (!req.session.member_logged_in) return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  const { blog_slug, description } = req.body || {};
+  if (!blog_slug || !description) return res.status(400).json({ status: 'error', message: 'blog_slug and description are required.' });
+  try {
+    // Store the error report (simple log in credit_transactions note is enough; could also have a dedicated table)
+    const memberId = req.session.member_id;
+    const granted = await grantBonus(req.db, memberId, 1, `Error report: ${blog_slug}`);
+    // Note: same slug = same dedup key, so one credit per unique blog error report
+    return res.json({
+      status: 'success',
+      credited: granted,
+      message: granted ? '+1 credit added for reporting an error!' : 'Thank you! Error already reported for this article.',
+    });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// ── POST /api/payments/product-review-bonus ───────────────────────────────────
+router.post('/product-review-bonus', rateLimit('product_review', 10, 3600), async (req, res) => {
+  if (!req.session.member_logged_in) return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  const { product_id } = req.body || {};
+  if (!product_id) return res.status(400).json({ status: 'error', message: 'product_id is required.' });
+  try {
+    const granted = await grantBonus(req.db, req.session.member_id, 5, `Product review: ${product_id}`);
+    if (!granted) return res.json({ status: 'already_claimed', message: 'You have already earned credits for reviewing this product.' });
+    return res.json({ status: 'success', message: '+5 credits added for submitting a product review!' });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
   }
 });
 

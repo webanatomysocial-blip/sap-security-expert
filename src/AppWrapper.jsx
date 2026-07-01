@@ -11,6 +11,7 @@ import { ToastProvider } from "./context/ToastContext";
 import { ConfirmationProvider } from "./context/ConfirmationContext";
 import { AuthProvider } from "./context/AuthContext";
 import { MemberAuthProvider } from "./context/MemberAuthContext";
+import CookieConsent from "./components/CookieConsent";
 
 export default function AppWrapper() {
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function AppWrapper() {
                 <ConfirmationProvider>
                   <ScrollToTop />
                   <App />
+                  <CookieConsent />
                 </ConfirmationProvider>
               </MemberAuthProvider>
             </AuthProvider>

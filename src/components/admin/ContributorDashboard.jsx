@@ -301,11 +301,11 @@ const ContributorDashboard = () => {
             style={{
               gridTemplateColumns: "1fr auto",
               gap: 20,
-              alignItems: "start",
+              alignItems: "stretch",
               marginBottom: 20,
             }}
           >
-            <div className="admin-card" style={{ padding: "24px" }}>
+            <div className="admin-card" style={{ padding: "24px", height: "100%", boxSizing: "border-box" }}>
               <h3
                 style={{
                   margin: "0 0 8px",
@@ -313,7 +313,7 @@ const ContributorDashboard = () => {
                   color: "#1e293b",
                 }}
               >
-                Welcome back, {user?.username}
+                Quick Navigation
               </h3>
               <p style={{ margin: 0, color: "#64748b", fontSize: "0.875rem" }}>
                 Use the quick links below or the sidebar to navigate to your
@@ -321,7 +321,7 @@ const ContributorDashboard = () => {
               </p>
             </div>
 
-            <div className="security-settings-card" style={{ minWidth: 260 }}>
+            <div className="security-settings-card" style={{ minWidth: 260, height: "100%", boxSizing: "border-box" }}>
               <div className="security-title">
                 <LuShieldCheck />
                 Security Settings
@@ -366,7 +366,7 @@ const ContributorDashboard = () => {
                 >
                   Upload and manage advertisement banners.
                 </p>
-                <div className="module-actions">
+                <div className="module-actions module-card-btn">
                   <Link
                     to="/admin/ads"
                     className="btn-primary"
@@ -405,7 +405,7 @@ const ContributorDashboard = () => {
                 >
                   Approve, reject, or manage reader comments.
                 </p>
-                <div className="module-actions">
+                <div className="module-actions module-card-btn">
                   <Link
                     to="/admin/comments"
                     className="btn-primary"
@@ -444,7 +444,7 @@ const ContributorDashboard = () => {
                 >
                   Create and publish announcements to the community.
                 </p>
-                <div className="module-actions">
+                <div className="module-actions module-card-btn">
                   <Link
                     to="/admin/announcements"
                     className="btn-primary"

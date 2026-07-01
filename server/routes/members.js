@@ -251,7 +251,7 @@ router.get('/profile', async (req, res) => {
   }
   try {
     const [rows] = await db.execute(
-      'SELECT id, name, email, username, phone, location, company_name, job_role, profile_image, receive_blog_emails, status FROM members WHERE id = ? LIMIT 1',
+      'SELECT id, name, email, username, phone, location, company_name, job_role, profile_image, receive_blog_emails, profile_visibility, status FROM members WHERE id = ? LIMIT 1',
       [req.session.member_id]
     );
     if (!rows.length) return res.status(404).json({ status: 'error', message: 'Profile not found' });
@@ -279,11 +279,16 @@ router.post('/profile/update', (req, res, next) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   }
-  const { name, phone, location, company_name, job_role, receive_blog_emails } = req.body || {};
+  const { name, phone, location, company_name, job_role, receive_blog_emails, profile_visibility } = req.body || {};
   try {
     const updates = ['name=?', 'phone=?', 'location=?', 'company_name=?', 'job_role=?', 'receive_blog_emails=?', 'updated_at=CURRENT_TIMESTAMP'];
     const params = [name, phone || null, location || null, company_name || null, job_role || null,
       receive_blog_emails != null ? parseInt(receive_blog_emails) : 1];
+
+    if (profile_visibility) {
+      updates.push('profile_visibility=?');
+      params.push(typeof profile_visibility === 'string' ? profile_visibility : JSON.stringify(profile_visibility));
+    }
 
     let profileImage = null;
     if (req.file) {

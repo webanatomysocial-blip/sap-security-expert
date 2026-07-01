@@ -13,11 +13,12 @@ export const api = axios.create({
     withCredentials: true,
 });
 
-// Response error logger — 401 errors are always handled by the auth flow (not bugs)
+// Only log actual server errors (5xx) — 4xx are expected user-facing validation responses
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status !== 401) {
+        const status = error.response?.status;
+        if (!status || status >= 500) {
             console.error('API Error:', error.response?.data?.message || error.message);
         }
         return Promise.reject(error);
@@ -44,6 +45,7 @@ api.interceptors.request.use((config) => {
 // ── Public endpoints ─────────────────────────────────────────────────────────
 export const getPosts = (page = 1) => api.get(`/posts?page=${page}`);
 export const getPostBySlug = (slug, params = {}) => api.get(`/posts/${slug}`, { params });
+export const getExclusiveCount = () => api.get('/posts/exclusive-count');
 export const getMemberProfile = () => api.get('/member/profile');
 export const getCommentsByBlogId = (blogId) => api.get(`/get_comments.php?blogId=${blogId}`);
 export const submitComment = (data) => api.post('/save_comment.php', data);
@@ -55,8 +57,11 @@ export const getAdsByZone = (zone) => api.get(`/ads${zone ? `?zone=${zone}` : ''
 export const getPublicAds = (zone) => api.get(`/ads${zone ? `?zone=${zone}` : ''}`);
 export const getPublicAnnouncements = () => api.get('/announcements');
 export const getCommunityStats = () => api.get('/stats/community');
+export const getPopularTags = () => api.get('/popular-tags');
 export const getApprovedContributors = () => api.get('/contributors/approved');
 export const getContributorProfile = (id) => api.get(`/contributors/profile/${id}`);
+export const getContributorsLeaderboard = () => api.get('/contributors/leaderboard');
+export const getMemberPublicProfile = (id) => api.get(`/members/${id}/public`);
 export const getHomepageData = () => api.get('/get_homepage_data.php');
 export const getCategories = () => api.get('/get_categories.php');
 
@@ -66,6 +71,7 @@ export const saveBlog = (data) => api.post('/posts', data);
 export const deleteBlog = (id) => api.delete(`/posts/${id}`);
 export const toggleExclusiveContent = (data) => api.post('/admin/blogs/toggle-exclusive', data);
 export const togglePremiumContent = (data) => api.post('/admin/blogs/toggle-premium', data);
+export const toggleExpertPick = (data) => api.post('/admin/blogs/toggle-expert-pick', data);
 export const uploadBlogImage = (formData) => api.post('/upload-blog-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 60000,
@@ -176,6 +182,7 @@ export const resetPasswordOTP = (data) => api.post('/reset_password_otp.php', da
 export const getCreditBundles = () => api.get('/payments/bundles');
 export const getMyCredits = () => api.get('/payments/my-credits');
 export const getMyUnlocks = () => api.get('/payments/my-unlocks');
+export const getMyTransactions = () => api.get('/payments/my-transactions');
 export const validateCoupon = (code, bundle_id) => api.post('/payments/validate-coupon', { code, bundle_id });
 export const createCreditOrder = (bundle_id, coupon_code) => api.post('/payments/create-order', { bundle_id, coupon_code });
 export const verifyCreditPayment = (data) => api.post('/payments/verify', data);
@@ -189,7 +196,36 @@ export const getAdminCoupons = () => api.get('/admin/coupons');
 export const saveCoupon = (data) => api.post('/admin/coupons', data);
 export const deleteCoupon = (id) => api.delete(`/admin/coupons/${id}`);
 export const getCreditStats = () => api.get('/admin/credit-stats');
+export const getAllCreditTransactions = (page = 1, limit = 50) => api.get(`/admin/credit-transactions?page=${page}&limit=${limit}`);
 export const getMemberCreditBalance = (memberId) => api.get(`/admin/member-credits/${memberId}`);
 export const grantAdminCredits = (member_id, amount, note) => api.post('/admin/grant-credits', { member_id, amount, note });
+
+// Email templates
+export const getEmailTemplates = () => api.get('/admin/email-templates');
+export const getEmailTemplate = (key) => api.get(`/admin/email-templates/${key}`);
+export const saveEmailTemplate = (key, content) => api.put(`/admin/email-templates/${key}`, { content });
+
+// Changelog
+export const getChangelog = () => api.get('/admin/changelog');
+export const saveChangelogEntry = (data) => api.post('/admin/changelog', data);
+export const updateChangelogEntry = (id, data) => api.put(`/admin/changelog/${id}`, data);
+export const deleteChangelogEntry = (id) => api.delete(`/admin/changelog/${id}`);
+
+// Invoice
+export const getInvoice = (txId) => api.get(`/payments/invoice/${txId}`);
+
+// In-Article / Strip Blog Ads
+export const getAdminBlogAds = () => api.get('/admin/blog-ads');
+export const saveBlogAd = (data) => api.post('/admin/blog-ads', data);
+export const deleteBlogAd = (id) => api.delete(`/admin/blog-ads/${id}`);
+export const toggleBlogAd = (id) => api.patch(`/admin/blog-ads/${id}/toggle`);
+export const getBlogAdsForSlug = (slug) => api.get(`/blog-ads/for-blog?slug=${slug}`);
+export const trackBlogAdClick = (id) => api.post(`/blog-ads/click/${id}`);
+
+// Bonus credit actions
+export const claimLinkedInBonus = () => api.post('/payments/linkedin-bonus');
+export const claimCompleteProfileBonus = () => api.post('/payments/complete-profile-bonus');
+export const reportArticleError = (blog_slug, description) => api.post('/payments/report-error', { blog_slug, description });
+export const claimProductReviewBonus = (product_id) => api.post('/payments/product-review-bonus', { product_id });
 
 export default api;

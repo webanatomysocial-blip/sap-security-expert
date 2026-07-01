@@ -35,8 +35,13 @@ import ContactUs from "./views/ContactUs";
 import BecomeContributor from "./components/BecomeContributor";
 import ContributorApplication from "./views/ContributorApplication";
 import ContributorProfile from "./views/ContributorProfile";
+import ContributorsLeaderboard from "./views/ContributorsLeaderboard";
+import MemberPublicProfile from "./views/MemberPublicProfile";
 import MemberLogin from "./views/MemberLogin";
 import MemberSignup from "./views/MemberSignup";
+import MemberCredits from "./views/MemberCredits";
+import MemberInvoice from "./views/MemberInvoice";
+import PaidArticles from "./views/PaidArticles";
 import AdminLayout from "./components/admin/AdminLayout.jsx";
 import AdminHome from "./components/admin/AdminHome";
 import AdminContributors from "./components/admin/AdminContributors";
@@ -55,6 +60,8 @@ import LearningModulePage from "./views/LearningModulePage";
 import AdminManageUsers from "./components/admin/AdminManageUsers";
 import AdminCreditBundles from "./components/admin/AdminCreditBundles";
 import AdminFeaturedInsights from "./components/admin/AdminFeaturedInsights";
+import AdminEmailTemplates from "./components/admin/AdminEmailTemplates";
+import AdminChangelog from "./components/admin/AdminChangelog";
 import ForgotPassword from "./views/ForgotPassword";
 import ResetPassword from "./views/ResetPassword";
 import MembershipPage from "./views/MembershipPage";
@@ -157,12 +164,17 @@ function App() {
         <Route path="become-a-contributor" element={<BecomeContributor />} />
         <Route path="apply-contributor" element={<ContributorApplication />} />
         <Route path="contributor/:id" element={<ContributorProfile />} />
+        <Route path="leaderboard" element={<ContributorsLeaderboard />} />
+        <Route path="member/:id" element={<MemberPublicProfile />} />
         <Route path="about" element={<About />} />
         <Route path="contact-us" element={<ContactUs />} />
 
         {/* Members Only Auth Pages */}
         <Route path="member/login" element={<MemberLogin />} />
         <Route path="member/signup" element={<MemberSignup />} />
+        <Route path="member/credits" element={<MemberCredits />} />
+        <Route path="member/invoice/:txId" element={<MemberInvoice />} />
+        <Route path="paid-articles" element={<PaidArticles />} />
         <Route path="membership" element={<MembershipPage />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
@@ -289,6 +301,22 @@ function App() {
           element={
             <ProtectedRoute adminOnly>
               <AdminFeaturedInsights />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="email-templates"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminEmailTemplates />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="changelog"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminChangelog />
             </ProtectedRoute>
           }
         />

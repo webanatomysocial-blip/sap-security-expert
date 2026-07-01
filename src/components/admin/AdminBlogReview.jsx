@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { TableSkeleton } from "./AdminSkeletons.jsx";
 import { useNavigate } from "react-router-dom";
 import { LuFileText } from "react-icons/lu";
 import { useToast } from "../../context/ToastContext";
@@ -8,6 +9,17 @@ import { getPendingBlogs, reviewBlog } from "../../services/api";
 import BlogPreviewModal from "./BlogPreviewModal";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
+import ColumnToggle from "./ColumnToggle.jsx";
+
+const REVIEW_COLS = [
+  { key: "title",   label: "Blog Title" },
+  { key: "cat",     label: "Cat", optional: true },
+  { key: "author",  label: "Author" },
+  { key: "status",  label: "Status" },
+  { key: "seo",     label: "SEO", optional: true },
+  { key: "plag",    label: "Plag", optional: true },
+  { key: "actions", label: "Actions" },
+];
 // next-disabled: import "../../css/AdminDashboard.css";
 /**
  * AdminBlogReview — Dedicated admin-only page for reviewing contributor blog submissions.
@@ -23,6 +35,9 @@ const AdminBlogReview = () => {
   const [activeTab, setActiveTab] = useState("pending"); // "pending" | "rejected"
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
+
+  const [visibleCols, setVisibleCols] = useState(new Set(REVIEW_COLS.filter(c => !c.optional).map(c => c.key)));
+  const show = (key) => visibleCols.has(key);
 
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
@@ -221,16 +236,7 @@ const AdminBlogReview = () => {
 
       <div className="admin-card">
         {loading ? (
-          <div
-            style={{
-              padding: "48px",
-              textAlign: "center",
-              color: "#94a3b8",
-              fontSize: "0.875rem",
-            }}
-          >
-            Loading...
-          </div>
+          <TableSkeleton cols={5} rows={6} />
         ) : blogs.length === 0 ? (
           <div style={{ padding: "64px 24px", textAlign: "center" }}>
             <LuFileText
@@ -250,6 +256,10 @@ const AdminBlogReview = () => {
             </p>
           </div>
         ) : (
+          <>
+            <div className="admin-table-controls">
+              <ColumnToggle columns={REVIEW_COLS} visible={visibleCols} onChange={setVisibleCols} />
+            </div>
           <TableScrollContainer>
             <table
               className="admin-table"
@@ -257,11 +267,11 @@ const AdminBlogReview = () => {
               <thead>
                 <tr>
                   <th className="col-xxl text-left">Blog Title</th>
-                  <th className="col-sm text-center">Cat</th>
+                  {show("cat") && <th className="col-sm text-center">Cat</th>}
                   <th className="col-md text-left">Author</th>
                   <th className="col-sm text-center">Status</th>
-                  <th className="col-xs text-center">SEO</th>
-                  <th className="col-xs text-center">Plag</th>
+                  {show("seo") && <th className="col-xs text-center">SEO</th>}
+                  {show("plag") && <th className="col-xs text-center">Plag</th>}
                   <th className="col-actions text-center">Actions</th>
                 </tr>
               </thead>
@@ -283,7 +293,7 @@ const AdminBlogReview = () => {
                         {fmt(blog.date)}
                       </div>
                     </td>
-                    <td className="col-sm text-center" style={{ fontSize: "0.8rem" }}>{cap(blog.category)}</td>
+                    {show("cat") && <td className="col-sm text-center" style={{ fontSize: "0.8rem" }}>{cap(blog.category)}</td>}
                     <td className="col-md text-left wrap-text">
                       <div style={{ fontWeight: "500", fontSize: "0.8rem" }}>{blog.author_name || "Author"}</div>
                     </td>
@@ -292,6 +302,7 @@ const AdminBlogReview = () => {
                         {blog.submission_status === "edited" ? "Rev" : "New"}
                       </span>
                     </td>
+                    {show("seo") && (
                     <td className="col-xs text-center">
                       <span
                         style={{
@@ -307,6 +318,8 @@ const AdminBlogReview = () => {
                         {blog.seo_score || 0}
                       </span>
                     </td>
+                    )}
+                    {show("plag") && (
                     <td className="col-xs text-center">
                       <span
                         style={{
@@ -334,6 +347,7 @@ const AdminBlogReview = () => {
                               : "N/A"}
                       </span>
                     </td>
+                    )}
                     <td className="col-actions text-center">
                       <ActionMenu>
                         <button
@@ -373,6 +387,7 @@ const AdminBlogReview = () => {
               </tbody>
             </table>
           </TableScrollContainer>
+          </>
         )}
 
         {!loading && blogs.length > 0 && (

@@ -353,7 +353,7 @@ const BlogLayout = ({
               alt={image_alt || title}
               width={1200}
               height={675}
-              style={{ display: "block", width: "100%", height: "auto", objectFit: "cover" }}
+              style={{ display: "block", width: "100%", height: "auto" }}
               priority
             />
           </div>
