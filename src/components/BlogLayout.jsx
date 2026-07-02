@@ -124,6 +124,7 @@ const BlogLayout = ({
   badge_field_validated = 0,
   difficulty_level = null,
   content_version = null,
+  author_contributor_id = null,
 }) => {
   const { isLoggedIn } = useMemberAuth();
   const progressBarRef = useRef(null);
@@ -582,18 +583,38 @@ const BlogLayout = ({
                   {/* Primary author */}
                   <div className="bl-author-card bl-author-card--primary">
                     <div className="bl-author-card__left">
-                      <Image
-                        src={cleanAuthorImage}
-                        alt={author_name}
-                        width={64}
-                        height={64}
-                        className="bl-author-avatar"
-                        onError={(e) => { e.currentTarget.src = "https://placehold.co/100x100?text=Author"; }}
-                      />
+                      {author_contributor_id ? (
+                        <Link to={`/contributor/${author_contributor_id}`}>
+                          <Image
+                            src={cleanAuthorImage}
+                            alt={author_name}
+                            width={64}
+                            height={64}
+                            className="bl-author-avatar"
+                            style={{ cursor: "pointer" }}
+                            onError={(e) => { e.currentTarget.src = "https://placehold.co/100x100?text=Author"; }}
+                          />
+                        </Link>
+                      ) : (
+                        <Image
+                          src={cleanAuthorImage}
+                          alt={author_name}
+                          width={64}
+                          height={64}
+                          className="bl-author-avatar"
+                          onError={(e) => { e.currentTarget.src = "https://placehold.co/100x100?text=Author"; }}
+                        />
+                      )}
                       <span className="bl-author-role-badge bl-author-role-badge--author">Author</span>
                     </div>
                     <div className="bl-author-card__body">
-                      <h3 className="bl-author-name">{author_name}</h3>
+                      {author_contributor_id ? (
+                        <Link to={`/contributor/${author_contributor_id}`} style={{ textDecoration: "none" }}>
+                          <h3 className="bl-author-name" style={{ cursor: "pointer" }}>{author_name}</h3>
+                        </Link>
+                      ) : (
+                        <h3 className="bl-author-name">{author_name}</h3>
+                      )}
                       {author_designation && <p className="bl-author-designation">{author_designation}</p>}
                       <p className="bl-author-bio">{author_bio || "Expert SAP Security contributor."}</p>
                       {(author_linkedin || author_twitter || author_website) && (
@@ -664,7 +685,6 @@ const BlogLayout = ({
                     <i className="bi bi-stars" />
                   </span>
                   You may also like
-                  <span className="suggested-articles__sub">— keep exploring</span>
                 </h3>
               </div>
               <div className="suggested-articles__grid">
@@ -676,27 +696,33 @@ const BlogLayout = ({
                   >
                     <div className="sug-card__img">
                       {art.image ? (
-                        <img src={art.image} alt={art.image_alt || art.title} />
-                      ) : (
-                        <div className="sug-card__img-placeholder">
-                          <i className="bi bi-file-earmark-text" />
-                        </div>
-                      )}
+                        <img
+                          src={art.image}
+                          alt=""
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div className="sug-card__img-placeholder" style={art.image ? { display: 'none' } : {}}>
+                        <i className="bi bi-file-earmark-text" />
+                      </div>
                       <span className="sug-card__cat">
                         {CATEGORY_LABELS[art.category] || art.category?.replace(/-/g, ' ')}
                       </span>
                     </div>
                     <div className="sug-card__body">
+                      <span className="sug-card__read">
+                        <i className="bi bi-clock" /> 5 min read
+                      </span>
                       <h4 className="sug-card__title">{art.title}</h4>
                       {art.excerpt && (
                         <p className="sug-card__excerpt">{art.excerpt}</p>
                       )}
                       <div className="sug-card__footer">
-                        <span className="sug-card__read">
-                          <i className="bi bi-clock" /> 5 min read
-                        </span>
-                        <span className="sug-card__arrow">
-                          <i className="bi bi-arrow-right" />
+                        <span className="sug-card__cta">
+                          Read article <i className="bi bi-arrow-right" />
                         </span>
                       </div>
                     </div>

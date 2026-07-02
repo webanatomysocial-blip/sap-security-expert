@@ -132,6 +132,8 @@ async function handleContributorProfile(req, res) {
       `SELECT c.id, c.full_name, c.role, c.organization, c.designation, c.short_bio,
               c.expertise, c.image AS profile_image, c.linkedin, c.twitter_handle,
               c.personal_website, c.created_at, c.country,
+              c.sap_certifications, c.sap_press_books, c.implementations_count,
+              c.peer_rating, c.peer_rating_count, c.experience_years,
               u.id AS user_id, u.username
        FROM contributors c
        LEFT JOIN users u ON u.contributor_id = c.id
@@ -145,15 +147,21 @@ async function handleContributorProfile(req, res) {
 
     const contributor = { ...rows[0] };
 
-    // Parse expertise JSON string → object (mirrors PHP's json_decode)
+    // Parse expertise JSON string → object
     if (contributor.expertise && typeof contributor.expertise === 'string') {
       try { contributor.expertise = JSON.parse(contributor.expertise); } catch { contributor.expertise = {}; }
     }
+    // Parse reputation JSON arrays
+    ['sap_certifications', 'sap_press_books'].forEach(field => {
+      if (contributor[field] && typeof contributor[field] === 'string') {
+        try { contributor[field] = JSON.parse(contributor[field]); } catch { contributor[field] = []; }
+      }
+    });
 
     // Fetch published blog posts for this contributor
     const userId = contributor.user_id || 0;
     const [blogs] = await db.execute(
-      `SELECT id, title, slug, category, excerpt, date, image, view_count
+      `SELECT id, title, slug, category, excerpt, date, image, view_count, updated_at
        FROM blogs
        WHERE author_id = ? AND status IN ('approved','published')
        ORDER BY date DESC`,
@@ -169,7 +177,94 @@ async function handleContributorProfile(req, res) {
   }
 }
 
+// GET /api/contributors/profile/raghu — special founder profile
+router.get('/profile/raghu', async (req, res) => {
+  const db = req.db;
+  try {
+    const [blogs] = await db.execute(
+      `SELECT id, title, slug, category, excerpt, date, image, view_count, updated_at
+       FROM blogs
+       WHERE (author_id IS NULL OR author_id = 1) AND status IN ('approved','published')
+       ORDER BY date DESC`
+    );
+    return res.json({
+      status: 'success',
+      contributor: {
+        id: 'raghu',
+        full_name: 'Raghu Boddu',
+        role: 'Founder & Principal SAP Security Architect',
+        organization: 'SAP Security Expert',
+        designation: 'Founder',
+        short_bio: 'Raghu Boddu is a seasoned SAP Security Architect with deep expertise in SAP GRC, Access Control, BTP Security, and enterprise security governance. He founded SAP Security Expert to build the definitive community platform for SAP security professionals worldwide.',
+        profile_image: '/assets/raghu_boddu.png',
+        linkedin: 'https://www.linkedin.com/in/raghuboddu/',
+        twitter_handle: null,
+        personal_website: null,
+        country: 'India',
+        created_at: '2023-01-01',
+        expertise: { sapSecurity: true, sapGrc: true, sapIag: true, sapBtp: true, sapCyber: true },
+        experience_years: 15,
+        implementations_count: 50,
+        peer_rating: 4.9,
+        peer_rating_count: 120,
+        sap_certifications: [
+          'SAP Certified Technology Associate – SAP S/4HANA Security',
+          'SAP GRC Access Control Certified',
+          'SAP BTP Security Certified',
+        ],
+        sap_press_books: [],
+        blogs,
+        blog_count: blogs.length,
+        is_founder: true,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 router.get('/profile/:id', handleContributorProfile);
 router.get('/get_contributor_profile.php', handleContributorProfile);
+
+// PUT /api/contributors/:id/reputation — admin only
+const { requireAdmin } = require('../middleware/auth');
+router.put('/:id/reputation', requireAdmin, async (req, res) => {
+  const db = req.db;
+  const { id } = req.params;
+  const {
+    experience_years, implementations_count, peer_rating, peer_rating_count,
+    sap_certifications, sap_press_books,
+  } = req.body || {};
+
+  // Coerce numbers — use null for missing/empty, but keep explicit 0
+  const toIntOrNull  = v => (v !== undefined && v !== null && v !== '') ? Number(v)      : null;
+  const toFloatOrNull = v => (v !== undefined && v !== null && v !== '') ? parseFloat(v) : null;
+
+  const rating = toFloatOrNull(peer_rating);
+  if (rating !== null && (!isFinite(rating) || rating < 0 || rating > 5)) {
+    return res.status(400).json({ status: 'error', message: 'peer_rating must be between 0 and 5.' });
+  }
+
+  try {
+    await db.execute(
+      `UPDATE contributors SET
+        experience_years=?, implementations_count=?, peer_rating=?, peer_rating_count=?,
+        sap_certifications=?, sap_press_books=?
+       WHERE id=?`,
+      [
+        toIntOrNull(experience_years),
+        toIntOrNull(implementations_count),
+        rating,
+        toIntOrNull(peer_rating_count) ?? 0,
+        Array.isArray(sap_certifications) ? JSON.stringify(sap_certifications) : (sap_certifications || null),
+        Array.isArray(sap_press_books) ? JSON.stringify(sap_press_books) : (sap_press_books || null),
+        id,
+      ]
+    );
+    return res.json({ status: 'success', message: 'Reputation updated.' });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
 
 module.exports = router;

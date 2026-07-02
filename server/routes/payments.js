@@ -292,7 +292,7 @@ router.post('/create-order', rateLimit('create_order', 10, 60), async (req, res)
 });
 
 // ── POST /api/payments/verify — verify payment + credit the member ────────────
-router.post('/verify', async (req, res) => {
+router.post('/verify', rateLimit('payment_verify', 10, 60), async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   }
@@ -470,7 +470,7 @@ router.post('/webhook', express_raw_body, async (req, res) => {
 });
 
 // ── POST /api/payments/linkedin-bonus ────────────────────────────────────────
-router.post('/linkedin-bonus', async (req, res) => {
+router.post('/linkedin-bonus', rateLimit('linkedin_bonus', 3, 3600), async (req, res) => {
   if (!req.session.member_logged_in) return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   try {
     const granted = await grantBonus(req.db, req.session.member_id, 5, 'LinkedIn share bonus');
@@ -482,7 +482,7 @@ router.post('/linkedin-bonus', async (req, res) => {
 });
 
 // ── POST /api/payments/complete-profile-bonus ─────────────────────────────────
-router.post('/complete-profile-bonus', async (req, res) => {
+router.post('/complete-profile-bonus', rateLimit('profile_bonus', 3, 3600), async (req, res) => {
   if (!req.session.member_logged_in) return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   try {
     const memberId = req.session.member_id;
@@ -508,8 +508,12 @@ router.post('/report-error', rateLimit('report_error', 5, 3600), async (req, res
   const { blog_slug, description } = req.body || {};
   if (!blog_slug || !description) return res.status(400).json({ status: 'error', message: 'blog_slug and description are required.' });
   try {
-    // Store the error report (simple log in credit_transactions note is enough; could also have a dedicated table)
     const memberId = req.session.member_id;
+    // Validate the slug exists to prevent credit farming with invented slugs
+    const [blogCheck] = await req.db.execute(
+      "SELECT id FROM blogs WHERE slug = ? AND status IN ('approved','published') LIMIT 1", [blog_slug]
+    );
+    if (!blogCheck.length) return res.status(404).json({ status: 'error', message: 'Article not found.' });
     const granted = await grantBonus(req.db, memberId, 1, `Error report: ${blog_slug}`);
     // Note: same slug = same dedup key, so one credit per unique blog error report
     return res.json({
@@ -527,8 +531,21 @@ router.post('/product-review-bonus', rateLimit('product_review', 10, 3600), asyn
   if (!req.session.member_logged_in) return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   const { product_id } = req.body || {};
   if (!product_id) return res.status(400).json({ status: 'error', message: 'product_id is required.' });
+  // Sanitise product_id — alphanumeric/hyphen only, max 100 chars
+  if (typeof product_id !== 'string' || !/^[a-zA-Z0-9_\-]{1,100}$/.test(product_id)) {
+    return res.status(400).json({ status: 'error', message: 'Invalid product_id.' });
+  }
   try {
-    const granted = await grantBonus(req.db, req.session.member_id, 5, `Product review: ${product_id}`);
+    const memberId = req.session.member_id;
+    // Cap: max 5 unique product reviews credited per member to prevent farming
+    const [reviewCount] = await req.db.execute(
+      "SELECT COUNT(*) as cnt FROM credit_transactions WHERE member_id = ? AND note LIKE 'Product review: %'",
+      [memberId]
+    );
+    if ((reviewCount[0]?.cnt || 0) >= 5) {
+      return res.json({ status: 'already_claimed', message: 'You have reached the maximum credit limit for product reviews.' });
+    }
+    const granted = await grantBonus(req.db, memberId, 5, `Product review: ${product_id}`);
     if (!granted) return res.json({ status: 'already_claimed', message: 'You have already earned credits for reviewing this product.' });
     return res.json({ status: 'success', message: '+5 credits added for submitting a product review!' });
   } catch (err) {

@@ -62,6 +62,7 @@ export const getCommunityStats = () => api.get('/stats/community');
 export const getPopularTags = () => api.get('/popular-tags');
 export const getApprovedContributors = () => api.get('/contributors/approved');
 export const getContributorProfile = (id) => api.get(`/contributors/profile/${id}`);
+export const updateContributorReputation = (id, data) => api.put(`/contributors/${id}/reputation`, data);
 export const getContributorsLeaderboard = () => api.get('/contributors/leaderboard');
 export const getMemberPublicProfile = (id) => api.get(`/members/${id}/public`);
 export const getHomepageData = () => api.get('/get_homepage_data.php');
@@ -122,6 +123,9 @@ export const createContributorLogin = (data) =>
 export const updateContributorAccess = (data) =>
     api.post('/admin/update-contributor-access', data);
 
+// ── Blog Select List (lightweight, for selectors) ────────────────────────────
+export const getAdminBlogSelectList = () => api.get('/admin/blogs/select-list');
+
 // ── Blog Review Workflow ──────────────────────────────────────────────────────
 export const getPendingBlogs = (status = "pending") =>
   api.get(`/admin/blogs/pending?status=${status}`);
@@ -173,6 +177,7 @@ export const deleteAnnouncement = (id) =>
   api.delete(`/admin/announcements?id=${id}`);
 
 // ── Member Auth (Public) ─────────────────────────────────────────────────────
+export const memberChangePassword = (data) => api.post('/member/change-password', data);
 export const memberLogin = (data) => api.post('/member/login', data);
 export const memberSignup = (data) => api.post('/member/signup', data);
 export const updateMemberProfile = (formData) => api.post('/member/profile/update', formData, {

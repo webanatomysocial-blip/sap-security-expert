@@ -35,18 +35,22 @@ function bumpBlogVersion(currentVersion, oldContent, newContent) {
 const AUTHOR_FIELDS = `
   u.id as author_user_id, u.username as author_username, u.role as author_role,
   CASE
-    WHEN u.role = 'admin' OR b.author_id IS NULL OR b.author_id = 1 THEN 'Raghu Boddu'
+    WHEN b.author_id IS NULL OR b.author_id = 1 THEN 'Raghu Boddu'
     ELSE COALESCE(c.full_name, u.full_name, u.username, b.author)
   END as author_name,
   CASE
-    WHEN u.role = 'admin' OR b.author_id IS NULL OR b.author_id = 1 THEN '/assets/raghu_boddu.png'
+    WHEN b.author_id IS NULL OR b.author_id = 1 THEN '/assets/raghu_boddu.png'
     ELSE COALESCE(c.image, u.profile_image)
   END as author_image,
   COALESCE(c.short_bio, u.bio) as author_bio,
   COALESCE(c.designation, u.designation) as author_designation,
   COALESCE(c.linkedin, u.linkedin) as author_linkedin,
   COALESCE(c.twitter_handle, u.twitter_handle) as author_twitter,
-  COALESCE(c.personal_website, u.personal_website) as author_website
+  COALESCE(c.personal_website, u.personal_website) as author_website,
+  CASE
+    WHEN b.author_id IS NULL OR b.author_id = 1 THEN 'raghu'
+    ELSE CAST(c.id AS TEXT)
+  END as author_contributor_id
 `;
 
 // GET /api/posts/exclusive-count — number of exclusive+premium articles
@@ -215,15 +219,10 @@ router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) =
       const hasAdminAccess = isAdmin || isOwnBlog;
 
       if (isMembersOnly && !isMember && !hasAdminAccess) {
+        // Send only the first paragraph as teaser for non-members
         const fullMembersContent = blog.content || '';
-        const membersTarget = Math.max(Math.floor(fullMembersContent.length * 0.20), 800);
         const membersParagraphs = fullMembersContent.match(/<p[\s\S]*?<\/p>/gi) || [];
-        let teaser = '';
-        for (const p of membersParagraphs) {
-          teaser += p;
-          if (teaser.length >= membersTarget) break;
-        }
-        blog.content = teaser || fullMembersContent.slice(0, membersTarget);
+        blog.content = membersParagraphs[0] || fullMembersContent.slice(0, 300);
         blog.faqs = null;
         blog.cta_title = 'Professional Content Locked';
         blog.cta_description = 'Join our expert community to access premium SAP security insights.';
@@ -239,10 +238,11 @@ router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) =
       // Admin role alone does NOT bypass — admins browsing the public site see the same paywall.
       const isPremium = parseInt(blog.is_premium || 0);
       const creditsRequired = parseInt(blog.credits_required || 0);
+      // Only grant access via explicit permission flag — NOT by admin role alone
       const hasGrantedAccess = !!(sess.permissions?.can_access_premium_articles);
       if (isPremium && !hasGrantedAccess) {
         let hasUnlocked = false;
-        if (sess.member_logged_in) {
+        if (sess.member_logged_in && sess.member_id) {
           const [unlockRows] = await db.execute(
             'SELECT id FROM member_blog_unlocks WHERE member_id = ? AND blog_slug = ? LIMIT 1',
             [sess.member_id, blog.slug]
@@ -254,16 +254,10 @@ router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) =
           blog.premium_locked = true;
           blog.premium_locked_reason = sess.member_logged_in ? 'credits' : 'login';
           blog.credits_required = creditsRequired;
-          // Send first ~20% of content (paragraph-aware) so readers can judge value
+          // Send ONLY the first paragraph as a teaser — not a fraction of the full article
           const fullContent = blog.content || '';
-          const previewTarget = Math.max(Math.floor(fullContent.length * 0.20), 800);
           const paragraphs = fullContent.match(/<p[\s\S]*?<\/p>/gi) || [];
-          let preview = '';
-          for (const p of paragraphs) {
-            preview += p;
-            if (preview.length >= previewTarget) break;
-          }
-          blog.content = preview || fullContent.slice(0, previewTarget);
+          blog.content = paragraphs[0] || fullContent.slice(0, 300);
           blog.faqs = null;
           blog.author_bio = null;
           blog.author_linkedin = null;
@@ -326,7 +320,7 @@ router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) =
     return res.json(rows);
   } catch (err) {
     console.error('[GET /posts]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -545,7 +539,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
     }
   } catch (err) {
     console.error('[POST /posts]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -571,7 +565,7 @@ router.delete('/:id', requireAuth(), async (req, res) => {
     return res.json({ status: 'success', message: 'Blog deleted' });
   } catch (err) {
     console.error('[DELETE /posts]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 

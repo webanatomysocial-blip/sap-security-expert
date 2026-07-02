@@ -65,7 +65,7 @@ router.post(['/send_otp.php', '/send-otp'], rateLimit('otp_send', 5, 300), async
 });
 
 // POST /api/verify_otp.php
-router.post(['/verify_otp.php', '/verify-otp'], async (req, res) => {
+router.post(['/verify_otp.php', '/verify-otp'], rateLimit('otp_verify', 10, 300), async (req, res) => {
   const db = req.db;
   const { email, code, type = 'signup' } = req.body || {};
 
@@ -115,16 +115,20 @@ router.post(['/forgot_password.php', '/forgot-password'], rateLimit('forgot_pass
 
     return res.json({ status: 'success', message: 'If an account exists with this email, reset instructions have been sent.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[forgot-password]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to process request.' });
   }
 });
 
 // POST /api/reset_with_token.php
-router.post(['/reset_with_token.php', '/reset-with-token'], async (req, res) => {
+router.post(['/reset_with_token.php', '/reset-with-token'], rateLimit('reset_token', 10, 300), async (req, res) => {
   const db = req.db;
   const { email, token, password } = req.body || {};
   if (!email || !token || !password) {
     return res.status(400).json({ status: 'error', message: 'Email, token and password are required.' });
+  }
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+    return res.status(400).json({ status: 'error', message: 'Password must be 8–128 characters.' });
   }
 
   try {
@@ -141,16 +145,20 @@ router.post(['/reset_with_token.php', '/reset-with-token'], async (req, res) => 
 
     return res.json({ status: 'success', message: 'Password reset successfully.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[reset-with-token]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to reset password.' });
   }
 });
 
 // POST /api/reset_password_otp.php
-router.post(['/reset_password_otp.php', '/reset-password-otp'], async (req, res) => {
+router.post(['/reset_password_otp.php', '/reset-password-otp'], rateLimit('reset_otp', 10, 300), async (req, res) => {
   const db = req.db;
   const { email, code, password } = req.body || {};
   if (!email || !code || !password) {
     return res.status(400).json({ status: 'error', message: 'Email, code and password are required.' });
+  }
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+    return res.status(400).json({ status: 'error', message: 'Password must be 8–128 characters.' });
   }
 
   try {
@@ -159,11 +167,11 @@ router.post(['/reset_password_otp.php', '/reset-password-otp'], async (req, res)
 
     const hash = await require('bcryptjs').hash(password, 10);
     await db.execute('UPDATE members SET password_hash = ? WHERE LOWER(email) = LOWER(?)', [hash, email]);
-    // Also update users table in case this is a contributor account
     await db.execute('UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)', [hash, email]).catch(() => {});
 
     return res.json({ status: 'success', message: 'Password reset successfully.' });
   } catch (err) {
+    console.error('[reset-password-otp]', err.message);
     return res.status(400).json({ status: 'error', message: err.message });
   }
 });

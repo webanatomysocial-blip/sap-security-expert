@@ -252,6 +252,16 @@ const Blogs = () => {
                           </span>
                         </div>
 
+                        {blog.difficulty_level && (() => {
+                          const LEVEL = { Beginner: { color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" }, Intermediate: { color: "#0369a1", bg: "#f0f9ff", border: "#bae6fd" }, Advanced: { color: "#7c3aed", bg: "#faf5ff", border: "#ddd6fe" }, Expert: { color: "#b45309", bg: "#fffbeb", border: "#fde68a" }, Enterprise: { color: "#be123c", bg: "#fff1f2", border: "#fecdd3" } };
+                          const m = LEVEL[blog.difficulty_level];
+                          return m ? (
+                            <span style={{ display: "inline-flex", alignItems: "center", fontSize: "0.72rem", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", background: m.bg, color: m.color, border: `1.5px solid ${m.border}`, marginBottom: "6px" }}>
+                              {blog.difficulty_level}
+                            </span>
+                          ) : null;
+                        })()}
+
                         <Link to={`/${blog.category}/${blog.slug}`} className="blog-title-link">
                           <h3>{blog.title}</h3>
                         </Link>

@@ -14,6 +14,7 @@ import {
   getContributorLogin,
   createContributorLogin,
   updateContributorAccess,
+  updateContributorReputation,
 } from "../../services/api";
 import api from "../../services/api";
 import useScrollLock from "../../hooks/useScrollLock";
@@ -51,6 +52,19 @@ const ManageContributorModal = ({ contributor, onClose }) => {
   const [permissions, setPermissions] = useState({ ...DEFAULT_PERMS });
   const [userId, setUserId] = useState(null);
   const [isActive, setIsActive] = useState(true);
+
+  // Reputation state — pre-populated from contributor prop
+  const toRepStr = v => (v !== undefined && v !== null) ? String(v) : "";
+  const toLines  = v => Array.isArray(v) ? v.join("\n") : (v || "");
+  const [rep, setRep] = useState({
+    experience_years:      toRepStr(contributor.experience_years),
+    implementations_count: toRepStr(contributor.implementations_count),
+    peer_rating:           toRepStr(contributor.peer_rating),
+    peer_rating_count:     toRepStr(contributor.peer_rating_count),
+    sap_certifications:    toLines(contributor.sap_certifications),
+    sap_press_books:       toLines(contributor.sap_press_books),
+  });
+  const [repSaving, setRepSaving] = useState(false);
 
   const { addToast } = useToast();
 
@@ -91,6 +105,30 @@ const ManageContributorModal = ({ contributor, onClose }) => {
 
   const handlePermChange = (key, checked) => {
     setPermissions((prev) => ({ ...prev, [key]: checked }));
+  };
+
+  const handleRepSave = async () => {
+    setRepSaving(true);
+    try {
+      const payload = {
+        experience_years: rep.experience_years ? Number(rep.experience_years) : null,
+        implementations_count: rep.implementations_count ? Number(rep.implementations_count) : null,
+        peer_rating: rep.peer_rating ? parseFloat(rep.peer_rating) : null,
+        peer_rating_count: rep.peer_rating_count ? Number(rep.peer_rating_count) : 0,
+        sap_certifications: rep.sap_certifications
+          ? rep.sap_certifications.split("\n").map(s => s.trim()).filter(Boolean)
+          : [],
+        sap_press_books: rep.sap_press_books
+          ? rep.sap_press_books.split("\n").map(s => s.trim()).filter(Boolean)
+          : [],
+      };
+      await updateContributorReputation(contributor.id, payload);
+      addToast("Reputation saved.", "success");
+    } catch {
+      addToast("Failed to save reputation.", "error");
+    } finally {
+      setRepSaving(false);
+    }
   };
 
   const handleCreate = async (e) => {
@@ -495,6 +533,72 @@ const ManageContributorModal = ({ contributor, onClose }) => {
               )}
             </form>
           )}
+        </div>
+
+        {/* ── Author Reputation ────────────────────────────────── */}
+        <div style={{ padding: "0 24px 20px" }}>
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 20, marginTop: 4 }}>
+            <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0f172a", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+              <i className="bi bi-award-fill" style={{ color: "#ee5e42" }}></i> Author Reputation
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {[
+                { key: "experience_years", label: "Years Experience", type: "number" },
+                { key: "implementations_count", label: "Implementations", type: "number" },
+                { key: "peer_rating", label: "Peer Rating (0–5)", type: "number" },
+                { key: "peer_rating_count", label: "Rating Count", type: "number" },
+              ].map(({ key, label, type }) => (
+                <div key={key}>
+                  <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "#64748b", marginBottom: 4 }}>{label}</label>
+                  <input
+                    type={type}
+                    value={rep[key]}
+                    onChange={e => setRep(prev => ({ ...prev, [key]: e.target.value }))}
+                    style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 10px", fontSize: "0.88rem" }}
+                    placeholder="—"
+                    min="0"
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "#64748b", marginBottom: 4 }}>
+                  SAP Certifications <span style={{ fontWeight: 400 }}>(one per line)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={rep.sap_certifications}
+                  onChange={e => setRep(prev => ({ ...prev, sap_certifications: e.target.value }))}
+                  style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 10px", fontSize: "0.82rem", resize: "vertical" }}
+                  placeholder="SAP Certified Security Associate&#10;SAP GRC Access Control"
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "#64748b", marginBottom: 4 }}>
+                  SAP PRESS Books <span style={{ fontWeight: 400 }}>(one per line)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={rep.sap_press_books}
+                  onChange={e => setRep(prev => ({ ...prev, sap_press_books: e.target.value }))}
+                  style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 10px", fontSize: "0.82rem", resize: "vertical" }}
+                  placeholder="SAP Security Guide (2024)"
+                />
+              </div>
+            </div>
+            <div style={{ marginTop: 12, textAlign: "right" }}>
+              <button
+                type="button"
+                onClick={handleRepSave}
+                disabled={repSaving}
+                className="btn-primary"
+                style={{ fontSize: "0.84rem", padding: "7px 18px" }}
+              >
+                {repSaving ? "Saving…" : "Save Reputation"}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="modal-footer">

@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { requireAdmin } = require('../../middleware/auth');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
@@ -26,7 +27,8 @@ router.get('/', requireAdmin, async (req, res) => {
     const [rows] = await db.execute(sql, params);
     return res.json({ status: 'success', members: rows });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[admin/members GET]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to load members.' });
   }
 });
 
@@ -38,7 +40,9 @@ router.post('/', requireAdmin, async (req, res) => {
   if (!id || !action) return res.status(400).json({ status: 'error', message: 'id and action are required' });
 
   try {
-    const [rows] = await db.execute('SELECT * FROM members WHERE id=?', [id]);
+    const [rows] = await db.execute(
+      'SELECT id, name, email, status, is_deleted, referred_by_code FROM members WHERE id=?', [id]
+    );
     if (!rows.length) return res.status(404).json({ status: 'error', message: 'Member not found' });
     const member = rows[0];
 
@@ -100,7 +104,8 @@ router.post('/', requireAdmin, async (req, res) => {
 
     return res.status(400).json({ status: 'error', message: 'Unknown action' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[admin/members POST]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to perform action.' });
   }
 });
 
@@ -110,7 +115,8 @@ router.post('/reset-password', requireAdmin, async (req, res) => {
   const { member_id } = req.body || {};
   if (!member_id) return res.status(400).json({ status: 'error', message: 'member_id required' });
   try {
-    const newPassword = Math.random().toString(36).slice(-10);
+    // Use cryptographically secure random password
+    const newPassword = crypto.randomBytes(10).toString('base64url').slice(0, 12);
     const hash = await bcrypt.hash(newPassword, 10);
     await db.execute('UPDATE members SET password_hash=? WHERE id=?', [hash, member_id]);
 
@@ -125,7 +131,8 @@ router.post('/reset-password', requireAdmin, async (req, res) => {
 
     return res.json({ status: 'success', message: 'Password reset.', new_password: newPassword });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[admin/members reset-password]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to reset password.' });
   }
 });
 

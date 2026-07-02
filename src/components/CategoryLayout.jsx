@@ -380,84 +380,94 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
 
   return (
     <div className="category-page-wrapper">
-      {/* Header */}
+      {/* Hero Header */}
       <div className="cat-hero">
+        {/* Decorative blobs */}
+        <div className="cat-hero-blob cat-hero-blob--1" aria-hidden="true" />
+        <div className="cat-hero-blob cat-hero-blob--2" aria-hidden="true" />
+
         <div className="container">
           <nav className="blog-breadcrumb cat-hero-breadcrumb" aria-label="Breadcrumb">
             <Link to="/" className="breadcrumb-link">Home</Link>
             <span className="breadcrumb-sep"><i className="bi bi-chevron-right" /></span>
             <span className="breadcrumb-current">{displayName}</span>
           </nav>
-          
+
           <div className="cat-hero-inner">
+            {/* Left: text + stats */}
             <div className="cat-hero-text">
+              <div className="cat-hero-eyebrow">
+                <span className="cat-hero-eyebrow-dot" />
+                Explore Category
+              </div>
               <h1 className="cat-hero-title">{displayName.toUpperCase()}</h1>
               <p className="cat-hero-desc">{meta.description}</p>
-              
+
               <div className="cat-stats-row">
                 <div className="cat-stat-item">
                   <div className="cat-stat-icon-wrap">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                    </svg>
+                    <i className="bi bi-journal-text" />
                   </div>
                   <div className="cat-stat-info">
-                    <span className="cat-stat-number">{loading ? "—" : categoryArticleCount}</span>
+                    <span className="cat-stat-number">
+                      {loading ? "—" : `${categoryArticleCount}+`}
+                    </span>
                     <span className="cat-stat-label">Articles</span>
                   </div>
                 </div>
-                
-                <div className="cat-stat-divider"></div>
-                
+
                 <div className="cat-stat-item">
                   <div className="cat-stat-icon-wrap">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                      <path d="m9 11 2 2 4-4" />
-                    </svg>
+                    <i className="bi bi-shield-check" />
                   </div>
                   <div className="cat-stat-info">
-                    <span className="cat-stat-number">{loading ? "—" : categoryContributorCount}</span>
+                    <span className="cat-stat-number">
+                      {loading ? "—" : `${categoryContributorCount}+`}
+                    </span>
                     <span className="cat-stat-label">Expert Contributors</span>
                   </div>
                 </div>
-                
-                <div className="cat-stat-divider"></div>
-                
+
                 <div className="cat-stat-item">
                   <div className="cat-stat-icon-wrap">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
+                    <i className="bi bi-people" />
                   </div>
                   <div className="cat-stat-info">
-                    <span className="cat-stat-number">{communityStats.members || "—"}</span>
+                    <span className="cat-stat-number">
+                      {communityStats.members
+                        ? (communityStats.members >= 1000
+                            ? `${(communityStats.members / 1000).toFixed(1)}K+`
+                            : `${communityStats.members}+`)
+                        : "—"}
+                    </span>
                     <span className="cat-stat-label">Community Members</span>
                   </div>
                 </div>
-                
-                <div className="cat-stat-divider"></div>
-                
+
                 <div className="cat-stat-item">
                   <div className="cat-stat-icon-wrap">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
+                    <i className="bi bi-chat-dots" />
                   </div>
                   <div className="cat-stat-info">
-                    <span className="cat-stat-number">{communityStats.comments || "—"}</span>
+                    <span className="cat-stat-number">
+                      {communityStats.comments
+                        ? (communityStats.comments >= 1000
+                            ? `${(communityStats.comments / 1000).toFixed(1)}K+`
+                            : `${communityStats.comments}+`)
+                        : "—"}
+                    </span>
                     <span className="cat-stat-label">Discussions</span>
                   </div>
                 </div>
               </div>
             </div>
-            
+
+            {/* Right: illustration */}
             <div className="cat-hero-illustration-new">
-              <img src={CATEGORY_IMAGES[categorySlug] || "/assets/images/sap-security.png"} alt={displayName} />
+              <img
+                src={CATEGORY_IMAGES[categorySlug] || "/assets/images/sap-security.png"}
+                alt={displayName}
+              />
             </div>
           </div>
         </div>
@@ -561,6 +571,16 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
                           })()}
                         </span>
                       </div>
+
+                      {blog.difficulty_level && (() => {
+                        const LEVEL = { Beginner: { color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" }, Intermediate: { color: "#0369a1", bg: "#f0f9ff", border: "#bae6fd" }, Advanced: { color: "#7c3aed", bg: "#faf5ff", border: "#ddd6fe" }, Expert: { color: "#b45309", bg: "#fffbeb", border: "#fde68a" }, Enterprise: { color: "#be123c", bg: "#fff1f2", border: "#fecdd3" } };
+                        const m = LEVEL[blog.difficulty_level];
+                        return m ? (
+                          <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", fontSize: "0.72rem", fontWeight: 700, padding: "3px 10px", borderRadius: "20px", background: m.bg, color: m.color, border: `1.5px solid ${m.border}`, marginBottom: "6px" }}>
+                            {blog.difficulty_level}
+                          </span>
+                        ) : null;
+                      })()}
 
                       <Link
                         to={`/${blog.category}/${blog.slug}`}

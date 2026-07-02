@@ -69,6 +69,13 @@ function buildContentWithAds(html, inlineAds) {
     }
   }
 
+  // Append any ads whose target paragraph was never reached (content too short)
+  for (const ad of sorted) {
+    if (ad.position > paraCount) {
+      nodes.push(<InlineAd key={`ad-${ad.id}-end`} ad={ad} />);
+    }
+  }
+
   return <div className="blog-content-body">{nodes}</div>;
 }
 
@@ -333,6 +340,7 @@ export default function DynamicBlog() {
         badge_field_validated={blog.badge_field_validated}
         difficulty_level={blog.difficulty_level || null}
         content_version={blog.content_version || null}
+        author_contributor_id={blog.author_contributor_id || null}
         dynamicRecentPosts={[]}
         viewCount={blog.view_count || 0}
         commentCount={commentsCount}

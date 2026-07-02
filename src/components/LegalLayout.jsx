@@ -1,6 +1,4 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import BlogSidebar from "./BlogSidebar";
 // next-disabled: import "../css/CategoryPage.css";
 // next-disabled: import "../css/blog-post.css";
 const LegalLayout = ({ title, children }) => {
@@ -9,8 +7,10 @@ const LegalLayout = ({ title, children }) => {
       {/* Header - Matching Category Style */}
       <div className="category-header-section">
         <div className="container">
-          <div className="breadcrumbs">
-            <Link to="/">Home</Link> &gt; <span>{title}</span>
+          <div className="blog-breadcrumb" style={{ marginBottom: 12 }}>
+            <Link to="/" className="breadcrumb-link">Home</Link>
+            <span className="breadcrumb-sep"> &gt; </span>
+            <span className="breadcrumb-current">{title}</span>
           </div>
           <h1 className="blog-title" style={{ margin: 0, fontSize: "42px" }}>
             {title}

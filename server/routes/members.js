@@ -160,7 +160,7 @@ router.post('/login', rateLimit('member_login', 10, 900), async (req, res) => {
 });
 
 // POST /api/member/signup
-router.post('/signup', async (req, res) => {
+router.post('/signup', rateLimit('member_signup', 10, 900), async (req, res) => {
   const db = req.db;
   const {
     name, phone, email, location, company_name, job_role, username: rawUsername,
@@ -171,16 +171,17 @@ router.post('/signup', async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'Name, email and password are required.' });
   }
 
-  const otpService = new OTPService(db);
-  if (!await otpService.isVerified(email, 'signup')) {
-    return res.status(403).json({ status: 'error', message: 'Email not verified. Please verify your email with OTP first.' });
-  }
-
+  // Validate format before any DB calls
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ status: 'error', message: 'Please enter a valid email address.' });
   }
-  if (!password || password.length < 8) {
+  if (password.length < 8) {
     return res.status(400).json({ status: 'error', message: 'Password must be at least 8 characters.' });
+  }
+
+  const otpService = new OTPService(db);
+  if (!await otpService.isVerified(email, 'signup')) {
+    return res.status(403).json({ status: 'error', message: 'Email not verified. Please verify your email with OTP first.' });
   }
 
   try {
@@ -252,7 +253,7 @@ router.post('/signup', async (req, res) => {
     });
   } catch (err) {
     console.error('[member_signup]', err.message);
-    return res.status(500).json({ status: 'error', message: 'Server error: ' + err.message });
+    return res.status(500).json({ status: 'error', message: 'Signup failed. Please try again.' });
   }
 });
 
@@ -333,7 +334,10 @@ router.post('/profile/update', (req, res, next) => {
       }
     }
 
-    const [rows] = await db.execute('SELECT * FROM members WHERE id = ?', [req.session.member_id]);
+    const [rows] = await db.execute(
+      'SELECT id, name, email, username, phone, location, company_name, job_role, profile_image, receive_blog_emails, profile_visibility, status FROM members WHERE id = ?',
+      [req.session.member_id]
+    );
     req.session.member_name = rows[0]?.name || req.session.member_name;
     return res.json({ status: 'success', message: 'Profile updated', member: rows[0] });
   } catch (err) {
@@ -373,6 +377,23 @@ async function ensureAchievementTables(db) {
   try {
     await db.execute(`ALTER TABLE member_achievements ADD COLUMN email_sent INTEGER NOT NULL DEFAULT 0`);
   } catch (_) { /* column already exists */ }
+
+  // Seed the achievement types (INSERT OR IGNORE = idempotent)
+  const types = [
+    ['welcome',               'Welcome Aboard',        'Joined the SAP Security Expert community',                    'bi-stars',            '#7c3aed', '#faf5ff', 'Join as a member'],
+    ['first_comment',         'First Voice',           'Had your first comment approved by the team',                 'bi-chat-heart-fill',  '#0369a1', '#f0f9ff', '1 approved comment'],
+    ['100_helpful_comments',  'Community Champion',    'Contributed 100 approved comments to the community',          'bi-trophy-fill',      '#b45309', '#fffbeb', '100 approved comments'],
+    ['top_contributor',       'Expert Contributor',    'Recognized as an approved content contributor',               'bi-pen-fill',         '#15803d', '#f0fdf4', 'Become an approved contributor'],
+    ['profile_complete',      'Profile Pro',           'Completed your full member profile',                          'bi-person-check-fill','#ee5e42', '#fff5f3', 'Complete all profile fields'],
+    ['linkedin_ambassador',   'LinkedIn Ambassador',   'Shared SAP Security Expert content on LinkedIn',              'bi-linkedin',         '#0077b5', '#eff8ff', 'Share on LinkedIn once'],
+    ['first_referral',        'Community Builder',     'Successfully referred a member to join the community',        'bi-people-fill',      '#dc2626', '#fef2f2', 'Refer 1 approved member'],
+  ];
+  for (const [id, label, description, icon, color, bg, criteria] of types) {
+    await db.execute(
+      `INSERT OR IGNORE INTO member_achievement_types (id, label, description, icon, color, bg, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [id, label, description, icon, color, bg, criteria]
+    ).catch(() => {});
+  }
 }
 
 // Grant an achievement and send email if newly granted
@@ -461,8 +482,12 @@ router.get('/achievements', async (req, res) => {
   try {
     await ensureAchievementTables(db);
 
-    const memberId = req.query.member_id || req.session.member_id;
-    if (!memberId) {
+    // Only use session member_id for auto-grant/email logic.
+    // ?member_id= (public profile view) gets read-only data with no side-effects.
+    const sessionMemberId = req.session.member_id || null;
+    const viewMemberId = req.query.member_id || sessionMemberId;
+
+    if (!viewMemberId) {
       // Return all types as locked if no member context
       const [types] = await db.execute('SELECT * FROM member_achievement_types ORDER BY id');
       return res.json({
@@ -471,43 +496,80 @@ router.get('/achievements', async (req, res) => {
       });
     }
 
-    // Fetch member info for email notifications
-    const [memberRows] = await db.execute('SELECT email, full_name FROM members WHERE id = ?', [memberId]);
+    // Only run auto-grant and send emails for the authenticated member's own profile
+    const memberId = sessionMemberId;
+
+    // Fetch member info for email notifications (only needed when member is logged in)
+    const [memberRows] = memberId
+      ? await db.execute('SELECT email, name FROM members WHERE id = ?', [memberId])
+      : [[]];
+
     const memberEmail = memberRows[0]?.email || null;
-    const memberName = memberRows[0]?.full_name || 'Member';
+    const memberName = memberRows[0]?.name || 'Member';
     const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
     const mailer = MailService.getInstance(db);
 
-    // Auto-grant: first_comment
-    const [commentRows] = await db.execute(
-      "SELECT COUNT(*) as cnt FROM comments WHERE member_id = ? AND status = 'approved'",
-      [memberId]
-    );
-    const commentCount = commentRows[0]?.cnt || 0;
-    if (commentCount >= 1) {
-      await grantAndNotify(db, mailer, memberId, 'first_comment', memberEmail, memberName, siteUrl);
-    }
-    if (commentCount >= 100) {
-      await grantAndNotify(db, mailer, memberId, '100_helpful_comments', memberEmail, memberName, siteUrl);
-    }
+    // Auto-grant logic only runs for the authenticated member's own session
+    if (memberId) {
+      await grantAndNotify(db, mailer, memberId, 'welcome', memberEmail, memberName, siteUrl);
 
-    // Auto-grant: top_contributor (member's email matches an approved contributor)
-    if (memberRows.length) {
-      const email = memberRows[0].email;
-      const [contribRows] = await db.execute(
-        "SELECT id FROM contributors WHERE LOWER(email) = LOWER(?) AND status = 'approved' LIMIT 1",
-        [email]
+      const [commentRows] = await db.execute(
+        "SELECT COUNT(*) as cnt FROM comments WHERE member_id = ? AND status = 'approved'",
+        [memberId]
       );
-      if (contribRows.length) {
-        await grantAndNotify(db, mailer, memberId, 'top_contributor', memberEmail, memberName, siteUrl);
+      const commentCount = commentRows[0]?.cnt || 0;
+      if (commentCount >= 1) {
+        await grantAndNotify(db, mailer, memberId, 'first_comment', memberEmail, memberName, siteUrl);
+      }
+      if (commentCount >= 100) {
+        await grantAndNotify(db, mailer, memberId, '100_helpful_comments', memberEmail, memberName, siteUrl);
+      }
+
+      if (memberRows[0]?.email) {
+        const [contribRows] = await db.execute(
+          "SELECT id FROM contributors WHERE LOWER(email) = LOWER(?) AND status = 'approved' LIMIT 1",
+          [memberRows[0].email]
+        );
+        if (contribRows.length) {
+          await grantAndNotify(db, mailer, memberId, 'top_contributor', memberEmail, memberName, siteUrl);
+        }
+      }
+
+      const [profBonusRows] = await db.execute(
+        "SELECT id FROM credit_transactions WHERE member_id = ? AND note = 'Complete profile bonus' LIMIT 1",
+        [memberId]
+      );
+      if (profBonusRows.length) {
+        await grantAndNotify(db, mailer, memberId, 'profile_complete', memberEmail, memberName, siteUrl);
+      }
+
+      const [linkedinRows] = await db.execute(
+        "SELECT id FROM credit_transactions WHERE member_id = ? AND note = 'LinkedIn share bonus' LIMIT 1",
+        [memberId]
+      );
+      if (linkedinRows.length) {
+        await grantAndNotify(db, mailer, memberId, 'linkedin_ambassador', memberEmail, memberName, siteUrl);
+      }
+
+      const [memberReferralCode] = await db.execute(
+        'SELECT referral_code FROM members WHERE id = ? LIMIT 1', [memberId]
+      );
+      if (memberReferralCode[0]?.referral_code) {
+        const [refRows] = await db.execute(
+          "SELECT COUNT(*) as cnt FROM members WHERE referred_by_code = ? AND status = 'approved'",
+          [memberReferralCode[0].referral_code]
+        );
+        if ((refRows[0]?.cnt || 0) >= 1) {
+          await grantAndNotify(db, mailer, memberId, 'first_referral', memberEmail, memberName, siteUrl);
+        }
       }
     }
 
-    // Fetch all types + earned status
+    // Fetch all types + earned status for whichever member is being viewed
     const [types] = await db.execute('SELECT * FROM member_achievement_types ORDER BY id');
     const [earned] = await db.execute(
       'SELECT achievement_id, earned_at FROM member_achievements WHERE member_id = ?',
-      [memberId]
+      [viewMemberId]
     );
     const earnedMap = {};
     earned.forEach(r => { earnedMap[r.achievement_id] = r.earned_at; });
@@ -525,10 +587,8 @@ router.get('/achievements', async (req, res) => {
 });
 
 // POST /api/member/achievements/grant — admin-only manual grant
-router.post('/achievements/grant', async (req, res) => {
-  if (!req.session.admin_logged_in) {
-    return res.status(403).json({ status: 'error', message: 'Admin access required.' });
-  }
+const { requireAdmin } = require('../middleware/auth');
+router.post('/achievements/grant', requireAdmin, async (req, res) => {
   const db = req.db;
   const { member_id, achievement_id } = req.body || {};
   if (!member_id || !achievement_id) {
@@ -536,13 +596,54 @@ router.post('/achievements/grant', async (req, res) => {
   }
   try {
     await ensureAchievementTables(db);
-    const [memberRows] = await db.execute('SELECT email, full_name FROM members WHERE id = ?', [member_id]);
+    const [memberRows] = await db.execute('SELECT email, name FROM members WHERE id = ?', [member_id]);
     const memberEmail = memberRows[0]?.email || null;
-    const memberName = memberRows[0]?.full_name || 'Member';
+    const memberName = memberRows[0]?.name || 'Member';
     const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
     const mailer = MailService.getInstance(db);
     await grantAndNotify(db, mailer, member_id, achievement_id, memberEmail, memberName, siteUrl);
     return res.json({ status: 'success', message: 'Achievement granted.' });
+  } catch (err) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// POST /api/member/change-password
+router.post('/change-password', rateLimit('member_change_password', 5, 900), async (req, res) => {
+  if (!req.session.member_logged_in) {
+    return res.status(401).json({ status: 'error', message: 'Not authenticated.' });
+  }
+  const db = req.db;
+  const { current_password, new_password } = req.body || {};
+  if (!current_password || !new_password) {
+    return res.status(400).json({ status: 'error', message: 'Both current and new passwords are required.' });
+  }
+  if (new_password.length < 8) {
+    return res.status(400).json({ status: 'error', message: 'New password must be at least 8 characters.' });
+  }
+  try {
+    const [rows] = await db.execute(
+      'SELECT id, email, password_hash FROM members WHERE id = ?',
+      [req.session.member_id]
+    );
+    if (!rows.length) return res.status(404).json({ status: 'error', message: 'Member not found.' });
+    const member = rows[0];
+
+    const match = await bcrypt.compare(current_password, member.password_hash);
+    if (!match) return res.status(400).json({ status: 'error', message: 'Current password is incorrect.' });
+
+    const hash = await bcrypt.hash(new_password, 10);
+
+    // Update members table
+    await db.execute('UPDATE members SET password_hash=? WHERE id=?', [hash, member.id]);
+
+    // Sync to users table if contributor/admin account shares this email
+    await db.execute(
+      'UPDATE users SET password=? WHERE LOWER(email)=LOWER(?)',
+      [hash, member.email]
+    ).catch(err => console.error('[change-password] users sync failed:', err.message));
+
+    return res.json({ status: 'success', message: 'Password changed successfully.' });
   } catch (err) {
     return res.status(500).json({ status: 'error', message: err.message });
   }

@@ -85,21 +85,24 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: false,             // dev.sapsecurityexpert.com runs HTTP — secure cookies must be off
+    secure: isProd,            // require HTTPS in production
     sameSite: 'lax',           // 'lax' (not 'strict') — 'strict' silently drops the
                                // session cookie on Razorpay payment-return redirects
                                // because the navigation originates from razorpay.com.
                                // CSRF is already covered by the X-CSRF-Token header check.
-    maxAge: null,              // session cookie — expires on browser close
+    maxAge: 8 * 60 * 60 * 1000, // 8 hours — prevents indefinitely-lived stolen sessions
   },
 }));
 
-// Security headers (mirror db.php)
+// Security headers
 app.use((_, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.razorpay.com; frame-src https://api.razorpay.com; object-src 'none'; base-uri 'self';"
+  );
   next();
 });
 

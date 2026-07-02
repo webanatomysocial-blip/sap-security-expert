@@ -27,7 +27,7 @@ router.get('/admin/stats', requireAdmin, async (req, res) => {
       pending_members: pending_members.c,
     });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -66,7 +66,7 @@ router.get('/contributor/stats', requireAuth(), async (req, res) => {
       total_announcements: total_announcements.c,
     });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 

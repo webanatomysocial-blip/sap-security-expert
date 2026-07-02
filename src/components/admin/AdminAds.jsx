@@ -4,7 +4,7 @@ import TableScrollContainer from "./TableScrollContainer";
 import useScrollLock from "../../hooks/useScrollLock";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { getAds, saveAd, getAdminBlogAds, saveBlogAd, deleteBlogAd, toggleBlogAd, getBlogs } from "../../services/api";
+import { getAds, saveAd, getAdminBlogAds, saveBlogAd, deleteBlogAd, toggleBlogAd, getAdminBlogSelectList } from "../../services/api";
 
 const ZONE_ADS = [
   { id: "community_left",  label: "Community Page – Left Ad",  dimensions: "300×300 px" },
@@ -88,7 +88,7 @@ export default function AdminAds() {
 
   useEffect(() => {
     if (showBlogAdModal) {
-      getBlogs({ limit: 200 }).then(r => setAllBlogs(r.data?.posts || r.data?.blogs || [])).catch(() => {});
+      getAdminBlogSelectList().then(r => setAllBlogs(r.data?.blogs || [])).catch(() => {});
     }
   }, [showBlogAdModal]);
 

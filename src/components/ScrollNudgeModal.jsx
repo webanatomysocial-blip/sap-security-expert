@@ -1,21 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getExclusiveCount } from "../services/api";
 
-const SCROLL_THRESHOLD = 4;   // fire after 4 scroll events
+// Trigger after 3 distinct scroll gestures (each gesture = a pause of 300ms between events)
+const GESTURE_THRESHOLD = 3;
+const GESTURE_GAP_MS = 300;
 const SESSION_KEY = "nudge_dismissed_this_session";
 
 export default function ScrollNudgeModal({ isFreeArticle = true }) {
   const { isLoggedIn } = useMemberAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [exclusiveCount, setExclusiveCount] = useState(0);
-  const scrollCount = useRef(0);
+  const gestureCount = useRef(0);
+  const lastScrollTime = useRef(0);
   const fired = useRef(false);
 
-  // Only suppress within the same session (tab) after dismissal
   const isDismissed = () => sessionStorage.getItem(SESSION_KEY) === "1";
 
   const dismiss = () => {
@@ -23,7 +26,6 @@ export default function ScrollNudgeModal({ isFreeArticle = true }) {
     setOpen(false);
   };
 
-  // Fetch exclusive count once for logged-in members
   useEffect(() => {
     if (isLoggedIn) {
       getExclusiveCount()
@@ -34,11 +36,18 @@ export default function ScrollNudgeModal({ isFreeArticle = true }) {
 
   const handleScroll = useCallback(() => {
     if (fired.current || isDismissed()) return;
-    scrollCount.current += 1;
-    if (scrollCount.current >= SCROLL_THRESHOLD) {
-      fired.current = true;
-      setOpen(true);
+    const now = Date.now();
+    // Each time there's a gap since last scroll event, count it as a new gesture
+    if (now - lastScrollTime.current > GESTURE_GAP_MS) {
+      gestureCount.current += 1;
+      lastScrollTime.current = now;
+      if (gestureCount.current >= GESTURE_THRESHOLD) {
+        fired.current = true;
+        setOpen(true);
+      }
+      return;
     }
+    lastScrollTime.current = now;
   }, []);
 
   useEffect(() => {
@@ -75,7 +84,7 @@ export default function ScrollNudgeModal({ isFreeArticle = true }) {
               </button>
               <button
                 className="sn-btn-secondary"
-                onClick={() => { dismiss(); navigate("/member/login"); }}
+                onClick={() => { dismiss(); navigate("/member/login", { state: { from: location.pathname + location.search } }); }}
               >
                 Already a member? Sign in
               </button>
