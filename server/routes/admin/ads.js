@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { requireAuth } = require('../../middleware/auth');
 const { checkPermission } = require('../../middleware/permissions');
 const { deleteImage } = require('../../utils/helpers');
+const { rateLimit } = require('../../middleware/rateLimit');
 
 // GET /api/ads  or  GET /api/admin/ads
 router.get('/', requireAuth({ allowPublic: true }), async (req, res) => {
@@ -16,7 +17,7 @@ router.get('/', requireAuth({ allowPublic: true }), async (req, res) => {
     rows.forEach(r => { map[r.zone] = r; });
     return res.json(map);
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[ads]', err.message); return res.status(500).json({ status: 'error', message: 'Internal server error.' });
   }
 });
 
@@ -50,12 +51,12 @@ router.post('/', requireAuth(), checkPermission('can_manage_ads'), async (req, r
 
     return res.json({ status: 'success', message: 'Ad updated' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[ads]', err.message); return res.status(500).json({ status: 'error', message: 'Internal server error.' });
   }
 });
 
-// POST /api/ads/click
-router.post('/click', async (req, res) => {
+// POST /api/ads/click — rate limited to prevent click fraud
+router.post('/click', rateLimit('ad_click', 30, 60), async (req, res) => {
   const db = req.db;
   const { zone } = req.body || {};
   if (!zone) return res.status(400).json({ status: 'error', message: 'Zone required' });
@@ -63,7 +64,8 @@ router.post('/click', async (req, res) => {
     await db.execute("UPDATE ads SET clicks = COALESCE(clicks,0) + 1 WHERE zone=?", [zone]);
     return res.json({ status: 'success' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[ads/click]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Internal server error.' });
   }
 });
 

@@ -20,7 +20,6 @@ router.get('/pending', requireAuth(), checkPermission('can_review_blogs'), async
 
     // Author fields match what BlogPreviewModal expects: author_name, author_image, author_bio
     const authorFields = `
-      u.email AS author_email,
       COALESCE(c.full_name, u.username) AS author_display,
       CASE
         WHEN u.role = 'admin' OR b.author_id IS NULL OR b.author_id = 1 THEN 'Raghu Boddu'
@@ -65,7 +64,7 @@ router.get('/pending', requireAuth(), checkPermission('can_review_blogs'), async
     const [rows] = await db.execute(sql, params);
     return res.json(rows);
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -169,7 +168,7 @@ router.put('/:id/review', requireAuth(), checkPermission('can_review_blogs'), as
     }
   } catch (err) {
     console.error('[review_blog]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -195,7 +194,7 @@ router.post('/recalculate-plagiarism', requireAuth(), checkPermission('can_revie
     return res.json({ status: 'success', plagiarism_score: score });
   } catch (err) {
     console.error('[recalculate-plagiarism]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -221,7 +220,7 @@ router.post('/bulk-recalculate-plagiarism', requireAdmin, async (req, res) => {
     return res.json({ status: 'success', message: `Updated ${updated} blog(s).`, updated });
   } catch (err) {
     console.error('[bulk-recalculate-plagiarism]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -241,7 +240,7 @@ router.post('/toggle-exclusive', requireAdmin, async (req, res) => {
     await db.execute('UPDATE blogs SET is_members_only=? WHERE id=?', [is_members_only ? 1 : 0, id]);
     return res.json({ status: 'success', message: 'Exclusive content setting updated.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -262,7 +261,7 @@ router.post('/toggle-premium', requireAdmin, async (req, res) => {
     }
     return res.json({ status: 'success', message: 'Premium setting updated.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -275,7 +274,22 @@ router.post('/toggle-expert-pick', requireAdmin, async (req, res) => {
     await db.execute('UPDATE blogs SET is_expert_pick=? WHERE id=?', [is_expert_pick ? 1 : 0, id]);
     return res.json({ status: 'success', message: 'Expert pick setting updated.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
+  }
+});
+
+// GET /api/admin/blogs/select-list — lightweight list for selectors (id, title, slug, category only)
+router.get('/select-list', requireAdmin, async (req, res) => {
+  const db = req.db;
+  try {
+    const [rows] = await db.execute(
+      `SELECT id, title, slug, category FROM blogs
+       WHERE status IN ('approved','published') AND (type IS NULL OR type = 'blog')
+       ORDER BY title ASC`
+    );
+    return res.json({ status: 'success', blogs: rows });
+  } catch (err) {
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 

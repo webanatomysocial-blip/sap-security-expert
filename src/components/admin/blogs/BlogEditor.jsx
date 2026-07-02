@@ -286,6 +286,49 @@ const BlogEditor = ({
             </div>
           )}
 
+          {/* Difficulty Level — Admin only */}
+          {isAdmin && (
+            <div className="form-group" style={{ marginBottom: "20px", background: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "20px", padding: "24px" }}>
+              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px", fontSize: "0.75rem", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: "1px" }}>
+                <i className="bi bi-bar-chart-fill" />
+                Content Level
+              </label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'].map((level) => {
+                  const active = formData.difficulty_level === level;
+                  const meta = {
+                    Beginner:     { color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" },
+                    Intermediate: { color: "#0369a1", bg: "#f0f9ff", border: "#bae6fd" },
+                    Advanced:     { color: "#7c3aed", bg: "#faf5ff", border: "#ddd6fe" },
+                    Expert:       { color: "#b45309", bg: "#fffbeb", border: "#fde68a" },
+                    Enterprise:   { color: "#be123c", bg: "#fff1f2", border: "#fecdd3" },
+                  }[level];
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => handleInputChange({ target: { name: "difficulty_level", value: active ? null : level } })}
+                      style={{
+                        padding: "6px 16px", borderRadius: "20px", fontSize: "0.8rem", fontWeight: 700,
+                        cursor: "pointer", border: `1.5px solid ${active ? meta.color : meta.border}`,
+                        background: active ? meta.color : meta.bg,
+                        color: active ? "#fff" : meta.color,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {level}
+                    </button>
+                  );
+                })}
+              </div>
+              {formData.difficulty_level && (
+                <p style={{ margin: "10px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
+                  Click the selected level again to remove it.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Verified by Experts badges — Admin only */}
           {isAdmin && (
             <div className="form-group" style={{ marginBottom: "20px" }}>

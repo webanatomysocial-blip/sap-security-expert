@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 // next-disabled: import "../../css/AdminDashboard.css";
 // next-disabled: import "../../css/admin-profile.css";
 import { LuShieldCheck, LuKey } from "react-icons/lu";
@@ -87,10 +87,6 @@ const AdminHome = () => {
 
   return (
     <div className="admin-page-wrapper">
-      <div className="page-header">
-        <h3>Dashboard Overview</h3>
-      </div>
-
       <div className="admin-card">
         <div className="dashboard-grid">
           {statCards.map((card) => (

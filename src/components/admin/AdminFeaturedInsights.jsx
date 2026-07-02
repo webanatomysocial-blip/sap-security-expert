@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { BlockSkeleton } from "./AdminSkeletons.jsx";
 import {
   getFeaturedInsights,
@@ -125,9 +125,6 @@ const AdminFeaturedInsights = () => {
 
   return (
     <div className="admin-page admin-featured">
-      <div className="admin-page-header" style={{ marginBottom: 8 }}>
-        <h1>Featured Insights</h1>
-      </div>
       <p style={{ color: "#64748b", margin: "0 0 20px", maxWidth: 620 }}>
         Pick up to {MAX_FEATURED} blogs to showcase in the homepage Featured Insights
         carousel. Optionally set a dedicated <strong>Homepage Featured Image</strong> for

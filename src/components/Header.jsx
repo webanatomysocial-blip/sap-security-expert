@@ -10,7 +10,6 @@ import { useMemberAuth } from "../context/MemberAuthContext";
 
 import { LuSettings, LuUser, LuKey, LuLogOut, LuShieldCheck, LuChevronRight, LuChevronDown, LuX, LuTrash2, LuCoins, LuBookOpen } from "react-icons/lu";
 import MemberProfileModal from "./MemberProfileModal";
-import ResetPasswordModal from "./admin/ResetPasswordModal";
 import DeleteAccountModal from "./DeleteAccountModal";
 
 const Header = () => {
@@ -61,7 +60,6 @@ const Header = () => {
 
   // Member profile state
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
-  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
   const [isSecuritySubmenuOpen, setIsSecuritySubmenuOpen] = useState(false);
@@ -78,16 +76,13 @@ const Header = () => {
       }
     };
 
-    const handleOpenResetPassword = () => setIsResetPasswordOpen(true);
     const handleOpenDeleteAccount = () => setIsDeleteAccountOpen(true);
 
     window.addEventListener('open-profile-settings', handleOpenProfile);
-    window.addEventListener('open-reset-password', handleOpenResetPassword);
     window.addEventListener('open-delete-account', handleOpenDeleteAccount);
 
     return () => {
       window.removeEventListener('open-profile-settings', handleOpenProfile);
-      window.removeEventListener('open-reset-password', handleOpenResetPassword);
       window.removeEventListener('open-delete-account', handleOpenDeleteAccount);
     };
   }, [isMemberLoggedIn, navigate]);
@@ -581,11 +576,6 @@ const Header = () => {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         initialTab={profileInitialTab}
-      />
-
-      <ResetPasswordModal
-        isOpen={isResetPasswordOpen}
-        onClose={() => setIsResetPasswordOpen(false)}
       />
 
       <DeleteAccountModal

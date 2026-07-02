@@ -25,6 +25,7 @@ const AdminLayout = () => {
   const { logout: memberLogout } = useMemberAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
   const [adminData, setAdminData] = useState({
     full_name: "",
     username: "",
@@ -132,6 +133,7 @@ const AdminLayout = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoginLoading(true);
     try {
       const response = await axios.post("/login", { username, password });
       if (response.data.status === "success") {
@@ -151,6 +153,8 @@ const AdminLayout = () => {
         error.response?.data?.message || "Login failed. Please try again.",
         "error",
       );
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -223,9 +227,15 @@ const AdminLayout = () => {
             <button
               type="submit"
               className="btn-primary"
-              style={{ width: "100%", marginTop: "25px", height: '45px' }}
+              disabled={loginLoading}
+              style={{ width: "100%", marginTop: "25px", height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, opacity: loginLoading ? 0.8 : 1 }}
             >
-              Login
+              {loginLoading ? (
+                <>
+                  <span style={{ width: 18, height: 18, border: '2.5px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                  Signing In…
+                </>
+              ) : 'Login'}
             </button>
           </form>
         </div>

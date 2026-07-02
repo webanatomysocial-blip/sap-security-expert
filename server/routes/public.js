@@ -175,7 +175,7 @@ router.get('/contributors/leaderboard', async (req, res) => {
     );
     return res.json(rows);
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -209,7 +209,7 @@ router.get('/members/:id/public', async (req, res) => {
       comment_count: v.show_stats ? comment_count : null,
     });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -236,7 +236,7 @@ router.get(['/get_categories.php', '/categories'], async (req, res) => {
     );
     return res.json(rows.map(r => r.category));
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -250,7 +250,7 @@ router.get(['/get_trending_topics.php', '/trending'], async (req, res) => {
     );
     return res.json(rows);
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -259,20 +259,24 @@ router.get(['/get_announcements.php', '/announcements-public'], async (req, res)
   const db = req.db;
   try {
     const [rows] = await db.execute(
-      "SELECT * FROM announcements WHERE status IN ('approved','active','published') ORDER BY created_at DESC"
+      `SELECT id, title, slug, date, link, content, excerpt, image, image_alt, views, comments, created_at
+       FROM announcements WHERE status IN ('approved','active','published') ORDER BY created_at DESC`
     );
     return res.json(rows);
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[announcements-public]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to load announcements.' });
   }
 });
 
 // GET /api/get_authors.php  or  GET /api/admin/authors
+// Email is intentionally excluded — this endpoint is used by the blog editor
+// dropdown and does not need to expose PII to the frontend.
 router.get(['/get_authors.php', '/admin/authors'], async (req, res) => {
   const db = req.db;
   try {
     const [rows] = await db.execute(
-      `SELECT u.id, u.username, u.email, u.role,
+      `SELECT u.id, u.username, u.role,
          COALESCE(c.full_name, u.full_name, u.username) as display_name,
          COALESCE(c.image, u.profile_image) as image
        FROM users u
@@ -281,12 +285,13 @@ router.get(['/get_authors.php', '/admin/authors'], async (req, res) => {
     );
     return res.json(rows);
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return res.status(500).json({ status: 'error', message: 'Failed to load authors.' });
   }
 });
 
 // POST /api/views  or  POST /api/save_view.php
-router.post(['/views', '/save_view.php'], async (req, res) => {
+const { rateLimit } = require('../middleware/rateLimit');
+router.post(['/views', '/save_view.php'], rateLimit('post_view', 60, 60), async (req, res) => {
   const db = req.db;
   const { slug, post_id, visitor_token } = req.body || {};
   const id = slug || post_id;
@@ -294,6 +299,11 @@ router.post(['/views', '/save_view.php'], async (req, res) => {
 
   // Require a visitor token — without one we cannot deduplicate
   if (!visitor_token) return res.json({ status: 'skipped' });
+
+  // Validate token is a known safe format (UUID or 64-char hex) to prevent oversized DB writes
+  if (typeof visitor_token !== 'string' || visitor_token.length > 128 || !/^[a-zA-Z0-9_\-]+$/.test(visitor_token)) {
+    return res.json({ status: 'skipped' });
+  }
 
   try {
     // Resolve to the integer blog ID (post_views.post_id is INTEGER FK → blogs.id)
@@ -323,7 +333,7 @@ router.post(['/views', '/save_view.php'], async (req, res) => {
     );
     return res.json({ status: 'success' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error("[route]", err.message); return res.status(500).json({ status: "error", message: "Internal server error." });
   }
 });
 
@@ -422,8 +432,10 @@ router.post(['/delete_account.php', '/delete-account'], async (req, res) => {
     return res.json({ status: 'success', message });
   } catch (err) {
     if (db.inTransaction) await db.rollback().catch(() => {});
-    return res.status(err.message.includes('code') ? 400 : 500)
-      .json({ status: 'error', message: err.message });
+    console.error('[delete_account]', err.message);
+    const isOtpError = /invalid|expired|code/i.test(err.message);
+    return res.status(isOtpError ? 400 : 500)
+      .json({ status: 'error', message: isOtpError ? err.message : 'Failed to delete account.' });
   }
 });
 
@@ -634,7 +646,7 @@ router.get('/learnings', async (req, res) => {
     return res.json(rows);
   } catch (err) {
     console.error('[GET /api/learnings]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    return res.status(500).json({ status: 'error', message: 'Internal server error.' });
   }
 });
 
@@ -655,7 +667,7 @@ router.get('/learnings/counts', async (req, res) => {
     return res.json(counts);
   } catch (err) {
     console.error('[GET /api/learnings/counts]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    return res.status(500).json({ status: 'error', message: 'Internal server error.' });
   }
 });
 
@@ -676,13 +688,11 @@ router.get('/news', async (req, res) => {
     return res.json(rows);
   } catch (err) {
     console.error('[GET /api/news]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    return res.status(500).json({ status: 'error', message: 'Internal server error.' });
   }
 });
 
-// GET /api/news/:slug  — single news item (used by DynamicBlog via the posts route too,
-//                        but this dedicated endpoint ensures slug resolution even if the
-//                        caller uses the /news/ prefix explicitly)
+// GET /api/news/:slug
 router.get('/news/:slug', async (req, res) => {
   const db = req.db;
   const { slug } = req.params;
@@ -699,7 +709,7 @@ router.get('/news/:slug', async (req, res) => {
     return res.json(rows[0]);
   } catch (err) {
     console.error('[GET /api/news/:slug]', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    return res.status(500).json({ status: 'error', message: 'Internal server error.' });
   }
 });
 

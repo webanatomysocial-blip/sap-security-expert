@@ -14,7 +14,7 @@ import {
   LuEye,
 } from "react-icons/lu";
 import useScrollLock from "../hooks/useScrollLock";
-import { updateMemberProfile, getMemberAchievements } from "../services/api";
+import { updateMemberProfile, getMemberAchievements, memberChangePassword } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 
@@ -87,6 +87,9 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
   const [visibilitySaving, setVisibilitySaving] = useState(false);
   const [achievements, setAchievements] = useState([]);
   const [achievementsLoading, setAchievementsLoading] = useState(false);
+  const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState('');
   const fileInputRef = useRef(null);
   const { addToast } = useToast();
 
@@ -180,12 +183,26 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
     }
   };
 
-  const openResetPassword = () => {
-    onClose();
-    // Use the event system established in the footer/header if needed, 
-    // but here we can just dispatch a specific event or use Header's state via context if it existed.
-    // Since Header has the state, we can use a custom event.
-    window.dispatchEvent(new CustomEvent('open-reset-password'));
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPwError('');
+    if (pwForm.new_password.length < 8) { setPwError('New password must be at least 8 characters.'); return; }
+    if (pwForm.new_password !== pwForm.confirm_password) { setPwError('Passwords do not match.'); return; }
+    if (pwForm.new_password === pwForm.current_password) { setPwError('New password cannot be the same as current password.'); return; }
+    setPwLoading(true);
+    try {
+      const res = await memberChangePassword({ current_password: pwForm.current_password, new_password: pwForm.new_password });
+      if (res.data.status === 'success') {
+        addToast('Password changed successfully.', 'success');
+        setPwForm({ current_password: '', new_password: '', confirm_password: '' });
+      } else {
+        setPwError(res.data.message || 'Failed to change password.');
+      }
+    } catch (err) {
+      setPwError(err.response?.data?.message || 'Failed to change password.');
+    } finally {
+      setPwLoading(false);
+    }
   };
 
   const openDeleteAccount = () => {
@@ -226,80 +243,23 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
           </button>
         </div>
 
-        <div className="modal-tabs" style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', padding: '0 12px', overflowX: 'auto' }}>
-          <button 
-            className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
-            style={{
-              padding: '12px 16px',
-              border: 'none',
-              background: 'none',
-              fontSize: '0.9rem',
-              fontWeight: activeTab === 'profile' ? '600' : '400',
-              color: activeTab === 'profile' ? '#1e293b' : '#64748b',
-              borderBottom: activeTab === 'profile' ? '2px solid #ee5e42' : '2px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            <LuUser size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            Profile Info
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'security' ? 'active' : ''}`}
-            onClick={() => setActiveTab('security')}
-            style={{
-              padding: '12px 16px',
-              border: 'none',
-              background: 'none',
-              fontSize: '0.9rem',
-              fontWeight: activeTab === 'security' ? '600' : '400',
-              color: activeTab === 'security' ? '#1e293b' : '#64748b',
-              borderBottom: activeTab === 'security' ? '2px solid #ee5e42' : '2px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            <LuShieldCheck size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            Security & Privacy
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'visibility' ? 'active' : ''}`}
-            onClick={() => setActiveTab('visibility')}
-            style={{
-              padding: '12px 16px',
-              border: 'none',
-              background: 'none',
-              fontSize: '0.9rem',
-              fontWeight: activeTab === 'visibility' ? '600' : '400',
-              color: activeTab === 'visibility' ? '#1e293b' : '#64748b',
-              borderBottom: activeTab === 'visibility' ? '2px solid #ee5e42' : '2px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            <LuEye size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            Visibility
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'achievements' ? 'active' : ''}`}
-            onClick={() => setActiveTab('achievements')}
-            style={{
-              padding: '12px 16px',
-              border: 'none',
-              background: 'none',
-              fontSize: '0.9rem',
-              fontWeight: activeTab === 'achievements' ? '600' : '400',
-              color: activeTab === 'achievements' ? '#1e293b' : '#64748b',
-              borderBottom: activeTab === 'achievements' ? '2px solid #ee5e42' : '2px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <i className="bi bi-award-fill" style={{ marginRight: '6px', fontSize: '0.9rem' }} />
-            Achievements
-          </button>
+        <div className="profile-modal-tabs">
+          {[
+            { key: 'profile',      icon: <LuUser size={16} />,        label: 'Profile'       },
+            { key: 'security',     icon: <LuShieldCheck size={16} />, label: 'Security'      },
+            { key: 'visibility',   icon: <LuEye size={16} />,         label: 'Visibility'    },
+            { key: 'achievements', icon: <i className="bi bi-award-fill" />, label: 'Achievements' },
+          ].map(({ key, icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`profile-modal-tab${activeTab === key ? ' active' : ''}`}
+              title={label}
+            >
+              <span className="pmt-icon">{icon}</span>
+              <span className="pmt-label">{label}</span>
+            </button>
+          ))}
         </div>
 
         <div className="modal-body" data-lenis-prevent="true" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '24px' }}>
@@ -511,31 +471,40 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
           ) : (
             <div className="security-settings">
               <div className="settings-section" style={{ marginBottom: '32px' }}>
-                <h4 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <LuKey size={18} /> Password Settings
+                <h4 style={{ fontSize: '1rem', color: '#1e293b', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <LuKey size={18} /> Change Password
                 </h4>
-                <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '16px' }}>
-                  Keep your account secure by using a strong, unique password.
+                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '18px' }}>
+                  Keep your account secure with a strong, unique password.
                 </p>
-                <button 
-                  onClick={openResetPassword}
-                  className="btn-outline"
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px',
-                    padding: '10px 20px',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    background: '#fff',
-                    color: '#1e293b',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <LuKey size={16} /> Change Password
-                </button>
+                <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {pwError && (
+                    <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', fontSize: '0.83rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <LuTriangleAlert size={15} /> {pwError}
+                    </div>
+                  )}
+                  {[
+                    { key: 'current_password', label: 'Current Password', placeholder: 'Enter current password' },
+                    { key: 'new_password',     label: 'New Password',     placeholder: 'Minimum 8 characters' },
+                    { key: 'confirm_password', label: 'Confirm New Password', placeholder: 'Re-enter new password' },
+                  ].map(({ key, label, placeholder }) => (
+                    <div key={key} className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block' }}>{label}</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        placeholder={placeholder}
+                        value={pwForm[key]}
+                        onChange={e => setPwForm(p => ({ ...p, [key]: e.target.value }))}
+                        required
+                        autoComplete={key === 'current_password' ? 'current-password' : 'new-password'}
+                      />
+                    </div>
+                  ))}
+                  <button type="submit" disabled={pwLoading} className="btn-primary" style={{ alignSelf: 'flex-start', padding: '10px 24px', fontSize: '0.88rem' }}>
+                    {pwLoading ? 'Updating…' : 'Update Password'}
+                  </button>
+                </form>
               </div>
 
               <div className="settings-section" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '32px' }}>

@@ -5,7 +5,7 @@ import {
   HiOutlineChatAlt2, 
   HiOutlineShieldCheck, 
   HiOutlineUserGroup,
-  HiOutlinePhone,
+
   HiOutlineGlobeAlt,
   HiOutlineClock,
   HiOutlineLockClosed
@@ -318,20 +318,11 @@ const ContactUs = () => {
             <h4>Other Ways to Reach Us</h4>
             <ul className="reach-list">
               <li>
-                <a href="mailto:info@sapsecurityexpert.com" className="reach-link">
+                <a href="mailto:hello@sapsecurityexpert.com" className="reach-link">
                   <div className="reach-icon"><HiOutlineMail /></div>
                   <div className="reach-text">
                     <strong>Email Us</strong>
-                    <span>info@sapsecurityexpert.com</span>
-                  </div>
-                </a>
-              </li>
-              <li>
-                <a href="tel:+914041234567" className="reach-link">
-                  <div className="reach-icon"><HiOutlinePhone /></div>
-                  <div className="reach-text">
-                    <strong>Call Us</strong>
-                    <span>+91 40 4123 4567</span>
+                    <span>hello@sapsecurityexpert.com</span>
                   </div>
                 </a>
               </li>

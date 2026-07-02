@@ -8,18 +8,26 @@ const cache = new CacheService(1800);
 const generateSlug = (title) =>
   title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
 
+// Public-safe columns (no internal draft/admin fields exposed to guests)
+const PUBLIC_COLS = 'id, title, slug, date, link, content, excerpt, image, image_alt, status, views, comments, created_at, updated_at';
+
 // GET /api/announcements  or  GET /api/admin/announcements
 router.get('/', requireAuth({ allowPublic: true }), async (req, res) => {
   const db = req.db;
   const isAdmin = req.session.admin_logged_in && req.session.role === 'admin';
   try {
-    let sql = 'SELECT * FROM announcements';
-    if (!isAdmin) sql += " WHERE status IN ('approved','active','published')";
-    sql += ' ORDER BY created_at DESC';
-    const [rows] = await db.execute(sql);
+    let rows;
+    if (isAdmin) {
+      [rows] = await db.execute('SELECT * FROM announcements ORDER BY created_at DESC');
+    } else {
+      [rows] = await db.execute(
+        `SELECT ${PUBLIC_COLS} FROM announcements WHERE status IN ('approved','active','published') ORDER BY created_at DESC`
+      );
+    }
     return res.json(rows);
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[announcements GET /]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to load announcements.' });
   }
 });
 
@@ -27,12 +35,19 @@ router.get('/', requireAuth({ allowPublic: true }), async (req, res) => {
 router.get('/:slug', requireAuth({ allowPublic: true }), async (req, res) => {
   const db = req.db;
   const { slug } = req.params;
+  const isAdmin = req.session.admin_logged_in && req.session.role === 'admin';
   try {
-    const [rows] = await db.execute('SELECT * FROM announcements WHERE slug=? OR id=?', [slug, slug]);
+    const cols = isAdmin ? '*' : PUBLIC_COLS;
+    const statusFilter = isAdmin ? '' : " AND status IN ('approved','active','published')";
+    const [rows] = await db.execute(
+      `SELECT ${cols} FROM announcements WHERE (slug=? OR id=?)${statusFilter} LIMIT 1`,
+      [slug, slug]
+    );
     if (!rows.length) return res.status(404).json({ status: 'error', message: 'Not found' });
     return res.json(rows[0]);
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[announcements GET /:slug]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to load announcement.' });
   }
 });
 

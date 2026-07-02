@@ -2769,3 +2769,7 @@ th {
 .admin-card.contributor-module-card .module-card-btn {
   margin-top: auto;
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,16 +1,22 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const cacheDir = path.join(__dirname, '../../cache');
 
 /**
- * File-based IP rate limiter matching api/middleware/rate_limit.php.
- * Always bypassed on localhost.
+ * File-based IP rate limiter.
+ * Only bypassed on localhost in non-production environments.
+ * In production, ALL traffic is rate-limited (even requests forwarded from Apache on 127.0.0.1).
  */
 function rateLimit(action, limit, windowSeconds) {
   return (req, res, next) => {
-    const host = req.hostname || '';
-    if (host === 'localhost' || host === '127.0.0.1') return next();
+    // Only skip rate limiting in dev/test when the actual client is loopback
+    const isProd = process.env.NODE_ENV === 'production';
+    if (!isProd) {
+      const host = req.hostname || '';
+      if (host === 'localhost' || host === '127.0.0.1') return next();
+    }
 
     const ip = req.ip || '0.0.0.0';
 
@@ -44,11 +50,7 @@ function rateLimit(action, limit, windowSeconds) {
 }
 
 function hash(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h).toString(16);
+  return crypto.createHash('sha256').update(str).digest('hex').slice(0, 16);
 }
 
 module.exports = { rateLimit };

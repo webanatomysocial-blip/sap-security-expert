@@ -10,8 +10,11 @@ router.get('/', requireAuth(), checkPermission('can_manage_comments'), async (re
   const db = req.db;
   try {
     const [rows] = await db.execute(
-      `SELECT c.*, c.user_name as author, c.content as text, c.timestamp as date, b.slug,
-              p.user_name as parent_author, p.content as parent_text
+      `SELECT c.id, c.post_id, c.parent_id, c.member_id, c.status,
+              c.rejection_reason, c.original_text, c.edited_at, c.timestamp,
+              c.user_name AS author, c.email, c.content AS text, c.timestamp AS date,
+              b.slug,
+              p.user_name AS parent_author, p.content AS parent_text
        FROM comments c
        LEFT JOIN blogs b ON (c.post_id = b.id OR c.post_id = b.slug)
        LEFT JOIN comments p ON c.parent_id = p.id
@@ -19,7 +22,8 @@ router.get('/', requireAuth(), checkPermission('can_manage_comments'), async (re
     );
     return res.json(rows);
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[admin/comments GET]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to load comments.' });
   }
 });
 
@@ -43,19 +47,42 @@ router.post('/', requireAuth(), checkPermission('can_manage_comments'), async (r
     }
 
     // Status update
-    if (!status) return res.status(400).json({ status: 'error', message: 'Status required' });
+    const ALLOWED_STATUSES = ['approved', 'rejected', 'pending'];
+    if (!status || !ALLOWED_STATUSES.includes(status)) {
+      return res.status(400).json({ status: 'error', message: 'Invalid status value.' });
+    }
     await db.execute('UPDATE comments SET status=?, rejection_reason=? WHERE id=?', [status, rejection_reason || null, id]);
 
-    const [comm] = await db.execute('SELECT user_name, email FROM comments WHERE id=?', [id]);
+    const [comm] = await db.execute('SELECT user_name, email, member_id FROM comments WHERE id=?', [id]);
     if (comm.length) {
       const mailService = MailService.getInstance(db);
       const notifier = new NotificationService(mailService);
       if (status === 'approved') {
         notifier.notifyCommentApproved(comm[0].email, comm[0].user_name).catch(() => {});
         // Grant +2 credits to the member who posted the comment (once per comment)
-        const [mRows] = await db.execute('SELECT id FROM members WHERE LOWER(email)=LOWER(?) LIMIT 1', [comm[0].email]);
-        if (mRows.length) {
-          grantBonus(db, mRows[0].id, 2, `Approved comment #${id}`).catch(() => {});
+        // Use member_id directly from the comment row — reliable even if email changed
+        const memberId = comm[0].member_id;
+        if (memberId) {
+          grantBonus(db, memberId, 2, `Approved comment #${id}`).catch(() => {});
+
+          // Grant first_comment achievement immediately on approval
+          const [approvedCount] = await db.execute(
+            "SELECT COUNT(*) as cnt FROM comments WHERE member_id = ? AND status = 'approved'",
+            [memberId]
+          );
+          const cnt = approvedCount[0]?.cnt || 0;
+          if (cnt >= 1) {
+            db.execute(
+              'INSERT OR IGNORE INTO member_achievements (member_id, achievement_id) VALUES (?, ?)',
+              [memberId, 'first_comment']
+            ).catch(() => {});
+          }
+          if (cnt >= 100) {
+            db.execute(
+              'INSERT OR IGNORE INTO member_achievements (member_id, achievement_id) VALUES (?, ?)',
+              [memberId, '100_helpful_comments']
+            ).catch(() => {});
+          }
         }
       } else if (status === 'rejected') {
         notifier.notifyCommentRejected(comm[0].email, comm[0].user_name, rejection_reason || 'Does not follow community guidelines.').catch(() => {});
@@ -64,7 +91,8 @@ router.post('/', requireAuth(), checkPermission('can_manage_comments'), async (r
 
     return res.json({ status: 'success', message: 'Comment status updated' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[admin/comments POST]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to update comment.' });
   }
 });
 
@@ -77,7 +105,8 @@ router.delete('/', requireAuth(), checkPermission('can_manage_comments'), async 
     await db.execute('DELETE FROM comments WHERE id=?', [id]);
     return res.json({ status: 'success', message: 'Comment deleted' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[admin/comments DELETE]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to delete comment.' });
   }
 });
 

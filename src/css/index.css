@@ -611,6 +611,51 @@ select[multiple].form-control option:checked {
   max-width: 800px;
 }
 
+.modal-container.profile-modal-compact {
+  max-width: 560px;
+}
+
+/* ── Profile modal tabs ──────────────────────────────────────────────── */
+.profile-modal-tabs {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+}
+.profile-modal-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 12px 6px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.profile-modal-tab.active {
+  color: #1e293b;
+  font-weight: 700;
+  border-bottom-color: #ee5e42;
+}
+.profile-modal-tab:hover:not(.active) {
+  color: #334155;
+}
+.pmt-icon { display: flex; align-items: center; font-size: 1rem; flex-shrink: 0; }
+.pmt-label { overflow: hidden; text-overflow: ellipsis; }
+
+/* When container is too narrow, hide labels — icons only */
+@media (max-width: 400px) {
+  .pmt-label { display: none; }
+  .profile-modal-tab { padding: 12px; font-size: 1.1rem; }
+}
+
 .modal-header {
   padding: 16px 20px;
   border-bottom: 1px solid #e2e8f0;

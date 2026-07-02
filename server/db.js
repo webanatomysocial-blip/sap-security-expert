@@ -240,6 +240,12 @@ if (isSQLite) {
     { name: 'deletion_ip',                  def: "TEXT DEFAULT NULL" },
     { name: 'deletion_method',              def: "TEXT DEFAULT NULL" },
     { name: 'deletion_confirmation_method', def: "TEXT DEFAULT NULL" },
+    { name: 'sap_certifications',           def: "TEXT DEFAULT NULL" },
+    { name: 'sap_press_books',              def: "TEXT DEFAULT NULL" },
+    { name: 'implementations_count',        def: "INTEGER DEFAULT NULL" },
+    { name: 'peer_rating',                  def: "REAL DEFAULT NULL" },
+    { name: 'peer_rating_count',            def: "INTEGER DEFAULT 0" },
+    { name: 'experience_years',             def: "INTEGER DEFAULT NULL" },
   ];
   const contribExisting = sqliteDb.prepare("PRAGMA table_info(contributors)").all().map(r => r.name);
   for (const col of contribColumns) {
@@ -281,6 +287,14 @@ if (isSQLite) {
 
   // users table — soft-delete columns
   const usersColumns = [
+    { name: 'full_name',                    def: "TEXT DEFAULT NULL" },
+    { name: 'bio',                          def: "TEXT DEFAULT NULL" },
+    { name: 'designation',                  def: "TEXT DEFAULT NULL" },
+    { name: 'linkedin',                     def: "TEXT DEFAULT NULL" },
+    { name: 'twitter_handle',              def: "TEXT DEFAULT NULL" },
+    { name: 'personal_website',            def: "TEXT DEFAULT NULL" },
+    { name: 'profile_image',               def: "TEXT DEFAULT NULL" },
+    { name: 'is_active',                    def: "INTEGER NOT NULL DEFAULT 1" },
     { name: 'is_deleted',                   def: "INTEGER DEFAULT 0" },
     { name: 'deleted_at',                   def: "DATETIME DEFAULT NULL" },
     { name: 'deletion_ip',                  def: "TEXT DEFAULT NULL" },
