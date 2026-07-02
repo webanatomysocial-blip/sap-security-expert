@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { Helmet } from "react-helmet-async";
 import "../css/ContactForm.css"; // Reuse existing clean form styles
@@ -7,6 +7,7 @@ import "../css/ContactForm.css"; // Reuse existing clean form styles
 const MemberSignup = () => {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Form
   const [showReactivateModal, setShowReactivateModal] = useState(false);
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -18,7 +19,8 @@ const MemberSignup = () => {
     password: "",
     confirmPassword: "",
     otp: "",
-    receive_blog_emails: true
+    receive_blog_emails: true,
+    ref_code: searchParams.get("ref") || "",
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

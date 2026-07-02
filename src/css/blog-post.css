@@ -1,5 +1,262 @@
 /* src/css/blog-post.css */
 
+/* ── Suggested Articles ("You may also like") ─────────────────────── */
+.suggested-articles {
+  position: relative;
+}
+
+.suggested-articles__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.suggested-articles__heading {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.02em;
+}
+.suggested-articles__heading-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #ee5e42, #f97316);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.suggested-articles__heading-icon i {
+  color: #fff;
+  font-size: 1rem;
+}
+.suggested-articles__sub {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.suggested-articles__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* Card */
+.sug-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid #e8edf5;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.05);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  position: relative;
+}
+.sug-card:hover {
+  box-shadow: 0 12px 32px rgba(15,23,42,0.12);
+  transform: translateY(-4px);
+  border-color: #ee5e42;
+}
+
+/* Image area */
+.sug-card__img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  background: #f1f5f9;
+  flex-shrink: 0;
+  position: relative;
+}
+.sug-card__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+.sug-card:hover .sug-card__img img {
+  transform: scale(1.04);
+}
+.sug-card__img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  color: #cbd5e1;
+  background: linear-gradient(135deg, #f0f4f8, #e2e8f0);
+}
+
+/* Category pill */
+.sug-card__cat {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #fff;
+  background: rgba(238, 94, 66, 0.92);
+  padding: 3px 9px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 20px);
+}
+
+/* Body */
+.sug-card__body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.sug-card__title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.45;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.2s;
+}
+.sug-card:hover .sug-card__title {
+  color: #ee5e42;
+}
+.sug-card__excerpt {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.55;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+.sug-card__footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+.sug-card__read {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+.sug-card__read i {
+  font-size: 0.78rem;
+}
+.sug-card__arrow {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+.sug-card__arrow i {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  transition: color 0.2s;
+}
+.sug-card:hover .sug-card__arrow {
+  background: #ee5e42;
+  border-color: #ee5e42;
+}
+.sug-card:hover .sug-card__arrow i {
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .suggested-articles__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .suggested-articles__grid {
+    grid-template-columns: 1fr;
+  }
+  .suggested-articles__heading {
+    font-size: 1.15rem;
+  }
+}
+
+/* ── Article Verification Bar ────────────────────────────────────── */
+.article-verify-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+.article-verify-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1.5px solid transparent;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.article-verify-badge i { font-size: 0.78rem; }
+.article-verify-badge--green  { color: #15803d; background: #f0fdf4; border-color: #bbf7d0; }
+.article-verify-badge--blue   { color: #0369a1; background: #f0f9ff; border-color: #bae6fd; }
+.article-verify-badge--purple { color: #7c3aed; background: #faf5ff; border-color: #ddd6fe; }
+.article-verify-badge--amber  { color: #b45309; background: #fffbeb; border-color: #fde68a; }
+
+/* ── Difficulty level badge ── */
+.article-difficulty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border: 1.5px solid;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.article-difficulty-badge i { font-size: 0.75rem; }
+.article-difficulty-badge--beginner    { color: #15803d; background: #f0fdf4; border-color: #86efac; }
+.article-difficulty-badge--intermediate{ color: #0369a1; background: #f0f9ff; border-color: #7dd3fc; }
+.article-difficulty-badge--advanced    { color: #7c3aed; background: #faf5ff; border-color: #c4b5fd; }
+.article-difficulty-badge--expert      { color: #b45309; background: #fffbeb; border-color: #fcd34d; }
+.article-difficulty-badge--enterprise  { color: #be123c; background: #fff1f2; border-color: #fda4af; }
+
 /* ── Sticky Post Header ── */
 .blog-sticky-header {
   position: fixed;
@@ -183,6 +440,20 @@
 .meta-dot {
   margin: 0 8px;
   color: #ccc;
+}
+
+.meta-version {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0369a1;
+  background: #f0f9ff;
+  border: 1.5px solid #bae6fd;
+  border-radius: 20px;
+  padding: 2px 10px;
+  letter-spacing: 0.03em;
 }
 
 /* 4. Title */

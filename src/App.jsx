@@ -40,6 +40,7 @@ import MemberPublicProfile from "./views/MemberPublicProfile";
 import MemberLogin from "./views/MemberLogin";
 import MemberSignup from "./views/MemberSignup";
 import MemberCredits from "./views/MemberCredits";
+import MemberAchievements from "./views/MemberAchievements";
 import MemberInvoice from "./views/MemberInvoice";
 import PaidArticles from "./views/PaidArticles";
 import AdminLayout from "./components/admin/AdminLayout.jsx";
@@ -173,6 +174,7 @@ function App() {
         <Route path="member/login" element={<MemberLogin />} />
         <Route path="member/signup" element={<MemberSignup />} />
         <Route path="member/credits" element={<MemberCredits />} />
+        <Route path="member/achievements" element={<MemberAchievements />} />
         <Route path="member/invoice/:txId" element={<MemberInvoice />} />
         <Route path="paid-articles" element={<PaidArticles />} />
         <Route path="membership" element={<MembershipPage />} />

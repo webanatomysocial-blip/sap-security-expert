@@ -10,6 +10,7 @@ import {
   validateCoupon,
   createCreditOrder,
   verifyCreditPayment,
+  getMemberReferral,
 } from "../services/api";
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
@@ -193,6 +194,8 @@ export default function MemberCredits() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showBuyModal, setShowBuyModal] = useState(false);
+  const [referral, setReferral] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const reload = () => {
     setLoading(true);
@@ -202,7 +205,16 @@ export default function MemberCredits() {
   useEffect(() => {
     if (!isLoggedIn) { navigate("/member/login", { state: { from: "/member/credits" } }); return; }
     reload();
+    getMemberReferral().then((r) => setReferral(r.data)).catch(() => {});
   }, [isLoggedIn]);
+
+  const handleCopy = () => {
+    if (!referral?.referral_link) return;
+    navigator.clipboard.writeText(referral.referral_link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const balance        = data?.balance ?? creditBalance ?? 0;
   const allTx          = data?.transactions || [];
@@ -253,6 +265,7 @@ export default function MemberCredits() {
           { key: "purchases", label: "Purchase History", count: paidPurchases.length },
           { key: "activity", label: "Activity Credits", count: bonusCredits.length },
           { key: "unlocks", label: "Unlocked Articles", count: unlocks.length },
+          { key: "referral", label: "Referral", count: referral?.referrals_count ?? 0 },
         ].map((t) => (
           <button
             key={t.key}
@@ -444,6 +457,49 @@ export default function MemberCredits() {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {/* Referral */}
+      {activeTab === "referral" && (
+        <div style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14, padding: "32px 28px" }}>
+          <div style={{ maxWidth: 560 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+              <span style={{ fontSize: "1.8rem" }}>🔗</span>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.1rem", color: "#1e293b" }}>Invite &amp; Earn Credits</h3>
+                <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "#64748b" }}>Earn <strong>+2 credits</strong> for every person who joins using your link and gets approved.</p>
+              </div>
+            </div>
+
+            <div style={{ background: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", margin: "24px 0 16px", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ flex: 1, fontSize: "0.88rem", color: "#334155", fontFamily: "monospace", wordBreak: "break-all" }}>
+                {referral ? referral.referral_link : "Loading…"}
+              </span>
+              <button
+                onClick={handleCopy}
+                disabled={!referral}
+                style={{ flexShrink: 0, padding: "8px 18px", background: copied ? "#10b981" : "#e85d2f", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s" }}
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "16px 20px", textAlign: "center" }}>
+                <p style={{ margin: "0 0 4px", fontSize: "1.6rem", fontWeight: 700, color: "#15803d" }}>{referral?.referrals_count ?? "—"}</p>
+                <p style={{ margin: 0, fontSize: "0.78rem", color: "#166534", fontWeight: 600 }}>Approved Referrals</p>
+              </div>
+              <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 10, padding: "16px 20px", textAlign: "center" }}>
+                <p style={{ margin: "0 0 4px", fontSize: "1.6rem", fontWeight: 700, color: "#92400e" }}>+{(referral?.referrals_count ?? 0) * 2}</p>
+                <p style={{ margin: 0, fontSize: "0.78rem", color: "#78350f", fontWeight: 600 }}>Credits Earned</p>
+              </div>
+            </div>
+
+            <p style={{ margin: "20px 0 0", fontSize: "0.8rem", color: "#94a3b8" }}>
+              Credits are awarded once the referred member's account is approved by an admin.
+            </p>
+          </div>
         </div>
       )}
 

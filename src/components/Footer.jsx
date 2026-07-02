@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Image from "next/image";
 import { VITE_SITE_URL } from "../utils/env";
+import { APP_VERSION } from "../config/appVersion";
 // next-disabled: import "../css/Footer.css";
 import whiteLogo from "../assets/sapsecurityexpert-white.png";
 import {
@@ -139,7 +140,17 @@ const Footer = () => {
           content provided herein is for informational purposes only and does
           not represent the views, products, or services of SAP.
         </p>
-        <p>© {currentYear} SAP Security Expert. All rights reserved.</p>
+        <p style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", flexWrap: "wrap" }}>
+          © {currentYear} SAP Security Expert. All rights reserved.
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: "5px",
+            background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)",
+            color: "#64748b", borderRadius: "20px", padding: "2px 10px",
+            fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em",
+          }}>
+            <i className="bi bi-layers-fill" style={{ fontSize: "0.7rem" }} /> Platform v{APP_VERSION}
+          </span>
+        </p>
       </div>
     </footer>
   );
