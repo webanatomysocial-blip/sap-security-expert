@@ -422,7 +422,7 @@ export default function CommunitySection() {
 
                 return (
                   <div className="activity-list">
-                    {tabData.slice(0, 4).map((activity) => (
+                    {tabData.slice(0, 5).map((activity) => (
                       <Link
                         key={activity.slug || activity.id}
                         to={
