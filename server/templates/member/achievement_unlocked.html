@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eef2f6; border-radius: 8px; }
+    .header { text-align: center; padding-bottom: 15px; margin-bottom: 20px; border-bottom: 2px solid #ee5e42; }
+    .header h2 { color: #ee5e42; margin: 0; }
+    .badge-card {
+      text-align: center;
+      background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+      border: 2px solid #fde68a;
+      border-radius: 16px;
+      padding: 32px 24px;
+      margin: 24px 0;
+    }
+    .badge-icon { font-size: 3rem; margin-bottom: 12px; }
+    .badge-label { font-size: 1.4rem; font-weight: 800; color: #92400e; margin: 0 0 8px; }
+    .badge-desc { font-size: 0.95rem; color: #78350f; margin: 0; }
+    .btn {
+      display: inline-block;
+      background: #ee5e42;
+      color: #ffffff !important;
+      padding: 12px 28px;
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: 700;
+      margin: 20px 0;
+    }
+    .footer { font-size: 12px; color: #94a3b8; margin-top: 30px; text-align: center; border-top: 1px solid #eef2f6; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>🏅 Achievement Unlocked!</h2>
+    </div>
+    <p>Hello <strong>{{name}}</strong>,</p>
+    <p>Congratulations — you've just earned a new achievement on SAP Security Expert!</p>
+
+    <div class="badge-card">
+      <div class="badge-icon">{{icon}}</div>
+      <p class="badge-label">{{label}}</p>
+      <p class="badge-desc">{{description}}</p>
+    </div>
+
+    <p>Keep engaging with the community to unlock more achievements. Every contribution you make strengthens the SAP Security ecosystem.</p>
+
+    <div style="text-align: center;">
+      <a href="{{achievements_url}}" class="btn">View All Achievements</a>
+    </div>
+
+    <p>Best Regards,<br>The SAP Security Expert Team</p>
+
+    <div class="footer">
+      &copy; 2026 SAP Security Expert. The leading community for SAP Security Professionals.<br>
+      <a href="{{site_url}}" style="color: #94a3b8;">{{site_domain}}</a>
+    </div>
+  </div>
+</body>
+</html>

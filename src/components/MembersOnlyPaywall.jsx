@@ -1,6 +1,17 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
+
+function extractTOC(html) {
+  if (!html) return [];
+  const re = /<h([23])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  const items = [];
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const text = m[2].replace(/<[^>]+>/g, "").trim();
+    if (text) items.push({ level: parseInt(m[1]), text });
+  }
+  return items.slice(0, 8);
+}
 // next-disabled: import "../css/members-paywall.css";
 /**
  * MembersOnlyPaywall
@@ -17,21 +28,41 @@ import { useMemberAuth } from "../context/MemberAuthContext";
  *     <YourContent />
  *   </MembersOnlyPaywall>
  */
-const MembersOnlyPaywall = ({ children }) => {
+const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
   const { isLoggedIn } = useMemberAuth();
   const navigate = useNavigate();
 
-  // If logged in, render children normally with no restriction
   if (isLoggedIn) {
     return <>{children}</>;
   }
 
+  const toc = extractTOC(rawContent);
+
   return (
     <>
-      {/* Show a short preview of the content — clipped to ~1 paragraph height */}
+      {/* Preview — first ~20% of content */}
       <div className="members-content-preview">{children}</div>
 
-      {/* Paywall overlay */}
+      {/* TOC panel */}
+      {toc.length > 0 && (
+        <div className="content-toc-panel">
+          <div className="content-toc-header">
+            <i className="bi bi-list-ul" />
+            <span>What&apos;s covered in this article</span>
+          </div>
+          <p className="content-toc-subtext">Sign in to access all sections below</p>
+          <ul className="content-toc-list">
+            {toc.map((item, i) => (
+              <li key={i} className={`content-toc-item toc-h${item.level}`}>
+                <i className="bi bi-check2" />
+                {item.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Paywall card */}
       <div className="members-paywall-overlay">
         <div className="members-paywall-gradient" />
         <div className="members-paywall-card">

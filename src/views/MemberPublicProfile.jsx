@@ -118,17 +118,22 @@ const MemberPublicProfile = () => {
               </div>
             )}
 
-            {/* Member badge */}
-            <div style={{ marginTop: 24 }}>
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                background: "#eff6ff", color: "#1d4ed8",
-                border: "1px solid #bfdbfe",
-                borderRadius: 20, padding: "5px 14px",
-                fontSize: 12, fontWeight: 600,
+            {/* Reputation badge — Explorer */}
+            <div style={{ marginTop: 20 }}>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 10,
+                background: "#eff6ff", border: "1.5px solid #bfdbfe",
+                borderRadius: 12, padding: "10px 16px",
               }}>
-                <i className="bi bi-person-check-fill" /> SAP Security Community Member
-              </span>
+                <i className="bi bi-compass-fill" style={{ fontSize: "1.2rem", color: "#2563eb" }} />
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "#2563eb" }}>Explorer</span>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 600, background: "#2563eb", color: "#fff", padding: "1px 7px", borderRadius: 20 }}>Level</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "#64748b", lineHeight: 1.4 }}>Active member of the SAP Security Expert community</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -8,6 +8,29 @@ const CacheService = require('../services/CacheService');
 
 const cache = new CacheService(1800);
 
+// ── Blog content version auto-bumper ─────────────────────────────────────────
+function bumpBlogVersion(currentVersion, oldContent, newContent) {
+  const parts = (currentVersion || '1.0').split('.').map(Number);
+  let major = parts[0] || 1;
+  let minor = parts[1] || 0;
+
+  if (!oldContent || !newContent) return `${major}.${minor}`;
+  const oldLen = oldContent.length;
+  if (oldLen === 0) return `${major}.${minor}`;
+
+  const diff = Math.abs(newContent.length - oldLen);
+  const pct = diff / oldLen;
+
+  if (pct >= 0.5) {
+    // 50%+ change — major bump (e.g. 1.3 → 2.0)
+    return `${major + 1}.0`;
+  } else if (pct >= 0.1) {
+    // 10–49% change — minor bump (e.g. 1.0 → 1.1)
+    return `${major}.${minor + 1}`;
+  }
+  return `${major}.${minor}`; // < 10% — no change
+}
+
 // Author info SELECT fragment (reused in GET queries)
 const AUTHOR_FIELDS = `
   u.id as author_user_id, u.username as author_username, u.role as author_role,
@@ -41,6 +64,104 @@ router.get('/exclusive-count', async (req, res) => {
     res.json({ exclusive_count: row.exclusive_count || 0, premium_count: row.premium_count || 0 });
   } catch {
     res.json({ exclusive_count: 0, premium_count: 0 });
+  }
+});
+
+// GET /api/posts/:slug/suggested — up to 6 related articles by category + tags
+router.get('/:slug/suggested', async (req, res) => {
+  const db = req.db;
+  const { slug } = req.params;
+  try {
+    // Find current article — no status filter so it works for admins previewing drafts too
+    const [[current]] = await db.execute(
+      `SELECT id, category, tags, title FROM blogs WHERE slug = ? LIMIT 1`,
+      [slug]
+    );
+    if (!current) return res.json([]);
+
+    const nowUtc = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+    // Build keyword set from tags + significant title words
+    const STOP_WORDS = new Set(['sap','the','and','for','with','how','what','why','when','from','that','this','into','your','our','its','are','was','has','have','can','will','you','all','but','not','more','about','which','their','been','each','only','also','than','then','them']);
+    let currentTags = [];
+    try { currentTags = JSON.parse(current.tags || '[]').map(t => t.toLowerCase()); } catch {}
+    const titleWords = (current.title || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3 && !STOP_WORDS.has(w));
+    const keywords = [...new Set([...currentTags, ...titleWords])];
+
+    const scoreRow = (r) => {
+      let s = 0;
+      // Tag overlap
+      try { s += JSON.parse(r.tags || '[]').map(t => t.toLowerCase()).filter(t => keywords.includes(t)).length * 2; } catch {}
+      // Title keyword overlap
+      const rWords = (r.title || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3 && !STOP_WORDS.has(w));
+      s += rWords.filter(w => keywords.includes(w)).length;
+      return s;
+    };
+
+    const COLS = 'id, title, slug, category, image, image_alt, excerpt, date, view_count, tags';
+
+    // Step 1 — same category (up to 12 candidates)
+    const [sameCat] = await db.execute(
+      `SELECT ${COLS} FROM blogs
+       WHERE status IN ('approved','published') AND date <= ? AND id != ? AND category = ?
+       ORDER BY view_count DESC, date DESC LIMIT 12`,
+      [nowUtc, current.id, current.category]
+    );
+
+    const scored = sameCat.map(r => ({ ...r, _score: scoreRow(r) + 2 })); // +2 same-cat bonus
+    scored.sort((a, b) => b._score - a._score || b.view_count - a.view_count);
+    const picked = scored.slice(0, 6);
+
+    // Step 2 — keyword-matched cross-category (fill up to 6)
+    if (picked.length < 6) {
+      const usedIds = new Set([current.id, ...picked.map(r => r.id)]);
+      const [crossCat] = await db.execute(
+        `SELECT ${COLS} FROM blogs
+         WHERE status IN ('approved','published') AND date <= ? AND id != ? AND category != ?
+         ORDER BY view_count DESC, date DESC LIMIT 50`,
+        [nowUtc, current.id, current.category]
+      );
+      const crossScored = crossCat
+        .filter(r => !usedIds.has(r.id))
+        .map(r => ({ ...r, _score: scoreRow(r) }))
+        .sort((a, b) => b._score - a._score || b.view_count - a.view_count);
+      picked.push(...crossScored.slice(0, 6 - picked.length));
+    }
+
+    // Step 3 — hard fallback: most popular approved articles regardless of keyword match
+    if (picked.length < 6) {
+      const usedIds = new Set([current.id, ...picked.map(r => r.id)]);
+      const [popular] = await db.execute(
+        `SELECT ${COLS} FROM blogs
+         WHERE status IN ('approved','published') AND id != ?
+         ORDER BY view_count DESC, date DESC LIMIT 20`,
+        [current.id]
+      );
+      popular.filter(r => !usedIds.has(r.id)).slice(0, 6 - picked.length).forEach(r => picked.push(r));
+    }
+
+    res.json(picked.slice(0, 6).map(({ _score, tags: _t, ...r }) => r));
+  } catch (err) {
+    console.error('[suggested]', err.message);
+    res.json([]);
+  }
+});
+
+// PUT /api/posts/:id/badges — admin-only; update verification badges only
+router.put('/:id/badges', requireAuth(), async (req, res) => {
+  const db = req.db;
+  const { id } = req.params;
+  const { badge_expert_reviewed = 0, badge_sap_notes_verified = 0, badge_tested_s4hana = 0, badge_field_validated = 0, difficulty_level = null } = req.body;
+  const VALID_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
+  const level = VALID_LEVELS.includes(difficulty_level) ? difficulty_level : null;
+  try {
+    await db.execute(
+      `UPDATE blogs SET badge_expert_reviewed=?, badge_sap_notes_verified=?, badge_tested_s4hana=?, badge_field_validated=?, difficulty_level=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+      [badge_expert_reviewed ? 1 : 0, badge_sap_notes_verified ? 1 : 0, badge_tested_s4hana ? 1 : 0, badge_field_validated ? 1 : 0, level, id]
+    );
+    res.json({ status: 'success' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
   }
 });
 
@@ -94,10 +215,15 @@ router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) =
       const hasAdminAccess = isAdmin || isOwnBlog;
 
       if (isMembersOnly && !isMember && !hasAdminAccess) {
+        const fullMembersContent = blog.content || '';
+        const membersTarget = Math.max(Math.floor(fullMembersContent.length * 0.20), 800);
+        const membersParagraphs = fullMembersContent.match(/<p[\s\S]*?<\/p>/gi) || [];
         let teaser = '';
-        const pMatch = (blog.content || '').match(/<p>(.*?)<\/p>/is);
-        teaser = pMatch ? pMatch[0] : '<p>' + (blog.content || '').replace(/<[^>]+>/g, '').slice(0, 400) + '...</p>';
-        blog.content = teaser;
+        for (const p of membersParagraphs) {
+          teaser += p;
+          if (teaser.length >= membersTarget) break;
+        }
+        blog.content = teaser || fullMembersContent.slice(0, membersTarget);
         blog.faqs = null;
         blog.cta_title = 'Professional Content Locked';
         blog.cta_description = 'Join our expert community to access premium SAP security insights.';
@@ -128,7 +254,16 @@ router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), async (req, res) =
           blog.premium_locked = true;
           blog.premium_locked_reason = sess.member_logged_in ? 'credits' : 'login';
           blog.credits_required = creditsRequired;
-          blog.content = '';
+          // Send first ~20% of content (paragraph-aware) so readers can judge value
+          const fullContent = blog.content || '';
+          const previewTarget = Math.max(Math.floor(fullContent.length * 0.20), 800);
+          const paragraphs = fullContent.match(/<p[\s\S]*?<\/p>/gi) || [];
+          let preview = '';
+          for (const p of paragraphs) {
+            preview += p;
+            if (preview.length >= previewTarget) break;
+          }
+          blog.content = preview || fullContent.slice(0, previewTarget);
           blog.faqs = null;
           blog.author_bio = null;
           blog.author_linkedin = null;
@@ -225,7 +360,11 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
             category = '', tags = '', meta_title = '', meta_description = '', meta_keywords = '',
             faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link = null,
             is_members_only = 0, is_premium = 0, credits_required = 1, send_notification_email = 0, status: requestedStatus, related_blogs,
-            schema_type = 'BlogPosting', article_section = null, co_authors = [] } = data;
+            schema_type = 'BlogPosting', article_section = null, co_authors = [],
+            badge_expert_reviewed = 0, badge_sap_notes_verified = 0, badge_tested_s4hana = 0, badge_field_validated = 0,
+            difficulty_level: rawDifficultyLevel = null } = data;
+    const VALID_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
+    const difficulty_level = VALID_LEVELS.includes(rawDifficultyLevel) ? rawDifficultyLevel : null;
 
     const coAuthorsJson = JSON.stringify(Array.isArray(co_authors) ? co_authors : []);
 
@@ -264,7 +403,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
     if (id) {
       // UPDATE
       const [existing] = await db.execute(
-        'SELECT author_id, author, submission_status, status, plagiarism_score, publish_date, slug FROM blogs WHERE id = ?',
+        'SELECT author_id, author, submission_status, status, plagiarism_score, publish_date, slug, content, content_version FROM blogs WHERE id = ?',
         [id]
       );
       if (!existing.length) return res.status(404).json({ status: 'error', message: 'Blog not found' });
@@ -284,6 +423,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
       }
 
       const existingPlag = ex.plagiarism_score || 0;
+      const newContentVersion = bumpBlogVersion(ex.content_version, ex.content, content);
 
       // Edit preservation for approved/published by contributors
       if (['approved','published'].includes(ex.status) && !isAdmin) {
@@ -328,7 +468,9 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
          schema_type=?, article_section=?,
          status=?, submission_status=?, rejection_feedback=NULL,
          author_id=?, author=?, seo_score=?, plagiarism_score=?, plagiarism_status='completed',
-         is_members_only=?, is_premium=?, credits_required=?, related_blogs=?, co_authors=?, send_notification_email=?, updated_at=CURRENT_TIMESTAMP,
+         is_members_only=?, is_premium=?, credits_required=?, related_blogs=?, co_authors=?, send_notification_email=?,
+         badge_expert_reviewed=?, badge_sap_notes_verified=?, badge_tested_s4hana=?, badge_field_validated=?, difficulty_level=?, content_version=?,
+         updated_at=CURRENT_TIMESTAMP,
          ${publishDateSql}
          draft_title=NULL, draft_content=NULL, draft_excerpt=NULL, draft_image=NULL, draft_image_alt=NULL,
          draft_category=NULL, draft_faqs=NULL, draft_meta_title=NULL, draft_meta_description=NULL,
@@ -342,6 +484,7 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
          schema_type || 'BlogPosting', article_section || null,
          targetStatus, subStatus, author_id, authorName, seoScore, finalPlag,
          parseInt(is_members_only), parseInt(is_premium), parseInt(credits_required) || 1, relatedBlogsJson, coAuthorsJson, parseInt(send_notification_email),
+         badge_expert_reviewed ? 1 : 0, badge_sap_notes_verified ? 1 : 0, badge_tested_s4hana ? 1 : 0, badge_field_validated ? 1 : 0, difficulty_level, newContentVersion,
          ...publishParams, id]
       );
       cache.invalidate('homepage_data_public');
@@ -372,18 +515,22 @@ router.post('/', requireAuth(), checkPermission('can_manage_blogs'), async (req,
           meta_title, meta_description, meta_keywords, schema_type, article_section,
           status, submission_status,
           seo_score, plagiarism_score, plagiarism_status, is_members_only, is_premium, credits_required, related_blogs, co_authors,
-          send_notification_email, publish_date, created_at, updated_at)
+          send_notification_email, badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level, content_version,
+          publish_date, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?,""),CURRENT_DATE), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                  ?, ?,
                  ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?,
-                 ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+                 ?, ?, ?, ?, ?, ?, ?,
+                 ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
         [newId, title, slug, excerpt, content, authorName, author_id, date || '', image, image_alt || null, category, secondaryCatsJson, tags, faqsJson,
          cta_title, cta_description, cta_button_text, cta_button_link,
          meta_title, meta_description, meta_keywords,
          schema_type || 'BlogPosting', article_section || null,
          targetStatus, subStatus,
          seoScore, finalPlag, parseInt(is_members_only), parseInt(is_premium), parseInt(credits_required) || 1, relatedBlogsJson, coAuthorsJson,
-         parseInt(send_notification_email), publishDateVal]
+         parseInt(send_notification_email),
+         badge_expert_reviewed ? 1 : 0, badge_sap_notes_verified ? 1 : 0, badge_tested_s4hana ? 1 : 0, badge_field_validated ? 1 : 0, difficulty_level, '1.0',
+         publishDateVal]
       );
       cache.invalidate('homepage_data_public');
 

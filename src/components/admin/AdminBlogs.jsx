@@ -55,6 +55,11 @@ const AdminBlogs = () => {
     article_section: "",
     is_premium: 0,
     credits_required: 1,
+    badge_expert_reviewed: 0,
+    badge_sap_notes_verified: 0,
+    badge_tested_s4hana: 0,
+    badge_field_validated: 0,
+    difficulty_level: null,
   };
 
   const [formData, setFormData] = useState(initialFormState);

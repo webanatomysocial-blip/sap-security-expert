@@ -5,6 +5,7 @@ import { getChangelog, saveChangelogEntry, updateChangelogEntry, deleteChangelog
 import { LuPlus, LuX, LuPencil, LuTrash2 } from "react-icons/lu";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
+import { APP_VERSION } from "../../config/appVersion";
 
 const TYPE_META = {
   feature:     { label: "Feature",     bg: "#dcfce7", color: "#15803d" },
@@ -92,7 +93,12 @@ export default function AdminChangelog() {
       <div className="admin-card" style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Change Logs</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Change Logs</h2>
+              <span style={{ padding: "2px 10px", borderRadius: 20, fontSize: "0.72rem", fontWeight: 800, background: "#f0f9ff", color: "#0369a1", border: "1.5px solid #bae6fd", letterSpacing: "0.04em" }}>
+                App v{APP_VERSION}
+              </span>
+            </div>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "#94a3b8" }}>Track platform updates, features, and fixes</p>
           </div>
           <button className="btn-primary" onClick={() => openModal()} style={{ display: "flex", alignItems: "center", gap: 6 }}>

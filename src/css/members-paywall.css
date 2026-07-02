@@ -1,10 +1,79 @@
-/* ── Paywall overlay that appears after first paragraph ─────────── */
+/* ── Content preview clip (members-only and premium) ────────────── */
 .members-content-preview {
   position: relative;
-  max-height: 160px; /* ~1 paragraph */
+  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+}
+
+/* Premium preview clip — no hard cut, full content visible, fade signals more below */
+.content-preview-clip {
+  position: relative;
+}
+.content-preview-fade {
+  height: 120px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, #ffffff 100%);
+  margin-top: -120px;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── TOC panel shown before paywall ─────────────────────────────── */
+.content-toc-panel {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin: 28px 0 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f0f4ff 100%);
+  position: relative;
   overflow: hidden;
-  mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+}
+.content-toc-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+}
+.content-toc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #0f172a;
+  margin-bottom: 16px;
+}
+.content-toc-header i { color: #2563eb; font-size: 1.05rem; }
+.content-toc-subtext {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: -10px 0 14px;
+  font-style: italic;
+}
+.content-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.content-toc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 0.875rem;
+  color: #1e293b;
+  line-height: 1.45;
+  font-weight: 500;
+}
+.content-toc-item i { color: #16a34a; flex-shrink: 0; margin-top: 2px; font-size: 0.85rem; }
+.content-toc-item.toc-h3 { padding-left: 20px; font-size: 0.82rem; color: #475569; font-weight: 400; }
+
+/* ── Inline paywall (no absolute gradient, just card centered) ───── */
+.members-paywall-inline {
+  padding-top: 8px;
 }
 
 .members-paywall-overlay {

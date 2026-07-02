@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getContributorProfile } from "../services/api";
 import Image from "next/image";
@@ -95,6 +95,24 @@ const ContributorProfile = () => {
             <div className="profile-info">
               <h1>{contributor.full_name}</h1>
               <div className="profile-role-badge">{contributor.role}</div>
+
+              {/* Reputation badge — Contributor */}
+              <div style={{ marginTop: 14 }}>
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 10,
+                  background: "#fff5f3", border: "1.5px solid #ffd5cc",
+                  borderRadius: 12, padding: "10px 16px",
+                }}>
+                  <i className="bi bi-patch-check-fill" style={{ fontSize: "1.2rem", color: "#ee5e42" }} />
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "#ee5e42" }}>Contributor</span>
+                      <span style={{ fontSize: "0.7rem", fontWeight: 600, background: "#ee5e42", color: "#fff", padding: "1px 7px", borderRadius: 20 }}>Level</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "0.72rem", color: "#64748b", lineHeight: 1.4 }}>Verified expert contributor to the SAP Security community</p>
+                  </div>
+                </div>
+              </div>
 
               <div className="profile-meta-grid">
                 {contributor.organization && (

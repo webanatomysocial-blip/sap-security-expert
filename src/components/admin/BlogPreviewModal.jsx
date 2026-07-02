@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { LuX, LuCalendar, LuTag, LuUser } from "react-icons/lu";
+import { updateBlogBadges } from "../../services/api";
 
 /**
  * BlogPreviewModal — Display a blog post's content and metadata for review.
@@ -17,6 +18,31 @@ const BlogPreviewModal = ({
   const [draftMode, setDraftMode] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
+  const DIFFICULTY_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
+  const [badges, setBadges] = useState({
+    badge_expert_reviewed:    !!blog?.badge_expert_reviewed,
+    badge_sap_notes_verified: !!blog?.badge_sap_notes_verified,
+    badge_tested_s4hana:      !!blog?.badge_tested_s4hana,
+    badge_field_validated:    !!blog?.badge_field_validated,
+    difficulty_level:         blog?.difficulty_level || null,
+  });
+  const [savingBadges, setSavingBadges] = useState(false);
+
+  const toggleBadge = async (key) => {
+    const next = { ...badges, [key]: !badges[key] };
+    setBadges(next);
+    setSavingBadges(true);
+    try { await updateBlogBadges(blog.id, next); } catch { /* silent */ }
+    setSavingBadges(false);
+  };
+
+  const setDifficultyLevel = async (level) => {
+    const next = { ...badges, difficulty_level: badges.difficulty_level === level ? null : level };
+    setBadges(next);
+    setSavingBadges(true);
+    try { await updateBlogBadges(blog.id, next); } catch { /* silent */ }
+    setSavingBadges(false);
+  };
 
   useEffect(() => {
     document.body.classList.add("modal-open");
@@ -688,6 +714,75 @@ const BlogPreviewModal = ({
                         {plagScore === -1 ? "FAILED" : `${plagScore}%`}
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Content Level */}
+                <div style={{ background: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: "20px", padding: "24px" }}>
+                  <h4 style={{ margin: "0 0 14px", fontSize: "0.75rem", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: "1px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <i className="bi bi-bar-chart-fill" />
+                    Content Level
+                    {savingBadges && <span style={{ fontWeight: 400, color: "#94a3b8", fontSize: "0.7rem", marginLeft: "auto" }}>Saving…</span>}
+                  </h4>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {DIFFICULTY_LEVELS.map((level) => {
+                      const active = badges.difficulty_level === level;
+                      const meta = {
+                        Beginner:     { color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0" },
+                        Intermediate: { color: "#0369a1", bg: "#f0f9ff", border: "#bae6fd" },
+                        Advanced:     { color: "#7c3aed", bg: "#faf5ff", border: "#ddd6fe" },
+                        Expert:       { color: "#b45309", bg: "#fffbeb", border: "#fde68a" },
+                        Enterprise:   { color: "#be123c", bg: "#fff1f2", border: "#fecdd3" },
+                      }[level];
+                      return (
+                        <button
+                          key={level}
+                          onClick={() => setDifficultyLevel(level)}
+                          style={{
+                            padding: "6px 16px", borderRadius: "20px", fontSize: "0.8rem", fontWeight: 700,
+                            cursor: "pointer", border: `1.5px solid ${active ? meta.color : meta.border}`,
+                            background: active ? meta.color : meta.bg,
+                            color: active ? "#fff" : meta.color,
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          {level}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {badges.difficulty_level && (
+                    <p style={{ margin: "10px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
+                      Click the selected level again to remove it.
+                    </p>
+                  )}
+                </div>
+
+                {/* Verified by Experts badges */}
+                <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: "20px", padding: "24px" }}>
+                  <h4 style={{ margin: "0 0 14px", fontSize: "0.75rem", fontWeight: "800", color: "#15803d", textTransform: "uppercase", letterSpacing: "1px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <i className="bi bi-patch-check-fill" />
+                    Verified by Experts
+                    {savingBadges && <span style={{ fontWeight: 400, color: "#94a3b8", fontSize: "0.7rem", marginLeft: "auto" }}>Saving…</span>}
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {[
+                      { key: "badge_expert_reviewed",    icon: "bi-person-check-fill", label: "Expert Reviewed",        color: "#15803d" },
+                      { key: "badge_sap_notes_verified", icon: "bi-journal-check",     label: "SAP Notes Verified",     color: "#0369a1" },
+                      { key: "badge_tested_s4hana",      icon: "bi-cpu-fill",          label: "Tested on S/4HANA 2023", color: "#7c3aed" },
+                      { key: "badge_field_validated",    icon: "bi-shield-check",      label: "Field Validated",        color: "#b45309" },
+                    ].map(({ key, icon, label, color }) => (
+                      <label key={key} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={!!badges[key]}
+                          onChange={() => toggleBadge(key)}
+                          style={{ width: "16px", height: "16px", accentColor: color, cursor: "pointer" }}
+                        />
+                        <i className={`bi ${icon}`} style={{ color, fontSize: "0.9rem" }} />
+                        <span style={{ fontSize: "0.84rem", fontWeight: "600", color: "#1e293b" }}>{label}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
 

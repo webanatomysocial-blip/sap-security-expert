@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,13 +11,54 @@ import {
   LuShieldCheck,
   LuKey,
   LuTrash2,
-  LuCoins,
   LuEye,
 } from "react-icons/lu";
 import useScrollLock from "../hooks/useScrollLock";
-import { updateMemberProfile } from "../services/api";
+import { updateMemberProfile, getMemberAchievements } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
+
+const REPUTATION_CONFIG = {
+  Contributor: {
+    label: "Contributor",
+    icon: "bi-patch-check-fill",
+    color: "#ee5e42",
+    bg: "#fff5f3",
+    border: "#ffd5cc",
+    desc: "Verified expert contributor to the SAP Security community",
+  },
+  Explorer: {
+    label: "Explorer",
+    icon: "bi-compass-fill",
+    color: "#2563eb",
+    bg: "#eff6ff",
+    border: "#bfdbfe",
+    desc: "Active member of the SAP Security Expert community",
+  },
+};
+
+function ReputationBadge({ level }) {
+  const cfg = REPUTATION_CONFIG[level] || REPUTATION_CONFIG.Explorer;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: "10px",
+      marginTop: "14px", padding: "10px 16px",
+      background: cfg.bg, border: `1.5px solid ${cfg.border}`,
+      borderRadius: "10px", width: "100%",
+    }}>
+      <i className={`bi ${cfg.icon}`} style={{ fontSize: "1.25rem", color: cfg.color, flexShrink: 0 }} />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ fontWeight: 700, fontSize: "0.875rem", color: cfg.color }}>{cfg.label}</span>
+          <span style={{ fontSize: "0.7rem", fontWeight: 600, background: cfg.color, color: "#fff", padding: "1px 7px", borderRadius: "20px" }}>
+            Level
+          </span>
+        </div>
+        <p style={{ margin: 0, fontSize: "0.72rem", color: "#64748b", lineHeight: 1.4 }}>{cfg.desc}</p>
+      </div>
+    </div>
+  );
+}
 
 const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
   const navigate = useNavigate();
@@ -44,10 +85,22 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
     show_badges: true,
   });
   const [visibilitySaving, setVisibilitySaving] = useState(false);
+  const [achievements, setAchievements] = useState([]);
+  const [achievementsLoading, setAchievementsLoading] = useState(false);
   const fileInputRef = useRef(null);
   const { addToast } = useToast();
 
   useScrollLock(isOpen);
+
+  useEffect(() => {
+    if (activeTab === 'achievements' && achievements.length === 0 && !achievementsLoading) {
+      setAchievementsLoading(true);
+      getMemberAchievements()
+        .then(res => { if (res.data?.achievements) setAchievements(res.data.achievements); })
+        .catch(() => {})
+        .finally(() => setAchievementsLoading(false));
+    }
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isOpen) {
@@ -173,7 +226,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
           </button>
         </div>
 
-        <div className="modal-tabs" style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', padding: '0 20px' }}>
+        <div className="modal-tabs" style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', padding: '0 12px', overflowX: 'auto' }}>
           <button 
             className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
@@ -229,27 +282,105 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
             Visibility
           </button>
           <button
-            className="tab-btn"
-            onClick={() => { onClose(); navigate("/member/credits"); }}
+            className={`tab-btn ${activeTab === 'achievements' ? 'active' : ''}`}
+            onClick={() => setActiveTab('achievements')}
             style={{
               padding: '12px 16px',
               border: 'none',
               background: 'none',
               fontSize: '0.9rem',
-              fontWeight: '400',
-              color: '#64748b',
-              borderBottom: '2px solid transparent',
+              fontWeight: activeTab === 'achievements' ? '600' : '400',
+              color: activeTab === 'achievements' ? '#1e293b' : '#64748b',
+              borderBottom: activeTab === 'achievements' ? '2px solid #ee5e42' : '2px solid transparent',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
             }}
           >
-            <LuCoins size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            Credits
+            <i className="bi bi-award-fill" style={{ marginRight: '6px', fontSize: '0.9rem' }} />
+            Achievements
           </button>
         </div>
 
         <div className="modal-body" data-lenis-prevent="true" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '24px' }}>
-          {activeTab === 'visibility' ? (
+          {activeTab === 'achievements' ? (
+            <div>
+              {achievementsLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
+                  <i className="bi bi-hourglass-split" style={{ fontSize: '1.5rem', display: 'block', marginBottom: '8px' }} />
+                  Loading…
+                </div>
+              ) : (
+                <>
+                  {/* Progress summary */}
+                  {achievements.length > 0 && (
+                    <div style={{ marginBottom: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#64748b', marginBottom: '6px' }}>
+                        <span>Progress</span>
+                        <span style={{ fontWeight: '700', color: '#ee5e42' }}>
+                          {achievements.filter(a => a.earned).length} / {achievements.length}
+                        </span>
+                      </div>
+                      <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '7px', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${Math.round((achievements.filter(a => a.earned).length / achievements.length) * 100)}%`,
+                          background: 'linear-gradient(90deg, #ee5e42, #f97316)',
+                          borderRadius: '999px',
+                          transition: 'width 0.5s ease',
+                        }} />
+                      </div>
+                    </div>
+                  )}
+                  {/* 2-col compact grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {achievements.map(a => (
+                      <div key={a.id} style={{
+                        border: `1px solid ${a.earned ? a.color + '33' : '#e2e8f0'}`,
+                        borderRadius: '12px',
+                        padding: '14px',
+                        background: a.earned ? a.bg : '#f8fafc',
+                        opacity: a.earned ? 1 : 0.6,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}>
+                        <div style={{
+                          width: '38px', height: '38px', borderRadius: '50%',
+                          background: a.earned ? '#fff' : '#e2e8f0',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          filter: a.earned ? 'none' : 'grayscale(1)',
+                        }}>
+                          <i className={`bi ${a.icon}`} style={{ fontSize: '1.1rem', color: a.earned ? a.color : '#94a3b8' }} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: '700', fontSize: '0.8rem', color: '#0f172a', lineHeight: '1.3' }}>{a.label}</div>
+                          {a.earned ? (
+                            <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: '600' }}>✓ Earned</span>
+                          ) : (
+                            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>🔒 Not yet earned</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* View All link */}
+                  <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <button
+                      onClick={() => { onClose(); navigate('/member/achievements'); }}
+                      style={{
+                        background: 'none', border: '1px solid #ee5e42', color: '#ee5e42',
+                        borderRadius: '8px', padding: '8px 20px', cursor: 'pointer',
+                        fontSize: '0.875rem', fontWeight: '600',
+                      }}
+                    >
+                      View All Achievements
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : activeTab === 'visibility' ? (
             <div className="visibility-settings">
               <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '24px', lineHeight: '1.6' }}>
                 Control what information is visible to others on your public profile.
@@ -318,6 +449,9 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
                   </label>
                 </div>
                 <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>Recommended: Square JPG, PNG or WebP</p>
+
+                {/* Reputation badge */}
+                <ReputationBadge level={member?.reputation_level} />
               </div>
 
               <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

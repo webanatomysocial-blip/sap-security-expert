@@ -45,6 +45,8 @@ api.interceptors.request.use((config) => {
 // ── Public endpoints ─────────────────────────────────────────────────────────
 export const getPosts = (page = 1) => api.get(`/posts?page=${page}`);
 export const getPostBySlug = (slug, params = {}) => api.get(`/posts/${slug}`, { params });
+export const getSuggestedArticles = (slug) => api.get(`/posts/${slug}/suggested`);
+export const updateBlogBadges = (id, badges) => api.put(`/posts/${id}/badges`, badges);
 export const getExclusiveCount = () => api.get('/posts/exclusive-count');
 export const getMemberProfile = () => api.get('/member/profile');
 export const getCommentsByBlogId = (blogId) => api.get(`/get_comments.php?blogId=${blogId}`);
@@ -98,6 +100,13 @@ export const updateAdminProfile = (formData) => api.post('/admin/profile/update'
 });
 export const resetAdminPassword = (data) => api.post('/admin/reset-password', data);
 export const getAuthors = () => api.get('/admin/authors');
+
+// ── Member Referral ───────────────────────────────────────────────────────────
+export const getMemberReferral = () => api.get('/member/referral');
+
+// ── Member Achievements ───────────────────────────────────────────────────────
+export const getMemberAchievements = (memberId) => api.get(`/member/achievements${memberId ? `?member_id=${memberId}` : ''}`);
+export const grantAchievement = (data) => api.post('/member/achievements/grant', data);
 
 // ── Dashboard Stats ───────────────────────────────────────────────────────────
 export const getAdminStats = () => api.get('/admin/stats');

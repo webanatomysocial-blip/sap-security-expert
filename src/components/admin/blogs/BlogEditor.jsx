@@ -286,6 +286,38 @@ const BlogEditor = ({
             </div>
           )}
 
+          {/* Verified by Experts badges — Admin only */}
+          {isAdmin && (
+            <div className="form-group" style={{ marginBottom: "20px" }}>
+              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
+                <i className="bi bi-patch-check-fill" style={{ color: "#16a34a" }}></i>
+                Verified by Experts
+              </label>
+              <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: "10px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                {[
+                  { key: "badge_expert_reviewed",    icon: "bi-person-check-fill", label: "Expert Reviewed",      color: "#15803d" },
+                  { key: "badge_sap_notes_verified", icon: "bi-journal-check",     label: "SAP Notes Verified",   color: "#0369a1" },
+                  { key: "badge_tested_s4hana",      icon: "bi-cpu-fill",          label: "Tested on S/4HANA 2023", color: "#7c3aed" },
+                  { key: "badge_field_validated",    icon: "bi-shield-check",      label: "Field Validated",      color: "#b45309" },
+                ].map(({ key, icon, label, color }) => (
+                  <label key={key} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={!!formData[key]}
+                      onChange={(e) => handleInputChange({ target: { name: key, value: e.target.checked ? 1 : 0 } })}
+                      style={{ width: "16px", height: "16px", accentColor: color, cursor: "pointer" }}
+                    />
+                    <i className={`bi ${icon}`} style={{ color, fontSize: "0.95rem" }} />
+                    <span style={{ fontSize: "0.84rem", fontWeight: "600", color: "#1e293b" }}>{label}</span>
+                  </label>
+                ))}
+              </div>
+              <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "6px", display: "block" }}>
+                Checked badges appear as trust indicators on the published article.
+              </span>
+            </div>
+          )}
+
           {/* Author Selector — Admin only */}
           {isAdmin && !hideExtras && (
             <div className="form-group" style={{ marginBottom: "20px" }}>

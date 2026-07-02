@@ -10,6 +10,7 @@ import {
   getAdsByZone,
   getBlogAdsForSlug,
   trackBlogAdClick,
+  getSuggestedArticles,
 } from "../services/api";
 
 function InlineAd({ ad }) {
@@ -79,6 +80,7 @@ export default function DynamicBlog() {
   const [error, setError] = useState(null);
   const [commentsCount, setCommentsCount] = useState(0);
   const [relatedBlogs, setRelatedBlogs] = useState([]);
+  const [suggestedArticles, setSuggestedArticles] = useState([]);
   const [premiumLocked, setPremiumLocked] = useState(false);
   const [sidebarAd, setSidebarAd] = useState({
     active: false,
@@ -196,6 +198,11 @@ export default function DynamicBlog() {
         setLoading(false);
       });
 
+    // Fetch suggested articles
+    getSuggestedArticles(blogId)
+      .then((res) => setSuggestedArticles(Array.isArray(res.data) ? res.data : []))
+      .catch(() => {});
+
     // Fetch sidebar ad
     getAdsByZone("sidebar")
       .then((res) => {
@@ -300,6 +307,7 @@ export default function DynamicBlog() {
             {stripAds.map(ad => <StripAd key={ad.id} ad={ad} />)}
           </>
         }
+        rawContent={blog.content || ""}
         isPremium={!isLearningPath && Number(blog.is_premium) === 1}
         isPremiumLocked={!isLearningPath && premiumLocked}
         creditsRequired={Number(blog.credits_required) || 1}
@@ -318,6 +326,13 @@ export default function DynamicBlog() {
         category={blog.category}
         sidebarAd={sidebarAd}
         relatedBlogs={relatedBlogs}
+        suggestedArticles={suggestedArticles}
+        badge_expert_reviewed={blog.badge_expert_reviewed}
+        badge_sap_notes_verified={blog.badge_sap_notes_verified}
+        badge_tested_s4hana={blog.badge_tested_s4hana}
+        badge_field_validated={blog.badge_field_validated}
+        difficulty_level={blog.difficulty_level || null}
+        content_version={blog.content_version || null}
         dynamicRecentPosts={[]}
         viewCount={blog.view_count || 0}
         commentCount={commentsCount}

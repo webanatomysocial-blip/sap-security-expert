@@ -52,6 +52,18 @@ router.post('/', requireAdmin, async (req, res) => {
       // Grant 10 registration welcome credits (once only)
       grantBonus(db, id, 10, 'Registration welcome bonus').catch(e => console.error('[approve_credits]', e.message));
 
+      // Credit the referrer +2 if this member was referred
+      if (member.referred_by_code) {
+        const [refRows] = await db.execute(
+          "SELECT id FROM members WHERE referral_code = ? AND status = 'approved' LIMIT 1",
+          [member.referred_by_code]
+        );
+        if (refRows.length) {
+          const referrerId = refRows[0].id;
+          grantBonus(db, referrerId, 2, `Referral bonus: member #${id} joined`).catch(e => console.error('[referral_credits]', e.message));
+        }
+      }
+
       return res.json({ status: 'success', message: 'Member approved.' });
 
     } else if (action === 'reject') {

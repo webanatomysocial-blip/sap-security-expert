@@ -49,10 +49,46 @@ const CATEGORY_LABELS = {
   "grc-advanced": "GRC & Advanced Topics",
 };
 
+function extractTOC(html) {
+  if (!html) return [];
+  const re = /<h([23])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  const items = [];
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const text = m[2].replace(/<[^>]+>/g, "").trim();
+    if (text) items.push({ level: parseInt(m[1]), text });
+  }
+  return items.slice(0, 8);
+}
+
+function ContentTOCPanel({ rawContent }) {
+  const toc = extractTOC(rawContent);
+  if (!toc.length) return null;
+  return (
+    <div className="content-toc-panel">
+      <div className="content-toc-header">
+        <i className="bi bi-list-ul" />
+        <span>What&apos;s covered in this article</span>
+      </div>
+      <p className="content-toc-subtext">Unlock to access all sections below</p>
+      <ul className="content-toc-list">
+        {toc.map((item, i) => (
+          <li key={i} className={`content-toc-item toc-h${item.level}`}>
+            <i className="bi bi-check2" />
+            {item.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+
 const BlogLayout = ({
   blogId,
   title,
   content,
+  rawContent = "",
   image,
   image_alt,
   category,
@@ -80,7 +116,14 @@ const BlogLayout = ({
   blogSlug = "",
   onPaymentSuccess,
   relatedBlogs = [],
+  suggestedArticles = [],
   co_authors = [],
+  badge_expert_reviewed = 0,
+  badge_sap_notes_verified = 0,
+  badge_tested_s4hana = 0,
+  badge_field_validated = 0,
+  difficulty_level = null,
+  content_version = null,
 }) => {
   const { isLoggedIn } = useMemberAuth();
   const progressBarRef = useRef(null);
@@ -396,12 +439,35 @@ const BlogLayout = ({
               <span className="meta-comments">
                 <i className="bi bi-chat"></i> {commentCount} Comments
               </span>
+              {content_version && (
+                <>
+                  <span className="meta-dot">•</span>
+                  <span className="meta-version" title="Content version">
+                    <i className="bi bi-file-earmark-text" /> v{content_version}
+                  </span>
+                </>
+              )}
             </div>
 
             <div className="meta-right">
               <ShareButton title={title} url={currentUrl} />
             </div>
           </div>
+
+          {/* 4. Difficulty level + Verification badges */}
+          {!!(difficulty_level || badge_expert_reviewed || badge_sap_notes_verified || badge_tested_s4hana || badge_field_validated) && (
+            <div className="article-verify-bar">
+              {difficulty_level && (
+                <span className={`article-difficulty-badge article-difficulty-badge--${difficulty_level.toLowerCase()}`}>
+                  <i className="bi bi-bar-chart-fill" /> {difficulty_level}
+                </span>
+              )}
+              {!!badge_expert_reviewed    && <span className="article-verify-badge article-verify-badge--green"><i className="bi bi-person-check-fill" /> Expert Reviewed</span>}
+              {!!badge_sap_notes_verified && <span className="article-verify-badge article-verify-badge--blue"><i className="bi bi-journal-check" /> SAP Notes Verified</span>}
+              {!!badge_tested_s4hana      && <span className="article-verify-badge article-verify-badge--purple"><i className="bi bi-cpu-fill" /> Tested on S/4HANA 2023</span>}
+              {!!badge_field_validated    && <span className="article-verify-badge article-verify-badge--amber"><i className="bi bi-shield-check" /> Field Validated</span>}
+            </div>
+          )}
 
           {/* 4. Title */}
           {isMembersOnly && (
@@ -418,9 +484,16 @@ const BlogLayout = ({
 
           {/* 5. Content Body — premium gate always wins over members-only gate */}
           {isPremiumLocked ? (
-            <PremiumPaywall creditsRequired={creditsRequired} blogSlug={blogSlug} onSuccess={onPaymentSuccess} />
+            <>
+              <div className="content-preview-clip">
+                <article className="blog-content-body">{content}</article>
+                <div className="content-preview-fade" />
+              </div>
+              <ContentTOCPanel rawContent={rawContent} />
+              <PremiumPaywall creditsRequired={creditsRequired} blogSlug={blogSlug} onSuccess={onPaymentSuccess} inline />
+            </>
           ) : isMembersOnly ? (
-            <MembersOnlyPaywall>
+            <MembersOnlyPaywall rawContent={rawContent}>
               <article className="blog-content-body">{content}</article>
             </MembersOnlyPaywall>
           ) : (
@@ -580,6 +653,57 @@ const BlogLayout = ({
           {/* Dynamic Comment Section (Hidden for exclusive/premium posts for guests) */}
           {(!isMembersOnly || isLoggedIn) && !isPremiumLocked && (
             <CommentSection blogId={blogId} onCommentAdded={onCommentAdded} />
+          )}
+
+          {/* You may also like — shown below comments, always visible */}
+          {suggestedArticles.length > 0 && (
+            <div className="suggested-articles">
+              <div className="suggested-articles__header">
+                <h3 className="suggested-articles__heading">
+                  <span className="suggested-articles__heading-icon">
+                    <i className="bi bi-stars" />
+                  </span>
+                  You may also like
+                  <span className="suggested-articles__sub">— keep exploring</span>
+                </h3>
+              </div>
+              <div className="suggested-articles__grid">
+                {suggestedArticles.map((art) => (
+                  <Link
+                    key={art.id}
+                    to={`/${art.category}/${art.slug}`}
+                    className="sug-card"
+                  >
+                    <div className="sug-card__img">
+                      {art.image ? (
+                        <img src={art.image} alt={art.image_alt || art.title} />
+                      ) : (
+                        <div className="sug-card__img-placeholder">
+                          <i className="bi bi-file-earmark-text" />
+                        </div>
+                      )}
+                      <span className="sug-card__cat">
+                        {CATEGORY_LABELS[art.category] || art.category?.replace(/-/g, ' ')}
+                      </span>
+                    </div>
+                    <div className="sug-card__body">
+                      <h4 className="sug-card__title">{art.title}</h4>
+                      {art.excerpt && (
+                        <p className="sug-card__excerpt">{art.excerpt}</p>
+                      )}
+                      <div className="sug-card__footer">
+                        <span className="sug-card__read">
+                          <i className="bi bi-clock" /> 5 min read
+                        </span>
+                        <span className="sug-card__arrow">
+                          <i className="bi bi-arrow-right" />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Navigation (Previous/Next) */}

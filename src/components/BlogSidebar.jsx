@@ -4,7 +4,7 @@ import { BsSearch } from "react-icons/bs";
 import Image from "next/image";
 // Removed static categories import
 // next-disabled: import "../css/BlogSidebar.css";
-import { getCategories, getBlogs, getAdsByZone } from "../services/api";
+import { getBlogs, getAdsByZone } from "../services/api";
 
 const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,54 +32,6 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
 
   const [allPosts, setAllPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Dynamic Categories State
-  const [categories, setCategories] = useState([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-
-  // Helper to format slug to name
-  const formatCategoryName = (slug) => {
-    if (!slug) return "";
-    // Manual overrides for specific acronyms
-    const overrides = {
-      "sap-grc": "SAP GRC",
-      "sap-iag": "SAP IAG",
-      "sap-cis": "SAP CIS (IAS/IPS)",
-      "sap-sac-security": "SAP SAC Security",
-      "sap-btp-security": "SAP BTP Security",
-      "sap-s4hana-security": "SAP S/4HANA Security",
-      "sap-fiori-security": "SAP Fiori Security",
-      "sap-public-cloud": "SAP Public Cloud",
-      "sap-successfactors-security": "SuccessFactors",
-      "sap-security-other": "Other SAP Security",
-      "sap-access-control": "SAP Access Control",
-      "sap-process-control": "SAP Process Control",
-      "sap-cybersecurity": "SAP Cybersecurity",
-      "sap-licensing": "SAP Licensing",
-    };
-    if (overrides[slug]) return overrides[slug];
-
-    return slug
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
-  // Fetch Categories
-  useEffect(() => {
-    getCategories()
-      .then((res) => {
-        const data = res.data;
-        if (data.status === "success") {
-          setCategories(data.categories || []);
-        }
-        setLoadingCategories(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching categories:", err);
-        setLoadingCategories(false);
-      });
-  }, []);
 
   // Fetch Posts for Search & Latest
   useEffect(() => {
@@ -207,27 +159,6 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
             ) : (
               <li className="latest-post-item">No posts found.</li>
             )}
-          </ul>
-        )}
-      </div>
-
-      {/* Categories Widget */}
-      <div className="sidebar-widget categories-widget">
-        <h3 className="widget-title">Categories</h3>
-        {loadingCategories ? (
-          <p>Loading categories...</p>
-        ) : (
-          <ul className="categories-list">
-            <li>
-              <Link to="/blogs" className="cat-link-all">
-                All Categories
-              </Link>
-            </li>
-            {categories.map((slug, idx) => (
-              <li key={idx}>
-                <Link to={`/${slug}`}>{formatCategoryName(slug)}</Link>
-              </li>
-            ))}
           </ul>
         )}
       </div>

@@ -28,10 +28,19 @@ const BlogList = ({
   const { addToast } = useToast();
 
   // Column definitions — optional cols hidden by default
+  const LEVEL_META = {
+    Beginner:     { color: "#15803d", bg: "#f0fdf4", border: "#86efac" },
+    Intermediate: { color: "#0369a1", bg: "#f0f9ff", border: "#7dd3fc" },
+    Advanced:     { color: "#7c3aed", bg: "#faf5ff", border: "#c4b5fd" },
+    Expert:       { color: "#b45309", bg: "#fffbeb", border: "#fcd34d" },
+    Enterprise:   { color: "#be123c", bg: "#fff1f2", border: "#fda4af" },
+  };
+
   const COL_DEFS = [
     { key: "title",   label: "Title" },
     { key: "slug",    label: "Slug" },
     { key: "status",  label: "Status" },
+    { key: "level",   label: "Level" },
     { key: "updated", label: "Updated date", optional: true },
     { key: "exc",     label: "Exclusive toggle" },
     { key: "paid",    label: "Paid toggle" },
@@ -213,6 +222,7 @@ const BlogList = ({
                 <div style={{ fontSize: "0.62rem", fontWeight: 400, color: "#94a3b8", marginTop: 2 }}>click to copy</div>
               </th>
               <th className="col-sm text-center">Status</th>
+              {isAdmin && show("level") && <th className="col-sm text-center">Level</th>}
               {show("updated") && <th className="col-md text-left">Updated</th>}
               {isAdmin && show("exc") && <th className="col-xs text-center">Exc</th>}
               {isAdmin && show("paid") && <th className="col-xs text-center" style={{ color: "#d97706" }}>★ Paid</th>}
@@ -324,6 +334,27 @@ const BlogList = ({
                       <span className="status-badge status-draft" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Drt</span>
                     )}
                   </td>
+                  {isAdmin && show("level") && (
+                    <td className="col-sm text-center">
+                      {blog.difficulty_level && LEVEL_META[blog.difficulty_level] ? (
+                        <span style={{
+                          display: "inline-block",
+                          padding: "2px 10px",
+                          borderRadius: 20,
+                          fontSize: "0.7rem",
+                          fontWeight: 700,
+                          border: `1.5px solid ${LEVEL_META[blog.difficulty_level].border}`,
+                          background: LEVEL_META[blog.difficulty_level].bg,
+                          color: LEVEL_META[blog.difficulty_level].color,
+                          whiteSpace: "nowrap",
+                        }}>
+                          {blog.difficulty_level}
+                        </span>
+                      ) : (
+                        <span style={{ color: "#cbd5e1", fontSize: "0.75rem" }}>—</span>
+                      )}
+                    </td>
+                  )}
                   {show("updated") && (
                     <td className="col-md text-left">
                       <span style={{ fontSize: "0.8rem", color: "var(--slate-500)", fontWeight: "500" }}>
