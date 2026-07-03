@@ -13,7 +13,14 @@ import { NextResponse } from 'next/server';
 // App-authored inline scripts (the two JSON-LD blocks in layout.jsx and the
 // blog SSR page) read the same nonce via `headers()` and set it explicitly.
 export function middleware(request) {
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  // btoa(), not Buffer.from()...toString('base64'): Next.js Middleware runs on
+  // the Edge Runtime by default — a restricted V8 isolate, not full Node.js —
+  // even in self-hosted deployments, unless a route opts into
+  // `export const runtime = 'nodejs'`. Buffer is a Node-only global and isn't
+  // in Next's supported Edge Runtime API list; btoa/crypto.randomUUID() are
+  // Web-standard and work identically in both Edge Runtime and Node.js 18+,
+  // producing the exact same base64 nonce format either way.
+  const nonce = btoa(crypto.randomUUID());
   const isDev = process.env.NODE_ENV !== 'production';
 
   const csp = [
