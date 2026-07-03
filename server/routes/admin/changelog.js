@@ -1,7 +1,15 @@
 const router = require('express').Router();
 const { requireAdmin } = require('../../middleware/auth');
 
-// Auto-create table if not exists — runs once on first request
+// Auto-create table if not exists — runs once on first request.
+// `type` was TEXT NOT NULL DEFAULT 'feature' — MySQL/MariaDB rejects a
+// non-NULL literal DEFAULT on TEXT/BLOB columns outright (confirmed against
+// a real MySQL server: ERROR 1101, "BLOB, TEXT, GEOMETRY or JSON column
+// 'type' can't have a default value"). VARCHAR supports it and is correct
+// here anyway — 'feature'/'fix'/etc. are short enum-like values, not long
+// text. This single statement works on both SQLite and MySQL/MariaDB
+// unchanged (unlike blog_ads, this table's AUTO_INCREMENT PRIMARY KEY syntax
+// already happens to parse on both engines).
 async function ensureTable(db) {
   await db.execute(`
     CREATE TABLE IF NOT EXISTS changelogs (
@@ -9,7 +17,7 @@ async function ensureTable(db) {
       version VARCHAR(50) NOT NULL,
       title VARCHAR(255) NOT NULL,
       description TEXT NOT NULL,
-      type TEXT NOT NULL DEFAULT 'feature',
+      type VARCHAR(50) NOT NULL DEFAULT 'feature',
       created_by INT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )

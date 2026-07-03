@@ -7,6 +7,7 @@ const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const { getUploadDir } = require('../utils/helpers');
 const { rateLimit } = require('../middleware/rateLimit');
+const { isSQLite } = require('../db');
 
 // Profile image upload (members)
 const profileStorage = multer.diskStorage({
@@ -353,32 +354,58 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// Lazy-init achievements tables (idempotent)
+// Lazy-init achievements tables (idempotent).
+// Two MySQL/MariaDB incompatibilities here, both confirmed against a real
+// MySQL server:
+//  - `id TEXT PRIMARY KEY` -> ERROR 1170, "BLOB/TEXT column 'id' used in key
+//    specification without a key length". Achievement IDs are short slugs
+//    ('welcome', 'first_comment', etc.), so VARCHAR is correct anyway.
+//  - `id INTEGER PRIMARY KEY AUTOINCREMENT` is SQLite-only syntax; MySQL
+//    needs AUTO_INCREMENT (with underscore) and no portable single spelling
+//    covers both engines, so this one branches on isSQLite like blog_ads.js.
 async function ensureAchievementTables(db) {
   await db.execute(`CREATE TABLE IF NOT EXISTS member_achievement_types (
-    id TEXT PRIMARY KEY,
-    label TEXT NOT NULL,
+    id VARCHAR(50) PRIMARY KEY,
+    label VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    icon TEXT NOT NULL,
-    color TEXT NOT NULL,
-    bg TEXT NOT NULL,
+    icon VARCHAR(50) NOT NULL,
+    color VARCHAR(20) NOT NULL,
+    bg VARCHAR(20) NOT NULL,
     criteria TEXT NOT NULL
   )`);
-  await db.execute(`CREATE TABLE IF NOT EXISTS member_achievements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    member_id INTEGER NOT NULL,
-    achievement_id TEXT NOT NULL,
-    earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    email_sent INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(member_id, achievement_id),
-    FOREIGN KEY (member_id) REFERENCES members(id)
-  )`);
+  if (isSQLite) {
+    await db.execute(`CREATE TABLE IF NOT EXISTS member_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      member_id INTEGER NOT NULL,
+      achievement_id TEXT NOT NULL,
+      earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      email_sent INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(member_id, achievement_id),
+      FOREIGN KEY (member_id) REFERENCES members(id)
+    )`);
+  } else {
+    await db.execute(`CREATE TABLE IF NOT EXISTS member_achievements (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      member_id INT NOT NULL,
+      achievement_id VARCHAR(50) NOT NULL,
+      earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      email_sent INT NOT NULL DEFAULT 0,
+      UNIQUE(member_id, achievement_id),
+      FOREIGN KEY (member_id) REFERENCES members(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  }
   // Add email_sent column if it doesn't exist yet (idempotent migration)
   try {
     await db.execute(`ALTER TABLE member_achievements ADD COLUMN email_sent INTEGER NOT NULL DEFAULT 0`);
   } catch (_) { /* column already exists */ }
 
-  // Seed the achievement types (INSERT OR IGNORE = idempotent)
+  // Seed the achievement types (INSERT IGNORE = idempotent).
+  // Note: INSERT IGNORE, not SQLite's "INSERT OR IGNORE" — db.js's
+  // translateSQL() converts the MySQL spelling to the SQLite one
+  // automatically for the SQLite adapter, but only if the code is written
+  // in MySQL syntax to begin with. The raw mysql2 driver used in production
+  // has no such translation layer, so "INSERT OR IGNORE" is a hard SQL
+  // syntax error there (confirmed against a real MySQL server).
   const types = [
     ['welcome',               'Welcome Aboard',        'Joined the SAP Security Expert community',                    'bi-stars',            '#7c3aed', '#faf5ff', 'Join as a member'],
     ['first_comment',         'First Voice',           'Had your first comment approved by the team',                 'bi-chat-heart-fill',  '#0369a1', '#f0f9ff', '1 approved comment'],
@@ -390,7 +417,7 @@ async function ensureAchievementTables(db) {
   ];
   for (const [id, label, description, icon, color, bg, criteria] of types) {
     await db.execute(
-      `INSERT OR IGNORE INTO member_achievement_types (id, label, description, icon, color, bg, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT IGNORE INTO member_achievement_types (id, label, description, icon, color, bg, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [id, label, description, icon, color, bg, criteria]
     ).catch(() => {});
   }
@@ -406,7 +433,7 @@ async function grantAndNotify(db, mailer, memberId, achievementId, memberEmail, 
   if (existing.length) return; // already granted, skip
 
   await db.execute(
-    'INSERT OR IGNORE INTO member_achievements (member_id, achievement_id, email_sent) VALUES (?, ?, 0)',
+    'INSERT IGNORE INTO member_achievements (member_id, achievement_id, email_sent) VALUES (?, ?, 0)',
     [memberId, achievementId]
   ).catch(() => {});
 
