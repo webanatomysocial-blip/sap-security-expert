@@ -49,7 +49,7 @@ const AUTHOR_FIELDS = `
   COALESCE(c.personal_website, u.personal_website) as author_website,
   CASE
     WHEN b.author_id IS NULL OR b.author_id = 1 THEN 'raghu'
-    ELSE CAST(c.id AS TEXT)
+    ELSE CAST(c.id AS CHAR)
   END as author_contributor_id
 `;
 

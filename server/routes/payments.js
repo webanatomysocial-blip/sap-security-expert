@@ -20,29 +20,53 @@ async function getMemberBalance(db, memberId) {
   return rows.length ? rows[0].balance : 0;
 }
 
-// Returns false if orderId was already processed (replay guard).
-async function addCredits(db, memberId, amount, amountPaise = 0, note = '', orderId = null) {
-  if (orderId) {
-    const [dup] = await db.execute(
-      'SELECT id FROM credit_transactions WHERE razorpay_order_id = ? LIMIT 1', [orderId]
-    );
-    if (dup.length) return false; // already fulfilled — do not double-credit
-  }
+// Duplicate-key error across mysql2 (ER_DUP_ENTRY / errno 1062) and better-sqlite3
+// (SQLITE_CONSTRAINT_UNIQUE / SQLITE_CONSTRAINT).
+function isDuplicateKeyError(err) {
+  return err && (err.code === 'ER_DUP_ENTRY' || err.errno === 1062 ||
+    err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.code === 'SQLITE_CONSTRAINT');
+}
 
-  const [rows] = await db.execute('SELECT id FROM member_credits WHERE member_id = ? LIMIT 1', [memberId]);
-  if (rows.length) {
-    await db.execute(
-      'UPDATE member_credits SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP WHERE member_id = ?',
-      [amount, memberId]
-    );
-  } else {
-    await db.execute('INSERT INTO member_credits (member_id, balance) VALUES (?, ?)', [memberId, amount]);
+// Returns false if orderId was already processed (replay guard).
+// Both /payments/verify (client-side, immediately after checkout) and the
+// /payments/webhook handler (server-to-server, may arrive around the same time)
+// call this for the same order, so it must be safe under concurrent execution —
+// not just sequential double-calls. The INSERT happens first and is the actual
+// idempotency guard (backed by the UNIQUE KEY on razorpay_order_id); the balance
+// UPDATE only runs if that INSERT succeeds, and both are wrapped in one
+// transaction so a losing concurrent call never partially applies a credit.
+async function addCredits(db, memberId, amount, amountPaise = 0, note = '', orderId = null) {
+  await db.beginTransaction();
+  try {
+    try {
+      await db.execute(
+        "INSERT INTO credit_transactions (member_id, type, credits_delta, amount_paise, note, razorpay_order_id) VALUES (?, 'purchase', ?, ?, ?, ?)",
+        [memberId, amount, amountPaise, note, orderId || null]
+      );
+    } catch (err) {
+      if (orderId && isDuplicateKeyError(err)) {
+        await db.rollback();
+        return false; // already fulfilled by a concurrent request — no double credit
+      }
+      throw err;
+    }
+
+    const [rows] = await db.execute('SELECT id FROM member_credits WHERE member_id = ? LIMIT 1', [memberId]);
+    if (rows.length) {
+      await db.execute(
+        'UPDATE member_credits SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP WHERE member_id = ?',
+        [amount, memberId]
+      );
+    } else {
+      await db.execute('INSERT INTO member_credits (member_id, balance) VALUES (?, ?)', [memberId, amount]);
+    }
+
+    await db.commit();
+    return true;
+  } catch (err) {
+    await db.rollback();
+    throw err;
   }
-  await db.execute(
-    "INSERT INTO credit_transactions (member_id, type, credits_delta, amount_paise, note, razorpay_order_id) VALUES (?, 'purchase', ?, ?, ?, ?)",
-    [memberId, amount, amountPaise, note, orderId || null]
-  );
-  return true;
 }
 
 // ── GET /api/payments/bundles — public ───────────────────────────────────────
@@ -446,7 +470,12 @@ router.post('/unlock-blog', rateLimit('unlock_blog', 20, 60), async (req, res) =
 });
 
 // ── POST /api/payments/webhook ────────────────────────────────────────────────
-router.post('/webhook', express_raw_body, async (req, res) => {
+// req.rawBody is populated by the `verify` callback on the global express.json()
+// middleware in server/index.js — captures the exact bytes Razorpay signed,
+// before they're parsed into req.body. Needed because re-serializing req.body
+// with JSON.stringify would not byte-for-byte match Razorpay's original payload,
+// which would make every signature check fail.
+router.post('/webhook', async (req, res) => {
   const sig = req.headers['x-razorpay-signature'];
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
   if (!secret || !sig) return res.status(400).send('No webhook secret configured');
@@ -460,12 +489,117 @@ router.post('/webhook', express_raw_body, async (req, res) => {
 
   if (!sigValid) return res.status(400).send('Invalid signature');
 
+  let event;
   try {
-    const event = JSON.parse(req.rawBody || '{}');
-    console.log('[webhook] event:', event.event);
-    return res.json({ status: 'ok' });
+    event = JSON.parse(req.rawBody || '{}');
   } catch {
-    return res.status(500).send('Error');
+    return res.status(400).send('Invalid payload');
+  }
+  console.log('[webhook] event:', event.event);
+
+  try {
+    // Server-side reconciliation for credit-bundle purchases. This is the same
+    // fulfillment path as /payments/verify (via addCredits' UNIQUE-KEY-backed
+    // idempotency) — whichever of the two arrives first wins, the other is a
+    // safe no-op. This exists so a payment that succeeds on Razorpay's side but
+    // never reaches /verify (closed tab, dropped network, client error) still
+    // gets fulfilled.
+    if (event.event === 'payment.captured') {
+      const payment = event.payload?.payment?.entity;
+      const orderId = payment?.order_id;
+      if (orderId) {
+        const [orderRec] = await req.db.execute(
+          'SELECT * FROM payment_orders WHERE razorpay_order_id = ? LIMIT 1', [orderId]
+        );
+        if (orderRec.length && !orderRec[0].fulfilled) {
+          const paymentOrder = orderRec[0];
+          const [bundles] = await req.db.execute(
+            'SELECT * FROM credit_bundles WHERE id = ? LIMIT 1', [paymentOrder.bundle_id]
+          );
+          if (bundles.length) {
+            const bundle = bundles[0];
+            const credited = await addCredits(
+              req.db, paymentOrder.member_id, bundle.credits,
+              paymentOrder.final_price_paise,
+              `Purchased: ${bundle.name} (${bundle.credits} credits) — order ${orderId} [webhook]`,
+              orderId
+            );
+            if (credited) {
+              await req.db.execute('UPDATE payment_orders SET fulfilled = 1 WHERE razorpay_order_id = ?', [orderId]);
+              if (paymentOrder.coupon_id) {
+                await req.db.execute('UPDATE coupons SET used_count = used_count + 1 WHERE id = ?', [paymentOrder.coupon_id]).catch(() => {});
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Refund reversal — idempotent via the UNIQUE KEY on razorpay_refund_id, so
+    // Razorpay retrying this webhook (it does, on any non-2xx or timeout) can
+    // never reverse the same refund twice. Balance is clamped at 0 in case the
+    // member already spent some of the credits before the refund landed.
+    if (event.event === 'refund.processed') {
+      const refund = event.payload?.refund?.entity;
+      const payment = event.payload?.payment?.entity;
+      const orderId = payment?.order_id;
+      const refundId = refund?.id;
+      if (orderId && refundId) {
+        const [orderRec] = await req.db.execute(
+          'SELECT * FROM payment_orders WHERE razorpay_order_id = ? LIMIT 1', [orderId]
+        );
+        if (orderRec.length) {
+          const paymentOrder = orderRec[0];
+          const [bundles] = await req.db.execute(
+            'SELECT * FROM credit_bundles WHERE id = ? LIMIT 1', [paymentOrder.bundle_id]
+          );
+          const creditsToReverse = bundles.length ? bundles[0].credits : paymentOrder.bundle_credits;
+
+          await req.db.beginTransaction();
+          let alreadyReversed = false;
+          try {
+            try {
+              await req.db.execute(
+                "INSERT INTO credit_transactions (member_id, type, credits_delta, amount_paise, note, razorpay_refund_id) VALUES (?, 'refund', ?, ?, ?, ?)",
+                [paymentOrder.member_id, -creditsToReverse, -(refund.amount || 0), `Refund for order ${orderId}`, refundId]
+              );
+            } catch (err) {
+              if (isDuplicateKeyError(err)) {
+                alreadyReversed = true; // already reversed by a previous delivery of this webhook
+              } else {
+                throw err;
+              }
+            }
+
+            if (alreadyReversed) {
+              await req.db.rollback();
+            } else {
+              // Clamp in application code, not SQL — GREATEST() (MySQL) and the
+              // 2-arg MAX() (SQLite) aren't portable across the two engines this
+              // app runs on, so read-then-clamp avoids relying on either.
+              const currentBalance = await getMemberBalance(req.db, paymentOrder.member_id);
+              const newBalance = Math.max(currentBalance - creditsToReverse, 0);
+              await req.db.execute(
+                'UPDATE member_credits SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE member_id = ?',
+                [newBalance, paymentOrder.member_id]
+              );
+              await req.db.commit();
+            }
+          } catch (err) {
+            await req.db.rollback();
+            throw err;
+          }
+        }
+      }
+    }
+
+    return res.json({ status: 'ok' });
+  } catch (err) {
+    console.error('[webhook] processing error:', err.message);
+    // Still 200 the signature-valid webhook to stop Razorpay retry storms once
+    // we've logged it — the underlying order/refund row remains unfulfilled/
+    // unreversed and is safe to reconcile manually or via a later retry.
+    return res.status(200).json({ status: 'logged', error: err.message });
   }
 });
 
@@ -552,12 +686,5 @@ router.post('/product-review-bonus', rateLimit('product_review', 10, 3600), asyn
     return res.status(500).json({ status: 'error', message: err.message });
   }
 });
-
-function express_raw_body(req, _res, next) {
-  let data = '';
-  req.setEncoding('utf8');
-  req.on('data', chunk => { data += chunk; });
-  req.on('end', () => { req.rawBody = data; next(); });
-}
 
 module.exports = router;

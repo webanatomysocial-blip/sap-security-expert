@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 
 const { dbMiddleware, isSQLite } = require('./db');
+const { safeCompare } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.EXPRESS_PORT || 3001;
@@ -70,7 +71,15 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
 }));
 
-app.use(express.json({ limit: '5mb' }));
+// `verify` captures the exact raw bytes into req.rawBody before JSON-parsing them
+// into req.body. Needed for the Razorpay webhook's HMAC signature check, which
+// must be computed over the untouched request body — re-serializing req.body
+// with JSON.stringify would not byte-for-byte match what Razorpay signed.
+// Harmless for every other route: req.body is still parsed exactly as before.
+app.use(express.json({
+  limit: '5mb',
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 app.use(session({
@@ -95,13 +104,18 @@ app.use(session({
 }));
 
 // Security headers
+// Note: this API only ever returns JSON — the actual HTML pages are served by
+// Next.js, which sets its own (stricter, nonce-based) CSP via src/middleware.js.
+// This header is defense-in-depth for the case a JSON endpoint is navigated to
+// directly; since no script/style/font ever needs to execute in that context,
+// it can be tighter than a page-serving CSP would be.
 app.use((_, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.razorpay.com; frame-src https://api.razorpay.com; object-src 'none'; base-uri 'self';"
+    "default-src 'none'; frame-ancestors 'self'; base-uri 'none';"
   );
   next();
 });
@@ -238,7 +252,7 @@ app.use('/api/admin/changelog', require('./routes/admin/changelog'));
 // Cron endpoint (secured by CRON_SECRET)
 app.post('/api/cron/send-emails', async (req, res) => {
   const secret = req.query.secret || req.headers['x-cron-secret'];
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+  if (!process.env.CRON_SECRET || !safeCompare(secret || '', process.env.CRON_SECRET)) {
     return res.status(403).json({ status: 'error', message: 'Unauthorized' });
   }
   try {

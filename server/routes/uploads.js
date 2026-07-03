@@ -1,5 +1,4 @@
 const router = require('express').Router();
-const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const { requireAuth } = require('../middleware/auth');
@@ -67,17 +66,23 @@ router.post(
 const adStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, getUploadDir('ads')),
   filename: (req, file, cb) => {
-    const mimeToExt = {
-      'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png',
-      'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg',
-    };
-    const ext = mimeToExt[file.mimetype] || path.extname(file.originalname).replace('.', '') || 'jpg';
+    const mimeToExt = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+    const ext = mimeToExt[file.mimetype] || 'jpg';
     cb(null, `ad_${crypto.randomBytes(8).toString('hex')}.${ext}`);
   },
 });
 
-// No file size limit for ads — admins upload banners/strips which can be large
-const adUpload = multer({ storage: adStorage });
+// SVG intentionally excluded: SVG can embed <script> and is served from our own
+// origin at /uploads/ads/*, which would allow stored XSS. Raster formats only.
+const adUpload = multer({
+  storage: adStorage,
+  limits: { fileSize: 8 * 1024 * 1024 }, // 8MB — generous for ad banners/strips, bounds disk usage
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.mimetype)) return cb(new Error('Please upload a valid image file (JPG, PNG, or WEBP).'));
+    cb(null, true);
+  },
+});
 
 router.post(
   ['/upload_ad_image.php', '/upload-ad-image'],

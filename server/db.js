@@ -381,6 +381,9 @@ if (isSQLite) {
   // Add razorpay_order_id for replay prevention (ignore if column already exists)
   try { sqliteDb.prepare('ALTER TABLE credit_transactions ADD COLUMN razorpay_order_id TEXT').run(); } catch {}
   try { sqliteDb.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_ctx_order ON credit_transactions(razorpay_order_id) WHERE razorpay_order_id IS NOT NULL').run(); } catch {}
+  // Add razorpay_refund_id so refund webhooks can be safely retried without double-reversing credits
+  try { sqliteDb.prepare('ALTER TABLE credit_transactions ADD COLUMN razorpay_refund_id TEXT').run(); } catch {}
+  try { sqliteDb.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_ctx_refund ON credit_transactions(razorpay_refund_id) WHERE razorpay_refund_id IS NOT NULL').run(); } catch {}
 
   sqliteDb.prepare(`
     CREATE TABLE IF NOT EXISTS payment_orders (
