@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import ClientApp from '../../[[...slug]]/ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
@@ -217,12 +218,15 @@ export default async function BlogPostPage({ params }) {
   const isMembersOnly = parseInt(blog.is_members_only || 0) === 1;
   const isPremium = parseInt(blog.is_premium || 0) === 1;
   const isPremiumLocked = !!blog.premium_locked;
+  const nonce = (await headers()).get('x-nonce') || undefined;
 
   return (
     <>
       {/* JSON-LD — always in head, not removed with SSR content */}
       <script
         type="application/ld+json"
+        nonce={nonce}
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schemas) }}
       />
 

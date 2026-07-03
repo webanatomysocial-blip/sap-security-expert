@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import "./globals.css";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
@@ -31,7 +32,8 @@ export const metadata = {
   description: "The leading community for SAP Security, GRC, and BTP professionals.",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const nonce = (await headers()).get("x-nonce") || undefined;
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -47,6 +49,8 @@ export default function RootLayout({ children }) {
         {/* Site-wide structured data — Organization + WebSite (SearchAction) */}
         <script
           type="application/ld+json"
+          nonce={nonce}
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{ __html: JSON.stringify([orgSchema, websiteSchema]) }}
         />
       </head>
