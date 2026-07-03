@@ -15,6 +15,24 @@ const path = require('path');
 const http = require('http');
 const { parse } = require('url');
 
+// Node's native Headers implementation (via undici) doesn't have
+// getSetCookie() on every Node 18.x patch — confirmed missing on 18.20.4
+// (the version this app targets, per the header comment above). Next.js
+// 15's internal headers() implementation unconditionally does
+// `a.getSetCookie.bind(a)` when wrapping request headers for Server
+// Components, which throws "Cannot read properties of undefined (reading
+// 'bind')" on every single route (since every route goes through the root
+// layout, which calls headers()) if that method is missing. This must run
+// before Next.js is loaded/prepared below, so the polyfill is in place
+// before the first request is ever wrapped. No-op on any Node version
+// where the method already exists.
+if (typeof Headers.prototype.getSetCookie !== 'function') {
+  Headers.prototype.getSetCookie = function () {
+    const raw = this.get('set-cookie');
+    return raw ? raw.split(', ') : [];
+  };
+}
+
 // 1. Load environment variables from server/.env
 //    dotenv is now in root node_modules (added to package.json dependencies).
 //    Fallback to server/node_modules/dotenv for backwards compatibility.
