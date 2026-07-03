@@ -24,7 +24,15 @@ class MailService {
   }
 
   static getInstance(db) {
-    if (!_instance) _instance = new MailService(db);
+    if (!_instance) {
+      _instance = new MailService(db);
+    } else {
+      // Always update the db reference so the singleton never holds on to a
+      // stale/released pool connection from a previous request or cron run.
+      // (Node.js is single-threaded: updating this before await points is safe
+      // within a single logical call chain.)
+      _instance.db = db;
+    }
     return _instance;
   }
 

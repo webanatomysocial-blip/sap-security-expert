@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Image from "next/image";
 import BlogSidebar from "../components/BlogSidebar";
-import { getBlogs, getMyUnlocks } from "../services/api";
+import { getBlogs, getMyUnlocks, getCommunityStats } from "../services/api";
 import { useMemberAuth } from "../context/MemberAuthContext";
 
 const PaidArticles = () => {
@@ -13,6 +13,21 @@ const PaidArticles = () => {
   const [unlockedSlugs, setUnlockedSlugs] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [communityStats, setCommunityStats] = useState({ members: null, comments: null });
+
+  const fmt = (n) => {
+    const v = parseInt(n) || 0;
+    return v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/, "") + "K+" : String(v);
+  };
+
+  useEffect(() => {
+    getCommunityStats()
+      .then((res) => {
+        const data = res.data;
+        if (data) setCommunityStats({ members: fmt(data.total_members), comments: fmt(data.total_comments) });
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -153,19 +168,92 @@ const PaidArticles = () => {
     </div>
   );
 
+  const contributorCount = useMemo(() => {
+    if (!paidBlogs.length) return 0;
+    const authors = new Set(paidBlogs.map(b => b.author_name || b.author).filter(Boolean));
+    return authors.size;
+  }, [paidBlogs]);
+
   return (
     <div className="category-page-wrapper">
-      <div className="category-header-section">
+      {/* Header */}
+      <div className="cat-hero-light">
         <div className="container">
-          <nav className="blog-breadcrumb" aria-label="Breadcrumb">
+          <nav className="blog-breadcrumb cat-hero-breadcrumb" aria-label="Breadcrumb">
             <Link to="/" className="breadcrumb-link">Home</Link>
-            <span className="breadcrumb-sep"><i className="bi bi-chevron-right"></i></span>
+            <span className="breadcrumb-sep"><i className="bi bi-chevron-right" /></span>
             <span className="breadcrumb-current">Paid Articles</span>
           </nav>
-          <h1>Paid Articles</h1>
-          <p style={{ color: "#94a3b8", marginTop: "8px", fontSize: "1rem" }}>
-            Premium in-depth content unlocked with credits
-          </p>
+          <div className="cat-hero-inner">
+            <div className="cat-hero-text">
+              <h1 className="cat-hero-title">PAID ARTICLES</h1>
+              <p className="cat-hero-desc">Premium in-depth content unlocked with credits</p>
+              
+              <div className="cat-stats-row">
+                <div className="cat-stat-item">
+                  <div className="cat-stat-icon-wrap">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                  </div>
+                  <div className="cat-stat-info">
+                    <span className="cat-stat-number">{loading ? "—" : `${paidBlogs.length}`}</span>
+                    <span className="cat-stat-label">Articles</span>
+                  </div>
+                </div>
+                
+                <div className="cat-stat-divider"></div>
+                
+                <div className="cat-stat-item">
+                  <div className="cat-stat-icon-wrap">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      <path d="m9 11 2 2 4-4" />
+                    </svg>
+                  </div>
+                  <div className="cat-stat-info">
+                    <span className="cat-stat-number">{loading ? "—" : `${contributorCount || 1}`}</span>
+                    <span className="cat-stat-label">Expert Contributors</span>
+                  </div>
+                </div>
+                
+                <div className="cat-stat-divider"></div>
+                
+                <div className="cat-stat-item">
+                  <div className="cat-stat-icon-wrap">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <div className="cat-stat-info">
+                    <span className="cat-stat-number">{communityStats.members || "4.3K+"}</span>
+                    <span className="cat-stat-label">Community Members</span>
+                  </div>
+                </div>
+                
+                <div className="cat-stat-divider"></div>
+                
+                <div className="cat-stat-item">
+                  <div className="cat-stat-icon-wrap">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </div>
+                  <div className="cat-stat-info">
+                    <span className="cat-stat-number">{communityStats.comments || "1.7K+"}</span>
+                    <span className="cat-stat-label">Discussions</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="cat-hero-illustration-new">
+              <img src="/assets/images/sap-security.png" alt="Paid Articles" />
+            </div>
+          </div>
         </div>
       </div>
 
