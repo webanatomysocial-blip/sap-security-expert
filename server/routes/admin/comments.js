@@ -73,13 +73,13 @@ router.post('/', requireAuth(), checkPermission('can_manage_comments'), async (r
           const cnt = approvedCount[0]?.cnt || 0;
           if (cnt >= 1) {
             db.execute(
-              'INSERT OR IGNORE INTO member_achievements (member_id, achievement_id) VALUES (?, ?)',
+              'INSERT IGNORE INTO member_achievements (member_id, achievement_id) VALUES (?, ?)',
               [memberId, 'first_comment']
             ).catch(() => {});
           }
           if (cnt >= 100) {
             db.execute(
-              'INSERT OR IGNORE INTO member_achievements (member_id, achievement_id) VALUES (?, ?)',
+              'INSERT IGNORE INTO member_achievements (member_id, achievement_id) VALUES (?, ?)',
               [memberId, '100_helpful_comments']
             ).catch(() => {});
           }
