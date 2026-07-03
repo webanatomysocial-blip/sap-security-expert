@@ -117,8 +117,8 @@
 /* Related Blogs Highlight */
 .related-blogs-highlight {
   background: linear-gradient(180deg, #fffcfb 0%, #fff 100%);
-  padding: 24px;
-  border-radius: 20px;
+  padding: 16px;
+  border-radius: 8px;
   border: 1px solid #ffedea;
   box-shadow: 0 10px 30px -10px rgba(238, 94, 66, 0.1);
   position: relative;

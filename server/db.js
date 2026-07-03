@@ -445,10 +445,13 @@ if (isSQLite) {
     database: process.env.DB_NAME || '',
     charset: process.env.DB_CHARSET || 'utf8mb4',
     waitForConnections: true,
-    // Lightsail 1 GB: session store uses 2 connections, so 3 here = 5 total.
-    // Each idle connection holds ~4–8 MB of socket/buffer memory.
-    // Override with DB_POOL_SIZE if you need more throughput.
-    connectionLimit: parseInt(process.env.DB_POOL_SIZE || '3'),
+    // 2 GB RAM server: session store has its own 2-connection pool (separate).
+    // Main pool: 10 connections × ~6 MB each ≈ 60 MB — well within budget.
+    // The dbMiddleware holds one connection per HTTP request for the full request
+    // lifetime, so connectionLimit must exceed peak concurrency. The in-process
+    // cron occupies one connection every minute as well.
+    // Override with DB_POOL_SIZE env var if you need to tune for your host.
+    connectionLimit: parseInt(process.env.DB_POOL_SIZE || '10'),
     queueLimit: 50,
     timezone: '+00:00',
     // Reconnect automatically if the Hostinger MySQL server closes idle connections.
