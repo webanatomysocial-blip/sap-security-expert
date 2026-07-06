@@ -289,18 +289,30 @@ app.use('/api', (req, res) => {
   res.status(404).json({ status: 'error', message: `Endpoint not found: ${req.path}` });
 });
 
-// Global error handler — catches multer errors, unhandled throws in middleware/routes.
+// Global error handler — catches multer errors, unhandled throws in middleware/routes,
+// and everything forwarded via next(err) from route/controller code.
 // Must be 4-argument to be recognised as an error handler by Express.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const status = err.status || err.statusCode || 500;
-  // Log the real error server-side always — this is the only place it should
-  // be visible. Only 4xx messages are considered safe to send to the client:
+
+  // Single standardized log format — the only place a real error is ever
+  // visible. Only 4xx messages are considered safe to send to the client:
   // those are validation errors an app author wrote on purpose to be
-  // user-facing (e.g. "email is required"). A 500 means something unexpected
-  // threw — often a raw driver/DB error (table names, SQL fragments, column
-  // names) — which must never reach the response body.
-  console.error(`[Express error] ${req.method} ${req.path} →`, err.message, err.stack);
+  // user-facing (e.g. "email is required"). A 500 means something
+  // unexpected threw — often a raw driver/DB error (table names, SQL
+  // fragments, column names, filesystem paths) — which must never reach
+  // the response body.
+  console.error(
+    `[Express Error]\n` +
+    `Method: ${req.method}\n` +
+    `URL: ${req.originalUrl || req.path}\n` +
+    `Status: ${status}\n` +
+    `Message: ${err.message}\n` +
+    `Stack: ${err.stack}\n` +
+    `Timestamp: ${new Date().toISOString()}`
+  );
+
   const clientMessage = status >= 500 ? 'Internal server error' : (err.message || 'Request failed');
   if (!res.headersSent) {
     res.status(status).json({ status: 'error', message: clientMessage });
