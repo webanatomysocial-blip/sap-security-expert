@@ -19,7 +19,9 @@ git checkout "$BRANCH"
 git pull origin "$BRANCH"
 
 echo "[deploy] Installing/updating dependencies..."
-npm install --prefer-offline
+# --legacy-peer-deps: react-helmet-async@2.0.5's peer range (^16-18) conflicts
+# with this project's React 19 — pre-existing, unrelated to any single package.
+npm install --prefer-offline --legacy-peer-deps
 
 echo "[deploy] Building Next.js..."
 # Export NEXT_PUBLIC vars so the client bundle gets the correct domain
