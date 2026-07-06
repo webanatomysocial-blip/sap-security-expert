@@ -3,7 +3,8 @@ const crypto = require('crypto');
 const multer = require('multer');
 const { requireAuth } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
-const { getUploadDir, deleteImage } = require('../utils/helpers');
+const { getUploadDir } = require('../utils/helpers');
+const controller = require('../controllers/uploadsController');
 
 // ── Blog image upload ────────────────────────────────────────────────────────
 
@@ -41,24 +42,7 @@ router.post(
       next();
     });
   },
-  (req, res) => {
-    if (!req.file) return res.json({ status: 'error', message: 'Please select an image to upload.' });
-
-    const type = req.body.type || 'featured';
-
-    // Dimension validation would require sharp — skip for now and let client validate.
-    // For parity: featured must be >=1920x1080 @16:9, but we can't check without image processing.
-
-    const oldImage = req.body.old_image || '';
-    if (oldImage) deleteImage(oldImage);
-
-    return res.json({
-      status: 'success',
-      message: 'Image uploaded successfully',
-      filename: req.file.filename,
-      path: '/uploads/blogs/' + req.file.filename,
-    });
-  }
+  controller.uploadBlogImage
 );
 
 // ── Ad image upload ──────────────────────────────────────────────────────────
@@ -94,19 +78,7 @@ router.post(
       next();
     });
   },
-  (req, res) => {
-    if (!req.file) return res.json({ status: 'error', message: 'Please select an image to upload.' });
-
-    const oldImage = req.body.old_image || '';
-    if (oldImage) deleteImage(oldImage);
-
-    return res.json({
-      status: 'success',
-      message: 'Ad image uploaded successfully',
-      filename: req.file.filename,
-      path: '/uploads/ads/' + req.file.filename,
-    });
-  }
+  controller.uploadAdImage
 );
 
 module.exports = router;
