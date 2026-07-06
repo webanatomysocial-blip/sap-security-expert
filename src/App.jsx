@@ -46,6 +46,7 @@ import PaidArticles from "./views/PaidArticles";
 import AdminLayout from "./components/admin/AdminLayout.jsx";
 import AdminHome from "./components/admin/AdminHome";
 import AdminContributors from "./components/admin/AdminContributors";
+import AdminTeam from "./components/admin/AdminTeam";
 import AdminAnnouncements from "./components/admin/AdminAnnouncements";
 import AdminComments from "./components/admin/AdminComments";
 import AdminAds from "./components/admin/AdminAds";
@@ -239,6 +240,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AdminContributors />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="team"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminTeam />
             </ProtectedRoute>
           }
         />

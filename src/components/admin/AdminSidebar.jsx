@@ -38,6 +38,11 @@ const AdminSidebar = ({
       badge: badges.pendingContributors,
     },
     {
+      label: "Manage Admins",
+      path: "/admin/team",
+      icon: "bi-person-badge-fill",
+    },
+    {
       label: "Manage Blogs",
       path: "/admin/blogs",
       icon: "bi-layout-text-window-reverse",

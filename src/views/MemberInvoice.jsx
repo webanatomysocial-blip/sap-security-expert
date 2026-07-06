@@ -36,14 +36,7 @@ export default function MemberInvoice() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <Link to="/member/credits" style={{ color: "#64748b", fontSize: 14, textDecoration: "none" }}>← Back to Credits</Link>
         <button
-          onClick={() => {
-            const content = document.getElementById("invoice-print").innerHTML;
-            const win = window.open("", "_blank", "width=800,height=900");
-            win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice #${String(invoice.id).padStart(6,"0")}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:40px;color:#1e293b}table{width:100%;border-collapse:collapse}@media print{@page{margin:20mm}}</style></head><body>${content}</body></html>`);
-            win.document.close();
-            win.focus();
-            setTimeout(() => { win.print(); win.close(); }, 400);
-          }}
+          onClick={() => window.print()}
           style={{ padding: "8px 18px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
         >
           <i className="bi bi-printer"></i> Print / Save PDF
@@ -122,7 +115,12 @@ export default function MemberInvoice() {
         </div>
       </div>
 
-      <style>{`@media print { button, a { display: none !important; } body { background: #fff; } }`}</style>
+      <style>{`@media print {
+        @page { margin: 20mm; }
+        button, a { display: none !important; }
+        body { background: #fff; }
+        #invoice-print { border: none !important; box-shadow: none !important; }
+      }`}</style>
     </div>
   );
 }

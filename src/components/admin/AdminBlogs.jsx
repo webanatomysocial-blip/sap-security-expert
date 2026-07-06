@@ -14,6 +14,7 @@ import {
 } from "../../services/api";
 
 import { compressImage } from "../../utils/compressImage";
+import { validateAspectRatio } from "../../utils/validateAspectRatio";
 // Refactored Sub-components
 import BlogList from "./blogs/BlogList";
 import BlogEditor from "./blogs/BlogEditor";
@@ -203,6 +204,11 @@ const AdminBlogs = () => {
   };
 
   const handleImageUpload = async (file) => {
+    const isCorrectRatio = await validateAspectRatio(file, 16 / 9);
+    if (!isCorrectRatio) {
+      addToast("Featured image must be 16:9 (e.g. 1920×1080). Please crop and re-upload.", "error");
+      return;
+    }
     setUploading(true);
     const compressed = await compressImage(file, { maxWidth: 1920, maxHeight: 1080 });
     const body = new FormData();

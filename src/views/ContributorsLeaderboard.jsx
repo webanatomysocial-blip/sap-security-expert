@@ -31,7 +31,7 @@ const ContributorsLeaderboard = () => {
             <span className="breadcrumb-sep"><i className="bi bi-chevron-right" /></span>
             <span className="breadcrumb-current">Leaderboard</span>
           </nav>
-          <div className="blogs-all-header-inner" style={{ alignItems: "center" }}>
+          <div className="blogs-all-header-inner">
             <div>
               <h1>Contributors Leaderboard</h1>
               <p>Top contributors ranked by their knowledge-sharing impact in the SAP Security community.</p>
@@ -62,11 +62,7 @@ const ContributorsLeaderboard = () => {
                   <Link key={c.id} to={`/contributor/${c.id}`} className={`podium-card podium-rank-${i + 1}`}>
                     <div className="podium-medal">{MEDALS[i]}</div>
                     <div className="podium-avatar">
-                      {c.profile_image ? (
-                        <Image src={c.profile_image} alt={c.name || c.full_name} fill style={{ objectFit: "cover" }} />
-                      ) : (
-                        <i className="bi bi-person-circle" style={{ fontSize: 36, color: "#9ca3af" }} />
-                      )}
+                      <Image src={c.profile_image || "/assets/placeholder.webp"} alt={c.name || c.full_name} fill style={{ objectFit: "cover" }} />
                     </div>
                     <div className="podium-name">{c.name || c.full_name}</div>
                     {c.role && <div className="podium-role">{c.role}</div>}
@@ -81,11 +77,7 @@ const ContributorsLeaderboard = () => {
               <Link key={c.id} to={`/contributor/${c.id}`} className="leaderboard-row">
                 <div className="lb-rank">#{i + 4}</div>
                 <div className="lb-avatar">
-                  {c.profile_image ? (
-                    <Image src={c.profile_image} alt={c.name || c.full_name} fill style={{ objectFit: "cover" }} />
-                  ) : (
-                    <i className="bi bi-person-circle" style={{ fontSize: 24, color: "#9ca3af" }} />
-                  )}
+                  <Image src={c.profile_image || "/assets/placeholder.webp"} alt={c.name || c.full_name} fill style={{ objectFit: "cover" }} />
                 </div>
                 <div className="lb-info">
                   <div className="lb-name">{c.name || c.full_name}</div>

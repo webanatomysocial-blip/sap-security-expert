@@ -219,6 +219,9 @@ app.use('/api/admin/news', require('./routes/admin/news'));
 // Admin — learning hub management
 app.use('/api/admin/learnings', require('./routes/admin/learnings'));
 
+// Admin — team/admin-account management
+app.use('/api/admin/team', require('./routes/admin/team'));
+
 // Admin — contributors management (all routes in one router, mounted at /api/admin)
 app.use('/api/admin', require('./routes/admin/contributors'));
 // Legacy PHP path alias

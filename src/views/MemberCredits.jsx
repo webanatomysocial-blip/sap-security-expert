@@ -190,7 +190,20 @@ export default function MemberCredits() {
   const { isLoggedIn, creditBalance } = useMemberAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") === "unlocks" ? "unlocks" : "purchases");
+  const tabParam = searchParams.get("tab");
+  const validTab = (t) => ["purchases", "activity", "unlocks", "referral"].includes(t) ? t : "purchases";
+  const [activeTab, setActiveTab] = useState(validTab(tabParam));
+
+  // Re-sync the active tab whenever ?tab= changes — the header dropdown navigates
+  // to this same route with a different query param, which doesn't remount the
+  // component, so the useState initializer above only fires once on first mount.
+  // Adjusting state during render (rather than in a useEffect) per React's own
+  // guidance for this exact "reset state when a prop/derived value changes" case.
+  const [prevTabParam, setPrevTabParam] = useState(tabParam);
+  if (tabParam !== prevTabParam) {
+    setPrevTabParam(tabParam);
+    setActiveTab(validTab(tabParam));
+  }
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showBuyModal, setShowBuyModal] = useState(false);

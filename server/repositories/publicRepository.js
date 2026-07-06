@@ -8,6 +8,20 @@ const AUTHOR_FIELDS = `
        ELSE COALESCE(c.short_bio, 'Contributor') END AS author_bio
 `;
 
+// ── Site search ───────────────────────────────────────────────────────────
+async function searchBlogs(db, likeQuery) {
+  const [rows] = await db.execute(
+    `SELECT id, title, slug, excerpt, image, image_alt, category, date, view_count
+     FROM blogs
+     WHERE status IN ('approved','published') AND (type IS NULL OR type = 'blog')
+       AND (title LIKE ? OR excerpt LIKE ? OR tags LIKE ?)
+     ORDER BY view_count DESC, date DESC
+     LIMIT 8`,
+    [likeQuery, likeQuery, likeQuery]
+  );
+  return rows;
+}
+
 // ── Homepage ──────────────────────────────────────────────────────────────
 async function findCuratedHeroArticles(db, nowUtc) {
   const [rows] = await db.execute(
@@ -358,6 +372,7 @@ async function findNewsBySlugOrId(db, slug) {
 }
 
 module.exports = {
+  searchBlogs,
   findCuratedHeroArticles, findFallbackHeroArticles, findRecentBlogs, findHomepageTrending,
   findApprovedContributorsWithCounts, findExpertPicks, findPremiumArticles,
   findTagsSample, findLeaderboardContributors, findPublicMemberById, countApprovedCommentsByMember,

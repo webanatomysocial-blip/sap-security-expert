@@ -79,6 +79,21 @@ const popularTags = async (req, res) => {
   }
 };
 
+// GET /api/search?q=... — header search popup
+const search = async (req, res) => {
+  const db = req.db;
+  const q = String(req.query.q || '').trim();
+  if (!q || q.length < 2) return res.json({ results: [] });
+  // Cap length to keep the LIKE scan cheap and prevent oversized query params
+  const safeQ = q.slice(0, 100);
+  try {
+    const rows = await repo.searchBlogs(db, `%${safeQ}%`);
+    return res.json({ results: rows });
+  } catch {
+    return res.json({ results: [] });
+  }
+};
+
 // GET /api/contributors/leaderboard
 const leaderboard = asyncHandler(async (req, res) => {
   const rows = await repo.findLeaderboardContributors(req.db);
@@ -477,7 +492,7 @@ const newsBySlug = async (req, res) => {
 };
 
 module.exports = {
-  homepage, popularTags, leaderboard, publicMemberProfile, communityStats, categories, trendingTopics,
+  homepage, popularTags, search, leaderboard, publicMemberProfile, communityStats, categories, trendingTopics,
   announcementsPublic, authors, recordView, captcha, deleteAccount, content, sitemap, seoMeta,
   learnings, learningsCounts, news, newsBySlug,
 };

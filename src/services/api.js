@@ -60,6 +60,7 @@ export const getPublicAds = (zone) => api.get(`/ads${zone ? `?zone=${zone}` : ''
 export const getPublicAnnouncements = () => api.get('/announcements');
 export const getCommunityStats = () => api.get('/stats/community');
 export const getPopularTags = () => api.get('/popular-tags');
+export const searchSite = (q) => api.get(`/search?q=${encodeURIComponent(q)}`);
 export const getApprovedContributors = () => api.get('/contributors/approved');
 export const getContributorProfile = (id) => api.get(`/contributors/profile/${id}`);
 export const updateContributorReputation = (id, data) => api.put(`/contributors/${id}/reputation`, data);
@@ -93,6 +94,12 @@ export const deleteContributor = (id, otp) => api.post('/delete_contributor.php'
 export const getAdminMembers = (status = 'all') => api.get(`/admin/members?status=${status}`);
 export const manageAdminMember = (data) => api.post('/admin/members', data);
 export const resetMemberPassword = (memberId) => api.post('/admin/members/reset-password', { member_id: memberId });
+
+// ── Team / Admin Accounts Management (Admin) ─────────────────────────────────
+export const getAdminTeam = () => api.get('/admin/team');
+export const createAdminAccount = (data) => api.post('/admin/team', data);
+export const toggleAdminActive = (id) => api.post(`/admin/team/${id}/toggle-active`);
+export const resetAdminTeamMemberPassword = (id) => api.post(`/admin/team/${id}/reset-password`);
 
 // ── Admin Profile ─────────────────────────────────────────────────────────────
 export const getAdminProfile = () => api.get('/admin/profile');

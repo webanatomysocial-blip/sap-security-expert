@@ -61,6 +61,18 @@ class NotificationService {
     });
   }
 
+  async notifyAdminAccountCreated(email, name, credentials = {}) {
+    const siteUrl = getSiteUrl();
+    await this.mail.send(email, 'Admin Account Created', 'admin/admin_account_created', {
+      name,
+      login_url: this._loginUrl(),
+      username: email,
+      password: credentials.password || 'Your existing password',
+      site_url: siteUrl,
+      site_domain: new URL(siteUrl).hostname,
+    });
+  }
+
   async notifyContributorRejected(email, name, reason) {
     await this.mail.send(email, 'Contributor Application Rejected', 'contributor/contributor_rejected', { name, reason });
   }

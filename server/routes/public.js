@@ -11,6 +11,9 @@ router.get(['/get_homepage_data.php', '/homepage'], controller.homepage);
 // GET /api/popular-tags
 router.get('/popular-tags', controller.popularTags);
 
+// GET /api/search?q=... — header search popup
+router.get('/search', rateLimit('site_search', 60, 60), controller.search);
+
 // GET /api/contributors/leaderboard
 router.get('/contributors/leaderboard', controller.leaderboard);
 

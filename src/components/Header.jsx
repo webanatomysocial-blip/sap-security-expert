@@ -10,6 +10,7 @@ import { useMemberAuth } from "../context/MemberAuthContext";
 
 import { LuSettings, LuUser, LuKey, LuLogOut, LuShieldCheck, LuChevronRight, LuChevronDown, LuX, LuTrash2, LuCoins, LuBookOpen } from "react-icons/lu";
 import MemberProfileModal from "./MemberProfileModal";
+import HeaderSearchModal from "./HeaderSearchModal";
 import DeleteAccountModal from "./DeleteAccountModal";
 
 const Header = () => {
@@ -62,6 +63,7 @@ const Header = () => {
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSecuritySubmenuOpen, setIsSecuritySubmenuOpen] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState("profile");
   const memberDropdownRef = useRef(null);
@@ -187,6 +189,13 @@ const Header = () => {
             className="nav-actions only-windows"
             style={{ display: "flex", alignItems: "center", gap: "15px" }}
           >
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              aria-label="Search"
+              style={{ border: "none", background: "transparent", cursor: "pointer", color: "inherit", fontSize: 19, display: "flex", alignItems: "center", padding: 0 }}
+            >
+              <i className="bi bi-search" />
+            </button>
             {isMemberLoggedIn && member ? (
               <div
                 className="member-profile-wrap"
@@ -204,13 +213,7 @@ const Header = () => {
                   }}
                 >
                   <div className="member-avatar-circle">
-                    {member.profile_image ? (
-                      <Image src={member.profile_image} alt="Avatar" width={42} height={42} />
-                    ) : (
-                      (member.name || member.email || "M")
-                        .charAt(0)
-                        .toUpperCase()
-                    )}
+                    <Image src={member.profile_image || "/assets/placeholder.webp"} alt="Avatar" width={42} height={42} />
                   </div>
                 </div>
 
@@ -362,15 +365,17 @@ const Header = () => {
         </div>
 
         <nav className="mobile-nav">
+          <button
+            onClick={() => { closeMenu(); setIsSearchOpen(true); }}
+            style={{ display: "flex", alignItems: "center", gap: 10, border: "none", background: "transparent", cursor: "pointer", padding: "12px 0", color: "inherit", fontSize: 16, width: "100%", textAlign: "left" }}
+          >
+            <i className="bi bi-search" /> Search
+          </button>
           {isMemberLoggedIn && member ? (
             <div className="mobile-profile-card">
               <div className="mobile-profile-header">
                 <div className="mobile-profile-avatar">
-                  {member.profile_image ? (
-                    <Image src={member.profile_image} alt="Avatar" width={56} height={56} />
-                  ) : (
-                    (member.name || member.email || "M").charAt(0).toUpperCase()
-                  )}
+                  <Image src={member.profile_image || "/assets/placeholder.webp"} alt="Avatar" width={56} height={56} />
                 </div>
                 <div className="mobile-profile-info">
                   <span className="mobile-profile-name">{member.name}</span>
@@ -582,6 +587,8 @@ const Header = () => {
         isOpen={isDeleteAccountOpen}
         onClose={() => setIsDeleteAccountOpen(false)}
       />
+
+      {isSearchOpen && <HeaderSearchModal onClose={() => setIsSearchOpen(false)} />}
     </header>
   );
 };
