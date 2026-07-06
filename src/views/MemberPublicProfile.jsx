@@ -63,11 +63,7 @@ const MemberPublicProfile = () => {
             {/* Avatar */}
             <div className="profile-avatar-wrapper">
               <div className="profile-avatar-large" style={{ position: "relative" }}>
-                {member.profile_image ? (
-                  <Image src={member.profile_image} alt={member.name || "Member"} fill style={{ objectFit: "cover" }} />
-                ) : (
-                  <i className="bi bi-person-circle" style={{ fontSize: 64, color: "#94a3b8" }} />
-                )}
+                <Image src={member.profile_image || "/assets/placeholder.webp"} alt={member.name || "Member"} fill style={{ objectFit: "cover" }} />
               </div>
             </div>
 

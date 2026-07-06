@@ -293,13 +293,7 @@ const AdminLayout = () => {
             }}
           >
             <div className="user-avatar-circle">
-              {adminData.profile_image ? (
-                <img src={adminData.profile_image} alt="Avatar" />
-              ) : (
-                (adminData.full_name || adminData.username || "A")
-                  .charAt(0)
-                  .toUpperCase()
-              )}
+              <img src={adminData.profile_image || "/assets/placeholder.webp"} alt="Avatar" />
             </div>
 
             <div className="user-meta" style={{ display: "block" }}>

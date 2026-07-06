@@ -428,39 +428,18 @@ const AdminManageUsers = () => {
 
             <div className="modal-body" data-lenis-prevent>
               <div style={{ textAlign: "center", marginBottom: "32px" }}>
-                {selectedMember.profile_image ? (
-                  <img
-                    src={selectedMember.profile_image}
-                    alt={selectedMember.name}
-                    style={{
-                      width: "120px",
-                      height: "120px",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      border: "4px solid var(--slate-50)",
-                      boxShadow: "var(--shadow-sm)",
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: "120px",
-                      height: "120px",
-                      borderRadius: "50%",
-                      background: "var(--slate-100)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto",
-                      fontSize: "48px",
-                      color: "var(--slate-500)",
-                      border: "4px solid var(--slate-50)",
-                      boxShadow: "var(--shadow-sm)",
-                    }}
-                  >
-                    {selectedMember.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <img
+                  src={selectedMember.profile_image || "/assets/placeholder.webp"}
+                  alt={selectedMember.name}
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "4px solid var(--slate-50)",
+                    boxShadow: "var(--shadow-sm)",
+                  }}
+                />
                 <h3
                   style={{
                     marginTop: "20px",

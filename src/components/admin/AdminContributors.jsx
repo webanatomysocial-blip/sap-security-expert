@@ -397,37 +397,17 @@ const AdminContributors = () => {
 
             <div className="modal-body" data-lenis-prevent="true">
               <div style={{ textAlign: "center", marginBottom: "20px" }}>
-                {selectedApp.profile_image ? (
-                  <img
-                    src={selectedApp.profile_image}
-                    alt={selectedApp.name}
-                    style={{
-                      width: "120px",
-                      height: "120px",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      border: "4px solid #f1f5f9",
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: "120px",
-                      height: "120px",
-                      borderRadius: "50%",
-                      background: "#e2e8f0",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto",
-                      fontSize: "40px",
-                      color: "#64748b",
-                      border: "4px solid #f1f5f9",
-                    }}
-                  >
-                    {selectedApp.name.charAt(0)}
-                  </div>
-                )}
+                <img
+                  src={selectedApp.profile_image || "/assets/placeholder.webp"}
+                  alt={selectedApp.name}
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "4px solid #f1f5f9",
+                  }}
+                />
                 <h3
                   style={{
                     marginTop: "15px",

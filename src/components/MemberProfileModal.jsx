@@ -17,6 +17,7 @@ import useScrollLock from "../hooks/useScrollLock";
 import { updateMemberProfile, getMemberAchievements, memberChangePassword } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
+import ProfilePictureCropModal from "./ProfilePictureCropModal";
 
 const REPUTATION_CONFIG = {
   Contributor: {
@@ -76,6 +77,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
   });
   const [preview, setPreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [cropSrc, setCropSrc] = useState(null);
   const [visibility, setVisibility] = useState({
     show_name: true,
     show_picture: true,
@@ -140,9 +142,21 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
       return;
     }
 
-    setImageFile(file);
-    setPreview(URL.createObjectURL(file));
+    setCropSrc(URL.createObjectURL(file));
     setError("");
+    e.target.value = ""; // allow re-selecting the same file later
+  };
+
+  const handleCropConfirm = (croppedFile) => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setImageFile(croppedFile);
+    setPreview(URL.createObjectURL(croppedFile));
+    setCropSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
   };
 
   const handleSubmit = async (e) => {
@@ -558,6 +572,13 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
           </div>
         )}
       </div>
+      {cropSrc && (
+        <ProfilePictureCropModal
+          imageSrc={cropSrc}
+          onCancel={handleCropCancel}
+          onConfirm={handleCropConfirm}
+        />
+      )}
     </div>,
     document.body
   );
