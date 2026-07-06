@@ -259,7 +259,7 @@ router.post('/signup', rateLimit('member_signup', 10, 900), async (req, res) => 
 });
 
 // GET /api/member/profile
-router.get('/profile', async (req, res) => {
+router.get('/profile', async (req, res, next) => {
   const db = req.db;
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
@@ -286,7 +286,7 @@ router.get('/profile', async (req, res) => {
 
     return res.json({ status: 'success', member: { ...rows[0], reputation_level }, subscription });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
@@ -296,7 +296,7 @@ router.post('/profile/update', (req, res, next) => {
     if (err) return res.status(400).json({ status: 'error', message: err.message });
     next();
   });
-}, async (req, res) => {
+}, async (req, res, next) => {
   const db = req.db;
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
@@ -342,7 +342,7 @@ router.post('/profile/update', (req, res, next) => {
     req.session.member_name = rows[0]?.name || req.session.member_name;
     return res.json({ status: 'success', message: 'Profile updated', member: rows[0] });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
@@ -468,7 +468,7 @@ async function grantAndNotify(db, mailer, memberId, achievementId, memberEmail, 
 }
 
 // GET /api/member/referral — return member's referral code + stats
-router.get('/referral', async (req, res) => {
+router.get('/referral', async (req, res, next) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   }
@@ -499,12 +499,12 @@ router.get('/referral', async (req, res) => {
       referrals_count: countRows[0]?.cnt || 0,
     });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
 // GET /api/member/achievements — works with session or ?member_id param
-router.get('/achievements', async (req, res) => {
+router.get('/achievements', async (req, res, next) => {
   const db = req.db;
   try {
     await ensureAchievementTables(db);
@@ -609,13 +609,13 @@ router.get('/achievements', async (req, res) => {
 
     return res.json({ status: 'success', achievements });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
 // POST /api/member/achievements/grant — admin-only manual grant
 const { requireAdmin } = require('../middleware/auth');
-router.post('/achievements/grant', requireAdmin, async (req, res) => {
+router.post('/achievements/grant', requireAdmin, async (req, res, next) => {
   const db = req.db;
   const { member_id, achievement_id } = req.body || {};
   if (!member_id || !achievement_id) {
@@ -631,12 +631,12 @@ router.post('/achievements/grant', requireAdmin, async (req, res) => {
     await grantAndNotify(db, mailer, member_id, achievement_id, memberEmail, memberName, siteUrl);
     return res.json({ status: 'success', message: 'Achievement granted.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
 // POST /api/member/change-password
-router.post('/change-password', rateLimit('member_change_password', 5, 900), async (req, res) => {
+router.post('/change-password', rateLimit('member_change_password', 5, 900), async (req, res, next) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Not authenticated.' });
   }
@@ -672,7 +672,7 @@ router.post('/change-password', rateLimit('member_change_password', 5, 900), asy
 
     return res.json({ status: 'success', message: 'Password changed successfully.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 

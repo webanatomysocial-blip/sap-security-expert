@@ -49,7 +49,7 @@ async function ensureTable(db) {
 }
 
 // GET /api/admin/blog-ads — list all (admin only)
-router.get('/', requireAdmin, async (req, res) => {
+router.get('/', requireAdmin, async (req, res, next) => {
   try {
     await ensureTable(req.db);
     const [rows] = await req.db.execute('SELECT * FROM blog_ads ORDER BY created_at DESC');
@@ -58,12 +58,12 @@ router.get('/', requireAdmin, async (req, res) => {
     });
     return res.json({ status: 'success', ads: rows });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
 // GET /api/blog-ads/for-blog?slug=xxx — public, returns active ads for a blog
-router.get('/for-blog', async (req, res) => {
+router.get('/for-blog', async (req, res, next) => {
   const { slug } = req.query;
   try {
     await ensureTable(req.db);
@@ -82,12 +82,12 @@ router.get('/for-blog', async (req, res) => {
     });
     return res.json({ status: 'success', ads: matching });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
 // POST /api/admin/blog-ads — create or update (admin only)
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, async (req, res, next) => {
   const { id, ad_type = 'inline', target = 'all', blog_slugs = [], position = 3, image = '', link = '', title = '', active = false } = req.body || {};
   try {
     await ensureTable(req.db);
@@ -111,18 +111,18 @@ router.post('/', requireAdmin, async (req, res) => {
     }
     return res.json({ status: 'success', message: 'Ad saved.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
 // PATCH /api/admin/blog-ads/:id/toggle — quick toggle active
-router.patch('/:id/toggle', requireAdmin, async (req, res) => {
+router.patch('/:id/toggle', requireAdmin, async (req, res, next) => {
   try {
     await ensureTable(req.db);
     await req.db.execute('UPDATE blog_ads SET active = CASE WHEN active=1 THEN 0 ELSE 1 END WHERE id=?', [req.params.id]);
     return res.json({ status: 'success' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
@@ -135,14 +135,14 @@ router.post('/click/:id', async (req, res) => {
 });
 
 // DELETE /api/admin/blog-ads/:id (admin only)
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     const [rows] = await req.db.execute('SELECT image FROM blog_ads WHERE id=? LIMIT 1', [req.params.id]);
     if (rows.length && rows[0].image) deleteImage(rows[0].image);
     await req.db.execute('DELETE FROM blog_ads WHERE id=?', [req.params.id]);
     return res.json({ status: 'success', message: 'Ad deleted.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
