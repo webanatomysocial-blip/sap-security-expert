@@ -294,10 +294,16 @@ app.use('/api', (req, res) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const status = err.status || err.statusCode || 500;
-  const message = err.message || 'Internal server error';
-  console.error(`[Express error] ${req.method} ${req.path} →`, message);
+  // Log the real error server-side always — this is the only place it should
+  // be visible. Only 4xx messages are considered safe to send to the client:
+  // those are validation errors an app author wrote on purpose to be
+  // user-facing (e.g. "email is required"). A 500 means something unexpected
+  // threw — often a raw driver/DB error (table names, SQL fragments, column
+  // names) — which must never reach the response body.
+  console.error(`[Express error] ${req.method} ${req.path} →`, err.message, err.stack);
+  const clientMessage = status >= 500 ? 'Internal server error' : (err.message || 'Request failed');
   if (!res.headersSent) {
-    res.status(status).json({ status: 'error', message });
+    res.status(status).json({ status: 'error', message: clientMessage });
   }
 });
 

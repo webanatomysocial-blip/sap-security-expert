@@ -25,7 +25,7 @@ async function ensureTable(db) {
 }
 
 // GET /api/admin/changelog
-router.get('/', requireAdmin, async (req, res) => {
+router.get('/', requireAdmin, async (req, res, next) => {
   try {
     await ensureTable(req.db);
     const [rows] = await req.db.execute(
@@ -35,12 +35,12 @@ router.get('/', requireAdmin, async (req, res) => {
     );
     return res.json({ status: 'success', logs: rows });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
 // POST /api/admin/changelog
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, async (req, res, next) => {
   const { version, title, description, type } = req.body || {};
   if (!version || !title || !description) {
     return res.status(400).json({ status: 'error', message: 'version, title, and description are required' });
@@ -53,12 +53,12 @@ router.post('/', requireAdmin, async (req, res) => {
     );
     return res.json({ status: 'success', message: 'Changelog entry added.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
 // PUT /api/admin/changelog/:id
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireAdmin, async (req, res, next) => {
   const { version, title, description, type } = req.body || {};
   try {
     await req.db.execute(
@@ -67,17 +67,17 @@ router.put('/:id', requireAdmin, async (req, res) => {
     );
     return res.json({ status: 'success', message: 'Updated.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 
 // DELETE /api/admin/changelog/:id
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     await req.db.execute('DELETE FROM changelogs WHERE id=?', [req.params.id]);
     return res.json({ status: 'success', message: 'Deleted.' });
   } catch (err) {
-    return res.status(500).json({ status: 'error', message: err.message });
+    return next(err);
   }
 });
 

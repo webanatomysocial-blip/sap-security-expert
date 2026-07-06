@@ -6,7 +6,7 @@ const MailService = require('../../services/MailService');
 const { grantBonus } = require('../../services/CreditHelper');
 
 // GET /api/admin/comments
-router.get('/', requireAuth(), checkPermission('can_manage_comments'), async (req, res) => {
+router.get('/', requireAuth(), checkPermission('can_manage_comments'), async (req, res, next) => {
   const db = req.db;
   try {
     const [rows] = await db.execute(
@@ -22,13 +22,12 @@ router.get('/', requireAuth(), checkPermission('can_manage_comments'), async (re
     );
     return res.json(rows);
   } catch (err) {
-    console.error('[admin/comments GET]', err.message);
-    return res.status(500).json({ status: 'error', message: 'Failed to load comments.' });
+    return next(err);
   }
 });
 
 // POST /api/admin/comments — approve/reject or edit
-router.post('/', requireAuth(), checkPermission('can_manage_comments'), async (req, res) => {
+router.post('/', requireAuth(), checkPermission('can_manage_comments'), async (req, res, next) => {
   const db = req.db;
   const { id, action = 'status', status, rejection_reason, content } = req.body || {};
   if (!id) return res.status(400).json({ status: 'error', message: 'ID required' });
@@ -91,13 +90,12 @@ router.post('/', requireAuth(), checkPermission('can_manage_comments'), async (r
 
     return res.json({ status: 'success', message: 'Comment status updated' });
   } catch (err) {
-    console.error('[admin/comments POST]', err.message);
-    return res.status(500).json({ status: 'error', message: 'Failed to update comment.' });
+    return next(err);
   }
 });
 
 // DELETE /api/admin/comments?id=X
-router.delete('/', requireAuth(), checkPermission('can_manage_comments'), async (req, res) => {
+router.delete('/', requireAuth(), checkPermission('can_manage_comments'), async (req, res, next) => {
   const db = req.db;
   const id = req.query.id || req.body?.id;
   if (!id) return res.status(400).json({ status: 'error', message: 'ID required' });
@@ -105,8 +103,7 @@ router.delete('/', requireAuth(), checkPermission('can_manage_comments'), async 
     await db.execute('DELETE FROM comments WHERE id=?', [id]);
     return res.json({ status: 'success', message: 'Comment deleted' });
   } catch (err) {
-    console.error('[admin/comments DELETE]', err.message);
-    return res.status(500).json({ status: 'error', message: 'Failed to delete comment.' });
+    return next(err);
   }
 });
 
