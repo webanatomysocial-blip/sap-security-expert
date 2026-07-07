@@ -36,7 +36,11 @@ export function middleware(request) {
     // CSP guides (including Google's) recommend for style-src specifically.
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net`,
     `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net`,
-    `img-src 'self' data: https:`,
+    // blob: is required for client-side image previews/measurement (upload
+    // forms use URL.createObjectURL() to preview and to check dimensions
+    // before compressing/uploading) — without it those loads are blocked and
+    // silently fall back to skipping compression/validation entirely.
+    `img-src 'self' data: blob: https:`,
     `connect-src 'self' https://api.razorpay.com`,
     `frame-src https://api.razorpay.com https://checkout.razorpay.com`,
     `object-src 'none'`,
