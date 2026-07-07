@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { searchSite } from "../services/api";
+import useScrollLock from "../hooks/useScrollLock";
 
 export default function HeaderSearchModal({ onClose }) {
   const [query, setQuery] = useState("");
@@ -10,15 +12,13 @@ export default function HeaderSearchModal({ onClose }) {
   const inputRef = useRef(null);
   const navigate = useNavigate();
 
+  useScrollLock(true);
+
   useEffect(() => {
     inputRef.current?.focus();
     const onKeyDown = (e) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
-    };
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function HeaderSearchModal({ onClose }) {
     navigate(`/${blog.category}/${blog.slug}`);
   };
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       style={{
@@ -115,6 +115,7 @@ export default function HeaderSearchModal({ onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
