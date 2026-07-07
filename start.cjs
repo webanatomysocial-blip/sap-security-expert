@@ -95,6 +95,16 @@ async function main() {
     }
   });
 
+  // This same server also receives the loopback fetch() calls Next's SSR/
+  // generateMetadata make to INTERNAL_API_URL (undici, keep-alive by default).
+  // Node's default keepAliveTimeout (5s) is shorter than undici's reuse
+  // window and shorter than Nginx's default keepalive_timeout (65s), so a
+  // pooled socket can get silently destroyed here right as it's reused —
+  // surfacing as "TypeError: fetch failed" / "cause: Error: read ECONNRESET".
+  // headersTimeout must stay greater than keepAliveTimeout (Node requirement).
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
+
   // 9. Start listening.
   if (isPipe) {
     server.listen(PORT, () => {
