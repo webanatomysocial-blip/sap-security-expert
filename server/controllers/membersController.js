@@ -268,6 +268,20 @@ const logout = (req, res) => {
 };
 
 // Grant an achievement and send email if newly granted
+// Email clients don't load the Bootstrap Icons font used on the site, so the
+// achievement's `icon` field (a CSS class like "bi-pen-fill") can't be rendered
+// there directly — it would just show as literal text. Emoji render natively
+// in virtually every email client, so map each achievement to one instead.
+const ACHIEVEMENT_EMAIL_EMOJI = {
+  welcome: '✨',
+  first_comment: '💬',
+  '100_helpful_comments': '🏆',
+  top_contributor: '✍️',
+  profile_complete: '✅',
+  linkedin_ambassador: '💼',
+  first_referral: '🤝',
+};
+
 async function grantAndNotify(db, mailer, memberId, achievementId, memberEmail, memberName, siteUrl) {
   // Check if already earned before inserting
   const existing = await repo.findAchievementRecord(db, memberId, achievementId);
@@ -279,7 +293,7 @@ async function grantAndNotify(db, mailer, memberId, achievementId, memberEmail, 
   const type = await repo.findAchievementType(db, achievementId);
   if (!type || !memberEmail) return;
 
-  const { label, description, icon } = type;
+  const { label, description } = type;
   if (mailer) {
     const sent = await mailer.send(
       memberEmail,
@@ -289,7 +303,7 @@ async function grantAndNotify(db, mailer, memberId, achievementId, memberEmail, 
         name: memberName || 'Member',
         label,
         description,
-        icon,
+        icon: ACHIEVEMENT_EMAIL_EMOJI[achievementId] || '🏅',
         achievements_url: `${siteUrl}/member/achievements`,
       }
     );
