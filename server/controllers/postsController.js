@@ -1,6 +1,7 @@
 const { asyncHandler } = require('../utils/asyncHandler');
 const { sendError } = require('../utils/apiResponse');
 const { calculateSeoScore, checkPlagiarismScore, deleteImage } = require('../utils/helpers');
+const { sanitizeBlogHtml } = require('../utils/sanitize');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const CacheService = require('../services/CacheService');
@@ -231,7 +232,7 @@ const save = asyncHandler(async (req, res) => {
     if (aRow) { author_id = parseInt(data.author_id); authorName = aRow.display_name; }
   }
 
-  const { id, title = '', slug: rawSlug, excerpt = '', content = '', date, image = '',
+  const { id, title = '', slug: rawSlug, excerpt = '', content: rawContent = '', date, image = '',
           image_alt = '',
           category = '', tags = '', meta_title = '', meta_description = '', meta_keywords = '',
           faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link = null,
@@ -241,6 +242,7 @@ const save = asyncHandler(async (req, res) => {
           difficulty_level: rawDifficultyLevel = null } = data;
   const VALID_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
   const difficulty_level = VALID_LEVELS.includes(rawDifficultyLevel) ? rawDifficultyLevel : null;
+  const content = sanitizeBlogHtml(rawContent);
 
   const coAuthorsJson = JSON.stringify(Array.isArray(co_authors) ? co_authors : []);
 

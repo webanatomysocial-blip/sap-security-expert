@@ -403,14 +403,16 @@ const seoMeta = asyncHandler(async (req, res) => {
     return res.json({ status: 'success', ...SEO_STATIC[path], url: siteUrl + path });
   }
 
-  // 2. Category page  e.g. /sap-grc
-  const catKey = path.replace(/^\//, '').split('/')[0];
-  if (SEO_CATEGORIES[catKey]) {
+  // 2. Category page  e.g. /sap-grc  (exactly one segment — NOT /sap-grc/slug,
+  // which is a blog post under that category and must fall through to case 3
+  // for its own title/description/image, not the category's generic meta).
+  const parts = path.replace(/^\//, '').split('/');
+  const catKey = parts[0];
+  if (parts.length === 1 && SEO_CATEGORIES[catKey]) {
     return res.json({ status: 'success', ...SEO_CATEGORIES[catKey], url: siteUrl + path });
   }
 
   // 3. Blog/article page  e.g. /articles/slug  or  /sap-grc/slug
-  const parts = path.replace(/^\//, '').split('/');
   if (parts.length >= 2) {
     const slug = parts[parts.length - 1];
     try {

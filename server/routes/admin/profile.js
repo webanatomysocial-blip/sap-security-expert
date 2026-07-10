@@ -2,7 +2,7 @@ const router = require('express').Router();
 const crypto = require('crypto');
 const multer = require('multer');
 const { requireAuth } = require('../../middleware/auth');
-const { getUploadDir } = require('../../utils/helpers');
+const { getUploadDir, verifyImageMagicBytes } = require('../../utils/helpers');
 const controller = require('../../controllers/admin/profileController');
 
 // File upload for profile images
@@ -23,7 +23,7 @@ const upload = multer({
 
 // All routes are mounted at /api/admin — use full sub-paths.
 router.get('/profile', requireAuth(), controller.getProfile);
-router.post('/profile/update', requireAuth(), upload.single('profile_image'), controller.updateProfile);
+router.post('/profile/update', requireAuth(), upload.single('profile_image'), verifyImageMagicBytes, controller.updateProfile);
 router.post('/reset-password', requireAuth(), controller.resetPassword);
 
 module.exports = router;

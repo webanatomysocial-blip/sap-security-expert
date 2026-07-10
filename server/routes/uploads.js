@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const { requireAuth } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
-const { getUploadDir } = require('../utils/helpers');
+const { getUploadDir, verifyImageMagicBytes } = require('../utils/helpers');
 const controller = require('../controllers/uploadsController');
 
 // ── Blog image upload ────────────────────────────────────────────────────────
@@ -42,6 +42,7 @@ router.post(
       next();
     });
   },
+  verifyImageMagicBytes,
   controller.uploadBlogImage
 );
 
@@ -78,6 +79,7 @@ router.post(
       next();
     });
   },
+  verifyImageMagicBytes,
   controller.uploadAdImage
 );
 

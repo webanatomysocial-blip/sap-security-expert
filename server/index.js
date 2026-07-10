@@ -117,6 +117,9 @@ app.use((_, res, next) => {
     'Content-Security-Policy',
     "default-src 'none'; frame-ancestors 'self'; base-uri 'none';"
   );
+  if (isProd) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
   next();
 });
 

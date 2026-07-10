@@ -140,4 +140,32 @@ function getUploadDir(sub) {
   return base;
 }
 
-module.exports = { deleteImage, calculateSeoScore, checkPlagiarismScore, getUploadDir };
+const ALLOWED_IMAGE_EXTS = new Set(['jpg', 'png', 'webp', 'gif']);
+
+/**
+ * Multer's fileFilter only sees the client-supplied Content-Type header,
+ * which is trivially spoofable (rename a malicious file to end in .jpg with
+ * a forged mimetype). This checks the actual file bytes (magic numbers)
+ * after upload and deletes the file if it isn't really an allowed image type.
+ * Use as Express middleware right after the multer .single(...) call.
+ */
+function verifyImageMagicBytes(req, res, next) {
+  if (!req.file) return next();
+  const { fileTypeFromFile } = require('file-type');
+  fileTypeFromFile(req.file.path)
+    .then((detected) => {
+      if (!detected || !ALLOWED_IMAGE_EXTS.has(detected.ext)) {
+        return fs.promises.unlink(req.file.path).catch(() => {}).then(() =>
+          res.json({ status: 'error', message: 'Please upload a valid image file (JPG, PNG, or WEBP).' })
+        );
+      }
+      next();
+    })
+    .catch(() =>
+      fs.promises.unlink(req.file.path).catch(() => {}).then(() =>
+        res.json({ status: 'error', message: 'Could not verify uploaded file.' })
+      )
+    );
+}
+
+module.exports = { deleteImage, calculateSeoScore, checkPlagiarismScore, getUploadDir, verifyImageMagicBytes };
