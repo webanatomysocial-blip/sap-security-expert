@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const crypto = require('crypto');
 const multer = require('multer');
-const { getUploadDir } = require('../utils/helpers');
+const { getUploadDir, verifyImageMagicBytes } = require('../utils/helpers');
 const { rateLimit } = require('../middleware/rateLimit');
 const { requireAdmin } = require('../middleware/auth');
 const controller = require('../controllers/membersController');
@@ -28,7 +28,7 @@ router.post('/profile/update', (req, res, next) => {
     if (err) return res.status(400).json({ status: 'error', message: err.message });
     next();
   });
-}, controller.updateProfile);
+}, verifyImageMagicBytes, controller.updateProfile);
 router.post('/logout', controller.logout);
 router.get('/referral', controller.referral);
 router.get('/achievements', controller.achievements);

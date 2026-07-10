@@ -55,6 +55,12 @@ export function middleware(request) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Only sent in prod: forces HTTPS at the browser level (not just via the
+  // secure cookie flag) for a year, including subdomains, and opts into the
+  // HSTS preload list. Harmless to omit in dev, where requests are plain HTTP.
+  if (!isDev) {
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
   return response;
 }
 
