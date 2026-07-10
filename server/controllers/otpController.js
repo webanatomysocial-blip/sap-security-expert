@@ -13,7 +13,7 @@ const repo = require('../repositories/otpRepository');
 // with "Internal server error" / lose the specific 4xx status, changing the
 // response — preserved exactly, same tradeoff made in authController.js.
 
-// POST /api/send_otp.php
+// POST /api/send-otp
 const sendOtp = async (req, res) => {
   const db = req.db;
   const { email, type = 'signup' } = req.body || {};
@@ -73,7 +73,7 @@ const sendOtp = async (req, res) => {
   }
 };
 
-// POST /api/verify_otp.php
+// POST /api/verify-otp
 const verifyOtp = async (req, res) => {
   const db = req.db;
   const { email, code, type = 'signup' } = req.body || {};
@@ -91,7 +91,7 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-// POST /api/forgot_password.php
+// POST /api/forgot-password
 const forgotPassword = async (req, res) => {
   const db = req.db;
   const { email } = req.body || {};
@@ -125,7 +125,7 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// POST /api/reset_with_token.php
+// POST /api/reset-with-token
 const resetWithToken = async (req, res) => {
   const db = req.db;
   const { email, token, password } = req.body || {};
@@ -152,7 +152,7 @@ const resetWithToken = async (req, res) => {
   }
 };
 
-// POST /api/reset_password_otp.php
+// POST /api/reset-password-otp
 const resetPasswordOtp = async (req, res) => {
   const db = req.db;
   const { email, code, password } = req.body || {};

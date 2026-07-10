@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useMemberAuth } from "../context/MemberAuthContext";
 import {
   LuShield,
   LuNetwork,
@@ -20,6 +21,7 @@ import TrendingStrip from "../components/TrendingStrip";
 import SEO from "../components/SEO";
 
 export default function Home() {
+  const { isLoggedIn, member } = useMemberAuth();
   return (
     <div className="home-wrapper">
       <SEO
@@ -207,16 +209,30 @@ export default function Home() {
               <div className="newsletter-signup-icon">
                 <i className="bi bi-shield-lock-fill"></i>
               </div>
-              <h3>Join the SAP Security Expert Community</h3>
-              <p>Get exclusive access to premium articles, expert insights, and the latest SAP security updates — all in one place.</p>
-              <div className="newsletter-signup-actions">
-                <Link to="/member/signup" className="btn-newsletter-primary">
-                  Create Free Account <i className="bi bi-arrow-right"></i>
-                </Link>
-                <Link to="/member/login" className="btn-newsletter-secondary">
-                  Already a member? Sign in
-                </Link>
-              </div>
+              {isLoggedIn ? (
+                <>
+                  <h3>Welcome back, {member?.name || "friend"}!</h3>
+                  <p>You're already a member of the community — enjoy premium articles, expert insights, and the latest SAP security updates.</p>
+                  <div className="newsletter-signup-actions">
+                    <Link to="/member/achievements" className="btn-newsletter-primary">
+                      View My Achievements <i className="bi bi-arrow-right"></i>
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3>Join the SAP Security Expert Community</h3>
+                  <p>Get exclusive access to premium articles, expert insights, and the latest SAP security updates — all in one place.</p>
+                  <div className="newsletter-signup-actions">
+                    <Link to="/member/signup" className="btn-newsletter-primary">
+                      Create Free Account <i className="bi bi-arrow-right"></i>
+                    </Link>
+                    <Link to="/member/login" className="btn-newsletter-secondary">
+                      Already a member? Sign in
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

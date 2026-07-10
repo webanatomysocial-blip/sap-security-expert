@@ -1,6 +1,7 @@
 /* Consolidated CSS imports to comply with Next.js global CSS restrictions */
 
 @import "../css/index.css";
+@import "../css/Skeleton.css";
 @import "../css/header.css";
 @import "../css/footer.css";
 @import "../css/Home.css";

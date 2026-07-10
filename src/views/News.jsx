@@ -104,8 +104,16 @@ const News = () => {
           {/* Main column */}
           <div className="category-main-column">
             {loading ? (
-              <div className="loading-state">
-                <p>Loading news...</p>
+              <div className="blog-grid-2-col">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="skel-card">
+                    <div className="skel-block skel-image" />
+                    <div className="skel-block skel-line w-40" />
+                    <div className="skel-block skel-line w-90" />
+                    <div className="skel-block skel-line w-70" />
+                    <div className="skel-block skel-line w-50" />
+                  </div>
+                ))}
               </div>
             ) : error ? (
               <div className="error-state">

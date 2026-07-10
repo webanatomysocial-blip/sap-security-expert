@@ -1,6 +1,6 @@
 /**
  * OTP generation and verification.
- * Mirrors api/services/OTPService.php — all datetime logic is DB-native.
+ * All datetime logic is DB-native.
  */
 class OTPService {
   constructor(db) {

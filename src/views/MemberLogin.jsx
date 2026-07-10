@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Helmet } from "react-helmet-async";
 import "../css/ContactForm.css";
+import "../css/MemberLogin.css";
 
 // Modal shown to contributors asking which area to enter
 const ContributorChoiceModal = ({ username, onDashboard, onMember }) => createPortal(
@@ -61,11 +62,25 @@ const MemberLogin = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [contributorChoice, setContributorChoice] = useState(null); // holds login response when contributor
-  const { login: memberLogin } = useMemberAuth();
+  const { login: memberLogin, isLoggedIn } = useMemberAuth();
   const { setAuth: adminSetAuth } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Already signed in — don't show the login form again, just send them
+  // straight to where they were headed (or the homepage). Skipped while the
+  // contributor choice modal is up: memberLogin() sets isLoggedIn=true
+  // immediately on submit (before we know if they're a contributor), so
+  // without this guard the redirect fires instantly and the modal never
+  // gets a chance to be seen.
+  useEffect(() => {
+    if (isLoggedIn && !contributorChoice) {
+      const returnTo = location.state?.fromAuth ? "/" : (location.state?.from || "/");
+      navigate(returnTo, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, contributorChoice]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -75,7 +90,7 @@ const MemberLogin = () => {
       const res = await apiMemberLogin({ email, password });
 
       if (res.data.status === "success" && res.data.member) {
-        memberLogin(res.data.member, res.data.token, res.data.is_contributor, res.data.subscription || null);
+        memberLogin(res.data.member, res.data.is_contributor, res.data.csrf_token);
 
         if (res.data.is_contributor) {
           // Store response and show choice modal instead of auto-redirecting
@@ -125,93 +140,168 @@ const MemberLogin = () => {
         onMember={goToMember}
       />
     )}
-    <div
-      className="contact-form-container"
-      style={{ minHeight: "80vh" }}
-    >
+    <div className="login-page-wrapper">
       <Helmet>
         <title>Member Login | SAP Security Expert</title>
       </Helmet>
 
-      <div className="contact-form-header">
-        <h2>Member Login</h2>
-        <p>Access exclusive SAP security content and insights.</p>
-      </div>
+      <div className="login-page-container">
+        <div className="login-split-grid">
+          {/* LEFT SIDE: Welcome Content */}
+          <div className="login-info-side">
+            <h2>Welcome Back!</h2>
+            <div className="login-accent-line"></div>
+            <p className="login-info-desc">
+              Log in to access exclusive SAP security content, tools, and community insights.
+            </p>
 
-      <form
-        className="contact-form"
-        onSubmit={handleSubmit}
-        style={{
-          maxWidth: "450px",
-          margin: "0 auto",
-          background: "#fff",
-          padding: "40px",
-          borderRadius: "12px",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
-        }}
-      >
-        <div className="form-group" style={{ marginBottom: "20px" }}>
-          <label className="form-label">Email or Username *</label>
-          <input
-            type="text"
-            className="form-control"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoFocus
-            placeholder="Username or you@example.com"
-          />
-        </div>
+            <div className="login-features-list">
+              <div className="login-feature-item">
+                <div className="login-feature-icon-wrapper blue">
+                  <i className="bi bi-journal-check"></i>
+                </div>
+                <div className="login-feature-text">
+                  <h4>Exclusive Content</h4>
+                  <p>In-depth articles, research, and member-only resources.</p>
+                </div>
+              </div>
 
-        <div className="form-group">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <label className="form-label" style={{ marginBottom: 0 }}>Password *</label>
-            <Link to="/forgot-password" style={{ fontSize: "0.85rem", color: "#3b82f6", textDecoration: "none", fontWeight: "500" }}>
-              Forgot Password?
-            </Link>
+              <div className="login-feature-item">
+                <div className="login-feature-icon-wrapper orange">
+                  <i className="bi bi-people-fill"></i>
+                </div>
+                <div className="login-feature-text">
+                  <h4>Expert Community</h4>
+                  <p>Connect with SAP security professionals worldwide.</p>
+                </div>
+              </div>
+              <div className="login-feature-item">
+                <div className="login-feature-icon-wrapper green">
+                  <i className="bi bi-shield-lock-fill"></i>
+                </div>
+                <div className="login-feature-text">
+                  <h4>Secure & Trusted</h4>
+                  <p>Your privacy and data security are our top priority.</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <input
-            type="password"
-            className="form-control"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="••••••••"
-          />
+
+          {/* RIGHT SIDE: Login Card */}
+          <div className="login-form-side">
+            <form className="login-card-form" onSubmit={handleSubmit}>
+              <div className="login-lock-badge">
+                <i className="bi bi-lock-fill"></i>
+              </div>
+              <h3>Member Login</h3>
+              <p className="login-subtitle">Access exclusive SAP security content and insights.</p>
+
+              <div className="login-form-group">
+                <label className="login-label">Email or Username</label>
+                <div className="login-input-wrapper">
+                  <i className="bi bi-person login-input-icon"></i>
+                  <input
+                    type="text"
+                    className="login-input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoFocus
+                    placeholder="username or you@example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="login-form-group">
+                <div className="login-form-header-row">
+                  <label className="login-label">Password</label>
+                  <Link to="/forgot-password" className="login-forgot-link">
+                    Forgot Password?
+                  </Link>
+                </div>
+                <div className="login-input-wrapper">
+                  <i className="bi bi-lock login-input-icon"></i>
+                  <input
+                    type="password"
+                    className="login-input"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="login-remember-row">
+                <label className="login-checkbox-label">
+                  <input type="checkbox" className="login-checkbox-input" defaultChecked />
+                  Remember me
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                className="login-btn-submit"
+                disabled={loading || !email || !password}
+              >
+                {loading ? "Signing In..." : "Sign In"}{" "}
+                <i className="bi bi-arrow-right"></i>
+              </button>
+
+
+
+              <div className="login-signup-prompt">
+                Don't have an account? <Link to="/member/signup">Sign up for free</Link>
+              </div>
+            </form>
+          </div>
         </div>
 
-        <button
-          type="submit"
-          className="btn-primary"
-          disabled={loading || !email || !password}
-          style={{ width: "100%", marginTop: "10px" }}
-        >
-          {loading ? "Signing In..." : "Sign In"}
-        </button>
+        {/* BOTTOM: Trust Callouts */}
+        <div className="login-trust-bar">
+          <div className="login-trust-item">
+            <div className="login-trust-icon-box">
+              <i className="bi bi-shield-check"></i>
+            </div>
+            <div className="login-trust-text">
+              <h5>Expert Curated</h5>
+              <p>Quality content by industry experts</p>
+            </div>
+          </div>
 
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "24px",
-            paddingTop: "20px",
-            borderTop: "1px solid #eee",
-          }}
-        >
-          <p style={{ color: "#64748b", fontSize: "0.95rem" }}>
-            Don't have an account?{" "}
-            <Link
-              to="/member/signup"
-              style={{
-                color: "#3b82f6",
-                textDecoration: "none",
-                fontWeight: "600",
-              }}
-            >
-              Sign up for free
-            </Link>
-          </p>
+          <div className="login-trust-item">
+            <div className="login-trust-icon-box">
+              <i className="bi bi-person-check-fill"></i>
+            </div>
+            <div className="login-trust-text">
+              <h5>Trusted by Professionals</h5>
+              <p>Join 10,000+ SAP security experts</p>
+            </div>
+          </div>
+
+          <div className="login-trust-item">
+            <div className="login-trust-icon-box">
+              <i className="bi bi-arrow-repeat"></i>
+            </div>
+            <div className="login-trust-text">
+              <h5>Always Updated</h5>
+              <p>Stay ahead with the latest insights</p>
+            </div>
+          </div>
+
+          <div className="login-trust-item">
+            <div className="login-trust-icon-box">
+              <i className="bi bi-award"></i>
+            </div>
+            <div className="login-trust-text">
+              <h5>Make an Impact</h5>
+              <p>Contribute and grow your reputation</p>
+            </div>
+          </div>
         </div>
-      </form>
+
+
+      </div>
     </div>
     </>
   );

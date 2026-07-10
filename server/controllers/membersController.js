@@ -65,6 +65,9 @@ const login = async (req, res) => {
     req.session.member_id = member.id;
     req.session.member_email = member.email;
     req.session.member_name = member.name;
+    // Every logged-in session gets a CSRF token, not just contributors/admins —
+    // member-facing mutating routes (profile update, payments) verify this too.
+    req.session.csrf_token = req.session.csrf_token || crypto.randomBytes(32).toString('hex');
 
     let isContributor = false;
     let adminData = null;
@@ -72,13 +75,11 @@ const login = async (req, res) => {
 
     if (user && user.is_active == 1) {
       isContributor = true;
-      const csrf_token = req.session.csrf_token || crypto.randomBytes(32).toString('hex');
       req.session.admin_id = user.id;
       req.session.admin_user = user.username;
       req.session.admin_logged_in = true;
       req.session.role = user.role;
       req.session.is_active = 1;
-      req.session.csrf_token = csrf_token;
 
       const p = await repo.findPermissionsByUserId(db, user.id);
       if (p) {

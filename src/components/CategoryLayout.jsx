@@ -273,8 +273,16 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
           {/* Main Content: Blog Grid */}
           <div className="category-main-column">
             {loading ? (
-              <div className="loading-state">
-                <p>Loading blogs...</p>
+              <div className="blog-grid-2-col">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="skel-card">
+                    <div className="skel-block skel-image" />
+                    <div className="skel-block skel-line w-40" />
+                    <div className="skel-block skel-line w-90" />
+                    <div className="skel-block skel-line w-70" />
+                    <div className="skel-block skel-line w-50" />
+                  </div>
+                ))}
               </div>
             ) : error ? (
               <div className="error-state">
@@ -308,14 +316,17 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
                           sizes="(max-width: 768px) 100vw, 300px"
                           style={{ objectFit: 'cover' }}
                         />
-                        {blog.is_premium == 1 && (
+                        {blog.is_premium == 1 ? (
                           <div className="exclusive-badge" style={{ background: "#d97706" }}>
-                            <i className="bi bi-star-fill"></i> Paid Article
+                            <i className="bi bi-star-fill" /> PREMIUM
                           </div>
-                        )}
-                        {blog.is_members_only == 1 && blog.is_premium != 1 && (
+                        ) : blog.is_members_only == 1 ? (
                           <div className="exclusive-badge">
-                            <i className="bi bi-lock-fill"></i> Exclusive
+                            <i className="bi bi-lock-fill" /> EXCLUSIVE
+                          </div>
+                        ) : (
+                          <div className="exclusive-badge" style={{ background: "#16a34a" }}>
+                            <i className="bi bi-unlock-fill" /> FREE
                           </div>
                         )}
                       </Link>

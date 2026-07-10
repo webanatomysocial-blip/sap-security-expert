@@ -26,7 +26,6 @@ router.post('/apply', rateLimit('contributor_apply', 5, 3600), upload.single('pr
 router.get('/approved', controller.listApproved);
 router.get('/profile/raghu', controller.getFounderProfile);
 router.get('/profile/:id', controller.getProfile);
-router.get('/get_contributor_profile.php', controller.getProfile);
 router.put('/:id/reputation', requireAdmin, controller.updateReputation);
 
 module.exports = router;

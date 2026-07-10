@@ -3,7 +3,7 @@ const path = require('path');
 
 /**
  * File-based cache with atomic writes.
- * Mirrors api/services/CacheService.php.
+ * File-based cache with TTL support.
  */
 class CacheService {
   constructor(ttl = 3600) {

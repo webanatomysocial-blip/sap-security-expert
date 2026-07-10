@@ -63,7 +63,7 @@ const ContactUs = () => {
 
     try {
       const { api } = await import("../services/api");
-      const res = await api.post('/send_mail.php', {
+      const res = await api.post('/send-mail', {
         ...formData,
         captchaAns: captchaAnsInput
       });

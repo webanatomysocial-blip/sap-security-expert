@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
 import ColumnToggle from "./ColumnToggle.jsx";
 import { Helmet } from "react-helmet-async";
@@ -17,6 +18,7 @@ const AdminManageUsers = () => {
   const { role } = useAuth();
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
+  const { fetchBadges } = useOutletContext() || {};
 
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -162,6 +164,7 @@ const AdminManageUsers = () => {
               });
             }
             fetchMembers();
+            fetchBadges?.();
           } else {
             addToast(res.data?.message || `Failed to ${action} member.`, "error");
           }

@@ -9,6 +9,26 @@ const repo = require('../repositories/postsRepository');
 
 const cache = new CacheService(1800);
 
+// Internal-only DB columns (draft/pending-edit fields, moderation/plagiarism
+// data, review metadata) that must never reach a public API response — the
+// query selects `b.*` for convenience, which otherwise serializes every raw
+// column (including "draft_content": null on almost every post, since that
+// field only holds a value while a contributor edit is pending review).
+const INTERNAL_ONLY_FIELDS = [
+  'draft_title', 'draft_excerpt', 'draft_content', 'draft_meta_title', 'draft_meta_description',
+  'draft_meta_keywords', 'draft_cta_title', 'draft_cta_description', 'draft_cta_button_text',
+  'draft_cta_button_link', 'draft_image', 'draft_image_alt', 'draft_category', 'draft_subCategory',
+  'draft_tags', 'draft_faqs', 'draft_related_blogs', 'draft_is_members_only', 'draft_secondary_categories',
+  'submission_status', 'rejection_feedback', 'plagiarism_score', 'plagiarism_status', 'plagiarism_checked_at',
+  'reviewed_at', 'reviewed_by', 'seo_score', 'author_id', 'author_user_id', 'is_queued_for_members',
+  'homepage_featured_image', 'homepage_featured_order',
+];
+
+function stripInternalFields(blog) {
+  for (const key of INTERNAL_ONLY_FIELDS) delete blog[key];
+  return blog;
+}
+
 // ── Blog content version auto-bumper ─────────────────────────────────────────
 function bumpBlogVersion(currentVersion, oldContent, newContent) {
   const parts = (currentVersion || '1.0').split('.').map(Number);
@@ -192,6 +212,10 @@ const list = asyncHandler(async (req, res) => {
       }
     }
 
+    // Strip internal-only columns for anyone who isn't staff — admins and
+    // contributors viewing their own post still need draft/review fields.
+    if (!hasAdminAccess) stripInternalFields(blog);
+
     return res.json(blog);
   }
 
@@ -204,10 +228,38 @@ const list = asyncHandler(async (req, res) => {
     isAdminLoggedIn: !!sess.admin_logged_in, trending, filterCategory, nowUtc,
   });
 
+  // Same content-gating the single-post endpoint applies — the list query
+  // selects full `content` for every row, so without this, premium/members-only
+  // article bodies are fully readable via GET /api/posts by anyone (a paywall
+  // bypass), independent of whatever lock state the single-post page shows.
+  const isMember = !!sess.member_logged_in;
+  const hasGrantedAccess = !!(sess.permissions?.can_access_premium_articles);
+  let unlockedSlugs = new Set();
+  if (isMember && sess.member_id && rows.some(b => Number(b.is_premium) === 1)) {
+    unlockedSlugs = new Set(await repo.findUnlockedSlugsForMember(db, sess.member_id));
+  }
+
   rows.forEach(b => {
     if (!b.author_name) { b.author_name = 'Guest Author'; b.author_image = 'https://placehold.co/100x100?text=Author'; }
     try { b.co_authors = b.co_authors ? JSON.parse(b.co_authors) : []; } catch { b.co_authors = []; }
     try { b.secondary_categories = b.secondary_categories ? JSON.parse(b.secondary_categories) : []; } catch { b.secondary_categories = []; }
+
+    const isOwnBlog = isContributor && currentUserId && String(b.author_id) === String(currentUserId);
+    const hasAdminAccess = isAdmin || isOwnBlog;
+
+    if (Number(b.is_members_only) === 1 && !isMember && !hasAdminAccess) {
+      const paras = (b.content || '').match(/<p[\s\S]*?<\/p>/gi) || [];
+      b.content = paras[0] || (b.content || '').slice(0, 300);
+      b.faqs = null;
+    }
+    if (Number(b.is_premium) === 1 && !hasGrantedAccess && !hasAdminAccess && !unlockedSlugs.has(b.slug)) {
+      b.premium_locked = true;
+      const paras = (b.content || '').match(/<p[\s\S]*?<\/p>/gi) || [];
+      b.content = paras[0] || (b.content || '').slice(0, 300);
+      b.faqs = null;
+    }
+
+    if (!isAdmin && !isContributor) stripInternalFields(b);
   });
 
   return res.json(rows);

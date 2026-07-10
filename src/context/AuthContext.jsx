@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifySession = async (adminAuth) => {
     try {
-      const { data } = await api.get("/verify_session.php");
+      const { data } = await api.get("/verify-session");
       if (data.status === "success" && data.authenticated) {
         setAuth({
           user: data.user,
@@ -87,6 +87,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("userRole");
     localStorage.removeItem("userPermissions");
     localStorage.removeItem("csrf_token");
+    // Clearing local state alone leaves the server-side session (and its
+    // connect.sid cookie) fully authenticated — must destroy it server-side too.
+    api.post('/logout').catch(() => {});
   };
 
   /** Quick permission helper for components */

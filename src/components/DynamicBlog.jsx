@@ -250,11 +250,26 @@ export default function DynamicBlog() {
   // RENDER LOADING
   if (loading) {
     return (
-      <div style={{ padding: "100px", textAlign: "center" }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+      <div className="blog-post-wrapper">
+        <div className="container">
+          <div className="skel-article-container">
+            <div className="skel-article-main">
+              <div className="skel-block skel-article-image" />
+              <div className="skel-block skel-article-title" />
+              <div className="skel-block skel-article-meta" />
+              <div className="skel-block skel-article-para" />
+              <div className="skel-block skel-article-para" />
+              <div className="skel-block skel-article-para w-80" />
+              <div className="skel-block skel-article-para" />
+              <div className="skel-block skel-article-para w-60" />
+            </div>
+            <div className="skel-article-sidebar">
+              <div className="skel-block skel-sidebar-block" />
+              <div className="skel-block skel-sidebar-block" />
+              <div className="skel-block skel-sidebar-block" />
+            </div>
+          </div>
         </div>
-        <p>Blog...</p>
       </div>
     );
   }

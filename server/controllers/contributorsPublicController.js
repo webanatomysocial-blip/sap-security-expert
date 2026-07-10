@@ -90,7 +90,7 @@ const listApproved = asyncHandler(async (req, res) => {
   return res.json(rows);
 });
 
-// GET /api/contributors/profile/:id and GET /api/get_contributor_profile.php?id=X
+// GET /api/contributors/profile/:id
 const getProfile = asyncHandler(async (req, res) => {
   const db = req.db;
   const id = req.params.id || req.query.id;

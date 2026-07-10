@@ -224,9 +224,16 @@ async function ensureAchievementTables(db) {
     ['linkedin_ambassador',   'LinkedIn Ambassador',   'Shared SAP Security Expert content on LinkedIn',              'bi-linkedin',         '#0077b5', '#eff8ff', 'Share on LinkedIn once'],
     ['first_referral',        'Community Builder',     'Successfully referred a member to join the community',        'bi-people-fill',      '#dc2626', '#fef2f2', 'Refer 1 approved member'],
   ];
+  // Upsert, not INSERT IGNORE: this table was previously seeded with an
+  // older/corrupted set of labels and icon classes (mismatched wording, and
+  // on environments where the column predates utf8mb4, any emoji once stored
+  // here degraded to literal "?" characters). IGNORE would leave that bad
+  // data in place forever since the row already exists — force an update to
+  // the current, emoji-free values every time the server starts instead.
   for (const [id, label, description, icon, color, bg, criteria] of types) {
     await db.execute(
-      `INSERT IGNORE INTO member_achievement_types (id, label, description, icon, color, bg, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO member_achievement_types (id, label, description, icon, color, bg, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE label = VALUES(label), description = VALUES(description), icon = VALUES(icon), color = VALUES(color), bg = VALUES(bg), criteria = VALUES(criteria)`,
       [id, label, description, icon, color, bg, criteria]
     ).catch(() => {});
   }

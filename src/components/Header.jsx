@@ -19,6 +19,7 @@ const Header = () => {
     sapSecurity: false,
     sapGrc: false,
     resources: false,
+    otherLinks: false,
   });
 
   const { isAuthenticated: isLoggedIn, role, user, clearAuth } = useAuth();
@@ -103,7 +104,7 @@ const Header = () => {
 
   const closeMenu = () => {
     setMenuOpen(false);
-    setDropdowns({ sapSecurity: false, sapGrc: false, resources: false });
+    setDropdowns({ sapSecurity: false, sapGrc: false, resources: false, otherLinks: false });
   };
 
   const toggleDropdown = (key) => {
@@ -169,18 +170,26 @@ const Header = () => {
               <FaChevronDown size={10} style={{ marginLeft: "4px" }} />
             </span>
             <div className="dropdown-menu">
-              <Link to="/news">News &amp; Updates</Link>
-              <Link to="/announcements">Announcements</Link>
               <Link to="/product-reviews">Product Reviews</Link>
-              <Link to="/podcasts">Expert Voices/Podcasts</Link>
+              <Link to="/podcasts">Podcasts</Link>
               <Link to="/videos">Videos</Link>
-              <Link to="/expert-recommendations">Expert Recommendations</Link>
+              <Link to="/expert-recommendations">Expert Articles</Link>
+              <a href="#">Resource Library</a>
             </div>
           </div>
 
-          <Link to="/contact-us" className="nav-link">
-            Contact Us
-          </Link>
+          {/* Other Links Dropdown */}
+          <div className="nav-item">
+            <span className="nav-link" style={{ cursor: "pointer" }}>
+              <span>Other Links</span>
+              <FaChevronDown size={10} style={{ marginLeft: "4px" }} />
+            </span>
+            <div className="dropdown-menu">
+              <Link to="/news">News &amp; Updates</Link>
+              <Link to="/announcements">Announcements</Link>
+              <Link to="/contact-us">Contact Us</Link>
+            </div>
+          </div>
         </nav>
 
         {/* Right Actions */}
@@ -542,31 +551,53 @@ const Header = () => {
             </div>
             {dropdowns.resources && (
               <div className="mobile-submenu">
+                <Link to="/product-reviews" onClick={closeMenu}>
+                  Product Reviews
+                </Link>
+                <Link to="/podcasts" onClick={closeMenu}>
+                  Podcasts
+                </Link>
+                <Link to="/videos" onClick={closeMenu}>
+                  Videos
+                </Link>
+                <Link to="/expert-recommendations" onClick={closeMenu}>
+                  Expert Articles
+                </Link>
+                <a href="#" onClick={closeMenu}>
+                  Resource Library
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Other Links Dropdown */}
+          <div className="mobile-dropdown">
+            <div
+              className="mobile-dropdown-header"
+              onClick={() => toggleDropdown("otherLinks")}
+            >
+              <span>Other Links</span>
+              <FaChevronDown
+                style={{
+                  transform: dropdowns.otherLinks ? "rotate(180deg)" : "none",
+                  transition: "transform 0.3s",
+                }}
+              />
+            </div>
+            {dropdowns.otherLinks && (
+              <div className="mobile-submenu">
                 <Link to="/news" onClick={closeMenu}>
                   News &amp; Updates
                 </Link>
                 <Link to="/announcements" onClick={closeMenu}>
                   Announcements
                 </Link>
-                <Link to="/product-reviews" onClick={closeMenu}>
-                  Product Reviews
-                </Link>
-                <Link to="/podcasts" onClick={closeMenu}>
-                  Expert Voices/Podcasts
-                </Link>
-                <Link to="/videos" onClick={closeMenu}>
-                  Videos
-                </Link>
-                <Link to="/expert-recommendations" onClick={closeMenu}>
-                  Expert Recommendations
+                <Link to="/contact-us" onClick={closeMenu}>
+                  Contact Us
                 </Link>
               </div>
             )}
           </div>
-
-          <Link to="/contact-us" onClick={closeMenu}>
-            Contact Us
-          </Link>
 
           <Link
             to="/become-a-contributor"

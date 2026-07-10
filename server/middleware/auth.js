@@ -60,4 +60,26 @@ function requireAdmin(req, res, next) {
   });
 }
 
-module.exports = { requireAuth, requireAdmin, safeCompare };
+// CSRF check only, no admin session requirement — for member/payment mutating
+// routes, which authenticate via req.session.member_logged_in instead of
+// req.session.admin_logged_in. Requires the member to already be logged in
+// (session.csrf_token is only set at member/admin login).
+function requireCsrf(req, res, next) {
+  if (!['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) return next();
+
+  const sess = req.session;
+  const csrfToken =
+    req.headers['x-csrf-token'] ||
+    (req.body && req.body.csrf_token) ||
+    '';
+
+  if (!sess.csrf_token || !safeCompare(csrfToken, sess.csrf_token)) {
+    return res.status(403).json({
+      status: 'error',
+      message: 'Your session is invalid or expired. Please refresh the page. (CSRF validation failed)',
+    });
+  }
+  next();
+}
+
+module.exports = { requireAuth, requireAdmin, requireCsrf, safeCompare };

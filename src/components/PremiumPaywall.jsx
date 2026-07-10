@@ -168,7 +168,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
         <div className="members-paywall-lock-icon" style={{ background: "#fffbeb" }}>
           <i className="bi bi-star-fill" style={{ color: "#d97706" }}></i>
         </div>
-        <h2 className="members-paywall-heading">Premium Article</h2>
+        <h2 className="members-paywall-heading"><i className="bi bi-star-fill" /> PREMIUM – Requires credits or subscription</h2>
         <p className="members-paywall-subtext">
           This article costs <strong>{creditsRequired} credit{creditsRequired !== 1 ? "s" : ""}</strong> to unlock.
           Log in or create a free account to buy credits and get lifetime access.

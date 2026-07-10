@@ -28,7 +28,7 @@ const blogUpload = multer({
 });
 
 router.post(
-  ['/upload_blog_image.php', '/upload-blog-image'],
+  '/upload-blog-image',
   requireAuth(),
   (req, res, next) => {
     if (req.session.role === 'contributor') {
@@ -70,7 +70,7 @@ const adUpload = multer({
 });
 
 router.post(
-  ['/upload_ad_image.php', '/upload-ad-image'],
+  '/upload-ad-image',
   requireAuth(),
   checkPermission('can_manage_ads'),
   (req, res, next) => {

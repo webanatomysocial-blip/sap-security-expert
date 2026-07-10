@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { LuFileText } from "react-icons/lu";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
@@ -43,6 +43,7 @@ const AdminBlogReview = () => {
   const { openConfirm } = useConfirm();
   const { role, can } = useAuth();
   const navigate = useNavigate();
+  const { fetchBadges } = useOutletContext() || {};
 
   useEffect(() => {
     // Admins or those with can_review_blogs can access
@@ -79,6 +80,7 @@ const AdminBlogReview = () => {
           addToast("Blog approved and published.", "success");
           setPreviewBlog(null);
           setBlogs((prev) => prev.filter((b) => b.id !== blog.id));
+          fetchBadges?.();
         } catch (err) {
           addToast(err.response?.data?.message || "Approval failed.", "error");
         } finally {
@@ -152,6 +154,7 @@ const AdminBlogReview = () => {
           addToast("Blog moved back to draft.", "success");
           setPreviewBlog(null);
           setBlogs((prev) => prev.filter((b) => b.id !== blog.id));
+          fetchBadges?.();
         } catch (err) {
           addToast(err.response?.data?.message || "Action failed.", "error");
         } finally {
@@ -417,6 +420,7 @@ const AdminBlogReview = () => {
                 addToast("Blog moved to draft.", "success");
                 setBlogs((prev) => prev.filter((b) => b.id !== previewBlog.id));
                 setPreviewBlog(null);
+                fetchBadges?.();
               })
               .catch((err) => {
                 addToast(err.response?.data?.message || "Action failed.", "error");
@@ -432,6 +436,7 @@ const AdminBlogReview = () => {
                 addToast("Blog rejected successfully.", "success");
                 setBlogs((prev) => prev.filter((b) => b.id !== previewBlog.id));
                 setPreviewBlog(null);
+                fetchBadges?.();
               })
               .catch((err) => {
                 addToast(

@@ -135,7 +135,14 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
           {searchTerm ? "Search Results" : "Latest Posts"}
         </h3>
         {loading ? (
-          <p>Loading...</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="skel-block" style={{ height: '14px', width: '90%' }} />
+                <div className="skel-block" style={{ height: '10px', width: '40%' }} />
+              </div>
+            ))}
+          </div>
         ) : (
           <ul className="latest-posts-list">
             {filteredPosts.length > 0 ? (
@@ -145,12 +152,17 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
                     {highlightSearch(post.title)}
                     {Number(post.is_premium) === 1 && (
                       <span className="sidebar-exclusive-tag" style={{ background: "#d97706" }}>
-                        <i className="bi bi-star-fill"></i> Paid Article
+                        <i className="bi bi-star-fill" /> PREMIUM
                       </span>
                     )}
                     {Number(post.is_members_only) === 1 && Number(post.is_premium) !== 1 && (
                       <span className="sidebar-exclusive-tag">
-                        <i className="bi bi-lock-fill"></i> Exclusive
+                        <i className="bi bi-lock-fill" /> EXCLUSIVE
+                      </span>
+                    )}
+                    {Number(post.is_premium) !== 1 && Number(post.is_members_only) !== 1 && (
+                      <span className="sidebar-exclusive-tag" style={{ background: "#16a34a" }}>
+                        <i className="bi bi-unlock-fill" /> FREE
                       </span>
                     )}
                   </Link>
@@ -219,12 +231,17 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
                       <span className="related-post-title">{post.title}</span>
                       {Number(post.is_premium) === 1 && (
                         <span className="sidebar-exclusive-tag" style={{ background: "#d97706" }}>
-                          <i className="bi bi-star-fill"></i> Paid Article
+                          <i className="bi bi-star-fill" /> PREMIUM
                         </span>
                       )}
                       {Number(post.is_members_only) === 1 && Number(post.is_premium) !== 1 && (
                         <span className="sidebar-exclusive-tag">
-                          <i className="bi bi-lock-fill"></i> Exclusive
+                          <i className="bi bi-lock-fill" /> EXCLUSIVE
+                        </span>
+                      )}
+                      {Number(post.is_premium) !== 1 && Number(post.is_members_only) !== 1 && (
+                        <span className="sidebar-exclusive-tag" style={{ background: "#16a34a" }}>
+                          <i className="bi bi-unlock-fill" /> FREE
                         </span>
                       )}
                     </div>

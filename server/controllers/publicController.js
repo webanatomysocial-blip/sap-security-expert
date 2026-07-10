@@ -5,7 +5,7 @@ const repo = require('../repositories/publicRepository');
 
 const cache = new CacheService(1800);
 
-// GET /api/get_homepage_data.php or /api/homepage
+// GET /api/homepage
 const homepage = async (req, res) => {
   const db = req.db;
   const isAdmin = !!(req.session?.admin_logged_in);
@@ -125,7 +125,7 @@ const publicMemberProfile = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/stats/community or /api/get_community_stats.php
+// GET /api/stats/community
 const communityStats = async (req, res) => {
   const db = req.db;
   try {
@@ -136,19 +136,19 @@ const communityStats = async (req, res) => {
   }
 };
 
-// GET /api/get_categories.php or /api/categories
+// GET /api/categories
 const categories = asyncHandler(async (req, res) => {
   const list = await repo.findDistinctCategories(req.db);
   return res.json(list);
 });
 
-// GET /api/get_trending_topics.php or /api/trending
+// GET /api/trending
 const trendingTopics = asyncHandler(async (req, res) => {
   const rows = await repo.findTrendingTopics(req.db);
   return res.json(rows);
 });
 
-// GET /api/get_announcements.php or /api/announcements-public
+// GET /api/announcements-public
 const announcementsPublic = async (req, res) => {
   try {
     const rows = await repo.findPublicAnnouncements(req.db);
@@ -159,7 +159,7 @@ const announcementsPublic = async (req, res) => {
   }
 };
 
-// GET /api/get_authors.php or /api/admin/authors
+// GET /api/admin/authors
 // Email is intentionally excluded — this endpoint is used by the blog editor
 // dropdown and does not need to expose PII to the frontend.
 const authors = async (req, res) => {
@@ -171,7 +171,7 @@ const authors = async (req, res) => {
   }
 };
 
-// POST /api/views or /api/save_view.php
+// POST /api/views
 const recordView = asyncHandler(async (req, res) => {
   const db = req.db;
   const { slug, post_id, visitor_token } = req.body || {};
@@ -201,7 +201,7 @@ const recordView = asyncHandler(async (req, res) => {
   return res.json({ status: 'success' });
 });
 
-// GET /api/get_captcha.php or /api/captcha
+// GET /api/captcha
 const captcha = (req, res) => {
   const a = Math.floor(Math.random() * 10) + 1;
   const b = Math.floor(Math.random() * 10) + 1;
@@ -209,7 +209,57 @@ const captcha = (req, res) => {
   return res.json({ question: `${a} + ${b} = ?` });
 };
 
-// POST /api/delete_account.php or /api/delete-account
+// POST /api/send-mail — Contact Us form
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'hello@sapsecurityexpert.com';
+const sendMail = asyncHandler(async (req, res) => {
+  const db = req.db;
+  const input = req.body || {};
+
+  const captchaAns = parseInt(input.captchaAns || '0');
+  const captchaExpected = parseInt(req.session.captcha_ans || '0');
+  if (!captchaAns || captchaAns !== captchaExpected) {
+    return res.status(400).json({ status: 'error', message: 'Invalid Captcha. Please try again.' });
+  }
+  // One-time use — force a fresh captcha for the next attempt either way
+  req.session.captcha_ans = null;
+
+  const name = (input.name || '').trim();
+  const email = (input.email || '').trim();
+  const reason = (input.reason || '').trim();
+  const description = (input.description || '').trim();
+  const companyName = (input.companyName || '').trim();
+  const position = (input.position || '').trim();
+
+  if (!name || !email || !reason || !description) {
+    return res.status(400).json({ status: 'error', message: 'Please fill in all required fields.' });
+  }
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!EMAIL_RE.test(email)) {
+    return res.status(400).json({ status: 'error', message: 'Please enter a valid email address.' });
+  }
+
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const body = `
+    <h2>New Contact Us Submission</h2>
+    <p><strong>Name:</strong> ${esc(name)}</p>
+    <p><strong>Email:</strong> ${esc(email)}</p>
+    ${companyName ? `<p><strong>Company:</strong> ${esc(companyName)}</p>` : ''}
+    ${position ? `<p><strong>Position:</strong> ${esc(position)}</p>` : ''}
+    <p><strong>Subject:</strong> ${esc(reason)}</p>
+    <p><strong>Message:</strong><br>${esc(description).replace(/\n/g, '<br>')}</p>
+  `;
+
+  const MailService = require('../services/MailService');
+  const mailService = MailService.getInstance(db);
+  const sent = await mailService.sendDirect(ADMIN_EMAIL, `Contact Form: ${reason}`, body);
+
+  if (!sent) {
+    return res.status(502).json({ status: 'error', message: 'Failed to send message. Please try again later.' });
+  }
+  return res.json({ status: 'success', message: 'Message sent successfully.' });
+});
+
+// POST /api/delete-account
 const deleteAccount = async (req, res) => {
   const db = req.db;
   const sess = req.session;
@@ -496,5 +546,5 @@ const newsBySlug = async (req, res) => {
 module.exports = {
   homepage, popularTags, search, leaderboard, publicMemberProfile, communityStats, categories, trendingTopics,
   announcementsPublic, authors, recordView, captcha, deleteAccount, content, sitemap, seoMeta,
-  learnings, learningsCounts, news, newsBySlug,
+  learnings, learningsCounts, news, newsBySlug, sendMail,
 };

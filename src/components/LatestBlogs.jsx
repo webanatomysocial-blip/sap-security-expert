@@ -8,9 +8,11 @@ import { api } from "../services/api"; // Added API import
 // next-disabled: import "../css/LatestBlogs.css";
 export default function LatestBlogs() {
   const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Fetch latest blogs from API
+    setLoading(true);
     api
       .get("/posts")
       .then((response) => {
@@ -47,8 +49,12 @@ export default function LatestBlogs() {
           .sort((a, b) => new Date(b.date) - new Date(a.date))
           .slice(0, 6);
         setBlogs(sorted);
+        setLoading(false);
       })
-      .catch((err) => console.error("Error fetching blogs:", err));
+      .catch((err) => {
+        console.error("Error fetching blogs:", err);
+        setLoading(false);
+      });
   }, []);
 
   // No fallback to static metadata - API Source of Truth
@@ -107,59 +113,76 @@ export default function LatestBlogs() {
         </div>
 
         {/* Blog Cards Grid */}
-        <div className="latest-blogs-grid">
-          {latestBlogs.map((blog) => (
-            <Link
-              to={`/${(blog.category || "blogs").toLowerCase().replace(/\s+/g, "-")}/${blog.slug || blog.id}`}
-              key={blog.id}
-              className="latest-blog-card"
-            >
-              <div className="latest-blog-image">
-                <Image src={blog.image} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: "cover" }} />
-                <span className="latest-blog-badge">
-                  {getCategoryLabel(blog.category, blog.subCategory)}
-                </span>
-                {blog.is_premium == 1 && (
-                  <div className="exclusive-badge-overlay" style={{ background: "#d97706" }}>
-                    <i className="bi bi-star-fill"></i> Paid Article
-                  </div>
-                )}
-                {blog.is_members_only == 1 && blog.is_premium != 1 && (
-                  <div className="exclusive-badge-overlay">
-                    <i className="bi bi-lock-fill"></i> Exclusive
-                  </div>
-                )}
+        {loading ? (
+          <div className="latest-blogs-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="skel-card">
+                <div className="skel-block skel-image" />
+                <div className="skel-block skel-line w-40" />
+                <div className="skel-block skel-line w-90" />
+                <div className="skel-block skel-line w-70" />
+                <div className="skel-block skel-line w-50" />
               </div>
-              <div className="latest-blog-content">
-                <h3>{blog.title}</h3>
-                <p className="latest-blog-excerpt">
-                  {blog.excerpt || (blog.content ? blog.content.replace(/<[^>]*>/g, "").slice(0, 120) + "..." : "Explore more about this topic in our latest post.")}
-                </p>
-                <div className="latest-blog-meta">
-                  <span className="latest-blog-author">
-                    <i className="bi bi-person-circle"></i>{" "}
-                    {blog.author_name || "Raghu Boddu"}
+            ))}
+          </div>
+        ) : (
+          <div className="latest-blogs-grid">
+            {latestBlogs.map((blog) => (
+              <Link
+                to={`/${(blog.category || "blogs").toLowerCase().replace(/\s+/g, "-")}/${blog.slug || blog.id}`}
+                key={blog.id}
+                className="latest-blog-card"
+              >
+                <div className="latest-blog-image">
+                  <Image src={blog.image} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: "cover" }} />
+                  <span className="latest-blog-badge">
+                    {getCategoryLabel(blog.category, blog.subCategory)}
                   </span>
-                  <div className="latest-blog-stats">
-                    <span>
-                      <i className="bi bi-eye"></i>{" "}
-                      {blog.view_count || blog.views || 0}
+                  {blog.is_premium == 1 ? (
+                    <div className="exclusive-badge-overlay" style={{ background: "#d97706" }}>
+                      <i className="bi bi-star-fill" /> PREMIUM
+                    </div>
+                  ) : blog.is_members_only == 1 ? (
+                    <div className="exclusive-badge-overlay">
+                      <i className="bi bi-lock-fill" /> EXCLUSIVE
+                    </div>
+                  ) : (
+                    <div className="exclusive-badge-overlay" style={{ background: "#16a34a" }}>
+                      <i className="bi bi-unlock-fill" /> FREE
+                    </div>
+                  )}
+                </div>
+                <div className="latest-blog-content">
+                  <h3>{blog.title}</h3>
+                  <p className="latest-blog-excerpt">
+                    {blog.excerpt || (blog.content ? blog.content.replace(/<[^>]*>/g, "").slice(0, 120) + "..." : "Explore more about this topic in our latest post.")}
+                  </p>
+                  <div className="latest-blog-meta">
+                    <span className="latest-blog-author">
+                      <i className="bi bi-person-circle"></i>{" "}
+                      {blog.author_name || "Raghu Boddu"}
                     </span>
-                    <span>
-                      <i className="bi bi-chat"></i> {blog.comment_count || 0}
+                    <div className="latest-blog-stats">
+                      <span>
+                        <i className="bi bi-eye"></i>{" "}
+                        {blog.view_count || blog.views || 0}
+                      </span>
+                      <span>
+                        <i className="bi bi-chat"></i> {blog.comment_count || 0}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="latest-blog-footer">
+                    <span className="latest-blog-date">
+                      <i className="bi bi-calendar3"></i> {formatDate(blog.date)}
                     </span>
+                    <span className="read-more">Read More →</span>
                   </div>
                 </div>
-                <div className="latest-blog-footer">
-                  <span className="latest-blog-date">
-                    <i className="bi bi-calendar3"></i> {formatDate(blog.date)}
-                  </span>
-                  <span className="read-more">Read More →</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -70,7 +70,7 @@ const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
             <i className="bi bi-lock-fill"></i>
           </div>
           <h2 className="members-paywall-heading">
-            Exclusive Members-Only Content
+            <i className="bi bi-lock-fill" /> EXCLUSIVE – Registered members only
           </h2>
           <p className="members-paywall-subtext">
             Become part of our expert community to unlock exclusive SAP Security

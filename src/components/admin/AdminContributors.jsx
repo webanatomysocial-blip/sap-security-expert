@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
 import ColumnToggle from "./ColumnToggle.jsx";
 import { Helmet } from "react-helmet-async";
@@ -40,6 +41,7 @@ const AdminContributors = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
+  const { fetchBadges } = useOutletContext() || {};
 
   useScrollLock(!!selectedApp || !!rejectingId);
 
@@ -99,6 +101,7 @@ const AdminContributors = () => {
         setRejectingId(null);
         setRejectReason("");
         addToast(`Application ${status} successfully.`, "success");
+        fetchBadges?.();
 
         // If newly approved, trigger Manage Login modal automatically
         if (status === "approved" && approvedApp) {

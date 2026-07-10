@@ -276,17 +276,18 @@ export default async function BlogPostPage({ params }) {
               </div>
             </div>
 
-            {/* Members-only badge */}
-            {isMembersOnly && (
-              <div className="exclusive-badge-full">
-                <i className="bi bi-lock-fill" /> Exclusive Members-Only Content
-              </div>
-            )}
-
-            {/* Premium badge */}
-            {isPremium && (
+            {/* Content-tier badge */}
+            {isPremium ? (
               <div className="exclusive-badge-full" style={{ background: 'linear-gradient(135deg,#92400e,#d97706)', borderColor: '#d97706' }}>
-                <i className="bi bi-star-fill" /> Premium Article — Paid Members Only
+                <i className="bi bi-star-fill" /> PREMIUM – Requires credits or subscription
+              </div>
+            ) : isMembersOnly ? (
+              <div className="exclusive-badge-full">
+                <i className="bi bi-lock-fill" /> EXCLUSIVE – Registered members only
+              </div>
+            ) : (
+              <div className="exclusive-badge-full" style={{ background: 'linear-gradient(135deg,#15803d,#16a34a)', borderColor: '#16a34a' }}>
+                <i className="bi bi-unlock-fill" /> FREE – Anyone can read
               </div>
             )}
 

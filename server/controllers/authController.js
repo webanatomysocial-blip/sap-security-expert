@@ -109,7 +109,7 @@ const logout = (req, res) => {
   });
 };
 
-// GET /api/verify_session.php (also mounted as /verify-session)
+// GET /api/verify-session
 // Both branches below intentionally swallow their own errors and fall
 // through to the final 401 — preserved exactly as before (graceful
 // degrade to "not authenticated" on a DB hiccup rather than a 500).

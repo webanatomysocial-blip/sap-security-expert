@@ -40,6 +40,20 @@ function BuyCreditsModal({ onClose, onSuccess }) {
     ? Math.max(selected.price_paise - (couponData?.discount_paise || 0), 100)
     : 0;
 
+  // Razorpay's checkout.js is only injected on the paywall/membership pages —
+  // this modal can be opened directly (e.g. from the credits dashboard) without
+  // ever visiting those, leaving window.Razorpay undefined.
+  const loadRazorpay = () =>
+    new Promise((resolve) => {
+      if (window.Razorpay || document.getElementById("razorpay-sdk")) return resolve(true);
+      const s = document.createElement("script");
+      s.id = "razorpay-sdk";
+      s.src = "https://checkout.razorpay.com/v1/checkout.js";
+      s.onload = () => resolve(true);
+      s.onerror = () => resolve(false);
+      document.body.appendChild(s);
+    });
+
   const handleCoupon = async () => {
     if (!couponCode.trim()) return;
     setValidating(true); setCouponError(""); setCouponData(null);
@@ -55,6 +69,13 @@ function BuyCreditsModal({ onClose, onSuccess }) {
     if (!selected) return;
     setPaying(true);
     try {
+      const loaded = await loadRazorpay();
+      if (!loaded) {
+        addToast("Payment gateway failed to load. Check your connection.", "error");
+        setPaying(false);
+        return;
+      }
+
       const orderRes = await createCreditOrder(selected.id, couponData ? couponCode : undefined);
       const { order_id: razorpay_order_id, final_price_paise, key_id } = orderRes.data;
 

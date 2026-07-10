@@ -1,0 +1,74 @@
+/* Shared skeleton-loader building blocks — used while content is still
+   fetching, sized/structured to match the real layout so nothing jumps
+   (CLS) once real content swaps in. */
+
+.skel-block {
+  background: linear-gradient(90deg, #eef0f3 25%, #e2e5e9 37%, #eef0f3 63%);
+  background-size: 400% 100%;
+  animation: skel-shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+
+@keyframes skel-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* Blog grid card skeleton — mirrors .blog-grid-card / .blog-card-image */
+.skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #eef0f3;
+}
+.skel-card .skel-image { width: 100%; aspect-ratio: 16 / 9; border-radius: 7px; }
+.skel-card .skel-line { height: 14px; }
+.skel-card .skel-line.w-40 { width: 40%; }
+.skel-card .skel-line.w-90 { width: 90%; }
+.skel-card .skel-line.w-70 { width: 70%; }
+.skel-card .skel-line.w-50 { width: 50%; }
+
+/* Single-article skeleton — mirrors .blog-post-wrapper/.blog-container layout */
+.skel-article-container {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 60px;
+  padding: 60px 0 80px;
+}
+@media (max-width: 900px) {
+  .skel-article-container { grid-template-columns: 1fr; gap: 30px; }
+}
+.skel-article-main { min-width: 0; }
+.skel-article-image { width: 100%; aspect-ratio: 16 / 8; border-radius: 8px; margin-bottom: 25px; }
+.skel-article-title { height: 32px; width: 85%; margin-bottom: 14px; }
+.skel-article-meta { height: 14px; width: 40%; margin-bottom: 24px; }
+.skel-article-para { height: 14px; width: 100%; margin-bottom: 10px; }
+.skel-article-para.w-80 { width: 80%; }
+.skel-article-para.w-60 { width: 60%; }
+.skel-article-sidebar { display: flex; flex-direction: column; gap: 16px; }
+.skel-sidebar-block { height: 90px; border-radius: 10px; }
+
+/* Homepage "Recent Topics" / "Recent Activity" row skeleton — mirrors .rt-item */
+.skel-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 6px;
+}
+.skel-row-avatar { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; }
+.skel-row-info { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.skel-row-line { height: 12px; }
+.skel-row-line.w-70 { width: 70%; }
+.skel-row-line.w-40 { width: 40%; }
+
+/* "Recent Activity" tabbed list skeleton — mirrors .activity-item */
+.skel-activity-item { display: flex; gap: 16px; padding: 16px 0; }
+.skel-activity-img { width: 120px; height: 90px; border-radius: 6px; flex-shrink: 0; }
+.skel-activity-info { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; padding-top: 4px; }
+.skel-activity-line { height: 13px; }
+.skel-activity-line.w-30 { width: 30%; }
+.skel-activity-line.w-90 { width: 90%; }
+.skel-activity-line.w-60 { width: 60%; }

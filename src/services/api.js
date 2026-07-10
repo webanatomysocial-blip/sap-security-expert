@@ -49,8 +49,8 @@ export const getSuggestedArticles = (slug) => api.get(`/posts/${slug}/suggested`
 export const updateBlogBadges = (id, badges) => api.put(`/posts/${id}/badges`, badges);
 export const getExclusiveCount = () => api.get('/posts/exclusive-count');
 export const getMemberProfile = () => api.get('/member/profile');
-export const getCommentsByBlogId = (blogId) => api.get(`/get_comments.php?blogId=${blogId}`);
-export const submitComment = (data) => api.post('/save_comment.php', data);
+export const getCommentsByBlogId = (blogId) => api.get(`/get-comments?blogId=${blogId}`);
+export const submitComment = (data) => api.post('/comments', data);
 export const applyContributor = (data) => api.post('/contributors/apply', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
 });
@@ -66,8 +66,8 @@ export const getContributorProfile = (id) => api.get(`/contributors/profile/${id
 export const updateContributorReputation = (id, data) => api.put(`/contributors/${id}/reputation`, data);
 export const getContributorsLeaderboard = () => api.get('/contributors/leaderboard');
 export const getMemberPublicProfile = (id) => api.get(`/members/${id}/public`);
-export const getHomepageData = () => api.get('/get_homepage_data.php');
-export const getCategories = () => api.get('/get_categories.php');
+export const getHomepageData = () => api.get('/homepage');
+export const getCategories = () => api.get('/categories');
 
 // ── Blog Management (Admin) ──────────────────────────────────────────────────
 export const getBlogs = (params = {}) => api.get('/posts', { params });
@@ -88,7 +88,7 @@ export const saveFeaturedInsights = (items) => api.post('/admin/featured-insight
 // ── Contributors Management (Admin) ───────────────────────────────────────────
 export const getContributors = () => api.get('/admin/contributors');
 export const updateContributorStatus = (data) => api.post('/admin/contributors', data);
-export const deleteContributor = (id, otp) => api.post('/delete_contributor.php', { id, ...(otp ? { otp } : {}) });
+export const deleteContributor = (id, otp) => api.post('/admin/delete-contributor', { id, ...(otp ? { otp } : {}) });
 
 // ── Members Management (Admin) ───────────────────────────────────────────────
 export const getAdminMembers = (status = 'all') => api.get(`/admin/members?status=${status}`);
@@ -187,17 +187,19 @@ export const deleteAnnouncement = (id) =>
 export const memberChangePassword = (data) => api.post('/member/change-password', data);
 export const memberLogin = (data) => api.post('/member/login', data);
 export const memberSignup = (data) => api.post('/member/signup', data);
+export const memberLogoutApi = () => api.post('/member/logout');
+export const adminLogoutApi = () => api.post('/logout');
 export const updateMemberProfile = (formData) => api.post('/member/profile/update', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
 });
 
 // ── New Email/Verification System ────────────────────────────────────────────
-export const sendOTP = (email, type = 'signup') => api.post('/send_otp.php', { email, type });
-export const verifyOTP = (email, code, type = 'signup') => api.post('/verify_otp.php', { email, code, type });
-export const getCaptcha = () => api.get('/get_captcha.php');
-export const forgotPassword = (email) => api.post('/forgot_password.php', { email });
-export const resetWithToken = (email, token, password) => api.post('/reset_with_token.php', { email, token, password });
-export const resetPasswordOTP = (data) => api.post('/reset_password_otp.php', data);
+export const sendOTP = (email, type = 'signup') => api.post('/send-otp', { email, type });
+export const verifyOTP = (email, code, type = 'signup') => api.post('/verify-otp', { email, code, type });
+export const getCaptcha = () => api.get('/captcha');
+export const forgotPassword = (email) => api.post('/forgot-password', { email });
+export const resetWithToken = (email, token, password) => api.post('/reset-with-token', { email, token, password });
+export const resetPasswordOTP = (data) => api.post('/reset-password-otp', data);
 
 // ── Credits & Bundles ─────────────────────────────────────────────────────────
 export const getCreditBundles = () => api.get('/payments/bundles');
