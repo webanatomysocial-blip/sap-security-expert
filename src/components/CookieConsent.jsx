@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-
-const STORAGE_KEY = "cookie_consent";
+import { hasConsentDecision, setConsent } from "../services/consentManager";
 
 const DEFAULT_PREFS = { essential: true, analytics: false, marketing: false };
 
@@ -12,20 +11,22 @@ export default function CookieConsent() {
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
 
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
+    if (!hasConsentDecision()) {
       // Small delay so the page renders first
       const t = setTimeout(() => setVisible(true), 800);
       return () => clearTimeout(t);
     }
   }, []);
 
+  // Goes through the shared consent manager (not a raw localStorage.setItem)
+  // so every subscriber — e.g. ConsentScriptLoader — reacts immediately,
+  // loading/disabling analytics & marketing scripts with no page refresh.
   const save = (chosen) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...chosen, timestamp: Date.now() }));
+    setConsent(chosen);
     setVisible(false);
   };
 
   const acceptAll = () => save({ essential: true, analytics: true, marketing: true });
-  const rejectNonEssential = () => save({ essential: true, analytics: false, marketing: false });
   const saveCustom = () => save(prefs);
 
   if (!visible) return null;
@@ -72,12 +73,6 @@ export default function CookieConsent() {
                 style={{ padding: "9px 18px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#f8fafc", color: "#475569", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
               >
                 Customize
-              </button>
-              <button
-                onClick={rejectNonEssential}
-                style={{ padding: "9px 18px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
-              >
-                Reject Non-Essential
               </button>
               <button
                 onClick={acceptAll}
@@ -140,12 +135,6 @@ export default function CookieConsent() {
             ))}
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
-              <button
-                onClick={rejectNonEssential}
-                style={{ padding: "9px 18px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", color: "#475569", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
-              >
-                Reject Non-Essential
-              </button>
               <button
                 onClick={saveCustom}
                 style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: "#ee5e42", color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}

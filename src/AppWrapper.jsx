@@ -12,6 +12,7 @@ import { ConfirmationProvider } from "./context/ConfirmationContext";
 import { AuthProvider } from "./context/AuthContext";
 import { MemberAuthProvider } from "./context/MemberAuthContext";
 import CookieConsent from "./components/CookieConsent";
+import ConsentScriptLoader from "./components/ConsentScriptLoader";
 
 export default function AppWrapper() {
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function AppWrapper() {
                   <ScrollToTop />
                   <App />
                   <CookieConsent />
+                  <ConsentScriptLoader />
                 </ConfirmationProvider>
               </MemberAuthProvider>
             </AuthProvider>
