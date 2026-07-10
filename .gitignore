@@ -58,3 +58,6 @@ server/logs/*.log
 # SQL Dumps (raw exports — never commit production dumps)
 *.sql
 !server/migrations/*.sql
+
+#claude code  readme
+CLAUDE.md
