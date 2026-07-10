@@ -5,8 +5,8 @@ const router = require('express').Router();
 const { rateLimit } = require('../middleware/rateLimit');
 const controller = require('../controllers/publicController');
 
-// GET /api/get_homepage_data.php
-router.get(['/get_homepage_data.php', '/homepage'], controller.homepage);
+// GET /api/homepage
+router.get('/homepage', controller.homepage);
 
 // GET /api/popular-tags
 router.get('/popular-tags', controller.popularTags);
@@ -20,35 +20,38 @@ router.get('/contributors/leaderboard', controller.leaderboard);
 // GET /api/members/:id/public — public member profile
 router.get('/members/:id/public', controller.publicMemberProfile);
 
-// GET /api/stats/community  or  GET /api/get_community_stats.php
-router.get(['/stats/community', '/get_community_stats.php'], controller.communityStats);
+// GET /api/stats/community
+router.get('/stats/community', controller.communityStats);
 
-// GET /api/get_categories.php
-router.get(['/get_categories.php', '/categories'], controller.categories);
+// GET /api/categories
+router.get('/categories', controller.categories);
 
-// GET /api/get_trending_topics.php
-router.get(['/get_trending_topics.php', '/trending'], controller.trendingTopics);
+// GET /api/trending
+router.get('/trending', controller.trendingTopics);
 
-// GET /api/get_announcements.php
-router.get(['/get_announcements.php', '/announcements-public'], controller.announcementsPublic);
+// GET /api/announcements-public
+router.get('/announcements-public', controller.announcementsPublic);
 
-// GET /api/get_authors.php  or  GET /api/admin/authors
-router.get(['/get_authors.php', '/admin/authors'], controller.authors);
+// GET /api/admin/authors
+router.get('/admin/authors', controller.authors);
 
-// POST /api/views  or  POST /api/save_view.php
-router.post(['/views', '/save_view.php'], rateLimit('post_view', 60, 60), controller.recordView);
+// POST /api/views
+router.post('/views', rateLimit('post_view', 60, 60), controller.recordView);
 
-// GET /api/get_captcha.php
-router.get(['/get_captcha.php', '/captcha'], controller.captcha);
+// GET /api/captcha
+router.get('/captcha', controller.captcha);
 
-// POST /api/delete_account.php
-router.post(['/delete_account.php', '/delete-account'], controller.deleteAccount);
+// POST /api/delete-account
+router.post('/delete-account', controller.deleteAccount);
+
+// POST /api/send-mail — Contact Us form
+router.post('/send-mail', rateLimit('contact_form', 5, 3600), controller.sendMail);
 
 // GET /api/content?slug=... — plaintext content for AI crawlers
-router.get(['/content.php', '/content'], controller.content);
+router.get('/content', controller.content);
 
 // GET /api/sitemap.xml (also served at /sitemap.xml via index.js)
-router.get(['/sitemap.php', '/sitemap.xml'], controller.sitemap);
+router.get('/sitemap.xml', controller.sitemap);
 
 // GET /api/seo-meta?path=/articles/some-slug
 router.get('/seo-meta', controller.seoMeta);

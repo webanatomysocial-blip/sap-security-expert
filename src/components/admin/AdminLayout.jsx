@@ -423,8 +423,12 @@ const AdminLayout = () => {
       </header>
 
         <div className="admin-content">
-          {/* Route through Outlet for both admin and contributor */}
-          <Outlet />
+          {/* Route through Outlet for both admin and contributor.
+              fetchBadges is exposed so child pages (comments, blog review,
+              contributors, members) can refresh the sidebar pending-count
+              badges immediately after an approve/reject/delete action —
+              otherwise they only ever reflect the count from initial login. */}
+          <Outlet context={{ fetchBadges }} />
         </div>
       </main>
 

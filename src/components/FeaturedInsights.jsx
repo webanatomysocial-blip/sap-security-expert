@@ -14,6 +14,7 @@ const categoryMapping = {
   "SAP Security": "sap-security",
   "SAP GRC & IAG": "sap-grc", // Updated label
   "SAP Cybersecurity": "sap-cybersecurity", // Updated label
+  Downloads: "downloads",
 };
 
 export default function FeaturedInsights({ id }) {
@@ -188,8 +189,23 @@ export default function FeaturedInsights({ id }) {
           ))}
         </div>
 
-        {/* Blog Cards Grid - Using LatestBlogs Design */}
-        {/* We reuse the class names from LatestBlogs.css which should be imported or shared */}
+        {loading ? (
+          <div className="latest-blogs-grid">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="skel-card">
+                <div className="skel-block skel-image" />
+                <div className="skel-block skel-line w-40" />
+                <div className="skel-block skel-line w-90" />
+                <div className="skel-block skel-line w-70" />
+                <div className="skel-block skel-line w-50" />
+              </div>
+            ))}
+          </div>
+        ) : filteredBlogs.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>
+            No {activeTab.toLowerCase()} available yet. Check back soon!
+          </div>
+        ) : (
         <div className="latest-blogs-grid">
           {filteredBlogs.map((blog) => (
             <Link
@@ -201,14 +217,16 @@ export default function FeaturedInsights({ id }) {
                 <Image src={blog.image} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
                 {blog.is_premium == 1 ? (
                   <div className="exclusive-badge-overlay" style={{ background: "#d97706" }}>
-                    <i className="bi bi-star-fill"></i> Paid Article
+                    <i className="bi bi-star-fill" /> PREMIUM
+                  </div>
+                ) : blog.is_members_only == 1 ? (
+                  <div className="exclusive-badge-overlay">
+                    <i className="bi bi-lock-fill" /> EXCLUSIVE
                   </div>
                 ) : (
-                  blog.is_members_only == 1 && (
-                    <div className="exclusive-badge-overlay">
-                      <i className="bi bi-lock-fill"></i> Exclusive
-                    </div>
-                  )
+                  <div className="exclusive-badge-overlay" style={{ background: "#16a34a" }}>
+                    <i className="bi bi-unlock-fill" /> FREE
+                  </div>
                 )}
               </div>
               <div className="latest-blog-content">
@@ -268,6 +286,7 @@ export default function FeaturedInsights({ id }) {
             </Link>
           ))}
         </div>
+        )}
       </div>
     </section>
   );

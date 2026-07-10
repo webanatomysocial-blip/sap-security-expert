@@ -112,6 +112,7 @@ const BlogLayout = ({
   isMembersOnly = false,
   isPremium = false,
   isPremiumLocked = false,
+  isFreeArticle = false,
   creditsRequired = 0,
   blogSlug = "",
   onPaymentSuccess,
@@ -471,16 +472,19 @@ const BlogLayout = ({
           )}
 
           {/* 4. Title */}
-          {isMembersOnly && (
-            <div className="exclusive-badge-full">
-              <i className="bi bi-lock-fill"></i> Exclusive Members-Only Content
-            </div>
-          )}
-          {isPremium && (
+          {isPremium ? (
             <div className="exclusive-badge-full" style={{ background: "linear-gradient(135deg,#92400e,#d97706)", borderColor: "#d97706" }}>
-              <i className="bi bi-star-fill"></i> Premium Article — Paid Members Only
+              <i className="bi bi-star-fill" /> PREMIUM – Requires credits or subscription
             </div>
-          )}
+          ) : isMembersOnly ? (
+            <div className="exclusive-badge-full">
+              <i className="bi bi-lock-fill" /> EXCLUSIVE – Registered members only
+            </div>
+          ) : isFreeArticle ? (
+            <div className="exclusive-badge-full" style={{ background: "linear-gradient(135deg,#15803d,#16a34a)", borderColor: "#16a34a" }}>
+              <i className="bi bi-unlock-fill" /> FREE – Anyone can read
+            </div>
+          ) : null}
           <h1 className="blog-title">{title}</h1>
 
           {/* 5. Content Body — premium gate always wins over members-only gate */}

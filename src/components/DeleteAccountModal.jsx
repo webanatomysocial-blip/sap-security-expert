@@ -57,7 +57,7 @@ const DeleteAccountModal = ({ isOpen, onClose }) => {
     setLoading(true);
     setError("");
     try {
-      const res = await api.post("/delete_account.php", { otp });
+      const res = await api.post("/delete-account", { otp });
       if (res.data.status === "success") {
         setStep(3);
         addToast("Your account has been deleted.", "success");

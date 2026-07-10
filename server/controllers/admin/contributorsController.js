@@ -187,7 +187,7 @@ const resetContributorPassword = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Password reset.', new_password: newPassword });
 });
 
-// POST /api/delete_contributor.php (legacy path)
+// POST /api/admin/delete-contributor
 const deleteContributorLegacy = asyncHandler(async (req, res) => {
   const db = req.db;
   const { id } = req.body || {};

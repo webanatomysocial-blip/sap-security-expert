@@ -180,7 +180,6 @@ app.use('/api/payments', require('./routes/payments'));
 
 // Contributors (public)
 app.use('/api/contributors', require('./routes/contributors'));
-app.use('/api', require('./routes/contributors')); // legacy get_contributor_profile.php
 
 // Comments
 app.use('/api', require('./routes/comments'));
@@ -227,11 +226,6 @@ app.use('/api/admin/team', require('./routes/admin/team'));
 
 // Admin — contributors management (all routes in one router, mounted at /api/admin)
 app.use('/api/admin', require('./routes/admin/contributors'));
-// Legacy PHP path alias
-app.post('/api/delete_contributor.php', (req, res, next) => {
-  req.url = '/delete-contributor';
-  next();
-}, require('./routes/admin/contributors'));
 
 // Admin — credit bundles & coupons
 app.use('/api/admin', require('./routes/admin/credits'));

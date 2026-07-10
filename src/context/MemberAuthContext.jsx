@@ -67,14 +67,16 @@ export const MemberAuthProvider = ({ children }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = (memberData, token, isContrib = false) => {
+  const login = (memberData, isContrib = false, csrfToken = null) => {
     setIsLoggedIn(true);
     setMember(memberData);
     setIsContributor(isContrib);
     localStorage.setItem("memberAuth", "true");
     localStorage.setItem("memberData", JSON.stringify(memberData));
-    localStorage.setItem("memberToken", token);
     localStorage.setItem("isContributor", isContrib ? "true" : "false");
+    // Same key api.js reads for every request (admin or member) — lets member
+    // mutating routes (profile update, payments) be CSRF-checked too.
+    if (csrfToken) localStorage.setItem("csrf_token", csrfToken);
     // Fetch credits after login
     setTimeout(() => refreshCredits(), 200);
     // Claim LinkedIn share bonus if member shared before logging in
@@ -120,10 +122,17 @@ export const MemberAuthProvider = ({ children }) => {
     setUnlockedSlugs([]);
     localStorage.removeItem("memberAuth");
     localStorage.removeItem("memberData");
-    localStorage.removeItem("memberToken");
     localStorage.removeItem("isContributor");
     localStorage.removeItem("memberCredits");
     localStorage.removeItem("memberUnlocks");
+    localStorage.removeItem("csrf_token");
+    // Clearing local state alone leaves the server-side session (and its
+    // connect.sid cookie) fully authenticated — any request made right after
+    // "logging out" would still pass server-side member/premium checks.
+    // Must explicitly destroy the session server-side too.
+    import("../services/api").then(({ memberLogoutApi }) => {
+      memberLogoutApi().catch(() => {});
+    });
   };
 
   return (

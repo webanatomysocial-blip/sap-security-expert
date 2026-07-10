@@ -1,6 +1,5 @@
 /**
  * RBAC permission middleware.
- * Mirrors api/permission_check.php.
  */
 
 function checkPermission(key) {

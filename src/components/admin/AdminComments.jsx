@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useOutletContext } from "react-router-dom";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
 import ColumnToggle from "./ColumnToggle.jsx";
 // next-disabled: import "../../css/AdminDashboard.css";
@@ -34,6 +35,7 @@ const AdminComments = () => {
   const [editText, setEditText] = useState("");
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
+  const { fetchBadges } = useOutletContext() || {};
 
   useScrollLock(!!editingComment);
 
@@ -81,6 +83,7 @@ const AdminComments = () => {
       });
       if (res.data.status === "success") {
         fetchCommentsData();
+        fetchBadges?.();
         setRejectingComment(null);
         setRejectReason("");
         addToast(`Comment ${newStatus} successfully`, "success");
@@ -137,6 +140,7 @@ const AdminComments = () => {
           const res = await api.delete(`/admin/comments?id=${id}`);
           if (res.data.status === "success") {
             fetchCommentsData();
+            fetchBadges?.();
             addToast("Comment deleted successfully", "success");
           } else {
             addToast("Failed to delete comment", "error");

@@ -6,7 +6,6 @@ const ROOT = path.join(__dirname, '../..');
 
 /**
  * Delete an image from the filesystem.
- * Mirrors api/utils.php deleteImage().
  */
 function deleteImage(imagePath) {
   if (!imagePath) return false;
@@ -34,7 +33,6 @@ function deleteImage(imagePath) {
 
 /**
  * Calculate an SEO score (0–100) from blog fields.
- * Mirrors api/utils.php calculateSeoScore().
  */
 function calculateSeoScore(blog) {
   let score = 100;
@@ -61,7 +59,6 @@ function calculateSeoScore(blog) {
 
 /**
  * Check plagiarism via external API.
- * Mirrors api/utils.php checkPlagiarismScore().
  */
 async function checkPlagiarismScore(text, blogId = null, db = null) {
   if (!text || !text.trim()) return { score: 0, error: null };

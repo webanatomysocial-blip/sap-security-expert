@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useMemberAuth } from "../context/MemberAuthContext";
 // Removed static metadata import
 // Removed static metadata import
 // next-disabled: import "../css/CommunitySection.css";
@@ -14,6 +15,8 @@ import {
 } from "../services/api";
 
 export default function CommunitySection() {
+  const { isLoggedIn, member } = useMemberAuth();
+
   const getImageUrl = (path) => {
     if (!path) return "https://placehold.co/100x100?text=Author";
     if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -58,7 +61,8 @@ export default function CommunitySection() {
   const [activeTab, setActiveTab] = useState("recent");
   const [trending, setTrending] = useState([]);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
- 
+  const [homepageLoading, setHomepageLoading] = useState(true);
+
   useEffect(() => {
     if (heroArticles.length <= 1) return;
     const interval = setInterval(() => {
@@ -91,7 +95,8 @@ export default function CommunitySection() {
       })
       .catch((err) => {
         console.error("Homepage API failed", err);
-      });
+      })
+      .finally(() => setHomepageLoading(false));
 
     // Keep Announcements & Ads separate as they might have different caching/logic
     // Fetch Announcements
@@ -201,7 +206,17 @@ export default function CommunitySection() {
                 <a href="#featured-insights" className="widget-view-all" onClick={(e) => scrollToSection(e, "featured-insights")}>View all</a>
               </div>
               <div className="topics-list">
-                {recentActivity.slice(0, 8).map((post) => (
+                {homepageLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="skel-row">
+                      <div className="skel-block skel-row-avatar" />
+                      <div className="skel-row-info">
+                        <div className="skel-block skel-row-line w-70" />
+                        <div className="skel-block skel-row-line w-40" />
+                      </div>
+                    </div>
+                  ))
+                ) : recentActivity.slice(0, 8).map((post) => (
                   <Link
                     key={post.slug || post.id}
                     to={post.category ? `/${post.category.toLowerCase().replace(/\s+/g, "-")}/${post.slug || post.id}` : `/blogs/${post.slug || post.id}`}
@@ -219,10 +234,12 @@ export default function CommunitySection() {
                     <div className="rt-info">
                       <span className="rt-title">{post.title}</span>
                       {post.is_premium == 1 ? (
-                        <span className="rt-badge rt-badge--paid"><i className="bi bi-star-fill"></i> Paid Article</span>
+                        <span className="rt-badge rt-badge--paid"><i className="bi bi-star-fill" /> PREMIUM</span>
                       ) : post.is_members_only == 1 ? (
-                        <span className="rt-badge"><i className="bi bi-lock-fill"></i> Exclusive</span>
-                      ) : null}
+                        <span className="rt-badge"><i className="bi bi-lock-fill" /> EXCLUSIVE</span>
+                      ) : (
+                        <span className="rt-badge" style={{ background: "#16a34a" }}><i className="bi bi-unlock-fill" /> FREE</span>
+                      )}
                       <div className="rt-meta">
                         <span>By {post.author_name || "Guest Author"}</span>
                         <span>{readTime(post)} min read</span>
@@ -402,7 +419,20 @@ export default function CommunitySection() {
               </div>
 
               {/* Tab content */}
-              {(() => {
+              {homepageLoading ? (
+                <div className="activity-list">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="skel-activity-item">
+                      <div className="skel-block skel-activity-img" />
+                      <div className="skel-activity-info">
+                        <div className="skel-block skel-activity-line w-30" />
+                        <div className="skel-block skel-activity-line w-90" />
+                        <div className="skel-block skel-activity-line w-60" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (() => {
                 const tabData =
                   activeTab === "expert"  ? expertPicks :
                   activeTab === "premium" ? premiumArticles :
@@ -446,13 +476,17 @@ export default function CommunitySection() {
                             </span>
                             {activity.is_premium == 1 ? (
                               <span className="exclusive-mini-badge-inline" style={{ background: "#d97706" }}>
-                                <i className="bi bi-star-fill"></i> Paid
+                                <i className="bi bi-star-fill"></i> PREMIUM
                               </span>
                             ) : activity.is_members_only == 1 ? (
                               <span className="exclusive-mini-badge-inline">
-                                <i className="bi bi-lock-fill"></i> Exclusive
+                                <i className="bi bi-lock-fill"></i> EXCLUSIVE
                               </span>
-                            ) : null}
+                            ) : (
+                              <span className="exclusive-mini-badge-inline" style={{ background: "#16a34a" }}>
+                                <i className="bi bi-unlock-fill"></i> FREE
+                              </span>
+                            )}
                             {activity.is_expert_pick == 1 && (
                               <span className="exclusive-mini-badge-inline" style={{ background: "#7c3aed" }}>
                                 <i className="bi bi-patch-check-fill"></i> Expert Pick
@@ -620,14 +654,26 @@ export default function CommunitySection() {
               <div className="jcw-icon">
                 <i className="bi bi-people-fill"></i>
               </div>
-              <h3>Join Our Community</h3>
-              <p>Share knowledge, earn credits, and grow together with SAP security experts.</p>
-              <Link to="/member/signup" className="jcw-btn-primary">
-                Create Free Account
-              </Link>
-              <Link to="/member/login" className="jcw-btn-secondary">
-                Already a member? Sign in
-              </Link>
+              {isLoggedIn ? (
+                <>
+                  <h3>Welcome back, {member?.name || "friend"}!</h3>
+                  <p>You're already part of the community. Check your achievements and credits.</p>
+                  <Link to="/member/achievements" className="jcw-btn-primary">
+                    View My Achievements
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <h3>Join Our Community</h3>
+                  <p>Share knowledge, earn credits, and grow together with SAP security experts.</p>
+                  <Link to="/member/signup" className="jcw-btn-primary">
+                    Create Free Account
+                  </Link>
+                  <Link to="/member/login" className="jcw-btn-secondary">
+                    Already a member? Sign in
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

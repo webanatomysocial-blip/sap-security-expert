@@ -102,7 +102,7 @@ const PaidArticles = () => {
             style={{ objectFit: "cover", filter: unlocked ? "none" : "brightness(0.6)" }}
           />
           <div className="exclusive-badge" style={{ background: "#d97706" }}>
-            <i className="bi bi-star-fill"></i> Paid
+            <i className="bi bi-star-fill"></i> PREMIUM
           </div>
           {unlocked && (
             <div
@@ -261,7 +261,17 @@ const PaidArticles = () => {
         <div className="category-layout-grid">
           <div className="category-main-column">
             {loading ? (
-              <div className="loading-state"><p>Loading articles...</p></div>
+              <div className="blog-grid-2-col">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="skel-card">
+                    <div className="skel-block skel-image" />
+                    <div className="skel-block skel-line w-40" />
+                    <div className="skel-block skel-line w-90" />
+                    <div className="skel-block skel-line w-70" />
+                    <div className="skel-block skel-line w-50" />
+                  </div>
+                ))}
+              </div>
             ) : error ? (
               <div className="error-state"><p>Error: {error}</p></div>
             ) : paidBlogs.length === 0 ? (

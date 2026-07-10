@@ -106,6 +106,14 @@ async function hasUnlockedBlog(db, memberId, slug) {
   return rows.length > 0;
 }
 
+async function findUnlockedSlugsForMember(db, memberId) {
+  const [rows] = await db.execute(
+    'SELECT blog_slug FROM member_blog_unlocks WHERE member_id = ?',
+    [memberId]
+  );
+  return rows.map(r => r.blog_slug);
+}
+
 async function findList(db, { isContributor, authorOnly, currentUserId, isAdminLoggedIn, trending, filterCategory, nowUtc }) {
   let sql = `SELECT b.*, b.view_count,
     (SELECT COUNT(*) FROM comments c_count WHERE c_count.post_id = b.slug AND c_count.status = 'approved') as comment_count,
@@ -268,6 +276,6 @@ async function deleteBlogById(db, id) {
 
 module.exports = {
   getExclusivePremiumCounts, findSuggestedCurrent, findSameCategoryCandidates, findCrossCategoryCandidates, findPopularFallback,
-  updateBadges, findSingleBySlugOrId, hasUnlockedBlog, findList, findAuthorDisplayName, slugExists, findExistingForUpdate,
+  updateBadges, findSingleBySlugOrId, hasUnlockedBlog, findUnlockedSlugsForMember, findList, findAuthorDisplayName, slugExists, findExistingForUpdate,
   cascadeSlugChange, saveEditForReview, updateBlogStandard, insertBlog, findForDelete, deleteBlogById,
 };

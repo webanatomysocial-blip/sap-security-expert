@@ -1,6 +1,6 @@
 const { deleteImage } = require('../utils/helpers');
 
-// POST /api/upload_blog_image.php or /api/upload-blog-image
+// POST /api/upload-blog-image
 const uploadBlogImage = (req, res) => {
   if (!req.file) return res.json({ status: 'error', message: 'Please select an image to upload.' });
 
@@ -15,7 +15,7 @@ const uploadBlogImage = (req, res) => {
   });
 };
 
-// POST /api/upload_ad_image.php or /api/upload-ad-image
+// POST /api/upload-ad-image
 const uploadAdImage = (req, res) => {
   if (!req.file) return res.json({ status: 'error', message: 'Please select an image to upload.' });
 

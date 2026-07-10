@@ -12,7 +12,7 @@ const MAX_POST_ID_LEN = 200;
 // from the central handler's generic "Internal server error" — centralizing
 // would silently change this response's exact text.
 
-// GET /api/get_comments.php?blogId=...
+// GET /api/get-comments?blogId=...
 const getComments = async (req, res) => {
   const db = req.db;
   const { blogId } = req.query;
@@ -66,7 +66,7 @@ const getComments = async (req, res) => {
   }
 };
 
-// POST /api/save_comment.php or POST /api/comments
+// POST /api/comments
 const saveComment = async (req, res) => {
   const db = req.db;
   const body = req.body || {};

@@ -1,5 +1,5 @@
 /**
- * Activity logger. Mirrors api/services/AuditService.php.
+ * Activity logger — records admin/contributor actions to the audit_logs table.
  */
 class AuditService {
   constructor(db) {
