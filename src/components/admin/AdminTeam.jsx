@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Helmet } from "react-helmet-async";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
@@ -37,7 +38,7 @@ function CreateAdminModal({ onClose, onCreated }) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -81,7 +82,8 @@ function CreateAdminModal({ onClose, onCreated }) {
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

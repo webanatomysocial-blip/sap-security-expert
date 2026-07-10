@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
 import ColumnToggle from "./ColumnToggle.jsx";
@@ -408,7 +409,7 @@ const AdminComments = () => {
       </div>
 
       {/* Edit Modal */}
-      {editingComment && (
+      {editingComment && createPortal(
         <div className="modal-overlay" onClick={() => setEditingComment(null)}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -515,11 +516,12 @@ const AdminComments = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Rejection Modal */}
-      {rejectingComment && (
+      {rejectingComment && createPortal(
         <div
           className="modal-overlay"
           onClick={() => setRejectingComment(null)}
@@ -599,7 +601,8 @@ const AdminComments = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

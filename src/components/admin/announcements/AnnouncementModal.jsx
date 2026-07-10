@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 
 const AnnouncementModal = ({
   isOpen,
@@ -10,7 +11,7 @@ const AnnouncementModal = ({
 }) => {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -72,7 +73,8 @@ const AnnouncementModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { LuUser, LuMail, LuUpload, LuX, LuTriangleAlert } from "react-icons/lu";
 import { getAdminProfile, updateAdminProfile } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
@@ -114,7 +115,7 @@ const ProfileEditModal = ({ isOpen, onClose, onUpdate }) => {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -298,7 +299,8 @@ const ProfileEditModal = ({ isOpen, onClose, onUpdate }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

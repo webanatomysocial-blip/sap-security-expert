@@ -233,7 +233,7 @@ const AdminBlogReview = () => {
           <option value="sap-public-cloud">Cloud</option>
           <option value="sap-btp-security">Cybersecurity</option>
           <option value="podcasts">Expert Voices/Podcasts</option>
-          <option value="expert-recommendations">Expert Recommendations</option>
+          <option value="expert-recommendations">Expert Articles</option>
         </select>
       </div>
 

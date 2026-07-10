@@ -93,7 +93,7 @@ export default function LatestBlogs() {
       "sap-btp-security": "Cybersecurity",
       "sap-cybersecurity": "Cybersecurity",
       podcasts: "Podcast",
-      "expert-recommendations": "Expert Recommendations",
+      "expert-recommendations": "Expert Articles",
       "sap-access-control": "SAP Access Control",
     };
 

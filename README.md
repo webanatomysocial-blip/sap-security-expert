@@ -2,8 +2,6 @@
 
 A community platform for SAP Security, GRC, and BTP professionals — a React + Next.js 15 frontend (App Router, SSR) backed by a Node.js/Express API that handles data, auth, and email.
 
-See [CLAUDE.md](./CLAUDE.md) for the full architecture reference (request lifecycle, SSR blog routing, auth, database, and directory structure).
-
 ## Tech Stack
 - **Frontend**: React 19, Next.js 15 (App Router, SSR mode), GSAP, Lenis, Axios
 - **Backend**: Node.js/Express (MySQL/MariaDB in production, SQLite for local dev)

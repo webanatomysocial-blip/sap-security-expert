@@ -288,13 +288,17 @@ const save = asyncHandler(async (req, res) => {
           image_alt = '',
           category = '', tags = '', meta_title = '', meta_description = '', meta_keywords = '',
           faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link = null,
-          is_members_only = 0, is_premium = 0, credits_required = 1, send_notification_email = 0, status: requestedStatus, related_blogs,
+          is_members_only: rawIsMembersOnly = 0, is_premium = 0, credits_required = 1, send_notification_email = 0, status: requestedStatus, related_blogs,
           schema_type = 'BlogPosting', article_section = null, co_authors = [],
           badge_expert_reviewed = 0, badge_sap_notes_verified = 0, badge_tested_s4hana = 0, badge_field_validated = 0,
           difficulty_level: rawDifficultyLevel = null } = data;
   const VALID_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
   const difficulty_level = VALID_LEVELS.includes(rawDifficultyLevel) ? rawDifficultyLevel : null;
   const content = sanitizeBlogHtml(rawContent);
+  // Premium and Exclusive are mutually exclusive content tiers — Premium wins
+  // if both were somehow submitted together (mirrors the same rule enforced
+  // in the quick-toggle endpoints).
+  const is_members_only = is_premium ? 0 : rawIsMembersOnly;
 
   const coAuthorsJson = JSON.stringify(Array.isArray(co_authors) ? co_authors : []);
 

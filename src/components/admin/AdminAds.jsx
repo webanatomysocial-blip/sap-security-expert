@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
 import useScrollLock from "../../hooks/useScrollLock";
@@ -407,7 +408,7 @@ export default function AdminAds() {
       )}
 
       {/* ── Zone ad edit modal ── */}
-      {editingZone && (
+      {editingZone && createPortal(
         <div className="modal-overlay" onClick={() => setEditingZone(null)}>
           <div className="modal-container" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
@@ -479,11 +480,12 @@ export default function AdminAds() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Blog ad create/edit modal ── */}
-      {showBlogAdModal && (
+      {showBlogAdModal && createPortal(
         <div className="modal-overlay" onClick={() => setShowBlogAdModal(false)}>
           <div className="modal-container" style={{ maxWidth: 580 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
@@ -630,7 +632,8 @@ export default function AdminAds() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

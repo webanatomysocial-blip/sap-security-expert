@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import ActionMenu from "../ActionMenu";
 import ColumnToggle from "../ColumnToggle";
 import {
@@ -496,7 +497,7 @@ const BlogList = ({
     </div>
 
     {/* ── Credits modal for enabling premium ─────────────────────────── */}
-    {premiumModal && (
+    {premiumModal && createPortal(
       <div
         className="modal-overlay"
         onClick={(e) => e.target === e.currentTarget && setPremiumModal(null)}
@@ -549,7 +550,8 @@ const BlogList = ({
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
     </>
   );

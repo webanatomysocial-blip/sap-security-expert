@@ -107,6 +107,71 @@ const grantCredits = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: `Credits updated. New balance: ${newBalance}`, new_balance: newBalance });
 });
 
+// Shared by grantCredits and bulkGrantCredits — applies one credit
+// adjustment to one member and records the transaction.
+async function applyCreditAdjustment(db, memberId, credits, note) {
+  const existing = await repo.findMemberCredits(db, memberId);
+  if (existing) {
+    await repo.incrementMemberBalance(db, memberId, credits);
+  } else {
+    if (credits < 0) throw new Error('no_balance');
+    await repo.createMemberCredits(db, memberId, credits);
+  }
+  await repo.insertAdjustmentTransaction(db, memberId, credits, note);
+  return repo.findMemberBalance(db, memberId);
+}
+
+// POST /api/admin/bulk-grant-credits — grant/deduct credits for many members
+// at once: either every approved member (target: 'all') or an explicit list
+// of member_ids. Best-effort per member — one failure (e.g. a deduction that
+// would go negative) doesn't abort the rest; failures are reported back.
+const MAX_BULK_RECIPIENTS = 5000; // sane upper bound — guards against an accidental runaway query/loop
+const bulkGrantCredits = asyncHandler(async (req, res) => {
+  const db = req.db;
+  const { target, member_ids, amount, note } = req.body || {};
+
+  const credits = parseInt(amount);
+  if (isNaN(credits) || credits === 0) {
+    return sendError(res, 'amount must be a non-zero integer', 400);
+  }
+
+  let ids;
+  if (target === 'all') {
+    ids = await repo.findAllApprovedMemberIds(db);
+  } else if (Array.isArray(member_ids) && member_ids.length) {
+    ids = [...new Set(member_ids)];
+  } else {
+    return sendError(res, 'Provide target="all" or a non-empty member_ids array', 400);
+  }
+
+  if (ids.length === 0) {
+    return sendError(res, 'No matching members found.', 404);
+  }
+  if (ids.length > MAX_BULK_RECIPIENTS) {
+    return sendError(res, `Too many recipients (${ids.length}). Max ${MAX_BULK_RECIPIENTS} per bulk action.`, 400);
+  }
+
+  const txNote = note || (credits > 0 ? `Bulk admin grant: ${credits} credits` : `Bulk admin deduction: ${Math.abs(credits)} credits`);
+
+  let succeeded = 0;
+  const failed = [];
+  for (const memberId of ids) {
+    try {
+      await applyCreditAdjustment(db, memberId, credits, txNote);
+      succeeded++;
+    } catch (err) {
+      failed.push({ member_id: memberId, reason: err.message === 'no_balance' ? 'No existing balance to deduct from' : 'Failed' });
+    }
+  }
+
+  return sendSuccess(res, {
+    message: `Applied to ${succeeded}/${ids.length} member${ids.length === 1 ? '' : 's'}.`,
+    succeeded,
+    failed_count: failed.length,
+    failed,
+  });
+});
+
 // GET /api/admin/credit-transactions — all transactions across all members
 const listTransactions = asyncHandler(async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -132,5 +197,5 @@ const getCreditStats = asyncHandler(async (req, res) => {
 
 module.exports = {
   listBundles, saveBundle, deleteBundle, listCoupons, saveCoupon, deleteCoupon,
-  grantCredits, listTransactions, getMemberCredits, getCreditStats,
+  grantCredits, bulkGrantCredits, listTransactions, getMemberCredits, getCreditStats,
 };

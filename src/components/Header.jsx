@@ -72,10 +72,9 @@ const Header = () => {
   useEffect(() => {
     const handleOpenProfile = (e) => {
       if (isMemberLoggedIn) {
-        setProfileInitialTab(e.detail?.tab || "profile");
-        setIsProfileModalOpen(true);
+        navigate("/member/settings", { state: { tab: e.detail?.tab || "profile" } });
       } else {
-        navigate("/member/login", { state: { from: location.pathname + location.search } });
+        navigate("/member/login", { state: { from: "/member/settings" } });
       }
     };
 
@@ -239,8 +238,8 @@ const Header = () => {
                     <button
                       className="member-dropdown-item"
                       onClick={() => {
-                        setIsProfileModalOpen(true);
                         setIsMemberDropdownOpen(false);
+                        navigate("/member/settings", { state: { tab: "profile" } });
                       }}
                     >
                       <LuUser className="dropdown-icon" /> Profile Settings
@@ -397,12 +396,11 @@ const Header = () => {
                 </div>
               </div>
               <div className="mobile-profile-actions">
-                <button
+                 <button
                   className="mobile-profile-btn"
                   onClick={() => {
-                    setProfileInitialTab("profile");
-                    setIsProfileModalOpen(true);
                     closeMenu();
+                    navigate("/member/settings", { state: { tab: "profile" } });
                   }}
                 >
                   <LuUser size={18} /> Profile Settings
@@ -410,9 +408,8 @@ const Header = () => {
                 <button
                   className="mobile-profile-btn"
                   onClick={() => {
-                    setProfileInitialTab("security");
-                    setIsProfileModalOpen(true);
                     closeMenu();
+                    navigate("/member/settings", { state: { tab: "security" } });
                   }}
                 >
                   <LuShieldCheck size={18} /> Security & Privacy

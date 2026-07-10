@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { LuTriangleAlert, LuX, LuCircleCheck, LuKey } from "react-icons/lu";
 import { sendOTP, api } from "../services/api";
 import { useMemberAuth } from "../context/MemberAuthContext";
@@ -76,8 +77,8 @@ const DeleteAccountModal = ({ isOpen, onClose }) => {
     }
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 2000 }}>
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 100000 }}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "450px" }}>
         <div className="modal-header">
           <h3>Delete Account</h3>
@@ -174,7 +175,8 @@ const DeleteAccountModal = ({ isOpen, onClose }) => {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

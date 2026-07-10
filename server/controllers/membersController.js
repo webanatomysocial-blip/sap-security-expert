@@ -227,7 +227,21 @@ const getProfile = asyncHandler(async (req, res) => {
   const isContributor = await repo.findContributorApprovedByEmail(db, profile.email);
   const reputation_level = isContributor ? 'Contributor' : 'Explorer';
 
-  return res.json({ status: 'success', member: { ...profile, reputation_level }, subscription });
+  // Self-heal sessions created before CSRF protection was added to member
+  // routes — those have no session.csrf_token at all, which would make every
+  // change-password/profile-update/payment request 403 until the member
+  // logs out and back in. Re-issue it here (called on every app load via
+  // the profile refetch) so existing sessions repair themselves silently.
+  if (!req.session.csrf_token) {
+    req.session.csrf_token = crypto.randomBytes(32).toString('hex');
+  }
+
+  return res.json({
+    status: 'success',
+    member: { ...profile, reputation_level },
+    subscription,
+    csrf_token: req.session.csrf_token,
+  });
 });
 
 // POST /api/member/profile/update

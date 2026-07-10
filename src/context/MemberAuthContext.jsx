@@ -53,6 +53,11 @@ export const MemberAuthProvider = ({ children }) => {
                 const freshMember = res.data.member;
                 setMember(freshMember);
                 localStorage.setItem("memberData", JSON.stringify(freshMember));
+                // Self-heals sessions logged in before CSRF protection was
+                // added to member routes — without this, a missing token
+                // would 403 every change-password/profile-update/payment
+                // request until the member manually logs out and back in.
+                if (res.data.csrf_token) localStorage.setItem("csrf_token", res.data.csrf_token);
               }
             })
             .catch((err) => {

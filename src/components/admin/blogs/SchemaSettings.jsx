@@ -45,7 +45,7 @@ const LABEL_MAP = {
   "product-reviews": "Product Reviews",
   "podcasts": "Expert Voices & Podcasts",
   "videos": "Videos",
-  "expert-recommendations": "Expert Recommendations",
+  "expert-recommendations": "Expert Articles",
 };
 
 function stripHtml(html) {

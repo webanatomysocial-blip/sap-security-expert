@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { Helmet } from "react-helmet-async";
@@ -690,9 +691,9 @@ const MemberSignup = () => {
           </div>
         )}
       </div>
-      {showReactivateModal && (
-        <div 
-          className="modal-overlay" 
+      {showReactivateModal && createPortal(
+        <div
+          className="modal-overlay"
           onClick={() => setShowReactivateModal(false)}
           style={{
             position: 'fixed',
@@ -782,7 +783,8 @@ const MemberSignup = () => {
               Cancel
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

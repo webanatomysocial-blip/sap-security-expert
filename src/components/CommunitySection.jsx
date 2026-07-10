@@ -404,7 +404,7 @@ export default function CommunitySection() {
               <div className="ra-tabs">
                 {[
                   { key: "recent",  label: "Recent Articles",       icon: "bi-clock-history" },
-                  { key: "expert",  label: "Expert Recommendations", icon: "bi-patch-check-fill" },
+                  { key: "expert",  label: "Expert Articles", icon: "bi-patch-check-fill" },
                   { key: "premium", label: "Premium Content",        icon: "bi-star-fill" },
                 ].map((tab) => (
                   <button

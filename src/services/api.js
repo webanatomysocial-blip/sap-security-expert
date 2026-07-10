@@ -222,6 +222,8 @@ export const getCreditStats = () => api.get('/admin/credit-stats');
 export const getAllCreditTransactions = (page = 1, limit = 50) => api.get(`/admin/credit-transactions?page=${page}&limit=${limit}`);
 export const getMemberCreditBalance = (memberId) => api.get(`/admin/member-credits/${memberId}`);
 export const grantAdminCredits = (member_id, amount, note) => api.post('/admin/grant-credits', { member_id, amount, note });
+export const bulkGrantAdminCredits = ({ target, member_ids, amount, note }) =>
+  api.post('/admin/bulk-grant-credits', { target, member_ids, amount, note });
 
 // Email templates
 export const getEmailTemplates = () => api.get('/admin/email-templates');

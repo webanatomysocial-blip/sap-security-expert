@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { LuX, LuCalendar, LuTag, LuUser } from "react-icons/lu";
 import { updateBlogBadges } from "../../services/api";
 
@@ -173,7 +174,7 @@ const BlogPreviewModal = ({
   const authorBio =
     previewData.author_bio || "Expert SAP Security Contributor.";
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -951,7 +952,8 @@ const BlogPreviewModal = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
