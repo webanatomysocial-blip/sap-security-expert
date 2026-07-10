@@ -19,7 +19,7 @@ const ALL_CATEGORIES = [
   { value: "product-reviews", label: "Product Reviews" },
   { value: "podcasts", label: "Expert Voices/Podcasts" },
   { value: "videos", label: "Videos" },
-  { value: "expert-recommendations", label: "Expert Recommendations" },
+  { value: "expert-recommendations", label: "Expert Articles" },
 ];
 
 const BlogEditor = ({

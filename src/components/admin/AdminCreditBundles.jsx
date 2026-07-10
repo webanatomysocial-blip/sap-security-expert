@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
 import TableScrollContainer from "./TableScrollContainer";
@@ -7,7 +8,7 @@ import { LuX, LuPlus, LuPackage, LuTicket, LuCoins, LuGift } from "react-icons/l
 import {
   getAdminBundles, saveBundle, deleteBundle,
   getAdminCoupons, saveCoupon, deleteCoupon,
-  getCreditStats, getAllCreditTransactions, grantAdminCredits,
+  getCreditStats, getAllCreditTransactions, grantAdminCredits, bulkGrantAdminCredits,
   getAdminMembers,
 } from "../../services/api";
 import { downloadCSV } from "../../services/exportUtils";
@@ -48,6 +49,14 @@ export default function AdminCreditBundles() {
   const [grantErrors, setGrantErrors] = useState({});
   const [granting, setGranting] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
+
+  // Bulk grant mode
+  const [grantMode, setGrantMode] = useState("single"); // "single" | "bulk"
+  const [bulkTarget, setBulkTarget] = useState("all"); // "all" | "specific"
+  const [bulkSelectedIds, setBulkSelectedIds] = useState(new Set());
+  const [bulkMemberSearch, setBulkMemberSearch] = useState("");
+  const [bulkForm, setBulkForm] = useState({ amount: "", note: "" });
+  const [bulkErrors, setBulkErrors] = useState({});
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -119,6 +128,59 @@ export default function AdminCreditBundles() {
     } finally {
       setGranting(false);
     }
+  };
+
+  // ── Bulk Grant Credits handler ────────────────────────────────────────────
+  const toggleBulkMember = (id) => {
+    setBulkSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const runBulkGrant = async () => {
+    const errs = {};
+    const amt = parseInt(bulkForm.amount);
+    if (!bulkForm.amount || isNaN(amt) || amt === 0) errs.amount = "Enter a non-zero amount";
+    if (bulkTarget === "specific" && bulkSelectedIds.size === 0) errs.members = "Select at least one member";
+    setBulkErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    const recipientCount = bulkTarget === "all"
+      ? members.filter((m) => m.status === "approved" && !m.is_deleted).length
+      : bulkSelectedIds.size;
+
+    openConfirm({
+      title: bulkTarget === "all" ? "Apply to ALL approved members?" : `Apply to ${recipientCount} selected member${recipientCount === 1 ? "" : "s"}?`,
+      message: `This will ${amt > 0 ? "grant" : "deduct"} ${Math.abs(amt)} credit${Math.abs(amt) === 1 ? "" : "s"} ${amt > 0 ? "to" : "from"} ${bulkTarget === "all" ? `all ${recipientCount} approved members` : `${recipientCount} selected member${recipientCount === 1 ? "" : "s"}`}. This cannot be undone in bulk — you'd need to reverse each one individually.`,
+      confirmText: "Apply Credits",
+      isDanger: amt < 0,
+      onConfirm: async () => {
+        setGranting(true);
+        try {
+          const res = await bulkGrantAdminCredits({
+            target: bulkTarget === "all" ? "all" : undefined,
+            member_ids: bulkTarget === "specific" ? Array.from(bulkSelectedIds) : undefined,
+            amount: amt,
+            note: bulkForm.note || undefined,
+          });
+          addToast(res.data.message || "Bulk credit update applied", "success");
+          if (res.data.failed_count) {
+            addToast(`${res.data.failed_count} member(s) could not be updated (see console).`, "error");
+            console.warn("Bulk grant failures:", res.data.failed);
+          }
+          setBulkForm({ amount: "", note: "" });
+          setBulkSelectedIds(new Set());
+          setBulkMemberSearch("");
+          getCreditStats().then((r) => setStats(r.data?.stats || null)).catch(() => {});
+        } catch (err) {
+          addToast(err.response?.data?.message || "Failed to apply bulk credits", "error");
+        } finally {
+          setGranting(false);
+        }
+      },
+    });
   };
 
   // ── Bundle handlers ───────────────────────────────────────────────────────
@@ -620,8 +682,33 @@ export default function AdminCreditBundles() {
         <div className="admin-card" style={{ maxWidth: 560 }}>
           <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
             <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Grant / Deduct Credits</h2>
-            <p style={{ margin: "2px 0 0", fontSize: 13, color: "#94a3b8" }}>Manually adjust a member's credit balance. Use a negative amount to deduct.</p>
+            <p style={{ margin: "2px 0 0", fontSize: 13, color: "#94a3b8" }}>Manually adjust member credit balances. Use a negative amount to deduct.</p>
           </div>
+
+          <div style={{ display: "flex", gap: 8, padding: "16px 24px 0" }}>
+            <button
+              onClick={() => setGrantMode("single")}
+              style={{
+                padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                background: grantMode === "single" ? "#1e293b" : "#fff",
+                color: grantMode === "single" ? "#fff" : "#475569",
+              }}
+            >
+              Single Member
+            </button>
+            <button
+              onClick={() => setGrantMode("bulk")}
+              style={{
+                padding: "8px 16px", borderRadius: 8, border: "1px solid #e2e8f0", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                background: grantMode === "bulk" ? "#1e293b" : "#fff",
+                color: grantMode === "bulk" ? "#fff" : "#475569",
+              }}
+            >
+              Bulk Grant
+            </button>
+          </div>
+
+          {grantMode === "single" ? (
           <div className="modal-body" style={{ padding: 24 }}>
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label className="form-label">Search Member</label>
@@ -694,11 +781,176 @@ export default function AdminCreditBundles() {
               {granting ? "Processing…" : "Apply Credits"}
             </button>
           </div>
+          ) : (
+          <div className="modal-body" style={{ padding: 24 }}>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="form-label">Apply To</label>
+              <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                {[
+                  {
+                    key: "all",
+                    title: "All Approved Members",
+                    subtitle: `${members.filter((m) => m.status === "approved" && !m.is_deleted).length} members`,
+                  },
+                  {
+                    key: "specific",
+                    title: "Select Specific Members",
+                    subtitle: bulkTarget === "specific" ? `${bulkSelectedIds.size} selected` : "Choose individually",
+                  },
+                ].map((opt) => (
+                  <div
+                    key={opt.key}
+                    onClick={() => setBulkTarget(opt.key)}
+                    role="radio"
+                    aria-checked={bulkTarget === opt.key}
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "12px 14px",
+                      borderRadius: 10,
+                      border: `1.5px solid ${bulkTarget === opt.key ? "#1e293b" : "#e2e8f0"}`,
+                      background: bulkTarget === opt.key ? "#f8fafc" : "#fff",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        width: 16,
+                        height: 16,
+                        borderRadius: "50%",
+                        border: `2px solid ${bulkTarget === opt.key ? "#1e293b" : "#cbd5e1"}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {bulkTarget === opt.key && (
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e293b" }} />
+                      )}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "#1e293b" }}>{opt.title}</div>
+                      <div style={{ fontSize: 12, color: "#94a3b8" }}>{opt.subtitle}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {bulkTarget === "specific" && (
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">
+                  Members <span style={{ color: "#94a3b8", fontWeight: 400 }}>({bulkSelectedIds.size} selected)</span>
+                </label>
+                <input
+                  className="form-control"
+                  placeholder="Search name or email to filter…"
+                  value={bulkMemberSearch}
+                  onChange={(e) => setBulkMemberSearch(e.target.value)}
+                  style={{ marginBottom: 8 }}
+                />
+                <div
+                  data-lenis-prevent
+                  style={{ border: "1px solid #e2e8f0", borderRadius: 8, maxHeight: 260, overflowY: "auto" }}
+                >
+                  {membersLoading ? (
+                    <div style={{ padding: 16, color: "#94a3b8", fontSize: 13 }}>Loading members…</div>
+                  ) : (
+                    members
+                      .filter((m) => m.status === "approved" && !m.is_deleted)
+                      .filter((m) => {
+                        const q = bulkMemberSearch.toLowerCase();
+                        if (!q) return true;
+                        return m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q);
+                      })
+                      .map((m) => {
+                        const checked = bulkSelectedIds.has(m.id);
+                        return (
+                          <div
+                            key={m.id}
+                            onClick={() => toggleBulkMember(m.id)}
+                            role="checkbox"
+                            aria-checked={checked}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", cursor: "pointer", fontSize: 13,
+                              background: checked ? "#eff6ff" : "transparent",
+                              borderBottom: "1px solid #f1f5f9",
+                            }}
+                          >
+                            <span
+                              style={{
+                                flexShrink: 0,
+                                width: 18,
+                                height: 18,
+                                borderRadius: 5,
+                                border: `1.5px solid ${checked ? "#1e293b" : "#cbd5e1"}`,
+                                background: checked ? "#1e293b" : "#fff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              {checked && (
+                                <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+                                  <path d="M3 8.5L6.2 11.5L13 4.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )}
+                            </span>
+                            <div style={{ minWidth: 0 }}>
+                              <strong style={{ color: "#1e293b" }}>{m.name}</strong>{" "}
+                              <span style={{ color: "#94a3b8", fontSize: 12 }}>{m.email}</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+                {bulkErrors.members && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{bulkErrors.members}</p>}
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="form-label">Credits Amount <span style={{ color: "#94a3b8", fontWeight: 400 }}>(negative to deduct)</span></label>
+              <input
+                className="form-control"
+                type="number"
+                placeholder="e.g. 5 or -2"
+                value={bulkForm.amount}
+                onChange={(e) => setBulkForm((p) => ({ ...p, amount: e.target.value }))}
+                style={bulkErrors.amount ? { borderColor: "#dc2626" } : {}}
+              />
+              {bulkErrors.amount && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{bulkErrors.amount}</p>}
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 24 }}>
+              <label className="form-label">Note <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
+              <input
+                className="form-control"
+                placeholder="e.g. Holiday bonus, Community appreciation…"
+                value={bulkForm.note}
+                onChange={(e) => setBulkForm((p) => ({ ...p, note: e.target.value }))}
+              />
+            </div>
+
+            <button
+              className="btn-primary"
+              onClick={runBulkGrant}
+              disabled={granting}
+              style={{ padding: "10px 28px", opacity: granting ? 0.7 : 1 }}
+            >
+              <LuGift size={16} style={{ marginRight: 8, verticalAlign: "middle" }} />
+              {granting ? "Processing…" : "Apply to All Selected"}
+            </button>
+          </div>
+          )}
         </div>
       )}
 
       {/* ── Bundle Modal ─────────────────────────────────────────────────────── */}
-      {bundleModal && (
+      {bundleModal && createPortal(
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setBundleModal(false)}>
           <div className="modal-container" style={{ maxWidth: 480 }}>
             <div className="modal-header">
@@ -794,11 +1046,12 @@ export default function AdminCreditBundles() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Coupon Modal ─────────────────────────────────────────────────────── */}
-      {couponModal && (
+      {couponModal && createPortal(
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setCouponModal(false)}>
           <div className="modal-container" style={{ maxWidth: 520 }}>
             <div className="modal-header">
@@ -919,7 +1172,8 @@ export default function AdminCreditBundles() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

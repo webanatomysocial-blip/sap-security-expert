@@ -3,7 +3,7 @@ import CategoryLayout from "../../components/CategoryLayout";
 
 const ExpertRecommendations = () => {
   return (
-    <CategoryLayout categorySlug="expert-recommendations" displayName="Expert Recommendations" />
+    <CategoryLayout categorySlug="expert-recommendations" displayName="Expert Articles" />
   );
 };
 

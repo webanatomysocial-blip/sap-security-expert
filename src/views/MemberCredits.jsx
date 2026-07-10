@@ -208,7 +208,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
 
 /* ── Main Page ─────────────────────────────────────────────────────────────── */
 export default function MemberCredits() {
-  const { isLoggedIn, creditBalance } = useMemberAuth();
+  const { isLoggedIn, creditBalance, onCreditsPurchased } = useMemberAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -233,7 +233,17 @@ export default function MemberCredits() {
 
   const reload = () => {
     setLoading(true);
-    getMyTransactions().then((r) => setData(r.data)).catch(() => {}).finally(() => setLoading(false));
+    getMyTransactions()
+      .then((r) => {
+        setData(r.data);
+        // Sync the freshly-fetched, authoritative balance back into the shared
+        // auth context — otherwise the header dropdown keeps showing whatever
+        // creditBalance was last cached at login, even though this page is
+        // showing the correct live number right next to it.
+        if (typeof r.data?.balance === "number") onCreditsPurchased(r.data.balance);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {

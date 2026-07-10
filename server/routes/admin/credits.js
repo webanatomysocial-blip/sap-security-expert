@@ -11,6 +11,7 @@ router.post('/coupons', requireAdmin, controller.saveCoupon);
 router.delete('/coupons/:id', requireAdmin, controller.deleteCoupon);
 
 router.post('/grant-credits', requireAdmin, controller.grantCredits);
+router.post('/bulk-grant-credits', requireAdmin, controller.bulkGrantCredits);
 router.get('/credit-transactions', requireAdmin, controller.listTransactions);
 router.get('/member-credits/:id', requireAdmin, controller.getMemberCredits);
 router.get('/credit-stats', requireAdmin, controller.getCreditStats);

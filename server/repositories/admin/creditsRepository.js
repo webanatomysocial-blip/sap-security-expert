@@ -49,6 +49,13 @@ async function findMemberById(db, memberId) {
   return rows[0] || null;
 }
 
+async function findAllApprovedMemberIds(db) {
+  const [rows] = await db.execute(
+    "SELECT id FROM members WHERE status = 'approved' AND (is_deleted IS NULL OR is_deleted = 0)"
+  );
+  return rows.map((r) => r.id);
+}
+
 async function findMemberCredits(db, memberId) {
   const [rows] = await db.execute('SELECT id, balance FROM member_credits WHERE member_id = ? LIMIT 1', [memberId]);
   return rows[0] || null;
@@ -113,6 +120,6 @@ async function getCreditStats(db) {
 module.exports = {
   findAllBundles, updateBundle, createBundle, deleteBundle,
   findAllCoupons, updateCoupon, createCoupon, deleteCoupon,
-  findMemberById, findMemberCredits, incrementMemberBalance, createMemberCredits, insertAdjustmentTransaction,
+  findMemberById, findAllApprovedMemberIds, findMemberCredits, incrementMemberBalance, createMemberCredits, insertAdjustmentTransaction,
   findAllTransactions, countTransactions, findMemberBalance, getCreditStats,
 };

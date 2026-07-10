@@ -24,7 +24,7 @@ const CATEGORY_LABELS = {
   'product-reviews': 'Product Reviews',
   'podcasts': 'Expert Voices & Podcasts',
   'videos': 'Videos',
-  'expert-recommendations': 'Expert Recommendations',
+  'expert-recommendations': 'Expert Articles',
   // Learning Hub module categories
   'security-fundamentals': 'Security Fundamentals',
   'user-management': 'User Management',

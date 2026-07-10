@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
 import ColumnToggle from "./ColumnToggle.jsx";
@@ -382,7 +383,7 @@ const AdminContributors = () => {
         </div>
       )}
 
-      {selectedApp && (
+      {selectedApp && createPortal(
         <div className="modal-overlay" onClick={() => setSelectedApp(null)}>
           <div
             className="modal-container large"
@@ -816,7 +817,8 @@ const AdminContributors = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {/* Manage Login Modal */}
       {managingContributor && (
@@ -826,7 +828,7 @@ const AdminContributors = () => {
         />
       )}
       {/* Rejection Modal */}
-      {rejectingId && (
+      {rejectingId && createPortal(
         <div className="modal-overlay" onClick={() => setRejectingId(null)}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -890,7 +892,8 @@ const AdminContributors = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

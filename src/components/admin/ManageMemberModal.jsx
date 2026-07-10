@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   LuX,
   LuShieldCheck,
@@ -89,7 +90,7 @@ const ManageMemberModal = ({ member, onClose }) => {
 
   if (!member) return null;
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -293,7 +294,8 @@ const ManageMemberModal = ({ member, onClose }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

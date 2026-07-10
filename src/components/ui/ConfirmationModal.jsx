@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 // next-disabled: import "./ConfirmationModal.css";
 import useScrollLock from "../../hooks/useScrollLock";
 
@@ -38,7 +39,7 @@ const ConfirmationModal = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onCancel}>
       <div
         className="modal-container"
@@ -95,7 +96,8 @@ const ConfirmationModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

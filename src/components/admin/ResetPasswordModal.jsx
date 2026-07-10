@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { LuKey, LuLock, LuX, LuTriangleAlert } from "react-icons/lu";
 import { resetAdminPassword } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
@@ -68,7 +69,7 @@ const ResetPasswordModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay"
       onClick={(e) => e.target === e.currentTarget && handleClose()}
@@ -157,7 +158,8 @@ const ResetPasswordModal = ({ isOpen, onClose }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 // next-disabled: import "../css/BecomeContributor.css";
 import { Helmet } from "react-helmet-async";
@@ -899,7 +900,7 @@ const ContributorApplication = () => {
       </div>
 
       {/* T&C Modal */}
-      {showTermsModal && (
+      {showTermsModal && createPortal(
         <div className="modal-overlay">
           <div
             className="modal-container large-modal"
@@ -1208,7 +1209,8 @@ const ContributorApplication = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -22,7 +22,7 @@ const CATEGORY_LABELS = {
   "product-reviews": "Product Reviews",
   "podcasts": "Podcasts",
   "videos": "Videos",
-  "expert-recommendations": "Expert Recs",
+  "expert-recommendations": "Expert Articles",
 };
 
 const FILTER_TABS = [

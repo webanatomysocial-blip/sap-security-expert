@@ -146,7 +146,7 @@ export default function FeaturedInsights({ id }) {
       "sap-btp-security": "SAP BTP",
       "sap-cybersecurity": "Cybersecurity",
       podcasts: "Podcast",
-      "expert-recommendations": "Expert Recommendations",
+      "expert-recommendations": "Expert Articles",
       "sap-access-control": "SAP Access Control",
       "sap-process-control": "SAP Process Control",
       "sap-security": "SAP Security",

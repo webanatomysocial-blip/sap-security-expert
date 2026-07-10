@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   LuX,
   LuUser,
@@ -199,7 +200,7 @@ const ManageContributorModal = ({ contributor, onClose }) => {
 
   if (!contributor) return null;
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -621,7 +622,8 @@ const ManageContributorModal = ({ contributor, onClose }) => {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

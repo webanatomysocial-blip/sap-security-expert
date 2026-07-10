@@ -34,7 +34,7 @@ export const categories = [
       { name: "Product Reviews", slug: "product-reviews" },
       { name: "Expert Voices/Podcasts", slug: "podcasts" },
       { name: "Videos", slug: "videos" },
-      { name: "Expert Recommendations", slug: "expert-recommendations" },
+      { name: "Expert Articles", slug: "expert-recommendations" },
     ],
   },
 ];
