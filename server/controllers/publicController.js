@@ -349,21 +349,28 @@ const sitemap = async (req, res) => {
   const db = req.db;
   try {
     // Always use the canonical production domain — never localhost
-    const siteUrl = (process.env.CANONICAL_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+    const siteUrl = (process.env.CANONICAL_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
     const today = new Date().toISOString().slice(0, 10);
 
     const blogs = await repo.findBlogsForSitemap(db);
 
     const staticPages = [
-      { loc: '/',                       priority: '1.0', changefreq: 'daily'   },
-      { loc: '/blogs',                  priority: '0.9', changefreq: 'daily'   },
-      { loc: '/about',                  priority: '0.7', changefreq: 'monthly' },
-      { loc: '/contact-us',             priority: '0.6', changefreq: 'monthly' },
-      { loc: '/podcasts',               priority: '0.7', changefreq: 'weekly'  },
-      { loc: '/product-reviews',        priority: '0.7', changefreq: 'weekly'  },
-      { loc: '/expert-recommendations', priority: '0.7', changefreq: 'weekly'  },
-      { loc: '/become-a-contributor',   priority: '0.6', changefreq: 'monthly' },
-      { loc: '/authors/raghu-boddu',    priority: '0.8', changefreq: 'monthly' },
+      { loc: '/',                             priority: '1.0', changefreq: 'daily'   },
+      { loc: '/blogs',                        priority: '0.9', changefreq: 'daily'   },
+      { loc: '/about',                        priority: '0.7', changefreq: 'monthly' },
+      { loc: '/contact-us',                   priority: '0.6', changefreq: 'monthly' },
+      { loc: '/podcasts',                     priority: '0.7', changefreq: 'weekly'  },
+      { loc: '/videos',                       priority: '0.7', changefreq: 'weekly'  },
+      { loc: '/product-reviews',              priority: '0.7', changefreq: 'weekly'  },
+      { loc: '/expert-recommendations',       priority: '0.7', changefreq: 'weekly'  },
+      { loc: '/become-a-contributor',         priority: '0.6', changefreq: 'monthly' },
+      { loc: '/authors/raghu-boddu',          priority: '0.8', changefreq: 'monthly' },
+      { loc: '/learning/security-fundamentals', priority: '0.7', changefreq: 'monthly' },
+      { loc: '/learning/user-management',      priority: '0.7', changefreq: 'monthly' },
+      { loc: '/learning/role-management',      priority: '0.7', changefreq: 'monthly' },
+      { loc: '/learning/authorization-concepts', priority: '0.7', changefreq: 'monthly' },
+      { loc: '/learning/audit-compliance',     priority: '0.7', changefreq: 'monthly' },
+      { loc: '/learning/grc-advanced',         priority: '0.7', changefreq: 'monthly' },
     ];
 
     const categoryPages = [
@@ -400,6 +407,17 @@ const sitemap = async (req, res) => {
   }
 };
 
+// GET /api/posts-sitemap (lightweight posts data for sitemap generation)
+const postsSitemap = async (req, res) => {
+  const db = req.db;
+  try {
+    const blogs = await repo.findBlogsForSitemap(db);
+    return res.json(blogs);
+  } catch (err) {
+    return res.status(500).json([]);
+  }
+};
+
 // ── SEO Meta endpoint for Next.js generateMetadata ──────────────────────────
 // GET /api/seo-meta?path=/articles/some-slug
 const SEO_STATIC = {
@@ -417,23 +435,37 @@ const SEO_STATIC = {
   '/learning-hub': { title: 'SAP Security Learning Hub — Free Courses & Tutorials | SAP Security Expert', description: 'Learn SAP Security from scratch with structured modules covering fundamentals, user management, role design, GRC, and more. Free hands-on tutorials for all levels.' },
   '/become-a-contributor': { title: 'Write for SAP Security Expert | Become a Contributor', description: 'Share your SAP Security expertise. Join our contributor programme and publish guides, tutorials, and best practices to the SAP security community.' },
   '/authors/raghu-boddu': { title: 'Raghu Boddu - SAP Security & GRC Expert | SAP Security Expert', description: 'Read expert insights and research from Raghu Boddu, founder of SAP Security Expert.' },
+  '/videos': { title: 'SAP Security Videos & Tutorials | SAP Security Expert', description: 'Watch step-by-step SAP security video tutorials, webinars, and live demos on GRC, role design, BTP security, and cybersecurity hardening.' },
+  '/product-reviews': { title: 'SAP Security Product Reviews | SAP Security Expert', description: 'Unbiased technical reviews of SAP security products, GRC tools, and third-party add-ons to help you make informed software selection decisions.' },
+  '/contributors': { title: 'SAP Security Expert Contributors | SAP Security Expert', description: 'Meet the SAP Security Expert contributors — experienced practitioners sharing their expertise in SAP Security, GRC, BTP, and identity management.' },
+  '/leaderboard': { title: 'Top SAP Security Contributors Leaderboard | SAP Security Expert', description: 'Discover the top contributors in the SAP Security Expert community — ranked by published articles, expertise, and community impact.' },
+  '/transactions': { title: 'SAP Security Transactions Reference Guide | SAP Security Expert', description: 'A complete reference guide to important SAP security transactions — PFCG, SU01, SM20, RSECADMIN, and more, with practical usage tips for each.' },
+  '/sap-licensing': { title: 'SAP Licensing Guide & Compliance | SAP Security Expert', description: 'Understand SAP licensing metrics, user types, indirect access rules, and contract optimisation strategies to manage costs and avoid audit risk.' },
+  '/announcements': { title: 'SAP Security Expert Announcements | SAP Security Expert', description: 'Platform announcements, feature releases, and community updates from the SAP Security Expert team.' },
+  '/learning/security-fundamentals': { title: 'SAP Security Fundamentals | SAP Security Learning Hub', description: 'Start learning SAP Security. Discover foundational concepts, architecture, and threat vectors in SAP environments.' },
+  '/learning/user-management': { title: 'SAP User Management & SU01 | SAP Security Learning Hub', description: 'Master SAP user administration: SU01 user maintenance, user types, security parameters, and validity periods.' },
+  '/learning/role-management': { title: 'SAP Role Design & PFCG | SAP Security Learning Hub', description: 'Learn SAP PFCG role maintenance: single roles, composite roles, derived roles, and role transport strategies.' },
+  '/learning/authorization-concepts': { title: 'SAP Authorization Concepts & Fields | SAP Security Learning Hub', description: 'Understand SAP authorization objects, fields, profiles, and user buffers for granular access control.' },
+  '/learning/audit-compliance': { title: 'SAP Security Audit & Compliance Checklist | SAP Security Learning Hub', description: 'Prepare for SAP audits. Learn Security Audit Log (SAL), system profiling, and vulnerability scans.' },
+  '/learning/grc-advanced': { title: 'SAP GRC & Advanced Topics | SAP Security Learning Hub', description: 'Explore advanced SAP security topics: Access Control, Process Control, IAG, BTP Cloud security, and identity integration.' },
 };
 
 const SEO_CATEGORIES = {
   'sap-btp-security': { title: 'SAP BTP Cloud Security Guide | SAP Security Expert', description: 'Secure SAP BTP with step-by-step tutorials on IAS/IPS, Role Collections, API security, and tenant hardening. Expert guides for cloud security professionals.' },
   'sap-grc': { title: 'SAP GRC Governance Risk Compliance | SAP Security Expert', description: 'Master SAP GRC with expert guides on ARA rulesets, ARM workflows, EAM firefighter logs, and BRM role governance. Practical compliance tutorials for GRC professionals.' },
-  'sap-public-cloud': { title: 'SAP Public Cloud Security Guide | SAP Security Expert', description: 'Secure SAP S/4HANA Cloud Public Edition with tutorials on IAS/IPS IAM, business catalog permissions, and communication arrangements for cloud compliance.' },
+  'sap-public-cloud': { title: 'SAP Cloud Security Guide - Public Cloud | SAP Security Expert', description: 'Secure SAP S/4HANA Cloud Public Edition with tutorials on IAS/IPS IAM, business catalog permissions, and communication arrangements for cloud compliance.' },
   'sap-cybersecurity': { title: 'SAP Cybersecurity Resources & Insights | SAP Security Expert', description: 'Protect SAP environments from advanced threats. Learn ABAP code auditing, SIEM integration, infrastructure hardening, and vulnerability management best practices.' },
   'sap-iag': { title: 'SAP IAG Identity Access Governance | SAP Security Expert', description: 'Govern identities with SAP IAG. Learn SoD checks, intelligent access analysis, automated provisioning, and cloud-native risk management in hybrid environments.' },
   'sap-security': { title: 'SAP Security Services & Solutions | SAP Security Expert', description: 'Master SAP Security with step-by-step guides on role design (PFCG), authorization objects, SoD, audit strategies, and RFC/gateway hardening for enterprise systems.' },
   'sap-s4hana-security': { title: 'SAP S/4HANA Security Best Practices | SAP Security Expert', description: 'Secure SAP S/4HANA with expert tutorials on HANA DB permissions, business catalog mapping, role migration from ECC, and Fiori UX authorization design.' },
   'sap-fiori-security': { title: 'SAP Fiori Security & UX Protection | SAP Security Expert', description: 'Harden SAP Fiori with guides on catalog and spaces design, OData service security, Web Dispatcher hardening, and SSO configuration for secure UX delivery.' },
   'sap-sac-security': { title: 'SAP Analytics Cloud (SAC) Security | SAP Security Expert', description: 'Secure SAP Analytics Cloud: user provisioning, folder permissions, RLS data access, SSO via IAS, and governance best practices for secure enterprise reporting.' },
-  'sap-cis': { title: 'SAP Cybersecurity Infrastructure (CIS) | SAP Security Expert', description: 'Harden SAP infrastructure with CIS benchmarks, HANA and OS security controls, Security Audit Log setup, and patch management frameworks for system-level protection.' },
+  'sap-cis': { title: 'SAP Cloud Identity Services Guide | SAP Security Expert', description: 'Master SAP Cloud Identity Services. Learn Identity Authentication Service (IAS), Identity Provisioning Service (IPS), Single Sign-On (SSO) configuration, and user provisioning.' },
   'sap-successfactors-security': { title: 'SAP SuccessFactors Security & RBP | SAP Security Expert', description: 'Secure HCM data with SAP SuccessFactors RBP. Learn permission groups, target populations, SSO via IAS, and GDPR-compliant data privacy configurations.' },
   'sap-access-control': { title: 'SAP GRC Access Control Expert Guide | SAP Security Expert', description: 'Master SAP GRC Access Control: ARA rulesets, ARM workflows, EAM firefighter logs, and BRM role design. Step-by-step tutorials for GRC professionals.' },
   'sap-process-control': { title: 'SAP GRC Process Control & Continuous Monitoring | SAP Security Expert', description: 'Automate SAP compliance with GRC Process Control. Learn continuous control monitoring (CCM), internal control testing, and audit-ready frameworks.' },
   'sap-security-other': { title: 'Advanced SAP Security Topics & Custom Developments | SAP Security Expert', description: 'Explore niche SAP security domains: ABAP code audits, interface security, legacy system hardening, and custom authorization object design guides.' },
+  'sap-licensing': { title: 'SAP Licensing Guide & Compliance | SAP Security Expert', description: 'Understand SAP licensing metrics, user types, indirect access rules, and contract optimisation strategies to manage costs and avoid audit risk.' },
 };
 
 const DEFAULT_META = {
@@ -443,8 +475,8 @@ const DEFAULT_META = {
 
 const seoMeta = asyncHandler(async (req, res) => {
   const db = req.db;
-  const path = (req.query.path || '/').replace(/\?.*$/, '');
-  const siteUrl = (process.env.CANONICAL_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+  const path = (req.query.path || '/').replace(/\?.*$/, '').replace(/\/$/, '') || '/';
+  const siteUrl = (process.env.CANONICAL_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
   res.setHeader('Cache-Control', 'public, max-age=300');
 
@@ -468,7 +500,27 @@ const seoMeta = asyncHandler(async (req, res) => {
     try {
       const b = await repo.findBlogForSeoMeta(db, slug);
       if (b) {
-        const desc = b.meta_description || DEFAULT_META.description;
+        // Strip markdown and HTML tags from a string to clean up preview text
+        const cleanText = (str) => {
+          if (!str) return '';
+          return str
+            .replace(/<\/?[^>]+(>|$)/g, '') // Strip HTML tags
+            .replace(/[#*`_\[\]()\-]/g, ' ') // Strip common markdown characters
+            .replace(/\s+/g, ' ')            // Collapse extra whitespaces
+            .trim();
+        };
+
+        let desc = b.meta_description;
+        if (!desc && b.excerpt) {
+          desc = cleanText(b.excerpt);
+        }
+        if (!desc && b.content) {
+          desc = cleanText(b.content).slice(0, 155);
+        }
+        if (!desc) {
+          desc = DEFAULT_META.description;
+        }
+
         return res.json({
           status: 'success',
           title: `${b.title} | SAP Security Expert`,
@@ -545,6 +597,6 @@ const newsBySlug = async (req, res) => {
 
 module.exports = {
   homepage, popularTags, search, leaderboard, publicMemberProfile, communityStats, categories, trendingTopics,
-  announcementsPublic, authors, recordView, captcha, deleteAccount, content, sitemap, seoMeta,
+  announcementsPublic, authors, recordView, captcha, deleteAccount, content, sitemap, seoMeta, postsSitemap,
   learnings, learningsCounts, news, newsBySlug, sendMail,
 };

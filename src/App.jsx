@@ -25,6 +25,7 @@ import SapIag from "./views/categories/SapIag";
 import SapGrc from "./views/categories/SapGrc";
 
 import SapCybersecurity from "./views/categories/SapCybersecurity";
+import SapLicensing from "./views/categories/SapLicensing";
 import ProductReviews from "./views/categories/ProductReviews";
 import Podcasts from "./views/categories/Podcasts";
 import Videos from "./views/categories/Videos";
@@ -135,6 +136,10 @@ function App() {
 
         <Route path="sap-cybersecurity" element={<SapCybersecurity />} />
         <Route path="sap-cybersecurity/:blogId" element={<DynamicBlog />} />
+
+        <Route path="sap-licensing" element={<SapLicensing />} />
+        <Route path="sap-licensing/:blogId" element={<DynamicBlog />} />
+        <Route path="transactions" element={<FundamentalsPage />} />
 
 
 

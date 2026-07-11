@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import ClientApp from '../../[[...slug]]/ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
 const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next']);
 
@@ -15,9 +15,9 @@ const CATEGORY_LABELS = {
   'sap-btp-security': 'SAP BTP Security',
   'sap-public-cloud': 'SAP Public Cloud',
   'sap-sac-security': 'SAP SAC Security',
-  'sap-cis': 'SAP CIS',
+  'sap-cis': 'SAP Cloud Identity Services',
   'sap-successfactors-security': 'SuccessFactors Security',
-  'sap-security-other': 'SAP Security',
+  'sap-security-other': 'Advanced SAP Security',
   'sap-access-control': 'Access Control',
   'sap-process-control': 'Process Control',
   'sap-iag': 'SAP IAG',
@@ -34,6 +34,7 @@ const CATEGORY_LABELS = {
   'authorization-concepts': 'Authorization Concepts',
   'audit-compliance': 'Audit & Compliance',
   'grc-advanced': 'GRC & Advanced Topics',
+  'sap-licensing': 'SAP Licensing',
 };
 
 // ── Data fetching ────────────────────────────────────────────────────────────

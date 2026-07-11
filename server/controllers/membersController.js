@@ -348,7 +348,7 @@ const referral = asyncHandler(async (req, res) => {
   }
 
   const referrals_count = await repo.countApprovedReferrals(db, code);
-  const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+  const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
   return res.json({
     status: 'success',
@@ -385,7 +385,7 @@ const achievements = asyncHandler(async (req, res) => {
 
   const memberEmail = memberRow?.email || null;
   const memberName = memberRow?.name || 'Member';
-  const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+  const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
   const mailer = MailService.getInstance(db);
 
   // Auto-grant logic only runs for the authenticated member's own session
@@ -450,7 +450,7 @@ const grantAchievement = asyncHandler(async (req, res) => {
   const memberRow = await repo.findMemberEmailAndName(db, member_id);
   const memberEmail = memberRow?.email || null;
   const memberName = memberRow?.name || 'Member';
-  const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+  const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
   const mailer = MailService.getInstance(db);
   await grantAndNotify(db, mailer, member_id, achievement_id, memberEmail, memberName, siteUrl);
   return res.json({ status: 'success', message: 'Achievement granted.' });

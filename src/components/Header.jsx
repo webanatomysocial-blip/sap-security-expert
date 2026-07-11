@@ -366,7 +366,7 @@ const Header = () => {
       {/* MOBILE MENU */}
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         <div className="mobile-menu-header">
-          <Image src={logo} alt="Logo" width={160} height={40} style={{ width: "auto", height: "auto" }} />
+          <Image src={logo} alt="Logo" width={140} height={35} style={{ maxWidth: "140px", height: "auto", objectFit: "contain" }} />
           <button onClick={closeMenu}>
             <FiX size={24} />
           </button>

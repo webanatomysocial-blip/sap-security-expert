@@ -97,6 +97,10 @@ const getProfile = asyncHandler(async (req, res) => {
 
   if (!id) return sendError(res, 'Contributor ID is required.', 400);
 
+  if (id === 'raghu' || id === 'raghu-boddu') {
+    return getFounderProfile(req, res);
+  }
+
   const row = await repo.findApprovedProfileById(db, id);
   if (!row) {
     return sendError(res, 'Contributor not found or not approved.', 404);

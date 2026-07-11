@@ -305,7 +305,7 @@ async function findBlogsForSitemap(db) {
 
 async function findBlogForSeoMeta(db, slug) {
   const [rows] = await db.execute(
-    `SELECT b.title, b.meta_description, b.image, b.category,
+    `SELECT b.title, b.meta_description, b.excerpt, b.content, b.image, b.category,
             CASE WHEN u.role = 'admin' OR b.author_id IS NULL OR b.author_id = 1 THEN 'Raghu Boddu'
                  ELSE COALESCE(c.full_name, b.author) END AS author_name
      FROM blogs b

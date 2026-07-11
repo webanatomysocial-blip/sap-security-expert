@@ -106,7 +106,6 @@
   display: grid;
   grid-template-columns: 320px 1fr 320px;
   gap: 24px;
-  max-width: 1400px;
   margin: 0 auto;
   align-items: stretch;
 }
@@ -121,6 +120,7 @@
   align-self: stretch;
 }
 
+.community-left > *:last-child,
 .community-center > *:last-child,
 .community-right > *:last-child {
   flex: 1;

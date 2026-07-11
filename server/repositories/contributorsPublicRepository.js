@@ -53,7 +53,7 @@ async function createApplication(db, fields) {
 
 async function findApprovedContributors(db) {
   const [rows] = await db.execute(
-    `SELECT id, full_name, role, image AS profile_image, created_at,
+    `SELECT id, full_name, role, organization, designation, short_bio, expertise, image AS profile_image, created_at,
        (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
         WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count
      FROM contributors WHERE status = 'approved' ORDER BY created_at DESC`
