@@ -14,11 +14,19 @@ const saveBundle = asyncHandler(async (req, res) => {
   if (!name || !credits || !price_paise) {
     return sendError(res, 'name, credits, and price_paise are required', 400);
   }
+  const parsedCredits = parseInt(credits);
+  const parsedPrice = parseInt(price_paise);
+  if (isNaN(parsedCredits) || parsedCredits <= 0) {
+    return sendError(res, 'credits must be a positive integer', 400);
+  }
+  if (isNaN(parsedPrice) || parsedPrice <= 0) {
+    return sendError(res, 'price_paise must be a positive integer', 400);
+  }
   if (id) {
-    await repo.updateBundle(req.db, id, { name, credits: parseInt(credits), price_paise: parseInt(price_paise), is_active: is_active ? 1 : 0 });
+    await repo.updateBundle(req.db, id, { name, credits: parsedCredits, price_paise: parsedPrice, is_active: is_active === true || is_active === 1 || is_active === '1' ? 1 : 0 });
     return sendSuccess(res, { message: 'Bundle updated.' });
   }
-  await repo.createBundle(req.db, { name, credits: parseInt(credits), price_paise: parseInt(price_paise) });
+  await repo.createBundle(req.db, { name, credits: parsedCredits, price_paise: parsedPrice });
   return sendSuccess(res, { message: 'Bundle created.' });
 });
 
@@ -48,17 +56,24 @@ const saveCoupon = async (req, res, next) => {
   if (!['percentage', 'fixed'].includes(discount_type)) {
     return sendError(res, 'discount_type must be "percentage" or "fixed"', 400);
   }
+  const parsedDiscount = parseInt(discount_value);
+  if (isNaN(parsedDiscount) || parsedDiscount <= 0) {
+    return sendError(res, 'discount_value must be a positive integer', 400);
+  }
+  if (discount_type === 'percentage' && parsedDiscount > 100) {
+    return sendError(res, 'Percentage discount cannot exceed 100', 400);
+  }
   try {
     if (id) {
       await repo.updateCoupon(req.db, id, {
-        code: code.toUpperCase(), discount_type, discount_value: parseInt(discount_value),
-        max_uses: parseInt(max_uses), is_active: is_active ? 1 : 0, expires_at: expires_at || null,
+        code: code.toUpperCase(), discount_type, discount_value: parsedDiscount,
+        max_uses: Math.max(0, parseInt(max_uses) || 0), is_active: is_active === true || is_active === 1 || is_active === '1' ? 1 : 0, expires_at: expires_at || null,
       });
       return sendSuccess(res, { message: 'Coupon updated.' });
     }
     await repo.createCoupon(req.db, {
-      code: code.toUpperCase(), discount_type, discount_value: parseInt(discount_value),
-      max_uses: parseInt(max_uses), expires_at: expires_at || null,
+      code: code.toUpperCase(), discount_type, discount_value: parsedDiscount,
+      max_uses: Math.max(0, parseInt(max_uses) || 0), expires_at: expires_at || null,
     });
     return sendSuccess(res, { message: 'Coupon created.' });
   } catch (err) {
@@ -82,41 +97,45 @@ const grantCredits = asyncHandler(async (req, res) => {
   if (!member_id || amount == null) {
     return sendError(res, 'member_id and amount are required', 400);
   }
+  const memberId = parseInt(member_id);
+  if (isNaN(memberId) || memberId <= 0) {
+    return sendError(res, 'member_id must be a positive integer', 400);
+  }
   const credits = parseInt(amount);
   if (isNaN(credits) || credits === 0) {
     return sendError(res, 'amount must be a non-zero integer', 400);
   }
 
-  const member = await repo.findMemberById(db, member_id);
+  const member = await repo.findMemberById(db, memberId);
   if (!member) return sendError(res, 'Member not found', 404);
 
-  const existing = await repo.findMemberCredits(db, member_id);
-  if (existing) {
-    await repo.incrementMemberBalance(db, member_id, credits);
-  } else {
-    if (credits < 0) {
-      return sendError(res, 'Cannot deduct credits from a member with no balance', 400);
-    }
-    await repo.createMemberCredits(db, member_id, credits);
-  }
-
-  const txNote = note || (credits > 0 ? `Admin granted ${credits} credits` : `Admin deducted ${Math.abs(credits)} credits`);
-  await repo.insertAdjustmentTransaction(db, member_id, credits, txNote);
-
-  const newBalance = await repo.findMemberBalance(db, member_id);
-  return sendSuccess(res, { message: `Credits updated. New balance: ${newBalance}`, new_balance: newBalance });
-});
-
-// Shared by grantCredits and bulkGrantCredits — applies one credit
-// adjustment to one member and records the transaction.
-async function applyCreditAdjustment(db, memberId, credits, note) {
   const existing = await repo.findMemberCredits(db, memberId);
   if (existing) {
     await repo.incrementMemberBalance(db, memberId, credits);
   } else {
-    if (credits < 0) throw new Error('no_balance');
+    if (credits < 0) {
+      return sendError(res, 'Cannot deduct credits from a member with no balance', 400);
+    }
     await repo.createMemberCredits(db, memberId, credits);
   }
+
+  const txNote = note || (credits > 0 ? `Admin granted ${credits} credits` : `Admin deducted ${Math.abs(credits)} credits`);
+  await repo.insertAdjustmentTransaction(db, memberId, credits, txNote);
+
+  const newBalance = await repo.findMemberBalance(db, memberId);
+  return sendSuccess(res, { message: `Credits updated. New balance: ${newBalance}`, new_balance: newBalance });
+});
+
+// Shared by grantCredits and bulkGrantCredits — applies one credit adjustment
+// atomically using INSERT ... ON DUPLICATE KEY UPDATE so concurrent calls for
+// the same member never race on a missing row (TOCTOU → UNIQUE crash).
+async function applyCreditAdjustment(db, memberId, credits, note) {
+  if (credits < 0) {
+    // Deduction path: guard against going negative and ensure the row exists
+    const existing = await repo.findMemberCredits(db, memberId);
+    if (!existing) throw new Error('no_balance');
+  }
+  await repo.upsertMemberBalance(db, memberId, credits);
   await repo.insertAdjustmentTransaction(db, memberId, credits, note);
   return repo.findMemberBalance(db, memberId);
 }
@@ -139,7 +158,12 @@ const bulkGrantCredits = asyncHandler(async (req, res) => {
   if (target === 'all') {
     ids = await repo.findAllApprovedMemberIds(db);
   } else if (Array.isArray(member_ids) && member_ids.length) {
-    ids = [...new Set(member_ids)];
+    // Validate each element is a positive integer before touching the DB
+    const parsed = member_ids.map(v => parseInt(v));
+    if (parsed.some(v => isNaN(v) || v <= 0)) {
+      return sendError(res, 'All member_ids must be positive integers', 400);
+    }
+    ids = [...new Set(parsed)];
   } else {
     return sendError(res, 'Provide target="all" or a non-empty member_ids array', 400);
   }

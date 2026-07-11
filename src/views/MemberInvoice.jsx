@@ -116,10 +116,20 @@ export default function MemberInvoice() {
       </div>
 
       <style>{`@media print {
-        @page { margin: 20mm; }
-        button, a { display: none !important; }
-        body { background: #fff; }
-        #invoice-print { border: none !important; box-shadow: none !important; }
+        @page { margin: 15mm; size: A4; }
+        body * { visibility: hidden !important; }
+        #invoice-print, #invoice-print * { visibility: visible !important; }
+        #invoice-print {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          border: none !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
       }`}</style>
     </div>
   );

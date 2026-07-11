@@ -68,6 +68,19 @@ async function incrementMemberBalance(db, memberId, amount) {
   );
 }
 
+// Atomic upsert: creates the row if missing, otherwise increments.
+// GREATEST(..., 0) prevents the balance going negative on deductions.
+async function upsertMemberBalance(db, memberId, amount) {
+  await db.execute(
+    `INSERT INTO member_credits (member_id, balance)
+     VALUES (?, GREATEST(0, ?))
+     ON DUPLICATE KEY UPDATE
+       balance = GREATEST(0, balance + ?),
+       updated_at = CURRENT_TIMESTAMP`,
+    [memberId, amount, amount]
+  );
+}
+
 async function createMemberCredits(db, memberId, balance) {
   await db.execute('INSERT INTO member_credits (member_id, balance) VALUES (?, ?)', [memberId, balance]);
 }
@@ -120,6 +133,6 @@ async function getCreditStats(db) {
 module.exports = {
   findAllBundles, updateBundle, createBundle, deleteBundle,
   findAllCoupons, updateCoupon, createCoupon, deleteCoupon,
-  findMemberById, findAllApprovedMemberIds, findMemberCredits, incrementMemberBalance, createMemberCredits, insertAdjustmentTransaction,
+  findMemberById, findAllApprovedMemberIds, findMemberCredits, incrementMemberBalance, upsertMemberBalance, createMemberCredits, insertAdjustmentTransaction,
   findAllTransactions, countTransactions, findMemberBalance, getCreditStats,
 };

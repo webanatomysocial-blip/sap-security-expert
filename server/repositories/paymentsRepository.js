@@ -207,8 +207,11 @@ async function findOrderById(db, orderId) {
   return rows[0] || null;
 }
 
-async function markOrderFulfilled(db, orderId) {
-  await db.execute('UPDATE payment_orders SET fulfilled = 1 WHERE razorpay_order_id = ?', [orderId]);
+async function markOrderFulfilled(db, orderId, razorpayPaymentId) {
+  await db.execute(
+    'UPDATE payment_orders SET fulfilled = 1, razorpay_payment_id = ? WHERE razorpay_order_id = ?',
+    [razorpayPaymentId || null, orderId]
+  );
 }
 
 async function incrementCouponUsage(db, couponId) {

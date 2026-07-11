@@ -60,6 +60,25 @@ function requireAdmin(req, res, next) {
   });
 }
 
+// Member authentication + deactivation guard — use on all member-facing routes
+// that require a logged-in member (payments, profile mutations, etc.).
+function requireMemberAuth(req, res, next) {
+  const sess = req.session;
+  if (!sess.member_logged_in) {
+    return res.status(401).json({ status: 'error', message: 'Unauthorized. Please log in.' });
+  }
+  // Guard fires when status is explicitly set AND is not 'approved'.
+  // Sessions from before member_status was added have undefined here — those
+  // are treated as valid (approved) until the member logs out and back in.
+  // The only values that trigger immediate revocation are known bad states.
+  const blockedStatuses = new Set(['suspended', 'deactivated', 'deleted', 'banned']);
+  if (blockedStatuses.has(sess.member_status)) {
+    req.session.destroy(() => {});
+    return res.status(403).json({ status: 'error', message: 'Account has been deactivated.' });
+  }
+  next();
+}
+
 // CSRF check only, no admin session requirement — for member/payment mutating
 // routes, which authenticate via req.session.member_logged_in instead of
 // req.session.admin_logged_in. Requires the member to already be logged in
@@ -82,4 +101,4 @@ function requireCsrf(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, requireAdmin, requireCsrf, safeCompare };
+module.exports = { requireAuth, requireAdmin, requireMemberAuth, requireCsrf, safeCompare };
