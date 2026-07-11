@@ -1,23 +1,31 @@
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const repo = require('../../repositories/admin/changelogRepository');
-const { execSync } = require('child_process');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+
+const execFileAsync = promisify(execFile);
 
 // GET /api/admin/changelog
 const list = asyncHandler(async (req, res) => {
   try {
-    // Automatically retrieve the last 50 git commits
-    const gitLogOutput = execSync('git log --pretty=format:"%h|%an|%ad|%s" -n 50 --date=iso', {
-      encoding: 'utf8',
-      cwd: process.cwd()
-    });
+    // Use NUL (\x00) as the record separator — safe because git output never
+    // contains NUL bytes, unlike '|' which can appear in author names/subjects.
+    // execFile (no shell) eliminates any future shell-injection risk.
+    const { stdout } = await execFileAsync(
+      'git',
+      ['log', '--pretty=format:%h%x00%an%x00%ad%x00%s', '-n', '50', '--date=iso'],
+      { encoding: 'utf8', cwd: process.cwd(), timeout: 5000 }
+    );
 
-    const logs = gitLogOutput.split('\n').filter(Boolean).map((line) => {
-      const [hash, author, dateStr, subject] = line.split('|');
+    const logs = stdout.split('\n').filter(Boolean).map((line) => {
+      const [hash, author, dateStr, ...subjectParts] = line.split('\x00');
+      const subject = subjectParts.join('\x00'); // re-join in case subject itself had NUL (won't happen, but defensive)
 
-      // Determine type based on commit subject prefix/keywords
+      if (!hash || !dateStr) return null;
+
       let type = 'improvement';
-      const cleanSubject = subject.toLowerCase();
+      const cleanSubject = (subject || '').toLowerCase();
       if (cleanSubject.startsWith('fix:') || cleanSubject.includes('fix') || cleanSubject.includes('bug') || cleanSubject.includes('hotfix')) {
         type = 'fix';
       } else if (cleanSubject.startsWith('feat:') || cleanSubject.includes('feat') || cleanSubject.includes('add') || cleanSubject.includes('new')) {
@@ -26,25 +34,22 @@ const list = asyncHandler(async (req, res) => {
         type = 'breaking';
       }
 
-      // Determine version: parse version if specified in commit message (e.g. v3.0.0), otherwise fallback to 3.0.0-[hash]
-      let version = '3.0.0';
-      const versionMatch = subject.match(/v\d+\.\d+\.\d+/i);
-      if (versionMatch) {
-        version = versionMatch[0].replace(/v/i, '');
-      } else {
-        version = `3.0.0-${hash}`;
-      }
+      const parsedDate = new Date(dateStr);
+      const isoDate = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+
+      const versionMatch = (subject || '').match(/v\d+\.\d+\.\d+/i);
+      const version = versionMatch ? versionMatch[0].replace(/v/i, '') : `3.0.0-${hash}`;
 
       return {
         id: hash,
-        version: version,
-        title: subject,
-        description: `Commit by ${author} (${hash}).`,
-        type: type,
-        author_name: author,
-        created_at: new Date(dateStr).toISOString()
+        version,
+        title: subject || hash,
+        description: `Commit by ${author || 'unknown'} (${hash}).`,
+        type,
+        author_name: author || 'unknown',
+        created_at: isoDate,
       };
-    });
+    }).filter(Boolean);
 
     return sendSuccess(res, { logs });
   } catch (err) {

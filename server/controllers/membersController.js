@@ -65,6 +65,7 @@ const login = async (req, res) => {
     req.session.member_id = member.id;
     req.session.member_email = member.email;
     req.session.member_name = member.name;
+    req.session.member_status = member.status;
     // Every logged-in session gets a CSRF token, not just contributors/admins —
     // member-facing mutating routes (profile update, payments) verify this too.
     req.session.csrf_token = req.session.csrf_token || crypto.randomBytes(32).toString('hex');

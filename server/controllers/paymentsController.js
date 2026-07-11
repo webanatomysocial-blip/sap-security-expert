@@ -245,7 +245,7 @@ const verify = async (req, res) => {
     }
 
     // 5. Mark order as fulfilled and increment coupon usage (from server-side record, not req.body)
-    await repo.markOrderFulfilled(req.db, razorpay_order_id);
+    await repo.markOrderFulfilled(req.db, razorpay_order_id, razorpay_payment_id);
     if (paymentOrder.coupon_id) {
       await repo.incrementCouponUsage(req.db, paymentOrder.coupon_id);
     }
@@ -371,7 +371,7 @@ const webhook = async (req, res) => {
               orderId
             );
             if (credited) {
-              await repo.markOrderFulfilled(req.db, orderId);
+              await repo.markOrderFulfilled(req.db, orderId, payment?.id);
               if (paymentOrder.coupon_id) {
                 await repo.incrementCouponUsage(req.db, paymentOrder.coupon_id);
               }

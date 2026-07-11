@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const { getUploadDir, verifyImageMagicBytes } = require('../utils/helpers');
 const { rateLimit } = require('../middleware/rateLimit');
-const { requireAdmin, requireCsrf } = require('../middleware/auth');
+const { requireAdmin, requireMemberAuth, requireCsrf } = require('../middleware/auth');
 const controller = require('../controllers/membersController');
 
 // Profile image upload (members)
@@ -22,17 +22,17 @@ const profileUpload = multer({
 
 router.post('/login', rateLimit('member_login', 10, 900), controller.login);
 router.post('/signup', rateLimit('member_signup', 10, 900), controller.signup);
-router.get('/profile', controller.getProfile);
-router.post('/profile/update', (req, res, next) => {
+router.get('/profile', requireMemberAuth, controller.getProfile);
+router.post('/profile/update', requireMemberAuth, (req, res, next) => {
   profileUpload.single('profile_image')(req, res, (err) => {
     if (err) return res.status(400).json({ status: 'error', message: err.message });
     next();
   });
 }, requireCsrf, verifyImageMagicBytes, controller.updateProfile);
 router.post('/logout', controller.logout);
-router.get('/referral', controller.referral);
-router.get('/achievements', controller.achievements);
+router.get('/referral', requireMemberAuth, controller.referral);
+router.get('/achievements', requireMemberAuth, controller.achievements);
 router.post('/achievements/grant', requireAdmin, controller.grantAchievement);
-router.post('/change-password', rateLimit('member_change_password', 5, 900), requireCsrf, controller.changePassword);
+router.post('/change-password', rateLimit('member_change_password', 5, 900), requireMemberAuth, requireCsrf, controller.changePassword);
 
 module.exports = router;

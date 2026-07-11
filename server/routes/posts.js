@@ -1,13 +1,13 @@
 const router = require('express').Router();
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
 const controller = require('../controllers/postsController');
 
 router.get('/exclusive-count', controller.exclusiveCount);
 router.get('/:slug/suggested', controller.suggested);
-router.put('/:id/badges', requireAuth(), controller.updateBadges);
+router.put('/:id/badges', requireAdmin, controller.updateBadges);
 router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), controller.list);
 router.post('/', requireAuth(), checkPermission('can_manage_blogs'), controller.save);
-router.delete('/:id', requireAuth(), controller.remove);
+router.delete('/:id', requireAuth(), checkPermission('can_manage_blogs'), controller.remove);
 
 module.exports = router;

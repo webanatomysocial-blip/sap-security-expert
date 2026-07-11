@@ -10,10 +10,15 @@ const repo = require('../../repositories/admin/blogsRepository');
 const cache = new CacheService(1800);
 
 // GET /api/admin/blogs/pending — bare array, not the {status, ...} envelope
+const REVIEWABLE_STATUSES = ['pending', 'approved', 'rejected', 'draft'];
+
 const listPending = asyncHandler(async (req, res) => {
   const db = req.db;
-  const status = req.query.status || 'pending';
+  const requested = req.query.status || 'pending';
   const isAdmin = req.session.role === 'admin';
+  // Non-admins may only view pending/draft — not approved/rejected (info leak)
+  const allowedStatuses = isAdmin ? REVIEWABLE_STATUSES : ['pending', 'draft'];
+  const status = allowedStatuses.includes(requested) ? requested : 'pending';
   const reviewerId = req.session.admin_id;
 
   const rows = await repo.findPendingByStatus(db, status, { isAdmin, reviewerId });
@@ -35,6 +40,13 @@ const review = asyncHandler(async (req, res) => {
 
   const blog = await repo.findByIdWithAuthorEmail(db, id);
   if (!blog) return sendError(res, 'Blog not found', 404);
+
+  // Non-admins cannot take any review action on their own submission.
+  const reviewerId = req.session.admin_id;
+  const isAdmin = req.session.role === 'admin';
+  if (!isAdmin && String(blog.author_user_id) === String(reviewerId)) {
+    return sendError(res, 'You cannot review your own submission.', 403);
+  }
 
   const mailService = MailService.getInstance(db);
   const notifier = new NotificationService(mailService);

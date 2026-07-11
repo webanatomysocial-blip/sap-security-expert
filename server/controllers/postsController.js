@@ -252,7 +252,9 @@ const list = asyncHandler(async (req, res) => {
       b.content = paras[0] || (b.content || '').slice(0, 300);
       b.faqs = null;
     }
-    if (Number(b.is_premium) === 1 && !hasGrantedAccess && !hasAdminAccess && !unlockedSlugs.has(b.slug)) {
+    // Match single-post gate: admin role alone does NOT bypass premium — only
+    // explicit can_access_premium_articles permission or a paid unlock does.
+    if (Number(b.is_premium) === 1 && !hasGrantedAccess && !unlockedSlugs.has(b.slug)) {
       b.premium_locked = true;
       const paras = (b.content || '').match(/<p[\s\S]*?<\/p>/gi) || [];
       b.content = paras[0] || (b.content || '').slice(0, 300);
@@ -288,10 +290,19 @@ const save = asyncHandler(async (req, res) => {
           image_alt = '',
           category = '', tags = '', meta_title = '', meta_description = '', meta_keywords = '',
           faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link = null,
-          is_members_only: rawIsMembersOnly = 0, is_premium = 0, credits_required = 1, send_notification_email = 0, status: requestedStatus, related_blogs,
+          is_members_only: rawIsMembersOnly = 0, send_notification_email = 0, status: requestedStatus, related_blogs,
           schema_type = 'BlogPosting', article_section = null, co_authors = [],
-          badge_expert_reviewed = 0, badge_sap_notes_verified = 0, badge_tested_s4hana = 0, badge_field_validated = 0,
           difficulty_level: rawDifficultyLevel = null } = data;
+
+  // Badges, is_premium, and credits_required are admin-only fields — contributors
+  // submitting these in the request body must be silently ignored so they cannot
+  // self-award trust badges or force a credits paywall on their own article.
+  const badge_expert_reviewed = isAdmin ? (data.badge_expert_reviewed ?? 0) : 0;
+  const badge_sap_notes_verified = isAdmin ? (data.badge_sap_notes_verified ?? 0) : 0;
+  const badge_tested_s4hana = isAdmin ? (data.badge_tested_s4hana ?? 0) : 0;
+  const badge_field_validated = isAdmin ? (data.badge_field_validated ?? 0) : 0;
+  const is_premium = isAdmin ? (data.is_premium ?? 0) : 0;
+  const credits_required = isAdmin ? (data.credits_required ?? 1) : 1;
   const VALID_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
   const difficulty_level = VALID_LEVELS.includes(rawDifficultyLevel) ? rawDifficultyLevel : null;
   const content = sanitizeBlogHtml(rawContent);
@@ -323,7 +334,11 @@ const save = asyncHandler(async (req, res) => {
   }
 
   const seoScore = calculateSeoScore(data);
-  const faqsJson = JSON.stringify(Array.isArray(faqs) ? faqs : []);
+  const sanitizedFaqs = (Array.isArray(faqs) ? faqs : []).map(f => ({
+    question: typeof f.question === 'string' ? sanitizeBlogHtml(f.question) : '',
+    answer: typeof f.answer === 'string' ? sanitizeBlogHtml(f.answer) : '',
+  }));
+  const faqsJson = JSON.stringify(sanitizedFaqs);
   const relatedBlogsJson = Array.isArray(related_blogs) ? JSON.stringify(related_blogs) : (related_blogs || null);
 
   const mailService = MailService.getInstance(db);
