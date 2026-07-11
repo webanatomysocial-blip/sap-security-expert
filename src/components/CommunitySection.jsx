@@ -200,7 +200,7 @@ export default function CommunitySection() {
           <div className="community-left">
 
             {/* Recent Topics */}
-            <div className="widget" style={{ flex: 1 }}>
+            <div className="widget">
               <div className="widget-header">
                 <h3><i className="bi bi-bookmark-fill" style={{ marginRight: 7, color: "#e84a3d" }}></i>Recent Topics</h3>
                 <a href="#featured-insights" className="widget-view-all" onClick={(e) => scrollToSection(e, "featured-insights")}>View all</a>
@@ -216,7 +216,7 @@ export default function CommunitySection() {
                       </div>
                     </div>
                   ))
-                ) : recentActivity.slice(0, 8).map((post) => (
+                ) : recentActivity.slice(0, 7).map((post) => (
                   <Link
                     key={post.slug || post.id}
                     to={post.category ? `/${post.category.toLowerCase().replace(/\s+/g, "-")}/${post.slug || post.id}` : `/blogs/${post.slug || post.id}`}
@@ -268,7 +268,7 @@ export default function CommunitySection() {
               <div className="widget">
                 <div className="widget-header">
                   <h3><i className="bi bi-person-badge-fill" style={{ marginRight: 7, color: "#e84a3d" }}></i>Top Contributors</h3>
-                  <Link to="/become-a-contributor" className="widget-view-all">View all</Link>
+                  <Link to="/contributors/leaderboard" className="widget-view-all">View all</Link>
                 </div>
                 <div className="top-contributors-list">
                   {contributors.slice(0, 3).map((contributor, index) => {

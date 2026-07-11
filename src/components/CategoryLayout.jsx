@@ -78,7 +78,11 @@ const CATEGORY_METADATA = {
   'expert-recommendations': {
     intro: 'Handpicked books, courses, toolkits, and study materials recommended by SAP security experts to accelerate your learning and career growth.',
     banner: '/assets/images/hero-expert-recommendations.png',
-  }
+  },
+  'sap-licensing': {
+    intro: 'SAP Licensing covers user type classification, indirect access rules, contract optimization, and audit defence strategies. This hub helps organisations understand SAP license metrics, avoid compliance risk, and manage costs across S/4HANA, ECC, BTP, and cloud solutions.',
+    banner: '/assets/images/hero-sap-security.png',
+  },
 };
 
 const CategoryLayout = ({ categorySlug, displayName }) => {

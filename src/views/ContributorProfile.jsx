@@ -120,7 +120,7 @@ export default function ContributorProfile() {
           <Link to="/contributors" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.55)", fontSize: "0.8rem", textDecoration: "none", marginBottom: 28, fontWeight: 500 }}>
             <i className="bi bi-arrow-left" /> All Contributors
           </Link>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 28, flexWrap: "wrap" }}>
+          <div className="cp-hero-flex" style={{ display: "flex", alignItems: "flex-end", gap: 28, flexWrap: "wrap" }}>
             {/* Avatar */}
             <div style={{ position: "relative", flexShrink: 0 }}>
               <div style={{
@@ -148,7 +148,7 @@ export default function ContributorProfile() {
             </div>
 
             {/* Name + role */}
-            <div style={{ flex: 1, minWidth: 200 }}>
+            <div className="cp-hero-name-container" style={{ flex: 1, minWidth: 200 }}>
               <h1 style={{ margin: "0 0 6px", fontSize: "2rem", fontWeight: 800, color: "#fff", lineHeight: 1.2 }}>
                 {contributor.full_name}
               </h1>
@@ -173,7 +173,7 @@ export default function ContributorProfile() {
             </div>
 
             {/* Social links */}
-            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <div className="cp-hero-socials" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
               {contributor.linkedin && (
                 <a href={contributor.linkedin} target="_blank" rel="noopener noreferrer"
                   style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "1rem", textDecoration: "none" }}>
@@ -201,26 +201,26 @@ export default function ContributorProfile() {
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px" }}>
 
         {/* Pull-up stats strip */}
-        {hasReputation && (contributor.experience_years || contributor.implementations_count || contributor.peer_rating || (contributor.sap_press_books && contributor.sap_press_books.length > 0)) && (
+        {hasReputation && (Number(contributor.experience_years) > 0 || Number(contributor.implementations_count) > 0 || Number(contributor.peer_rating) > 0 || (contributor.sap_press_books && contributor.sap_press_books.length > 0) || Number(contributor.blog_count) > 0) && (
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
             gap: 12, marginTop: -36,
             marginBottom: 24, position: "relative", zIndex: 2,
           }}>
-            {contributor.experience_years && (
+            {Number(contributor.experience_years) > 0 && (
               <StatCard value={`${contributor.experience_years}+`} label="Yrs Experience" icon="🗓️" color="#0369a1" bg="#f0f9ff" border="#bae6fd" />
             )}
-            {contributor.implementations_count && (
+            {Number(contributor.implementations_count) > 0 && (
               <StatCard value={`${contributor.implementations_count}+`} label="Implementations" icon="🏗️" color="#15803d" bg="#f0fdf4" border="#86efac" />
             )}
-            {contributor.peer_rating && (
+            {Number(contributor.peer_rating) > 0 && (
               <StatCard value={parseFloat(contributor.peer_rating).toFixed(1)} label={`Peer Rating${contributor.peer_rating_count > 0 ? ` (${contributor.peer_rating_count})` : ""}`} icon="⭐" color="#b45309" bg="#fffbeb" border="#fcd34d" />
             )}
             {contributor.sap_press_books && contributor.sap_press_books.length > 0 && (
               <StatCard value={contributor.sap_press_books.length} label="SAP PRESS Books" icon="📚" color="#7c3aed" bg="#faf5ff" border="#c4b5fd" />
             )}
-            {contributor.blog_count > 0 && (
+            {Number(contributor.blog_count) > 0 && (
               <StatCard value={contributor.blog_count} label="Articles" icon="✍️" color="#ee5e42" bg="#fff8f6" border="#fecdb5" />
             )}
           </div>
@@ -464,6 +464,29 @@ export default function ContributorProfile() {
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 700px) {
           .cp-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 600px) {
+          .cp-hero-flex {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 16px !important;
+          }
+          .cp-hero-name-container {
+            min-width: 0 !important;
+            width: 100% !important;
+          }
+          .cp-hero-name-container h1 {
+            font-size: 1.6rem !important;
+          }
+          .cp-hero-name-container div {
+            justify-content: center !important;
+          }
+          .cp-hero-socials {
+            justify-content: center !important;
+            margin-top: 8px !important;
+            width: 100% !important;
+          }
         }
       `}</style>
     </div>

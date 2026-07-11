@@ -53,6 +53,9 @@ router.get('/content', controller.content);
 // GET /api/sitemap.xml (also served at /sitemap.xml via index.js)
 router.get('/sitemap.xml', controller.sitemap);
 
+// GET /api/posts-sitemap (lightweight posts listing for sitemap generation)
+router.get('/posts-sitemap', controller.postsSitemap);
+
 // GET /api/seo-meta?path=/articles/some-slug
 router.get('/seo-meta', controller.seoMeta);
 

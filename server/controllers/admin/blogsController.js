@@ -62,7 +62,7 @@ const review = asyncHandler(async (req, res) => {
 
     cache.invalidate('homepage_data_public');
 
-    const siteUrl = (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+    const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
     const postUrl = `${siteUrl}/${blog.category}/${blog.slug}`;
     if (blog.author_email) notifier.notifyBlogApproved(blog.author_email, blog.title, postUrl).catch(() => {});
 

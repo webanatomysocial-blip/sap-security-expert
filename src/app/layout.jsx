@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import "./globals.css";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
 const orgSchema = {
   '@context': 'https://schema.org',

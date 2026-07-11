@@ -66,7 +66,17 @@ export default function About() {
         const list = Array.isArray(res.data)
           ? res.data
           : res.data?.contributors || [];
-        setContributors(list.slice(0, 8));
+        const hasRaghu = list.some(c => c.id === 'raghu-boddu' || c.username === 'raghu-boddu' || c.full_name?.toLowerCase().includes('raghu'));
+        let team = [...list];
+        if (!hasRaghu) {
+          team.unshift({
+            id: 'raghu-boddu',
+            full_name: 'Raghu Boddu',
+            role: 'Founder & Chief Editor',
+            profile_image: '/assets/raghu_boddu.png'
+          });
+        }
+        setContributors(team.slice(0, 8));
       })
       .catch(() => {})
       .finally(() => setLoadingTeam(false));
@@ -80,7 +90,7 @@ export default function About() {
           name="description"
           content="SAP Security Expert is the leading practitioner community for SAP Security, GRC, BTP, and Identity professionals. Learn about our mission, contributors, and editorial standards."
         />
-        <link rel="canonical" href="http://dev.sapsecurityexpert.com/about" />
+        <link rel="canonical" href="http://sapsecurityexpert.com/about" />
       </Helmet>
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
@@ -255,7 +265,8 @@ export default function About() {
           ) : contributors.length > 0 ? (
             <div className="about-team-grid">
               {contributors.map((c) => {
-                const initials = (c.name || 'S')
+                const name = c.full_name || c.name || '';
+                const initials = (name || 'S')
                   .split(' ')
                   .map((w) => w[0])
                   .slice(0, 2)
@@ -271,13 +282,17 @@ export default function About() {
                   .map(([k]) => k.replace(/_/g, ' '))
                   .slice(0, 3);
 
+                const avatar = c.profile_image || c.profile_photo;
+                const role = c.role || c.designation;
+                const bio = c.short_bio || c.bio;
+
                 return (
                   <div className="about-team-card" key={c.id || c.username}>
-                    {c.profile_photo ? (
+                    {avatar ? (
                       <img
                         className="about-team-avatar"
-                        src={c.profile_photo}
-                        alt={c.name}
+                        src={avatar}
+                        alt={name}
                         loading="lazy"
                         width={80}
                         height={80}
@@ -285,22 +300,7 @@ export default function About() {
                     ) : (
                       <div className="about-team-avatar-placeholder">{initials}</div>
                     )}
-                    <div className="about-team-name">{c.name}</div>
-                    {c.designation && (
-                      <div className="about-team-role">{c.designation}</div>
-                    )}
-                    {c.bio && (
-                      <p className="about-team-bio">
-                        {c.bio.length > 120 ? c.bio.substring(0, 117) + '…' : c.bio}
-                      </p>
-                    )}
-                    {tags.length > 0 && (
-                      <div className="about-team-expertise">
-                        {tags.map((tag) => (
-                          <span className="about-team-tag" key={tag}>{tag}</span>
-                        ))}
-                      </div>
-                    )}
+                    <div className="about-team-name">{name}</div>
                     <Link
                       to={`/contributor/${c.id || c.username}`}
                       className="about-team-link"

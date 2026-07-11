@@ -2,7 +2,7 @@ import Link from 'next/link';
 import ClientApp from './ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
 // Skip SSR meta for admin/member routes — no public SEO value
 const SKIP_SEO = new Set(['admin', 'member']);
@@ -16,7 +16,7 @@ const CATEGORY_LABELS = {
   'sap-sac-security': 'SAP Analytics Cloud Security',
   'sap-cis': 'SAP CIS',
   'sap-successfactors-security': 'SuccessFactors Security',
-  'sap-security-other': 'SAP Security',
+  'sap-security-other': 'Advanced SAP Security',
   'sap-access-control': 'SAP Access Control',
   'sap-process-control': 'SAP Process Control',
   'sap-iag': 'SAP IAG',
@@ -26,6 +26,8 @@ const CATEGORY_LABELS = {
   'podcasts': 'Expert Voices & Podcasts',
   'videos': 'Videos',
   'expert-recommendations': 'Expert Articles',
+  'sap-licensing': 'SAP Licensing',
+  'news': 'News & Updates',
 };
 
 export async function generateMetadata({ params }) {
@@ -153,10 +155,27 @@ function buildMeta(d) {
 
 function defaultMeta(path) {
   const url = `${SITE_URL}${path}`;
+  const title = 'SAP Security, GRC & Cybersecurity Community - Tutorials & Best Practices | SAP Security Expert';
+  const description = 'Join 10,000+ SAP Security, GRC, and BTP professionals. Access expert tutorials, best practices, and guides to protect your SAP landscape and advance your career.';
+  const image = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
+
   return {
-    title: 'SAP Security, GRC & Cybersecurity Community - Tutorials & Best Practices | SAP Security Expert',
-    description: 'Join 10,000+ SAP Security, GRC, and BTP professionals. Access expert tutorials, best practices, and guides to protect your SAP landscape and advance your career.',
+    title,
+    description,
     alternates: { canonical: url },
-    openGraph: { title: 'SAP Security Expert', url, siteName: 'SAP Security Expert', type: 'website' },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: 'SAP Security Expert',
+      images: [{ url: image }],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
   };
 }

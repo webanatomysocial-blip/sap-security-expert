@@ -4,7 +4,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'hello@sapsecurityexpert.com';
 
 function getSiteUrl() {
-  return (process.env.SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+  return (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 }
 
 class NotificationService {

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import ClientApp from '../[[...slug]]/ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://dev.sapsecurityexpert.com').replace(/\/$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
 const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next']);
 
@@ -13,9 +13,9 @@ const CATEGORY_LABELS = {
   'sap-btp-security': 'SAP BTP Security',
   'sap-public-cloud': 'SAP Public Cloud',
   'sap-sac-security': 'SAP Analytics Cloud Security',
-  'sap-cis': 'SAP CIS',
+  'sap-cis': 'SAP Cloud Identity Services',
   'sap-successfactors-security': 'SuccessFactors Security',
-  'sap-security-other': 'SAP Security',
+  'sap-security-other': 'Advanced SAP Security',
   'sap-access-control': 'SAP Access Control',
   'sap-process-control': 'SAP Process Control',
   'sap-iag': 'SAP IAG',
@@ -47,7 +47,7 @@ const CATEGORY_INTROS = {
   'sap-process-control': 'SAP GRC Process Control automates internal control design, testing, and continuous monitoring. This hub covers CCM script configuration, manual control assessments, risk frameworks, and audit-readiness strategies to reduce manual compliance effort.',
   'sap-sac-security': 'SAP Analytics Cloud (SAC) holds sensitive financial and operational data. This pillar covers folder-level permission architecture, row-level security, SSO via SAML 2.0, team and role governance, and secure live data connections to HANA, BW, and S/4HANA.',
   'sap-successfactors-security': 'SAP SuccessFactors contains confidential HR and compensation data. This hub covers Role-Based Permissions (RBP) design, target population rules, SSO via IAS/IPS, and GDPR-compliant data privacy configurations for global workforce management.',
-  'sap-cis': 'SAP CIS covers infrastructure-level hardening: HANA and OS security, CIS benchmarks, network layer controls, Security Audit Log configuration, and regular patch management. A strong CIS foundation prevents system-level breaches that role-based controls alone cannot stop.',
+  'sap-cis': 'SAP Cloud Identity Services (IAS/IPS) acts as the central identity provider and provisioning engine for SAP cloud architectures. This hub covers Identity Authentication Services (IAS), Identity Provisioning Services (IPS), Single Sign-On (SSO) configurations, and user life cycle management across hybrid SAP environments.',
   'sap-security-other': 'SAP Security covers a vast landscape of core systems, integration touchpoints, and custom developments. This pillar explores ABAP secure coding standards, interface security (RFC/ALE/IDoc), legacy application hardening, and custom authorization object design for advanced practitioners.',
 };
 
@@ -120,7 +120,70 @@ function formatDate(str) {
 export default async function CategoryPage({ params }) {
   const { category } = await params;
 
-  if (SKIP_CATEGORIES.has(category)) {
+  if (category === 'about') {
+    return (
+      <>
+        <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+          <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>About SAP Security Expert</h1>
+            <p style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.7 }}>
+              SAP Security Expert is the leading practitioner community for SAP Security, GRC, BTP, and Identity professionals.
+              We publish in-depth tutorials, step-by-step implementation guides, and best-practice frameworks.
+            </p>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '20px 0 10px' }}>Our Values</h2>
+            <ul>
+              <li><strong>Practitioner-First:</strong> Every article is written by professionals actively working in the field.</li>
+              <li><strong>Accuracy Over Volume:</strong> We hold contributors to rigorous technical review standards.</li>
+              <li><strong>Open Knowledge Sharing:</strong> We believe the entire community benefits when professionals share their expertise.</li>
+            </ul>
+          </div>
+        </div>
+        <ClientApp />
+      </>
+    );
+  }
+
+  if (category === 'contact-us') {
+    return (
+      <>
+        <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+          <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Contact SAP Security Expert</h1>
+            <p style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.7 }}>
+              Have questions, feedback, or interest in collaborating? We'd love to hear from you.
+            </p>
+            <p style={{ fontSize: '1rem', color: '#1e293b' }}>Email us at: <strong>info@sapsecurityexpert.com</strong></p>
+          </div>
+        </div>
+        <ClientApp />
+      </>
+    );
+  }
+
+  if (category === 'become-a-contributor') {
+    return (
+      <>
+        <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+          <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Become a Contributor</h1>
+            <p style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.7 }}>
+              Share your SAP GRC, Cybersecurity, or Cloud Security expertise. Join our contributor programme
+              and publish guides, tutorials, and best practices to the SAP security community.
+            </p>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '20px 0 10px' }}>Why Contribute?</h2>
+            <ul>
+              <li>Build your professional brand.</li>
+              <li>Share knowledge with a global audience of SAP professionals.</li>
+              <li>Get recognized by peers.</li>
+            </ul>
+          </div>
+        </div>
+        <ClientApp />
+      </>
+    );
+  }
+
+  if (SKIP_CATEGORIES.has(category) || !CATEGORY_LABELS[category]) {
     return <ClientApp />;
   }
 
