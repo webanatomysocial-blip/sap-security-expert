@@ -148,8 +148,8 @@ const ALLOWED_IMAGE_EXTS = new Set(['jpg', 'png', 'webp', 'gif']);
  */
 function verifyImageMagicBytes(req, res, next) {
   if (!req.file) return next();
-  const { fileTypeFromFile } = require('file-type');
-  fileTypeFromFile(req.file.path)
+  const FileType = require('file-type');
+  FileType.fromFile(req.file.path)
     .then((detected) => {
       if (!detected || !ALLOWED_IMAGE_EXTS.has(detected.ext)) {
         return fs.promises.unlink(req.file.path).catch(() => {}).then(() =>
