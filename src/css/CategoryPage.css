@@ -397,12 +397,11 @@
 
   .cat-hero-light {
     min-height: 0;
-    padding: 28px 0 200px;
-    background-position: bottom center;
-    background-size: 100% auto;
+    padding: 28px 0;
+    background-image: none !important;
   }
   .cat-hero-light::before {
-    background: linear-gradient(180deg, #f8fafc 0%, #f8fafc 45%, rgba(248,250,252,0) 65%);
+    display: none;
   }
   .cat-hero-light .cat-hero-text {
     max-width: 100%;
