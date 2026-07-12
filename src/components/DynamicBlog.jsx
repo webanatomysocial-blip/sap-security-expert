@@ -264,9 +264,22 @@ export default function DynamicBlog() {
               <div className="skel-block skel-article-para w-60" />
             </div>
             <div className="skel-article-sidebar">
-              <div className="skel-block skel-sidebar-block" />
-              <div className="skel-block skel-sidebar-block" />
-              <div className="skel-block skel-sidebar-block" />
+              {/* Search widget skeleton */}
+              <div className="skel-block" style={{ height: 44, borderRadius: 8, marginBottom: 32 }} />
+              {/* Latest Posts widget title */}
+              <div className="skel-block" style={{ height: 16, width: "55%", marginBottom: 20, borderRadius: 6 }} />
+              {/* Latest Posts card skeletons */}
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: i < 3 ? "1px solid #f1f5f9" : "none" }}>
+                  <div className="skel-block" style={{ width: 64, height: 52, borderRadius: 8, flexShrink: 0 }} />
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div className="skel-block" style={{ height: 10, width: "45%", borderRadius: 4 }} />
+                    <div className="skel-block" style={{ height: 12, width: "90%", borderRadius: 4 }} />
+                    <div className="skel-block" style={{ height: 12, width: "70%", borderRadius: 4 }} />
+                    <div className="skel-block" style={{ height: 10, width: "35%", borderRadius: 4 }} />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -346,6 +359,7 @@ export default function DynamicBlog() {
         author_twitter={blog.author_twitter}
         author_website={blog.author_website}
         category={blog.category}
+        blogType={blog.type || null}
         sidebarAd={sidebarAd}
         relatedBlogs={relatedBlogs}
         suggestedArticles={suggestedArticles}

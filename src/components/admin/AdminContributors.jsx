@@ -262,6 +262,8 @@ const AdminContributors = () => {
                   ) : (
                     show("role") && <th className="col-xl text-left">Role</th>
                   )}
+                  <th className="col-sm text-left">Country</th>
+                  <th className="col-sm text-center">Contribs</th>
                   <th className="col-sm text-center">Status</th>
                   {show("date") && <th className="col-md text-left">Date</th>}
                   <th className="col-actions text-center">Actions</th>
@@ -294,6 +296,12 @@ const AdminContributors = () => {
                           </td>
                         )
                       )}
+                      <td className="col-sm text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                        {app.country || "—"}
+                      </td>
+                      <td className="col-sm text-center" style={{ fontSize: "0.8rem", fontWeight: 600 }}>
+                        {app.blog_count ?? 0}
+                      </td>
                       <td className="col-sm text-center">
                         <span
                           className={`status-badge status-${app.status}`}

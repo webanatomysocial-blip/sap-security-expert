@@ -89,7 +89,7 @@ async function findApprovedContributorsWithCounts(db) {
     `SELECT id, full_name, role, image AS profile_image, created_at,
        (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
         WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count
-     FROM contributors WHERE status = 'approved' ORDER BY contributions_count DESC, created_at DESC`
+     FROM contributors WHERE status = 'approved' ORDER BY contributions_count DESC, created_at ASC`
   );
   return rows;
 }
@@ -105,7 +105,21 @@ async function findExpertPicks(db, nowUtc) {
      ORDER BY b.date DESC, b.id DESC LIMIT 8`,
     [nowUtc]
   );
-  return rows;
+  if (rows.length > 0) return rows;
+
+  // Fallback: no posts manually marked as expert picks — show posts from the
+  // expert-recommendations category instead.
+  const [fallback] = await db.execute(
+    `SELECT b.id, b.title, b.slug, b.category, b.image, b.excerpt, b.date, b.is_premium, b.is_members_only, b.is_expert_pick,
+      ${AUTHOR_FIELDS}
+     FROM blogs b
+     LEFT JOIN users u ON b.author_id = u.id
+     LEFT JOIN contributors c ON u.contributor_id = c.id
+     WHERE b.status = 'approved' AND b.category = 'expert-recommendations' AND b.date <= ?
+     ORDER BY b.date DESC, b.id DESC LIMIT 8`,
+    [nowUtc]
+  );
+  return fallback;
 }
 
 async function findPremiumArticles(db, nowUtc) {

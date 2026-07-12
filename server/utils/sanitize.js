@@ -15,7 +15,7 @@ const sanitizeOptions = {
     img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
     video: ['src', 'controls', 'width', 'height'],
     source: ['src', 'type'],
-    iframe: ['src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen', 'title'],
+    iframe: ['src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen', 'title', 'style'],
     '*': ['class', 'id'],
   },
   // Only allow embeds from trusted video/doc hosts — arbitrary iframe src is

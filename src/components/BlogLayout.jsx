@@ -126,6 +126,7 @@ const BlogLayout = ({
   difficulty_level = null,
   content_version = null,
   author_contributor_id = null,
+  blogType = null,
 }) => {
   const { isLoggedIn } = useMemberAuth();
   const progressBarRef = useRef(null);
@@ -441,7 +442,7 @@ const BlogLayout = ({
               <span className="meta-comments">
                 <i className="bi bi-chat"></i> {commentCount} Comments
               </span>
-              {content_version && (
+              {content_version && blogType !== 'news' && (
                 <>
                   <span className="meta-dot">•</span>
                   <span className="meta-version" title="Content version">
@@ -577,7 +578,7 @@ const BlogLayout = ({
           <div className="post-footer-divider"></div>
 
           {/* ── Authors section ── */}
-          {(!isMembersOnly || isLoggedIn) && !isPremiumLocked && (
+          {(!isMembersOnly || isLoggedIn) && !isPremiumLocked && blogType !== 'news' && (
             author_name ? (
               <div className="bl-authors-section">
                 <p className="bl-authors-label">

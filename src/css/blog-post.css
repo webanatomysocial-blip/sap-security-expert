@@ -1040,6 +1040,14 @@
 .blog-video-container iframe {
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  min-height: 400px;
+}
+
+.blog-content-body iframe {
+  width: 100%;
+  min-height: 400px;
+  border-radius: 8px;
 }
 
 .blog-video-container .image-caption {

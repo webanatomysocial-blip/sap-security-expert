@@ -48,8 +48,9 @@ const homepage = async (req, res) => {
     const contributors = await repo.findApprovedContributorsWithCounts(db);
     const expertPicks = await repo.findExpertPicks(db, nowUtc);
     const premiumArticles = await repo.findPremiumArticles(db, nowUtc);
+    const latestNews = await repo.findNews(db, nowUtc);
 
-    const payload = JSON.stringify({ status: 'success', heroArticles, recent, trending, contributors, expertPicks, premiumArticles });
+    const payload = JSON.stringify({ status: 'success', heroArticles, recent, trending, contributors, expertPicks, premiumArticles, latestNews });
     if (!isAdmin && !isLocal) cache.set(cacheKey, payload);
     else cache.invalidate(cacheKey);
 

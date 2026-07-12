@@ -6,7 +6,13 @@ async function findAllActive(db) {
             u.id        AS user_id,
             u.username,
             u.is_active,
-            u.email     AS user_email
+            u.email     AS user_email,
+            COALESCE((
+              SELECT COUNT(*)
+              FROM blogs b
+              WHERE b.author_id = u.id
+                AND b.status IN ('approved','published')
+            ), 0) AS blog_count
      FROM contributors c
      LEFT JOIN users u ON u.contributor_id = c.id
      WHERE c.is_deleted = 0 OR c.is_deleted IS NULL

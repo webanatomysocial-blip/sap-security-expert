@@ -131,45 +131,104 @@ const BlogSidebar = ({ sidebarAd: propSidebarAd = {}, relatedBlogs = [] }) => {
 
       {/* Latest Posts Widget (or Search Results) */}
       <div className="sidebar-widget latest-posts-widget">
-        <h3 className="widget-title">
+        <h3 className="widget-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <i className="bi bi-lightning-charge-fill" style={{ color: "#ee5e42", fontSize: "1rem" }} />
           {searchTerm ? "Search Results" : "Latest Posts"}
         </h3>
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div className="skel-block" style={{ height: '14px', width: '90%' }} />
-                <div className="skel-block" style={{ height: '10px', width: '40%' }} />
+              <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div className="skel-block" style={{ width: 64, height: 52, borderRadius: 8, flexShrink: 0 }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div className="skel-block" style={{ height: '12px', width: '90%', borderRadius: 4 }} />
+                  <div className="skel-block" style={{ height: '12px', width: '70%', borderRadius: 4 }} />
+                  <div className="skel-block" style={{ height: '10px', width: '40%', borderRadius: 4 }} />
+                </div>
               </div>
             ))}
           </div>
         ) : (
           <ul className="latest-posts-list">
             {filteredPosts.length > 0 ? (
-              filteredPosts.map((post) => (
-                <li key={post.id} className="latest-post-item">
-                  <Link to={`/${(post.category || "blogs").toLowerCase().replace(/\s+/g, "-")}/${post.slug || post.id}`}>
-                    {highlightSearch(post.title)}
-                    {Number(post.is_premium) === 1 && (
-                      <span className="sidebar-exclusive-tag" style={{ background: "#d97706" }}>
-                        <i className="bi bi-star-fill" /> PREMIUM
-                      </span>
-                    )}
-                    {Number(post.is_members_only) === 1 && Number(post.is_premium) !== 1 && (
-                      <span className="sidebar-exclusive-tag">
-                        <i className="bi bi-lock-fill" /> EXCLUSIVE
-                      </span>
-                    )}
-                    {Number(post.is_premium) !== 1 && Number(post.is_members_only) !== 1 && (
-                      <span className="sidebar-exclusive-tag" style={{ background: "#16a34a" }}>
-                        <i className="bi bi-unlock-fill" /> FREE
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))
+              filteredPosts.map((post) => {
+                const categorySlug = (post.category || "blogs").toLowerCase().replace(/\s+/g, "-");
+                const categoryLabel = post.category
+                  ? post.category.replace(/^sap-/, "").replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+                  : "Blog";
+                const isPremium = Number(post.is_premium) === 1;
+                const isExclusive = Number(post.is_members_only) === 1 && !isPremium;
+                const postDate = post.date ? new Date(post.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+                return (
+                  <li key={post.id} className="latest-post-item" style={{ marginBottom: 0, padding: 0, border: "none" }}>
+                    <Link
+                      to={`/${categorySlug}/${post.slug || post.id}`}
+                      style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 0", borderBottom: "1px solid #f1f5f9", textDecoration: "none" }}
+                    >
+                      {/* Thumbnail */}
+                      <div style={{ flexShrink: 0, width: 64, height: 52, borderRadius: 8, overflow: "hidden", background: "#f1f5f9", border: "1px solid #e2e8f0" }}>
+                        {post.image ? (
+                          <Image
+                            src={post.image}
+                            alt={post.title}
+                            width={64}
+                            height={52}
+                            style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                            onError={(e) => { e.currentTarget.style.display = "none"; }}
+                          />
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <i className="bi bi-file-earmark-text" style={{ color: "#cbd5e1", fontSize: "1.2rem" }} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Category pill */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#ee5e42", background: "#fff0ec", border: "1px solid #fecdb5", borderRadius: 4, padding: "1px 6px", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                            {categoryLabel}
+                          </span>
+                          {isPremium && (
+                            <span className="sidebar-exclusive-tag" style={{ background: "#d97706", marginLeft: 0, marginTop: 0 }}>
+                              <i className="bi bi-star-fill" /> PREMIUM
+                            </span>
+                          )}
+                          {isExclusive && (
+                            <span className="sidebar-exclusive-tag" style={{ marginLeft: 0, marginTop: 0 }}>
+                              <i className="bi bi-lock-fill" /> EXCLUSIVE
+                            </span>
+                          )}
+                          {!isPremium && !isExclusive && (
+                            <span className="sidebar-exclusive-tag" style={{ background: "#16a34a", marginLeft: 0, marginTop: 0 }}>
+                              <i className="bi bi-unlock-fill" /> FREE
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title */}
+                        <span className="latest-post-title" style={{ fontSize: "0.82rem", fontWeight: 600, color: "#1e293b", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", transition: "color 0.2s" }}>
+                          {highlightSearch(post.title)}
+                        </span>
+
+                        {/* Date */}
+                        {postDate && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                            <i className="bi bi-calendar3" style={{ color: "#94a3b8", fontSize: "0.65rem" }} />
+                            <span style={{ fontSize: "0.68rem", color: "#94a3b8", fontWeight: 500 }}>{postDate}</span>
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })
             ) : (
-              <li className="latest-post-item">No posts found.</li>
+              <li style={{ padding: "20px 0", textAlign: "center", color: "#94a3b8", fontSize: "0.85rem" }}>
+                <i className="bi bi-search" style={{ display: "block", fontSize: "1.5rem", marginBottom: 8 }} />
+                No posts found.
+              </li>
             )}
           </ul>
         )}
