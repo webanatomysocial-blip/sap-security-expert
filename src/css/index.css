@@ -973,3 +973,18 @@ body.modal-open {
   .sn-modal { padding: 28px 20px 24px; }
   .sn-title { font-size: 1.05rem; }
 }
+
+/* Contributor Profile responsive grid */
+@media (max-width: 768px) {
+  .cp-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .cp-hero-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  .cp-hero-socials {
+    align-self: flex-start !important;
+  }
+}

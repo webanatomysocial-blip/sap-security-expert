@@ -198,7 +198,7 @@ export default function ContributorProfile() {
       </div>
 
       {/* ── Body ── */}
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 16px" }}>
 
         {/* Pull-up stats strip */}
         {hasReputation && (Number(contributor.experience_years) > 0 || Number(contributor.implementations_count) > 0 || Number(contributor.peer_rating) > 0 || (contributor.sap_press_books && contributor.sap_press_books.length > 0) || Number(contributor.blog_count) > 0) && (
@@ -226,7 +226,7 @@ export default function ContributorProfile() {
           </div>
         )}
 
-        <div className="cp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start", marginTop: hasReputation ? 0 : 24 }}>
+        <div className="cp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20, alignItems: "start", marginTop: hasReputation ? 0 : 20, paddingBottom: 48 }}>
 
           {/* ── Left column ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
