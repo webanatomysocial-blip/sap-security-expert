@@ -58,6 +58,7 @@ export default function CommunitySection() {
   const [recentActivity, setRecentActivity] = useState([]);
   const [expertPicks, setExpertPicks] = useState([]);
   const [premiumArticles, setPremiumArticles] = useState([]);
+  const [latestNews, setLatestNews] = useState([]);
   const [activeTab, setActiveTab] = useState("recent");
   const [trending, setTrending] = useState([]);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
@@ -88,6 +89,7 @@ export default function CommunitySection() {
           );
           setExpertPicks(data.expertPicks || []);
           setPremiumArticles(data.premiumArticles || []);
+          setLatestNews(data.latestNews || []);
           setTrending(data.trending || []);
           setContributors(data.contributors || []);
           setContributorCount(data.contributors ? data.contributors.length : 0);
@@ -268,7 +270,7 @@ export default function CommunitySection() {
               <div className="widget">
                 <div className="widget-header">
                   <h3><i className="bi bi-person-badge-fill" style={{ marginRight: 7, color: "#e84a3d" }}></i>Top Contributors</h3>
-                  <Link to="/contributors/leaderboard" className="widget-view-all">View all</Link>
+                  <Link to="/leaderboard" className="widget-view-all">View all</Link>
                 </div>
                 <div className="top-contributors-list">
                   {contributors.slice(0, 3).map((contributor, index) => {
@@ -403,9 +405,10 @@ export default function CommunitySection() {
               {/* Tab strip */}
               <div className="ra-tabs">
                 {[
-                  { key: "recent",  label: "Recent Articles",       icon: "bi-clock-history" },
+                  { key: "recent",  label: "Recent Articles", icon: "bi-clock-history" },
                   { key: "expert",  label: "Expert Articles", icon: "bi-patch-check-fill" },
-                  { key: "premium", label: "Premium Content",        icon: "bi-star-fill" },
+                  { key: "premium", label: "Premium Content", icon: "bi-star-fill" },
+                  { key: "news",    label: "News & Updates",  icon: "bi-megaphone-fill" },
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -434,6 +437,7 @@ export default function CommunitySection() {
                 </div>
               ) : (() => {
                 const tabData =
+                  activeTab === "news"    ? latestNews :
                   activeTab === "expert"  ? expertPicks :
                   activeTab === "premium" ? premiumArticles :
                   recentActivity;
@@ -441,7 +445,9 @@ export default function CommunitySection() {
                 if (!tabData || tabData.length === 0) {
                   return (
                     <div className="ra-empty">
-                      {activeTab === "expert"
+                      {activeTab === "news"
+                        ? "No news updates yet."
+                        : activeTab === "expert"
                         ? "No expert recommendations yet. Admins can mark articles as Expert Picks from the blog list."
                         : activeTab === "premium"
                         ? "No premium content available yet."
@@ -456,7 +462,9 @@ export default function CommunitySection() {
                       <Link
                         key={activity.slug || activity.id}
                         to={
-                          activity.category
+                          activeTab === "news"
+                            ? `/news/${activity.slug || activity.id}`
+                            : activity.category
                             ? `/${activity.category.toLowerCase().replace(/\s+/g, "-")}/${activity.slug || activity.id}`
                             : `/blogs/${activity.slug || activity.id}`
                         }
@@ -472,7 +480,13 @@ export default function CommunitySection() {
                         <div className="activity-content">
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
                             <span className="activity-badge">
-                              {activity.category ? activity.category.replace("sap-", "").toUpperCase() : "BLOG"}
+                              {activeTab === "news"
+                                ? "NEWS & UPDATES"
+                                : activity.category === "expert-recommendations"
+                                ? "EXPERT ARTICLES"
+                                : activity.category
+                                ? activity.category.replace("sap-", "").toUpperCase()
+                                : "BLOG"}
                             </span>
                             {activity.is_premium == 1 ? (
                               <span className="exclusive-mini-badge-inline" style={{ background: "#d97706" }}>

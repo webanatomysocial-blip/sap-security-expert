@@ -45,12 +45,15 @@ const save = asyncHandler(async (req, res) => {
   const link = /^https?:\/\//i.test(rawLinkStr) || rawLinkStr === '' ? rawLinkStr : '';
   const content = sanitizeBlogHtml(rawContent);
 
-  // Validate date before parsing to avoid Invalid time value TypeError
-  let mysqlDate = null;
+  // Validate date before parsing to avoid Invalid time value TypeError.
+  // date is NOT NULL in the schema — fall back to NOW() when omitted.
+  let mysqlDate;
   if (date) {
     const parsed = new Date(date);
     if (isNaN(parsed.getTime())) return sendError(res, 'Invalid date value.', 400);
     mysqlDate = parsed.toISOString().slice(0, 19).replace('T', ' ');
+  } else {
+    mysqlDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
   }
 
   // Allowlist status values — reject arbitrary strings from the request body

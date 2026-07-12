@@ -72,26 +72,16 @@
 }
 
 .latest-post-item {
-  margin-bottom: 15px;
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 15px;
+  margin-bottom: 0;
+  padding: 0;
+  border: none;
 }
 
-.latest-post-item:last-child {
-  border-bottom: none;
+.latest-post-item:last-child a {
+  border-bottom: none !important;
 }
 
-.latest-post-item a {
-  text-decoration: none;
-  color: #333;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.4;
-  transition: color 0.2s;
-  display: block;
-}
-
-.latest-post-item a:hover {
+.latest-post-item a:hover .latest-post-title {
   color: #ee5e42;
 }
 

@@ -131,14 +131,14 @@ async function findList(db, { isContributor, authorOnly, currentUserId, isAdminL
       FROM blogs b
       LEFT JOIN users u ON b.author_id = u.id
       LEFT JOIN contributors c ON u.contributor_id = c.id
-      WHERE b.status IN ('approved','published') AND b.status != 'draft' AND b.date <= ? AND (b.type IS NULL OR b.type = 'blog')`;
+      WHERE b.status IN ('approved','published') AND b.status != 'draft' AND b.date <= ? AND (b.type IS NULL OR b.type NOT IN ('news','learning'))`;
     params.push(nowUtc);
   } else if (isContributor && authorOnly) {
-    sql += " WHERE b.author_id = ? AND (b.type IS NULL OR b.type = 'blog')"; params.push(currentUserId);
+    sql += " WHERE b.author_id = ? AND (b.type IS NULL OR b.type NOT IN ('news','learning'))"; params.push(currentUserId);
   } else if (!isAdminLoggedIn || (isContributor && !authorOnly)) {
-    sql += " WHERE b.status IN ('approved','published') AND b.status != 'draft' AND b.date <= ? AND (b.type IS NULL OR b.type = 'blog')"; params.push(nowUtc);
+    sql += " WHERE b.status IN ('approved','published') AND b.status != 'draft' AND b.date <= ? AND (b.type IS NULL OR b.type NOT IN ('news','learning'))"; params.push(nowUtc);
   } else {
-    sql += " WHERE (b.type IS NULL OR b.type = 'blog')";
+    sql += " WHERE (b.type IS NULL OR b.type NOT IN ('news','learning'))";
   }
 
   if (filterCategory) {

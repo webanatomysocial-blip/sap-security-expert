@@ -21,6 +21,8 @@ const ANNC_COLS = [
   { key: "actions", label: "Actions" },
 ];
 
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
 const initialFormState = {
   id: "",
   title: "",
@@ -28,6 +30,7 @@ const initialFormState = {
   excerpt: "",
   content: "",
   link: "",
+  date: todayIso(),
   status: "approved",
 };
 
@@ -226,6 +229,10 @@ const AdminAnnouncements = () => {
           <div className="blog-editor-sidebar">
             <div className="admin-card" style={{ padding: "20px", marginBottom: "16px" }}>
               <h4 className="sidebar-card-title">Settings</h4>
+              <div className="form-group">
+                <label className="form-label">Date</label>
+                <input type="date" name="date" value={formData.date || todayIso()} onChange={handleInputChange} className="form-control" />
+              </div>
               <div className="form-group">
                 <label className="form-label">External Link (optional)</label>
                 <input type="url" name="link" value={formData.link || ""} onChange={handleInputChange} className="form-control" placeholder="https://…" />

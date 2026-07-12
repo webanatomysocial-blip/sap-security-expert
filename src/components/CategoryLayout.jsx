@@ -65,11 +65,11 @@ const CATEGORY_METADATA = {
   },
   'product-reviews': {
     intro: 'Get unbiased, technical reviews of SAP security products, GRC tools, cybersecurity solutions, and third-party add-ons to help you make informed software selection decisions.',
-    banner: '/assets/images/hero-product-reviews.png',
+    banner: '/assets/images/hero-podcasts.png',
   },
   'podcasts': {
     intro: 'Listen to expert voices and podcasts discussing the latest trends, challenges, and solutions in SAP security, governance, risk, compliance, and cybersecurity.',
-    banner: '/assets/images/hero-podcasts.png',
+    banner: '/assets/images/hero-product-reviews.png',
   },
   'videos': {
     intro: 'Watch step-by-step video tutorials, presentations, webinars, and live demonstrations on SAP security configuration, GRC implementation, and cybersecurity hardening.',

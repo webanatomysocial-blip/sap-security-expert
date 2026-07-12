@@ -25,7 +25,7 @@
 .share-dropdown {
   position: absolute;
   top: calc(100% + 10px);
-  left: 0;
+  right: 0;
   background: white;
   min-width: 200px;
   border-radius: 12px;
