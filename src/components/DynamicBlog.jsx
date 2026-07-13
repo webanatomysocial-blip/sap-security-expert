@@ -403,6 +403,7 @@ export default function DynamicBlog() {
       />
       <ScrollNudgeModal
         isFreeArticle={!isExclusive && !premiumLocked && Number(blog.is_premium) !== 1}
+        isExclusiveArticle={isExclusive || premiumLocked || Number(blog.is_premium) === 1}
       />
     </>
   );

@@ -23,13 +23,15 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     btnUrl: '',
   });
 
+  // Track the last value we wrote to the DOM so we never overwrite our own onChange
+  const lastSyncedValue = useRef(null);
+
   // Focus preservation logic
   const saveSelection = () => {
     if (editorRef.current && !isSourceView) {
       const sel = window.getSelection();
-      if (sel.rangeCount > 0) {
+      if (sel && sel.rangeCount > 0) {
         const range = sel.getRangeAt(0);
-        // Ensure the selection is inside the editor
         if (editorRef.current.contains(range.commonAncestorContainer)) {
           savedSelection.current = range.cloneRange();
         }
@@ -38,40 +40,36 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
   };
 
   const restoreSelection = () => {
-    if (savedSelection.current && !isSourceView) {
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(savedSelection.current);
+    if (savedSelection.current && !isSourceView && editorRef.current) {
+      try {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(savedSelection.current);
+      } catch (_) { /* range may be stale if DOM changed */ }
       editorRef.current.focus();
     }
   };
 
+  // Only sync prop → DOM when the value changes from an external source,
+  // never when the change originated from the editor itself.
   useEffect(() => {
-    // Force editor to use <p> tags for line breaks instead of <div>
     document.execCommand("defaultParagraphSeparator", false, "p");
+  }, []);
 
-    // Initialize content with safe defaults if empty
-    if (
-      editorRef.current &&
-      editorRef.current.innerHTML !== value &&
-      !isSourceView
-    ) {
-      if (document.activeElement !== editorRef.current) {
-        // If content is completely missing or empty, default to empty paragraph
-        const initialHTML = value || "<p><br></p>";
-        editorRef.current.innerHTML = initialHTML;
-      }
-    }
+  useEffect(() => {
+    if (!editorRef.current || isSourceView) return;
+    // Skip if this value was produced by our own cleanAndDispatch
+    if (value === lastSyncedValue.current) return;
+    // Skip if the editor is focused (user is actively typing)
+    if (document.activeElement === editorRef.current) return;
+    lastSyncedValue.current = value;
+    editorRef.current.innerHTML = value || "<p><br></p>";
   }, [value, isSourceView]);
 
   // Clean HTML before dispatching onChange
   const cleanAndDispatch = () => {
     if (!editorRef.current || isSourceView) return;
     let html = editorRef.current.innerHTML;
-
-    // Convert old unsemantic tags to semantic tags
-    html = html.replace(/<b>/g, "<strong>").replace(/<\/b>/g, "</strong>");
-    html = html.replace(/<i>/g, "<em>").replace(/<\/i>/g, "</em>");
 
     // Use a temporary DOM parser to clean up IMG styles only.
     // All other elements keep their inline styles exactly as authored —
@@ -125,6 +123,8 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     html = html.replace(/<(p|h2|h3|h4|div)>\s*<\/\1>/gi, "");
     html = html.replace(/<br\s*\/?>\s*<\/p>/gi, "</p>");
 
+    // Mark this as an internal change so the sync useEffect won't overwrite the DOM
+    lastSyncedValue.current = html;
     onChange(html);
   };
 
@@ -338,7 +338,9 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
       // requestAnimationFrame waits for the div.rte-content to mount before writing.
       requestAnimationFrame(() => {
         if (editorRef.current) {
-          editorRef.current.innerHTML = valueRef.current || '<p><br></p>';
+          const html = valueRef.current || '<p><br></p>';
+          lastSyncedValue.current = html;
+          editorRef.current.innerHTML = html;
         }
       });
     }
