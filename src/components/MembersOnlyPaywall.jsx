@@ -65,36 +65,52 @@ const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
       {/* Paywall card */}
       <div className="members-paywall-overlay">
         <div className="members-paywall-gradient" />
-        <div className="members-paywall-card">
-          <div className="members-paywall-lock-icon">
-            <i className="bi bi-lock-fill"></i>
+        <div className="members-paywall-card paywall-card-redesigned">
+          <div className="paywall-icon-container">
+            <div className="paywall-ring paywall-ring-1" />
+            <div className="paywall-ring paywall-ring-2" />
+            <div className="paywall-ring paywall-ring-3">
+              <i className="bi bi-star"></i>
+            </div>
           </div>
-          <h2 className="members-paywall-heading">
-            <i className="bi bi-lock-fill" /> EXCLUSIVE – Registered members only
-          </h2>
-          <p className="members-paywall-subtext">
-            Become part of our expert community to unlock exclusive SAP Security
-            & GRC insights, in-depth technical guides, and members-only
-            intelligence.
+          <div className="paywall-badge">Exclusive Article</div>
+          <h2 className="paywall-heading-redesigned">Members-only article</h2>
+          <p className="paywall-subtext-redesigned">
+            This article is reserved for registered members. Create a free account to read it in full · no credits, no charge, just a quick sign-up.
           </p>
-          <div className="members-paywall-actions">
+          
+          <button
+            className="paywall-primary-btn"
+            onClick={() => navigate("/member/signup")}
+          >
+            Register free to read <span>→</span>
+          </button>
+
+          <p className="paywall-login-text">
+            Already a member?
             <button
-              className="members-paywall-btn-login"
+              className="paywall-login-btn-pill"
               onClick={() => navigate("/member/login", { state: { from: window.location.pathname + window.location.search } })}
             >
-              Log In
+              Log in
             </button>
-            <button
-              className="members-paywall-btn-signup"
-              onClick={() => navigate("/member/signup")}
-            >
-              Sign Up — It&apos;s Free
-            </button>
-          </div>
-          <p className="members-paywall-note">
-            Already signed up? Your account will be reviewed and approved within
-            24 hours.
           </p>
+
+          <hr className="paywall-divider-redesigned" />
+
+          <div className="paywall-features-container">
+            <div className="paywall-features-row">
+              <div className="paywall-feature-item">
+                <span className="paywall-feature-tick">✓</span> Always free
+              </div>
+              <div className="paywall-feature-item">
+                <span className="paywall-feature-tick">✓</span> No credit card
+              </div>
+              <div className="paywall-feature-item">
+                <span className="paywall-feature-tick">✓</span> Instant access
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>

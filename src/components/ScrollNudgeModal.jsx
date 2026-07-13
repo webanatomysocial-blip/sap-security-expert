@@ -4,12 +4,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getExclusiveCount } from "../services/api";
 
-// Trigger after 3 distinct scroll gestures (each gesture = a pause of 300ms between events)
+// Trigger after 3 distinct downward scroll gestures (pause of 300ms between gestures)
 const GESTURE_THRESHOLD = 3;
 const GESTURE_GAP_MS = 300;
-const SESSION_KEY = "nudge_dismissed_this_session";
 
-export default function ScrollNudgeModal({ isFreeArticle = true }) {
+// Per-article key so dismissing on one article never suppresses another
+const sessionKey = (path) => `nudge_dismissed:${path}`;
+
+export default function ScrollNudgeModal({ isFreeArticle = true, isExclusiveArticle = false }) {
   const { isLoggedIn } = useMemberAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,12 +19,13 @@ export default function ScrollNudgeModal({ isFreeArticle = true }) {
   const [exclusiveCount, setExclusiveCount] = useState(0);
   const gestureCount = useRef(0);
   const lastScrollTime = useRef(0);
+  const lastScrollY = useRef(window.scrollY);
   const fired = useRef(false);
 
-  const isDismissed = () => sessionStorage.getItem(SESSION_KEY) === "1";
+  const isDismissed = () => sessionStorage.getItem(sessionKey(location.pathname)) === "1";
 
   const dismiss = () => {
-    sessionStorage.setItem(SESSION_KEY, "1");
+    sessionStorage.setItem(sessionKey(location.pathname), "1");
     setOpen(false);
   };
 
@@ -36,8 +39,16 @@ export default function ScrollNudgeModal({ isFreeArticle = true }) {
 
   const handleScroll = useCallback(() => {
     if (fired.current || isDismissed()) return;
+
+    const currentY = window.scrollY;
+    const isScrollingDown = currentY > lastScrollY.current;
+    lastScrollY.current = currentY;
+
+    // Only count downward scroll gestures
+    if (!isScrollingDown) return;
+
     const now = Date.now();
-    // Each time there's a gap since last scroll event, count it as a new gesture
+    // Each pause between scroll events counts as one gesture
     if (now - lastScrollTime.current > GESTURE_GAP_MS) {
       gestureCount.current += 1;
       lastScrollTime.current = now;
@@ -45,18 +56,26 @@ export default function ScrollNudgeModal({ isFreeArticle = true }) {
         fired.current = true;
         setOpen(true);
       }
-      return;
+    } else {
+      lastScrollTime.current = now;
     }
-    lastScrollTime.current = now;
-  }, []);
+  }, [location.pathname]);
 
   useEffect(() => {
-    if (!isFreeArticle) return;
+    // Reset state when navigating to a new article
+    gestureCount.current = 0;
+    lastScrollTime.current = 0;
+    lastScrollY.current = window.scrollY;
+    fired.current = false;
+    setOpen(false);
+
+    if (!isFreeArticle && !isExclusiveArticle) return;
+    if (isLoggedIn) return;
     if (isDismissed()) return;
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [isFreeArticle, handleScroll]);
+  }, [isFreeArticle, isExclusiveArticle, isLoggedIn, handleScroll, location.pathname]);
 
   if (!open) return null;
 

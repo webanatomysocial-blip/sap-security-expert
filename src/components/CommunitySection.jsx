@@ -406,7 +406,7 @@ export default function CommunitySection() {
               <div className="ra-tabs">
                 {[
                   { key: "recent",  label: "Recent Articles", icon: "bi-clock-history" },
-                  { key: "expert",  label: "Expert Articles", icon: "bi-patch-check-fill" },
+                  { key: "expert",  label: "Expert Guides", icon: "bi-patch-check-fill" },
                   { key: "premium", label: "Premium Content", icon: "bi-star-fill" },
                   { key: "news",    label: "News & Updates",  icon: "bi-megaphone-fill" },
                 ].map((tab) => (
@@ -483,7 +483,7 @@ export default function CommunitySection() {
                               {activeTab === "news"
                                 ? "NEWS & UPDATES"
                                 : activity.category === "expert-recommendations"
-                                ? "EXPERT ARTICLES"
+                                ? "EXPERT GUIDES"
                                 : activity.category
                                 ? activity.category.replace("sap-", "").toUpperCase()
                                 : "BLOG"}

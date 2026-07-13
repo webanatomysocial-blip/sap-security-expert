@@ -164,25 +164,51 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
   // ── NOT logged in ─────────────────────────────────────────────────────────
   if (!isLoggedIn) {
     const card = (
-      <div className="members-paywall-card">
-        <div className="members-paywall-lock-icon" style={{ background: "#fffbeb" }}>
-          <i className="bi bi-star-fill" style={{ color: "#d97706" }}></i>
+      <div className="members-paywall-card paywall-card-redesigned">
+        <div className="paywall-icon-container">
+          <div className="paywall-ring paywall-ring-1" />
+          <div className="paywall-ring paywall-ring-2" />
+          <div className="paywall-ring paywall-ring-3">
+            <i className="bi bi-lock-fill"></i>
+          </div>
         </div>
-        <h2 className="members-paywall-heading"><i className="bi bi-star-fill" /> PREMIUM – Requires credits or subscription</h2>
-        <p className="members-paywall-subtext">
-          This article costs <strong>{creditsRequired} credit{creditsRequired !== 1 ? "s" : ""}</strong> to unlock.
-          Log in or create a free account to buy credits and get lifetime access.
+        <div className="paywall-badge">Premium Article</div>
+        <h2 className="paywall-heading-redesigned">Unlock the full article</h2>
+        <p className="paywall-subtext-redesigned">
+          This piece costs <strong>{creditsRequired} credit{creditsRequired !== 1 ? "s" : ""}</strong>. New accounts start with free credits · enough to open it right away, and it stays yours for life.
         </p>
-        <div className="members-paywall-actions">
+        
+        <button
+          className="paywall-primary-btn"
+          onClick={() => navigate("/member/signup")}
+        >
+          Create free account <span>→</span>
+        </button>
+
+        <p className="paywall-login-text">
+          Already a member?
           <button
-            className="members-paywall-btn-login"
+            className="paywall-login-btn-pill"
             onClick={() => navigate("/member/login", { state: { from: window.location.pathname } })}
           >
-            Log In
+            Log in
           </button>
-          <button className="members-paywall-btn-signup" onClick={() => navigate("/member/signup")}>
-            Create Free Account
-          </button>
+        </p>
+
+        <hr className="paywall-divider-redesigned" />
+
+        <div className="paywall-features-container">
+          <div className="paywall-features-row">
+            <div className="paywall-feature-item">
+              <span className="paywall-feature-tick">✓</span> Lifetime access
+            </div>
+            <div className="paywall-feature-item">
+              <span className="paywall-feature-tick">✓</span> No recurring charge
+            </div>
+            <div className="paywall-feature-item">
+              <span className="paywall-feature-tick">✓</span> Free starter credits
+            </div>
+          </div>
         </div>
       </div>
     );

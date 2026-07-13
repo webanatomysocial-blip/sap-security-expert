@@ -34,7 +34,7 @@ async function findCuratedHeroArticles(db, nowUtc) {
      WHERE b.status IN ('approved','published') AND b.date <= ?
        AND (b.type IS NULL OR b.type = 'blog')
        AND b.homepage_featured_order > 0
-     ORDER BY b.homepage_featured_order ASC, b.id ASC LIMIT 3`,
+     ORDER BY b.homepage_featured_order ASC, b.id ASC LIMIT 5`,
     [nowUtc]
   );
   return rows;
@@ -50,7 +50,7 @@ async function findFallbackHeroArticles(db, nowUtc) {
      LEFT JOIN contributors c ON u.contributor_id = c.id
      WHERE b.status IN ('approved','published') AND b.date <= ?
        AND (b.type IS NULL OR b.type = 'blog')
-     ORDER BY b.date DESC, b.id DESC LIMIT 3`,
+     ORDER BY b.date DESC, b.id DESC LIMIT 5`,
     [nowUtc]
   );
   return rows;
@@ -209,7 +209,11 @@ async function findActiveAuthors(db) {
        COALESCE(c.image, u.profile_image) as image
      FROM users u
      LEFT JOIN contributors c ON u.contributor_id = c.id
-     WHERE u.is_active = 1 ORDER BY u.role DESC, display_name ASC`
+     WHERE u.is_active = 1
+       AND (u.is_deleted IS NULL OR u.is_deleted = 0)
+       AND (c.id IS NULL OR (c.is_deleted IS NULL OR c.is_deleted = 0))
+     GROUP BY COALESCE(u.contributor_id, u.id)
+     ORDER BY u.role DESC, display_name ASC`
   );
   return rows;
 }

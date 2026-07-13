@@ -10,6 +10,7 @@ import {
   FaInstagram,
   FaTwitter,
   FaFacebookF,
+  FaGithub,
 } from "react-icons/fa";
 
 const Footer = () => {
@@ -42,6 +43,14 @@ const Footer = () => {
               className="footer-social-icon"
             >
               <FaInstagram />
+            </a>
+            <a
+              href="https://github.com/sapsecurityexpert"
+              className="footer-social-icon"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <FaGithub />
             </a>
           </div>
         </div>
