@@ -14,11 +14,11 @@ const list = asyncHandler(async (req, res) => {
   return sendSuccess(res, { blogs, selected });
 });
 
-// POST /api/admin/featured-insights — save curated selection (ordered, max 3)
+// POST /api/admin/featured-insights — save curated selection (ordered, max 5)
 // Body: { items: [{ id, homepage_featured_image }] } (order = array index)
 const save = asyncHandler(async (req, res) => {
   const db = req.db;
-  const items = Array.isArray(req.body?.items) ? req.body.items.slice(0, 3) : [];
+  const items = Array.isArray(req.body?.items) ? req.body.items.slice(0, 5) : [];
 
   // Reset all to 0 (= not featured). Avoids NULL so NOT NULL columns are safe.
   await repo.resetFeaturedOrder(db);
