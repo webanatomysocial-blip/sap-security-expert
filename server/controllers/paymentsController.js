@@ -273,23 +273,50 @@ const unlockBlog = async (req, res) => {
   const { blog_slug } = req.body || {};
   if (!blog_slug) return res.status(400).json({ status: 'error', message: 'blog_slug required' });
 
-  try {
-    // Check already unlocked
-    if (await repo.findExistingUnlock(req.db, req.session.member_id, blog_slug)) {
-      return res.json({ status: 'success', message: 'Already unlocked.', already_unlocked: true });
-    }
+  const db = req.db;
+  const memberId = req.session.member_id;
+  let conn;
 
+  try {
     // Match only on slug — never by numeric ID
-    const blog = await repo.findPremiumBlogBySlug(req.db, blog_slug);
+    const blog = await repo.findPremiumBlogBySlug(db, blog_slug);
     if (!blog) return res.status(404).json({ status: 'error', message: 'Article not found' });
     if (!blog.is_premium) {
       return res.status(400).json({ status: 'error', message: 'This article is not a premium article.' });
     }
     const creditsNeeded = parseInt(blog.credits_required || 0) || 1;
 
-    // Check member balance
-    const balance = await repo.getMemberBalance(req.db, req.session.member_id);
-    if (balance < creditsNeeded) {
+    // Acquire a connection so the whole spend runs in one transaction
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    // STEP 1 — Try to insert the unlock row first.
+    // INSERT IGNORE means if a UNIQUE KEY on (member_id, blog_slug) already exists
+    // the insert is a no-op and affectedRows = 0.  That's our idempotency guard:
+    // whichever of two concurrent requests inserts first "wins"; the second sees 0
+    // rows affected and returns early without touching credits.
+    const [unlockResult] = await conn.execute(
+      'INSERT IGNORE INTO member_blog_unlocks (member_id, blog_slug, credits_spent) VALUES (?, ?, ?)',
+      [memberId, blog.slug, creditsNeeded]
+    );
+
+    if (unlockResult.affectedRows === 0) {
+      // Already unlocked (either pre-existing or a concurrent request beat us)
+      await conn.rollback();
+      const balance = await repo.getMemberBalance(db, memberId);
+      return res.json({ status: 'success', message: 'Already unlocked.', already_unlocked: true, new_balance: balance });
+    }
+
+    // STEP 2 — Deduct credits atomically; condition on sufficient balance
+    const [deductResult] = await conn.execute(
+      'UPDATE member_credits SET balance = balance - ?, updated_at = CURRENT_TIMESTAMP WHERE member_id = ? AND balance >= ?',
+      [creditsNeeded, memberId, creditsNeeded]
+    );
+
+    if (deductResult.affectedRows === 0) {
+      // Insufficient credits — roll back the unlock insert
+      await conn.rollback();
+      const balance = await repo.getMemberBalance(db, memberId);
       return res.status(402).json({
         status: 'error',
         message: `Insufficient credits. You need ${creditsNeeded} credits but have ${balance}.`,
@@ -298,17 +325,15 @@ const unlockBlog = async (req, res) => {
       });
     }
 
-    // Deduct credits and record unlock atomically
-    await repo.deductCreditsIfSufficient(req.db, req.session.member_id, creditsNeeded);
-    // Verify deduction actually happened (guards against concurrent unlocks)
-    const newBalance = await repo.getMemberBalance(req.db, req.session.member_id);
-    if (newBalance > balance - creditsNeeded + 1) {
-      return res.status(402).json({ status: 'error', message: 'Insufficient credits.' });
-    }
+    // STEP 3 — Record the spend transaction inside the same transaction
+    await conn.execute(
+      "INSERT INTO credit_transactions (member_id, type, credits_delta, note) VALUES (?, 'spend', ?, ?)",
+      [memberId, -creditsNeeded, `Unlocked article: ${blog_slug}`]
+    );
 
-    await repo.insertSpendTransaction(req.db, req.session.member_id, creditsNeeded, `Unlocked article: ${blog_slug}`);
-    await repo.insertBlogUnlock(req.db, req.session.member_id, blog.slug, creditsNeeded);
+    await conn.commit();
 
+    const newBalance = await repo.getMemberBalance(db, memberId);
     return res.json({
       status: 'success',
       message: 'Article unlocked! You now have lifetime access.',
@@ -316,8 +341,11 @@ const unlockBlog = async (req, res) => {
       new_balance: newBalance,
     });
   } catch (err) {
+    if (conn) await conn.rollback().catch(() => {});
     console.error('[POST /payments/unlock-blog]', err.message);
     return res.status(500).json({ status: 'error', message: 'Failed to unlock article.' });
+  } finally {
+    if (conn) conn.release();
   }
 };
 

@@ -8,6 +8,13 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.
 
 const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next']);
 
+function safeJsonLd(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+}
+
 const CATEGORY_LABELS = {
   'sap-security': 'SAP Security',
   'sap-s4hana-security': 'SAP S/4HANA Security',
@@ -228,7 +235,7 @@ export default async function BlogPostPage({ params }) {
         type="application/ld+json"
         nonce={nonce}
         suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemas) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(schemas) }}
       />
 
       {/*
