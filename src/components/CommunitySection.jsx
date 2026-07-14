@@ -405,8 +405,9 @@ export default function CommunitySection() {
               {/* Tab strip */}
               <div className="ra-tabs">
                 {[
+                  { key: "all",     label: "All",             icon: "bi-grid-fill" },
                   { key: "recent",  label: "Recent Articles", icon: "bi-clock-history" },
-                  { key: "expert",  label: "Expert Guides", icon: "bi-patch-check-fill" },
+                  { key: "expert",  label: "Expert Guides",   icon: "bi-patch-check-fill" },
                   { key: "premium", label: "Premium Content", icon: "bi-star-fill" },
                   { key: "news",    label: "News & Updates",  icon: "bi-megaphone-fill" },
                 ].map((tab) => (
@@ -436,7 +437,15 @@ export default function CommunitySection() {
                   ))}
                 </div>
               ) : (() => {
+                // "All" tab merges featured insights + recent activity so no article is hidden
+                const allActivity = activeTab === "all"
+                  ? [...heroArticles, ...recentActivity]
+                      .filter((v, i, arr) => arr.findIndex(x => x.id === v.id) === i)
+                      .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at))
+                  : null;
+
                 const tabData =
+                  activeTab === "all"     ? allActivity :
                   activeTab === "news"    ? latestNews :
                   activeTab === "expert"  ? expertPicks :
                   activeTab === "premium" ? premiumArticles :
@@ -462,7 +471,7 @@ export default function CommunitySection() {
                       <Link
                         key={activity.slug || activity.id}
                         to={
-                          activeTab === "news"
+                          activity.type === "news" || activeTab === "news"
                             ? `/news/${activity.slug || activity.id}`
                             : activity.category
                             ? `/${activity.category.toLowerCase().replace(/\s+/g, "-")}/${activity.slug || activity.id}`
@@ -480,7 +489,7 @@ export default function CommunitySection() {
                         <div className="activity-content">
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
                             <span className="activity-badge">
-                              {activeTab === "news"
+                              {activity.type === "news" || activeTab === "news"
                                 ? "NEWS & UPDATES"
                                 : activity.category === "expert-recommendations"
                                 ? "EXPERT GUIDES"

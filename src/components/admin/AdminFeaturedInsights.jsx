@@ -6,7 +6,7 @@ import {
   uploadBlogImage,
 } from "../../services/api";
 
-const MAX_FEATURED = 3;
+const MAX_FEATURED = 5;
 
 const resolveImg = (path) => {
   if (!path) return "https://placehold.co/600x400?text=No+Image";

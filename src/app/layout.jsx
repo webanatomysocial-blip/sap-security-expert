@@ -3,6 +3,19 @@ import "./globals.css";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
+// Escape JSON for safe embedding inside a <script> element.
+// JSON.stringify escapes quotes/backslashes but NOT < or /, so the sequence
+// </script> inside a string value closes the script tag prematurely (raw-text
+// element parsing rule — the HTML parser never sees the JSON, just bytes).
+// Replacing < → < and / → / (both valid JSON escape sequences)
+// makes the string invisible to the HTML parser while remaining valid JSON.
+function safeJsonLd(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+}
+
 const orgSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
@@ -51,7 +64,7 @@ export default async function RootLayout({ children }) {
           type="application/ld+json"
           nonce={nonce}
           suppressHydrationWarning
-          dangerouslySetInnerHTML={{ __html: JSON.stringify([orgSchema, websiteSchema]) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd([orgSchema, websiteSchema]) }}
         />
       </head>
       <body>
