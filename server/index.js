@@ -161,10 +161,15 @@ app.get('/api/health', async (req, res) => {
 
 // Serve uploaded files and static assets
 const ROOT = path.join(__dirname, '..');
-// Public uploads (blog images, ad images) — served statically, no auth needed.
-// /uploads/downloads is intentionally excluded — protected by requireMemberAuth below.
-app.use('/uploads/blogs', express.static(path.join(ROOT, 'public/uploads/blogs'), { maxAge: '7d' }));
-app.use('/uploads/ads', express.static(path.join(ROOT, 'public/uploads/ads'), { maxAge: '7d' }));
+// Public uploads — one catch-all static handler for every subdirectory except
+// /uploads/downloads, which is credit-gated and served by /api/downloads instead.
+// Any future upload type (profiles, contributors, etc.) is served automatically
+// without requiring a new express.static() line here.
+app.use('/uploads', (req, res, next) => {
+  // Block direct static access to downloads — they must go through /api/downloads.
+  if (req.path.startsWith('/downloads')) return res.status(403).json({ status: 'error', message: 'Forbidden' });
+  next();
+}, express.static(path.join(ROOT, 'public/uploads'), { maxAge: '7d' }));
 app.use('/assets', express.static(path.join(ROOT, 'public'), { maxAge: '1d' }));
 // In unified mode (Hostinger) start.cjs routes /api/* and /uploads/* directly to
 // this Express app before Next.js ever sees the request.
