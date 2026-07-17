@@ -10,6 +10,7 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [role, setRole] = useState("guest");
   const [permissions, setPermissions] = useState({});
@@ -31,6 +32,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch {
       if (adminAuth === "true") clearAuth();
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -42,6 +45,9 @@ export const AuthProvider = ({ children }) => {
     // Always try to verify session if there is any existing auth state
     if (adminAuth === "true" || memberAuth === "true") {
       verifySession(adminAuth, memberAuth);
+    } else {
+      // No stored session — auth is definitively unauthenticated
+      setAuthLoading(false);
     }
   }, []);
 
@@ -99,6 +105,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        authLoading,
         user,
         role,
         permissions,

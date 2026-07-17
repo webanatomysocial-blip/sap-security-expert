@@ -11,6 +11,8 @@ import {
   createCreditOrder,
   verifyCreditPayment,
   getMemberReferral,
+  getMyDownloads,
+  getDownloadToken,
 } from "../services/api";
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
@@ -212,7 +214,7 @@ export default function MemberCredits() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const validTab = (t) => ["purchases", "activity", "unlocks", "referral"].includes(t) ? t : "purchases";
+  const validTab = (t) => ["purchases", "activity", "unlocks", "downloads", "referral"].includes(t) ? t : "purchases";
   const [activeTab, setActiveTab] = useState(validTab(tabParam));
 
   // Re-sync the active tab whenever ?tab= changes — the header dropdown navigates
@@ -230,6 +232,8 @@ export default function MemberCredits() {
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [referral, setReferral] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [downloads, setDownloads] = useState(null);
+  const [downloadsLoading, setDownloadsLoading] = useState(false);
 
   const reload = () => {
     setLoading(true);
@@ -251,6 +255,14 @@ export default function MemberCredits() {
     reload();
     getMemberReferral().then((r) => setReferral(r.data)).catch(() => {});
   }, [isLoggedIn]);
+
+  // Lazy-load downloads when that tab is first opened
+  useEffect(() => {
+    if (activeTab === "downloads" && downloads === null) {
+      setDownloadsLoading(true);
+      getMyDownloads().then((r) => setDownloads(r.data?.downloads || [])).catch(() => setDownloads([])).finally(() => setDownloadsLoading(false));
+    }
+  }, [activeTab]);
 
   const handleCopy = () => {
     if (!referral?.referral_link) return;
@@ -309,6 +321,7 @@ export default function MemberCredits() {
           { key: "purchases", label: "Purchase History", count: paidPurchases.length },
           { key: "activity", label: "Activity Credits", count: bonusCredits.length },
           { key: "unlocks", label: "Unlocked Articles", count: unlocks.length },
+          { key: "downloads", label: "Downloads", count: downloads?.length ?? 0 },
           { key: "referral", label: "Referral", count: referral?.referrals_count ?? 0 },
         ].map((t) => (
           <button
@@ -498,6 +511,69 @@ export default function MemberCredits() {
                     <td style={{ padding: "14px 16px", textAlign: "right", color: "#94a3b8" }}>{fmt(u.unlocked_at)}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Downloads */}
+      {activeTab === "downloads" && (
+        <div style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14, overflow: "hidden" }}>
+          {downloadsLoading ? (
+            <div style={{ padding: 48, textAlign: "center", color: "#94a3b8" }}>Loading…</div>
+          ) : !downloads || downloads.length === 0 ? (
+            <div style={{ padding: 48, textAlign: "center" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>📥</div>
+              <p style={{ color: "#64748b", margin: 0 }}>No downloads yet.</p>
+              <p style={{ color: "#94a3b8", fontSize: "0.85rem", marginTop: 6 }}>Files you download from blog posts will appear here.</p>
+            </div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600 }}>File</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600 }}>Credits Spent</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600 }}>Downloaded</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600 }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {downloads.map((d, i) => {
+                  const fileName = d.file_url.split("/").pop();
+                  const ext = fileName.split(".").pop().toUpperCase();
+                  return (
+                    <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "14px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <i className="bi bi-file-earmark-fill" style={{ color: "#2563eb", fontSize: 16 }}></i>
+                          </div>
+                          <div>
+                            <span style={{ fontWeight: 600, color: "#334155", display: "block" }}>{fileName}</span>
+                            <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{ext}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                        {d.credits_spent === 0 ? (
+                          <span style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>Free</span>
+                        ) : (
+                          <span style={{ background: "#fefce8", color: "#854d0e", border: "1px solid #fde68a", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>🪙 {d.credits_spent}</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right", color: "#94a3b8", whiteSpace: "nowrap" }}>{fmt(d.downloaded_at)}</td>
+                      <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                        <button
+                          onClick={() => getDownloadToken(d.file_url).then((r) => { window.location.href = `/api/downloads/stream?token=${r.data.token}`; }).catch(() => alert("Download failed. Please try again."))}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                        >
+                          <i className="bi bi-download"></i> Download
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

@@ -1,3 +1,17 @@
+const repo = require('../repositories/admin/creditsRepository');
+
+/**
+ * Look up the credit amount for an activity key from the DB.
+ * Falls back to `fallback` if the activity is missing or disabled.
+ */
+async function getActivityCredits(db, key, fallback) {
+  try {
+    const activity = await repo.findActivityByKey(db, key);
+    if (activity && activity.is_active) return activity.credits;
+  } catch {}
+  return fallback;
+}
+
 /**
  * Central helper for granting bonus credits.
  * Uses note as a natural dedup key — same note = same event.
@@ -26,4 +40,4 @@ async function grantBonus(db, memberId, amount, note) {
   return true;
 }
 
-module.exports = { grantBonus };
+module.exports = { grantBonus, getActivityCredits };

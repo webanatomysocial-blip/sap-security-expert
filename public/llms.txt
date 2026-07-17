@@ -1,0 +1,41 @@
+# SAP Security Expert
+
+> The leading community for SAP Security, GRC, and BTP professionals. Expert tutorials, best practices, and guides to protect your SAP landscape and advance your career.
+
+## About
+
+SAP Security Expert (https://sapsecurityexpert.com) is an independent community platform for SAP Security, SAP GRC, SAP BTP, SAP IAG, SAP S/4HANA Security, SAP Fiori Security, SAP Cybersecurity, SAP Analytics Cloud Security, SAP SuccessFactors Security, and SAP Cloud Identity Services professionals.
+
+The platform publishes expert-written tutorials, best practices, guides, video content, podcasts, product reviews, and community resources. It is independently owned and operated and has no affiliation with SAP SE.
+
+## Content Categories
+
+- SAP Security: https://sapsecurityexpert.com/sap-security
+- SAP S/4HANA Security: https://sapsecurityexpert.com/sap-s4hana-security
+- SAP BTP Security: https://sapsecurityexpert.com/sap-btp-security
+- SAP Fiori Security: https://sapsecurityexpert.com/sap-fiori-security
+- SAP GRC: https://sapsecurityexpert.com/sap-grc
+- SAP Access Control: https://sapsecurityexpert.com/sap-access-control
+- SAP Process Control: https://sapsecurityexpert.com/sap-process-control
+- SAP IAG: https://sapsecurityexpert.com/sap-iag
+- SAP Cybersecurity: https://sapsecurityexpert.com/sap-cybersecurity
+- SAP Public Cloud: https://sapsecurityexpert.com/sap-public-cloud
+- SAP Analytics Cloud Security: https://sapsecurityexpert.com/sap-sac-security
+- SAP SuccessFactors Security: https://sapsecurityexpert.com/sap-successfactors-security
+- SAP Cloud Identity Services: https://sapsecurityexpert.com/sap-cis
+- SAP Licensing: https://sapsecurityexpert.com/sap-licensing
+- Product Reviews: https://sapsecurityexpert.com/product-reviews
+- Podcasts: https://sapsecurityexpert.com/podcasts
+- Videos: https://sapsecurityexpert.com/videos
+- Expert Recommendations: https://sapsecurityexpert.com/expert-recommendations
+- Downloads: https://sapsecurityexpert.com/downloads
+- News: https://sapsecurityexpert.com/news
+- Learning Hub: https://sapsecurityexpert.com/learning-hub
+
+## Sitemap
+
+https://sapsecurityexpert.com/sitemap.xml
+
+## Contact
+
+https://sapsecurityexpert.com/contact-us

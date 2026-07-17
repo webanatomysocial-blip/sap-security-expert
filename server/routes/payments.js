@@ -19,5 +19,7 @@ router.post('/linkedin-bonus', rateLimit('linkedin_bonus', 3, 3600), requireMemb
 router.post('/complete-profile-bonus', rateLimit('profile_bonus', 3, 3600), requireMemberAuth, requireCsrf, controller.completeProfileBonus);
 router.post('/report-error', rateLimit('report_error', 5, 3600), requireMemberAuth, requireCsrf, controller.reportError);
 router.post('/product-review-bonus', rateLimit('product_review', 10, 3600), requireMemberAuth, requireCsrf, controller.productReviewBonus);
+router.post('/download-file', rateLimit('download_file', 30, 3600), requireMemberAuth, requireCsrf, controller.downloadFile);
+router.get('/my-downloads', requireMemberAuth, controller.myDownloads);
 
 module.exports = router;

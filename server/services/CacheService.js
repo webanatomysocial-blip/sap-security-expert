@@ -1,10 +1,8 @@
 const fs = require('fs');
+const fsp = require('fs/promises');
 const path = require('path');
+const crypto = require('crypto');
 
-/**
- * File-based cache with atomic writes.
- * File-based cache with TTL support.
- */
 class CacheService {
   constructor(ttl = 3600) {
     this.ttl = ttl;
@@ -15,40 +13,43 @@ class CacheService {
   }
 
   _file(key) {
-    const h = require('crypto').createHash('md5').update(key).digest('hex');
+    const h = crypto.createHash('md5').update(key).digest('hex');
     return path.join(this.cacheDir, `${h}.cache`);
   }
 
-  get(key) {
+  async get(key) {
     const file = this._file(key);
     try {
-      const stat = fs.statSync(file);
-      if ((Date.now() / 1000 - stat.mtimeMs / 1000) < this.ttl) {
-        return fs.readFileSync(file, 'utf8');
+      const stat = await fsp.stat(file);
+      if ((Date.now() - stat.mtimeMs) / 1000 < this.ttl) {
+        return fsp.readFile(file, 'utf8');
       }
     } catch {
-      // miss
+      // cache miss
     }
     return null;
   }
 
-  set(key, data) {
+  async set(key, data) {
     const file = this._file(key);
-    const tmp = file + '.tmp.' + process.pid;
+    const tmp = `${file}.tmp.${process.pid}`;
     try {
-      fs.writeFileSync(tmp, data, { flag: 'w' });
-      fs.renameSync(tmp, file);
+      await fsp.writeFile(tmp, data, { flag: 'w' });
+      await fsp.rename(tmp, file);
     } catch {
-      try { fs.unlinkSync(tmp); } catch { /* ignore */ }
+      fsp.unlink(tmp).catch(() => {});
     }
   }
 
   invalidate(key) {
     if (key) {
-      try { fs.unlinkSync(this._file(key)); } catch { /* already gone */ }
+      fsp.unlink(this._file(key)).catch(() => {});
     } else {
-      const files = fs.readdirSync(this.cacheDir).filter(f => f.endsWith('.cache'));
-      files.forEach(f => { try { fs.unlinkSync(path.join(this.cacheDir, f)); } catch { /* ignore */ } });
+      fsp.readdir(this.cacheDir).then(files => {
+        for (const f of files) {
+          if (f.endsWith('.cache')) fsp.unlink(path.join(this.cacheDir, f)).catch(() => {});
+        }
+      }).catch(() => {});
     }
   }
 }

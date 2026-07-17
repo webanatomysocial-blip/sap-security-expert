@@ -1,12 +1,10 @@
 import { loadGoogleAnalytics, disableGoogleAnalytics } from "./googleAnalytics";
-import { loadGoogleTagManager, disableGoogleTagManager } from "./googleTagManager";
 import { loadMicrosoftClarity, disableMicrosoftClarity } from "./microsoftClarity";
 import { loadMetaPixel, disableMetaPixel } from "./metaPixel";
 import { loadLinkedInInsightTag, disableLinkedInInsightTag } from "./linkedInInsightTag";
 
 export {
   loadGoogleAnalytics, disableGoogleAnalytics,
-  loadGoogleTagManager, disableGoogleTagManager,
   loadMicrosoftClarity, disableMicrosoftClarity,
   loadMetaPixel, disableMetaPixel,
   loadLinkedInInsightTag, disableLinkedInInsightTag,
@@ -18,10 +16,13 @@ export {
  * (and optionally `disable<Name>()`), then add it to the matching array
  * below — nothing else needs to change, ConsentScriptLoader picks it up
  * automatically.
+ *
+ * Note: GTM (GTM-W8C8PFTK) is loaded directly in layout.jsx <head> so it
+ * fires on every page without waiting for consent — per Google's recommended
+ * implementation. Remove it from this registry to avoid double-loading.
  */
 export const ANALYTICS_PROVIDERS = [
   { load: loadGoogleAnalytics, disable: disableGoogleAnalytics },
-  { load: loadGoogleTagManager, disable: disableGoogleTagManager },
   { load: loadMicrosoftClarity, disable: disableMicrosoftClarity },
 ];
 

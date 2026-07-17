@@ -1,77 +1,173 @@
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const repo = require('../../repositories/admin/changelogRepository');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
+const fs = require('fs');
+const path = require('path');
 
-const execFileAsync = promisify(execFile);
+const CHANGELOG_PATH = path.join(__dirname, '../../../CHANGELOG.md');
+
+const TYPE_MAP = {
+  added: 'feature',
+  new: 'feature',
+  fixed: 'fix',
+  fix: 'fix',
+  bugfix: 'fix',
+  changed: 'improvement',
+  improved: 'improvement',
+  updated: 'improvement',
+  removed: 'breaking',
+  breaking: 'breaking',
+  security: 'fix',
+  deprecated: 'breaking',
+};
+
+// Parse CHANGELOG.md (Keep a Changelog format) into flat log entries.
+// Each ## [x.y.z] - date block becomes one entry per ### section item.
+function parseChangelog() {
+  if (!fs.existsSync(CHANGELOG_PATH)) return [];
+
+  const text = fs.readFileSync(CHANGELOG_PATH, 'utf8');
+  const entries = [];
+  let id = 0;
+
+  // Split on version headings: ## [3.2.0] - 2026-07-10
+  const versionBlocks = text.split(/^## /m).filter(Boolean);
+
+  for (const block of versionBlocks) {
+    const versionMatch = block.match(/^\[([^\]]+)\]\s*-\s*(\d{4}-\d{2}-\d{2})/);
+    if (!versionMatch) continue;
+
+    const version = versionMatch[1];
+    const dateStr = versionMatch[2];
+
+    // Split into ### sections (Added, Fixed, Changed, etc.)
+    const sections = block.split(/^### /m).slice(1);
+
+    if (sections.length === 0) {
+      // No sections — treat the whole block description as a single entry
+      const desc = block.replace(/^\[[^\]]+\][^\n]*\n/, '').trim();
+      if (desc) {
+        entries.push({ id: `md-${++id}`, version, title: `v${version} Release`, description: desc, type: 'feature', author_name: null, created_at: new Date(dateStr).toISOString(), source: 'file' });
+      }
+      continue;
+    }
+
+    for (const section of sections) {
+      const lines = section.split('\n');
+      const sectionName = lines[0].trim().toLowerCase();
+      const type = TYPE_MAP[sectionName] || 'improvement';
+      const title = `${lines[0].trim()} — v${version}`;
+
+      const items = lines
+        .slice(1)
+        .filter((l) => l.trim().startsWith('-'))
+        .map((l) => l.trim().replace(/^-\s*/, ''));
+
+      if (items.length === 0) continue;
+
+      entries.push({
+        id: `md-${++id}`,
+        version,
+        title,
+        description: items.join('\n'),
+        type,
+        author_name: null,
+        created_at: new Date(dateStr).toISOString(),
+        source: 'file',
+      });
+    }
+  }
+
+  return entries;
+}
+
+// Map internal type → Keep a Changelog section heading
+const SECTION_HEADING = {
+  feature:     'Added',
+  fix:         'Fixed',
+  improvement: 'Changed',
+  breaking:    'Removed',
+};
+
+// Prepend a new ## [version] block to CHANGELOG.md.
+// If a block for that version already exists, merge the new section into it.
+function writeToChangelog(version, title, description, type) {
+  const heading = SECTION_HEADING[type] || 'Changed';
+  const today = new Date().toISOString().slice(0, 10);
+  const items = description.trim().split('\n').map((l) => `- ${l.replace(/^-\s*/, '')}`).join('\n');
+  const newBlock = `## [${version}] - ${today}\n### ${heading}\n- ${title}\n${items}\n`;
+
+  let existing = fs.existsSync(CHANGELOG_PATH) ? fs.readFileSync(CHANGELOG_PATH, 'utf8') : '# Changelog\n';
+
+  // If this version block already exists, insert the new section into it
+  const versionPattern = new RegExp(`(## \\[${version.replace(/\./g, '\\.')}\\][^\\n]*\\n)`, 'm');
+  if (versionPattern.test(existing)) {
+    existing = existing.replace(versionPattern, `$1### ${heading}\n- ${title}\n${items}\n\n`);
+  } else {
+    // Prepend after the first heading line (# Changelog)
+    existing = existing.replace(/^(# [^\n]+\n)/, `$1\n${newBlock}\n`);
+  }
+
+  fs.writeFileSync(CHANGELOG_PATH, existing, 'utf8');
+}
 
 // GET /api/admin/changelog
+// Merges CHANGELOG.md entries (auto) with manual DB entries, newest first.
 const list = asyncHandler(async (req, res) => {
-  try {
-    // Use NUL (\x00) as the record separator — safe because git output never
-    // contains NUL bytes, unlike '|' which can appear in author names/subjects.
-    // execFile (no shell) eliminates any future shell-injection risk.
-    const { stdout } = await execFileAsync(
-      'git',
-      ['log', '--pretty=format:%h%x00%an%x00%ad%x00%s', '-n', '50', '--date=iso'],
-      { encoding: 'utf8', cwd: process.cwd(), timeout: 5000 }
-    );
+  const fileEntries = parseChangelog();
+  const dbEntries = await repo.findAll(req.db).then((rows) =>
+    rows.map((r) => ({ ...r, source: 'db' }))
+  );
 
-    const logs = stdout.split('\n').filter(Boolean).map((line) => {
-      const [hash, author, dateStr, ...subjectParts] = line.split('\x00');
-      const subject = subjectParts.join('\x00'); // re-join in case subject itself had NUL (won't happen, but defensive)
+  // Merge: DB entries first (manual overrides), then file entries
+  const all = [...dbEntries, ...fileEntries].sort(
+    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+  );
 
-      if (!hash || !dateStr) return null;
-
-      let type = 'improvement';
-      const cleanSubject = (subject || '').toLowerCase();
-      if (cleanSubject.startsWith('fix:') || cleanSubject.includes('fix') || cleanSubject.includes('bug') || cleanSubject.includes('hotfix')) {
-        type = 'fix';
-      } else if (cleanSubject.startsWith('feat:') || cleanSubject.includes('feat') || cleanSubject.includes('add') || cleanSubject.includes('new')) {
-        type = 'feature';
-      } else if (cleanSubject.startsWith('break:') || cleanSubject.includes('break') || cleanSubject.includes('remove') || cleanSubject.includes('delete')) {
-        type = 'breaking';
-      }
-
-      const parsedDate = new Date(dateStr);
-      const isoDate = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
-
-      const versionMatch = (subject || '').match(/v\d+\.\d+\.\d+/i);
-      const version = versionMatch ? versionMatch[0].replace(/v/i, '') : `3.0.0-${hash}`;
-
-      return {
-        id: hash,
-        version,
-        title: subject || hash,
-        description: `Commit by ${author || 'unknown'} (${hash}).`,
-        type,
-        author_name: author || 'unknown',
-        created_at: isoDate,
-      };
-    }).filter(Boolean);
-
-    return sendSuccess(res, { logs });
-  } catch (err) {
-    console.error('Failed to read git log, falling back to database:', err);
-    const logs = await repo.findAll(req.db);
-    return sendSuccess(res, { logs });
-  }
+  return sendSuccess(res, { logs: all });
 });
 
-// POST /api/admin/changelog (Disabled - no longer needed since it comes automatically)
+// POST /api/admin/changelog — manual entry
 const create = asyncHandler(async (req, res) => {
-  return sendError(res, 'Manual changelog additions are disabled.', 405);
+  const { version, title, description, type } = req.body || {};
+  if (!version?.trim() || !title?.trim() || !description?.trim()) {
+    return sendError(res, 'Version, title, and description are required.', 400);
+  }
+  const validTypes = ['feature', 'fix', 'improvement', 'breaking'];
+  const resolvedType = validTypes.includes(type) ? type : 'feature';
+  await repo.create(req.db, {
+    version: version.trim(),
+    title: title.trim(),
+    description: description.trim(),
+    type: resolvedType,
+    created_by: req.session.user_id || null,
+  });
+  writeToChangelog(version.trim(), title.trim(), description.trim(), resolvedType);
+  return sendSuccess(res, {}, 'Changelog entry created.');
 });
 
-// PUT /api/admin/changelog/:id (Disabled - no longer needed since it comes automatically)
+// PUT /api/admin/changelog/:id — only for DB entries
 const update = asyncHandler(async (req, res) => {
-  return sendError(res, 'Manual changelog updates are disabled.', 405);
+  const { version, title, description, type } = req.body || {};
+  if (!version?.trim() || !title?.trim() || !description?.trim()) {
+    return sendError(res, 'Version, title, and description are required.', 400);
+  }
+  const validTypes = ['feature', 'fix', 'improvement', 'breaking'];
+  const resolvedType = validTypes.includes(type) ? type : 'feature';
+  await repo.update(req.db, req.params.id, {
+    version: version.trim(),
+    title: title.trim(),
+    description: description.trim(),
+    type: resolvedType,
+  });
+  writeToChangelog(version.trim(), title.trim(), description.trim(), resolvedType);
+  return sendSuccess(res, {}, 'Changelog entry updated.');
 });
 
-// DELETE /api/admin/changelog/:id (Disabled - no longer needed since it comes automatically)
+// DELETE /api/admin/changelog/:id — only for DB entries
 const remove = asyncHandler(async (req, res) => {
-  return sendError(res, 'Manual changelog deletions are disabled.', 405);
+  await repo.remove(req.db, req.params.id);
+  return sendSuccess(res, {}, 'Changelog entry deleted.');
 });
 
 module.exports = { list, create, update, remove };

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 import BlogLayout from "./BlogLayout";
 import ScrollNudgeModal from "./ScrollNudgeModal";
+import DownloadBlock from "./DownloadBlock";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import {
   getPostBySlug,
@@ -37,39 +38,64 @@ function StripAd({ ad }) {
   );
 }
 
-function buildContentWithAds(html, inlineAds) {
-  if (!html || !inlineAds.length)
-    return <div className="blog-content-body" dangerouslySetInnerHTML={{ __html: html }} />;
+// Split HTML on download block markers, preserving their data attributes.
+function splitOnDownloadBlocks(html) {
+  const parts = [];
+  const re = /<div[^>]*data-sap-download="1"[^>]*>([\s\S]*?)<\/div>/gi;
+  let last = 0;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    if (m.index > last) parts.push({ type: "html", html: html.slice(last, m.index) });
+    const tag = m[0];
+    const get = (attr) => { const r = new RegExp(`${attr}="([^"]*)"`, 'i'); const x = r.exec(tag); return x ? x[1] : ""; };
+    parts.push({ type: "download", fileUrl: get("data-file-url"), fileName: get("data-file-name"), fileSize: get("data-file-size"), credits: get("data-credits") });
+    last = m.index + m[0].length;
+  }
+  if (last < html.length) parts.push({ type: "html", html: html.slice(last) });
+  return parts;
+}
 
+function buildContentWithAds(html, inlineAds) {
+  const segments = splitOnDownloadBlocks(html || "");
   const sorted = [...inlineAds].sort((a, b) => a.position - b.position);
   const nodes = [];
-  let remaining = html;
   let paraCount = 0;
   let key = 0;
 
-  while (remaining.length) {
-    const idx = remaining.indexOf('</p>');
-    if (idx === -1) {
-      // Tail content after the last </p>
-      nodes.push(<div key={key++} dangerouslySetInnerHTML={{ __html: remaining }} />);
-      break;
+  for (const seg of segments) {
+    if (seg.type === "download") {
+      nodes.push(
+        <DownloadBlock key={`dl-${key++}`} fileUrl={seg.fileUrl} fileName={seg.fileName} fileSize={seg.fileSize} credits={seg.credits} />
+      );
+      continue;
     }
 
-    paraCount++;
-    const chunk = remaining.slice(0, idx + 4); // up to and including </p>
-    remaining = remaining.slice(idx + 4);
+    // For html segments, interleave inline ads between paragraphs
+    if (!inlineAds.length) {
+      nodes.push(<div key={key++} dangerouslySetInnerHTML={{ __html: seg.html }} />);
+      continue;
+    }
 
-    nodes.push(<div key={key++} dangerouslySetInnerHTML={{ __html: chunk }} />);
-
-    // Insert every ad whose position matches this paragraph count
-    for (const ad of sorted) {
-      if (ad.position === paraCount) {
-        nodes.push(<InlineAd key={`ad-${ad.id}-${paraCount}`} ad={ad} />);
+    let remaining = seg.html;
+    while (remaining.length) {
+      const idx = remaining.indexOf('</p>');
+      if (idx === -1) {
+        nodes.push(<div key={key++} dangerouslySetInnerHTML={{ __html: remaining }} />);
+        break;
+      }
+      paraCount++;
+      const chunk = remaining.slice(0, idx + 4);
+      remaining = remaining.slice(idx + 4);
+      nodes.push(<div key={key++} dangerouslySetInnerHTML={{ __html: chunk }} />);
+      for (const ad of sorted) {
+        if (ad.position === paraCount) {
+          nodes.push(<InlineAd key={`ad-${ad.id}-${paraCount}`} ad={ad} />);
+        }
       }
     }
   }
 
-  // Append any ads whose target paragraph was never reached (content too short)
+  // Append ads whose target paragraph was never reached
   for (const ad of sorted) {
     if (ad.position > paraCount) {
       nodes.push(<InlineAd key={`ad-${ad.id}-end`} ad={ad} />);
@@ -185,16 +211,11 @@ export default function DynamicBlog() {
           } catch (e) { console.error("JSON parse error for related_blogs", e); }
 
           if (Array.isArray(relatedIds) && relatedIds.length > 0) {
-            import("../services/api").then(({ getBlogs }) => {
-              getBlogs().then(res => {
-                const allBlogs = Array.isArray(res.data) ? res.data : res.data.data || [];
-                // Use robust ID comparison (convert both to String)
-                const filtered = allBlogs.filter(b => 
-                  relatedIds.some(id => String(id) === String(b.id))
-                );
-                setRelatedBlogs(filtered);
-              }).catch(err => console.error("Error fetching all blogs for related", err));
-            }).catch(err => console.error("Dynamic import failed", err));
+            import("../services/api").then(({ getPostsByIds }) => {
+              getPostsByIds(relatedIds).then(res => {
+                setRelatedBlogs(Array.isArray(res.data) ? res.data : []);
+              }).catch(err => console.error("Error fetching related blogs", err));
+            });
           }
         }
       })
@@ -369,6 +390,7 @@ export default function DynamicBlog() {
         badge_field_validated={blog.badge_field_validated}
         difficulty_level={blog.difficulty_level || null}
         content_version={blog.content_version || null}
+        preview_paragraphs={blog.preview_paragraphs ?? null}
         author_contributor_id={blog.author_contributor_id || null}
         dynamicRecentPosts={[]}
         viewCount={blog.view_count || 0}

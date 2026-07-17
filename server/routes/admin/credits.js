@@ -16,4 +16,12 @@ router.get('/credit-transactions', requireAdmin, controller.listTransactions);
 router.get('/member-credits/:id', requireAdmin, controller.getMemberCredits);
 router.get('/credit-stats', requireAdmin, controller.getCreditStats);
 
+router.get('/credit-activities', requireAdmin, controller.listActivities);
+router.post('/credit-activities', requireAdmin, controller.saveActivity);
+router.delete('/credit-activities/:id', requireAdmin, controller.deleteActivity);
+
+router.get('/achievement-types', requireAdmin, controller.listAchievements);
+router.post('/achievement-types', requireAdmin, controller.saveAchievement);
+router.delete('/achievement-types/:id', requireAdmin, controller.deleteAchievement);
+
 module.exports = router;

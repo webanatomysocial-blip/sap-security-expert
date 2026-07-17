@@ -83,4 +83,57 @@ router.post(
   controller.uploadAdImage
 );
 
+// ── Download asset upload (PDF, ZIP, DOCX, XLSX, PPTX …) ─────────────────────
+
+const DOWNLOAD_ALLOWED_TYPES = new Set([
+  'application/pdf',
+  'application/zip', 'application/x-zip-compressed',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain', 'text/csv',
+]);
+
+const downloadStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, getUploadDir('downloads')),
+  filename: (req, file, cb) => {
+    const ext = file.originalname.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+    cb(null, `dl_${crypto.randomBytes(10).toString('hex')}.${ext}`);
+  },
+});
+
+const downloadUpload = multer({
+  storage: downloadStorage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
+  fileFilter: (req, file, cb) => {
+    if (!DOWNLOAD_ALLOWED_TYPES.has(file.mimetype)) {
+      return cb(new Error('Unsupported file type. Allowed: PDF, ZIP, Word, Excel, PowerPoint, CSV, TXT.'));
+    }
+    cb(null, true);
+  },
+});
+
+router.post(
+  '/upload-download-asset',
+  requireAuth(),
+  (req, res, next) => {
+    downloadUpload.single('file')(req, res, (err) => {
+      if (err) return res.json({ status: 'error', message: err.message });
+      next();
+    });
+  },
+  (req, res) => {
+    if (!req.file) return res.json({ status: 'error', message: 'No file received.' });
+    const fileUrl = `/uploads/downloads/${req.file.filename}`;
+    const sizeKb = req.file.size;
+    const sizeLabel = sizeKb >= 1024 * 1024
+      ? `${(sizeKb / 1024 / 1024).toFixed(1)} MB`
+      : `${Math.ceil(sizeKb / 1024)} KB`;
+    return res.json({ status: 'success', url: fileUrl, originalName: req.file.originalname, size: sizeLabel });
+  }
+);
+
 module.exports = router;

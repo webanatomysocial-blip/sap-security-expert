@@ -3,7 +3,7 @@ const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
 const CacheService = require('../../services/CacheService');
-const { grantBonus } = require('../../services/CreditHelper');
+const { grantBonus, getActivityCredits } = require('../../services/CreditHelper');
 const { checkPlagiarismScore } = require('../../utils/helpers');
 const repo = require('../../repositories/admin/blogsRepository');
 
@@ -70,7 +70,9 @@ const review = asyncHandler(async (req, res) => {
     if (blog.author_email) {
       const member = await repo.findMemberIdByEmail(db, blog.author_email);
       if (member) {
-        grantBonus(db, member.id, 20, `Article published: blog #${id}`).catch(() => {});
+        getActivityCredits(db, 'article_published', 20).then((amt) =>
+          grantBonus(db, member.id, amt, `Article published: blog #${id}`)
+        ).catch(() => {});
       }
     }
 

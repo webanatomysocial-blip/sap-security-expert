@@ -5,6 +5,27 @@ const axios = require('axios');
 const ROOT = path.join(__dirname, '../..');
 
 /**
+ * Extract all /uploads/downloads/* file URLs embedded in blog content HTML.
+ */
+function extractDownloadUrls(html) {
+  if (!html) return [];
+  const urls = [];
+  const re = /data-file-url="([^"]+)"/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    if (m[1].startsWith('/uploads/downloads/')) urls.push(m[1]);
+  }
+  return urls;
+}
+
+/**
+ * Delete a file from the filesystem (same safety rules as deleteImage).
+ */
+function deleteUploadedFile(filePath) {
+  return deleteImage(filePath); // reuses the same path-resolution + safety logic
+}
+
+/**
  * Delete an image from the filesystem.
  */
 function deleteImage(imagePath) {
@@ -165,4 +186,4 @@ function verifyImageMagicBytes(req, res, next) {
     );
 }
 
-module.exports = { deleteImage, calculateSeoScore, checkPlagiarismScore, getUploadDir, verifyImageMagicBytes };
+module.exports = { deleteImage, deleteUploadedFile, extractDownloadUrls, calculateSeoScore, checkPlagiarismScore, getUploadDir, verifyImageMagicBytes };

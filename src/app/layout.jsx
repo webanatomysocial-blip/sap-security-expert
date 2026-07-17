@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import "./globals.css";
+import DeferredStyles from "../components/DeferredStyles";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
@@ -50,6 +51,9 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Google Tag Manager */}
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-W8C8PFTK');` }} />
+        {/* End Google Tag Manager */}
         <meta charSet="UTF-8" />
         <link rel="icon" type="image/svg+xml" href="/fav.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -57,7 +61,6 @@ export default async function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
         <meta name="google-site-verification" content="4HfxE-z5fk8PHUMJPDFDuOPPm73HtE8zpQZ_MHpfL5o" />
         {/* Site-wide structured data — Organization + WebSite (SearchAction) */}
         <script
@@ -68,7 +71,11 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body>
+        {/* Google Tag Manager (noscript) */}
+        <noscript dangerouslySetInnerHTML={{ __html: `<iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W8C8PFTK" height="0" width="0" style="display:none;visibility:hidden"></iframe>` }} />
+        {/* End Google Tag Manager (noscript) */}
         <div id="root">{children}</div>
+        <DeferredStyles />
       </body>
     </html>
   );

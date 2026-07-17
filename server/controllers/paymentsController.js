@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const { asyncHandler } = require('../utils/asyncHandler');
-const { grantBonus } = require('../services/CreditHelper');
+const { grantBonus, getActivityCredits } = require('../services/CreditHelper');
 const repo = require('../repositories/paymentsRepository');
 
 function getRazorpay() {
@@ -448,9 +448,10 @@ const webhook = async (req, res) => {
 // POST /api/payments/linkedin-bonus
 const linkedinBonus = asyncHandler(async (req, res) => {
   if (!req.session.member_logged_in) return res.status(401).json({ status: 'error', message: 'Unauthorized' });
-  const granted = await grantBonus(req.db, req.session.member_id, 5, 'LinkedIn share bonus');
+  const amount = await getActivityCredits(req.db, 'linkedin_share', 5);
+  const granted = await grantBonus(req.db, req.session.member_id, amount, 'LinkedIn share bonus');
   if (!granted) return res.json({ status: 'already_claimed', message: 'LinkedIn bonus already credited.' });
-  return res.json({ status: 'success', message: '+5 credits added for sharing on LinkedIn!' });
+  return res.json({ status: 'success', message: `+${amount} credits added for sharing on LinkedIn!` });
 });
 
 // POST /api/payments/complete-profile-bonus
@@ -462,9 +463,10 @@ const completeProfileBonus = asyncHandler(async (req, res) => {
   if (!m) return res.status(404).json({ status: 'error', message: 'Member not found' });
   const isComplete = m.name && m.phone && m.location && m.company_name && m.job_role && m.profile_image;
   if (!isComplete) return res.status(400).json({ status: 'error', message: 'Please complete all profile fields (name, phone, location, company, job role, profile photo) to earn this bonus.' });
-  const granted = await grantBonus(req.db, memberId, 2, 'Complete profile bonus');
+  const amount = await getActivityCredits(req.db, 'complete_profile', 2);
+  const granted = await grantBonus(req.db, memberId, amount, 'Complete profile bonus');
   if (!granted) return res.json({ status: 'already_claimed', message: 'Profile bonus already credited.' });
-  return res.json({ status: 'success', message: '+2 credits added for completing your profile!' });
+  return res.json({ status: 'success', message: `+${amount} credits added for completing your profile!` });
 });
 
 // POST /api/payments/report-error
@@ -477,7 +479,8 @@ const reportError = asyncHandler(async (req, res) => {
   if (!await repo.findApprovedBlogBySlug(req.db, blog_slug)) {
     return res.status(404).json({ status: 'error', message: 'Article not found.' });
   }
-  const granted = await grantBonus(req.db, memberId, 1, `Error report: ${blog_slug}`);
+  const amount = await getActivityCredits(req.db, 'error_report', 1);
+  const granted = await grantBonus(req.db, memberId, amount, `Error report: ${blog_slug}`);
   // Note: same slug = same dedup key, so one credit per unique blog error report
   return res.json({
     status: 'success',
@@ -501,12 +504,99 @@ const productReviewBonus = asyncHandler(async (req, res) => {
   if (reviewCount >= 5) {
     return res.json({ status: 'already_claimed', message: 'You have reached the maximum credit limit for product reviews.' });
   }
-  const granted = await grantBonus(req.db, memberId, 5, `Product review: ${product_id}`);
+  const amount = await getActivityCredits(req.db, 'product_review', 5);
+  const granted = await grantBonus(req.db, memberId, amount, `Product review: ${product_id}`);
   if (!granted) return res.json({ status: 'already_claimed', message: 'You have already earned credits for reviewing this product.' });
-  return res.json({ status: 'success', message: '+5 credits added for submitting a product review!' });
+  return res.json({ status: 'success', message: `+${amount} credits added for submitting a product review!` });
 });
+
+const downloadFile = async (req, res) => {
+  if (!req.session.member_logged_in) {
+    return res.status(401).json({ status: 'error', message: 'Please log in to download files.' });
+  }
+  const { file_url, credits_required } = req.body || {};
+  if (!file_url || typeof file_url !== 'string' || !file_url.startsWith('/uploads/downloads/')) {
+    return res.status(400).json({ status: 'error', message: 'Invalid file URL.' });
+  }
+
+  const creditsNeeded = Math.max(0, parseInt(credits_required) || 0);
+  const db = req.db;
+  const memberId = req.session.member_id;
+
+  try {
+    await db.beginTransaction();
+
+    // Idempotency guard: INSERT IGNORE means a second download of the same file
+    // is a no-op — the member gets the file again for free, no double-charge.
+    const [insertResult] = await db.execute(
+      'INSERT IGNORE INTO member_file_downloads (member_id, file_url, credits_spent) VALUES (?, ?, ?)',
+      [memberId, file_url, creditsNeeded]
+    );
+
+    if (insertResult.affectedRows === 0) {
+      await db.commit();
+      const token = require('crypto').randomBytes(24).toString('hex');
+      if (!req.session.dl_tokens) req.session.dl_tokens = {};
+      req.session.dl_tokens[token] = { url: file_url, expires: Date.now() + 60_000 };
+      return res.json({ status: 'success', download_url: file_url, token, already_downloaded: true });
+    }
+
+    if (creditsNeeded > 0) {
+      const [deductResult] = await db.execute(
+        'UPDATE member_credits SET balance = balance - ?, updated_at = CURRENT_TIMESTAMP WHERE member_id = ? AND balance >= ?',
+        [creditsNeeded, memberId, creditsNeeded]
+      );
+      if (deductResult.affectedRows === 0) {
+        // Undo the file download row — member shouldn't get access without paying
+        await db.execute(
+          'DELETE FROM member_file_downloads WHERE member_id = ? AND file_url = ?',
+          [memberId, file_url]
+        );
+        // Read balance inside the transaction before committing so any failure
+        // here still triggers the catch rollback cleanly.
+        const [[balRow]] = await db.execute(
+          'SELECT COALESCE(balance, 0) AS balance FROM member_credits WHERE member_id = ? LIMIT 1',
+          [memberId]
+        );
+        const balance = balRow?.balance ?? 0;
+        await db.commit();
+        return res.status(402).json({
+          status: 'error',
+          message: `You need ${creditsNeeded} credit${creditsNeeded !== 1 ? 's' : ''} to download this file. Your balance: ${balance}.`,
+          balance,
+          credits_needed: creditsNeeded,
+        });
+      }
+      await db.execute(
+        "INSERT INTO credit_transactions (member_id, type, credits_delta, note) VALUES (?, 'spend', ?, ?)",
+        [memberId, -creditsNeeded, `Downloaded file: ${file_url}`]
+      );
+    }
+
+    await db.commit();
+    const newBalance = await repo.getMemberBalance(db, memberId);
+    // Issue a one-time download token valid for 60 s. The stream endpoint
+    // consumes and deletes it immediately, so the URL can't be reused.
+    const token = require('crypto').randomBytes(24).toString('hex');
+    if (!req.session.dl_tokens) req.session.dl_tokens = {};
+    req.session.dl_tokens[token] = { url: file_url, expires: Date.now() + 60_000 };
+    return res.json({ status: 'success', download_url: file_url, token, credits_spent: creditsNeeded, new_balance: newBalance });
+  } catch (err) {
+    await db.rollback().catch(() => {});
+    console.error('[POST /payments/download-file]', err.message, err.stack);
+    return res.status(500).json({ status: 'error', message: 'Failed to process download. Please try again.' });
+  }
+};
+
+const myDownloads = async (req, res) => {
+  const [rows] = await req.db.execute(
+    'SELECT file_url, credits_spent, downloaded_at FROM member_file_downloads WHERE member_id = ? ORDER BY downloaded_at DESC',
+    [req.session.member_id]
+  );
+  return res.json({ status: 'success', downloads: rows });
+};
 
 module.exports = {
   bundles, myCredits, myUnlocks, myTransactions, invoice, validateCoupon, createOrder, verify, unlockBlog, webhook,
-  linkedinBonus, completeProfileBonus, reportError, productReviewBonus,
+  linkedinBonus, completeProfileBonus, reportError, productReviewBonus, downloadFile, myDownloads,
 };

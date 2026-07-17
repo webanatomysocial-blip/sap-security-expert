@@ -12,12 +12,15 @@ const app = express();
 const PORT = process.env.EXPRESS_PORT || 3001;
 
 // ── Session store ──────────────────────────────────────────────────────────────
-// SQLite mode: use in-memory sessions (fine for local dev/testing).
+// SQLite mode: persist sessions in a SQLite file so they survive server restarts.
 // MySQL mode: persist sessions in the DB via express-mysql-session.
 let sessionStore;
 if (isSQLite) {
-  sessionStore = new session.MemoryStore();
-  console.log('[Sessions] Using in-memory store (SQLite dev mode)');
+  const SqliteSessionStore = require('better-sqlite3-session-store')(session);
+  const Database = require('better-sqlite3');
+  const sessionDb = new Database(path.join(__dirname, 'sessions.sqlite'));
+  sessionStore = new SqliteSessionStore({ client: sessionDb, expired: { clear: true, intervalMs: 15 * 60 * 1000 } });
+  console.log('[Sessions] Using SQLite session store (sessions.sqlite)');
 } else {
   const MySQLStore = require('express-mysql-session')(session);
   const dbHost = process.env.DB_HOST || 'localhost';
@@ -158,8 +161,10 @@ app.get('/api/health', async (req, res) => {
 
 // Serve uploaded files and static assets
 const ROOT = path.join(__dirname, '..');
-// Uploads: 7-day cache (content-addressed by filename in practice)
-app.use('/uploads', express.static(path.join(ROOT, 'public/uploads'), { maxAge: '7d' }));
+// Public uploads (blog images, ad images) — served statically, no auth needed.
+// /uploads/downloads is intentionally excluded — protected by requireMemberAuth below.
+app.use('/uploads/blogs', express.static(path.join(ROOT, 'public/uploads/blogs'), { maxAge: '7d' }));
+app.use('/uploads/ads', express.static(path.join(ROOT, 'public/uploads/ads'), { maxAge: '7d' }));
 app.use('/assets', express.static(path.join(ROOT, 'public'), { maxAge: '1d' }));
 // In unified mode (Hostinger) start.cjs routes /api/* and /uploads/* directly to
 // this Express app before Next.js ever sees the request.
@@ -177,6 +182,9 @@ app.use('/api/member', require('./routes/members'));
 
 // Payments / Membership
 app.use('/api/payments', require('./routes/payments'));
+
+// Protected file downloads — /api/downloads/stream?url=...
+app.use('/api/downloads', require('./routes/downloads'));
 
 // Contributors (public)
 app.use('/api/contributors', require('./routes/contributors'));
@@ -248,6 +256,9 @@ app.use('/api/admin/email-templates', require('./routes/admin/email-templates'))
 
 // Changelog
 app.use('/api/admin/changelog', require('./routes/admin/changelog'));
+
+// Site settings (admin + public read)
+app.use('/api/admin/settings', require('./routes/admin/settings'));
 
 // Cron endpoint (secured by CRON_SECRET)
 app.post('/api/cron/send-emails', async (req, res) => {

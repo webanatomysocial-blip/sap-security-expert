@@ -156,6 +156,17 @@ async function findList(db, { isContributor, authorOnly, currentUserId, isAdminL
   return rows;
 }
 
+async function findByIds(db, ids) {
+  if (!ids.length) return [];
+  const placeholders = ids.map(() => '?').join(',');
+  const [rows] = await db.execute(
+    `SELECT id, title, slug, category, image, image_alt, excerpt, date, view_count
+     FROM blogs WHERE id IN (${placeholders}) AND status IN ('approved','published')`,
+    ids
+  );
+  return rows;
+}
+
 async function findAuthorDisplayName(db, userId) {
   const [rows] = await db.execute(
     `SELECT COALESCE(c.full_name, u.full_name, u.username) as display_name
@@ -176,7 +187,7 @@ async function slugExists(db, slug, excludeId) {
 
 async function findExistingForUpdate(db, id) {
   const [existing] = await db.execute(
-    'SELECT author_id, author, submission_status, status, plagiarism_score, publish_date, slug, content, content_version FROM blogs WHERE id = ?',
+    'SELECT author_id, author, submission_status, status, plagiarism_score, publish_date, slug, content, content_version, image FROM blogs WHERE id = ?',
     [id]
   );
   return existing[0] || null;
@@ -218,7 +229,7 @@ async function updateBlogStandard(db, id, f) {
      status=?, submission_status=?, rejection_feedback=NULL,
      author_id=?, author=?, seo_score=?, plagiarism_score=?, plagiarism_status='completed',
      is_members_only=?, is_premium=?, credits_required=?, related_blogs=?, co_authors=?, send_notification_email=?,
-     badge_expert_reviewed=?, badge_sap_notes_verified=?, badge_tested_s4hana=?, badge_field_validated=?, difficulty_level=?, content_version=?,
+     badge_expert_reviewed=?, badge_sap_notes_verified=?, badge_tested_s4hana=?, badge_field_validated=?, difficulty_level=?, content_version=?, preview_paragraphs=?,
      updated_at=CURRENT_TIMESTAMP,
      ${publishDateSql}
      draft_title=NULL, draft_content=NULL, draft_excerpt=NULL, draft_image=NULL, draft_image_alt=NULL,
@@ -233,7 +244,7 @@ async function updateBlogStandard(db, id, f) {
      f.schema_type || 'BlogPosting', f.article_section || null,
      f.targetStatus, f.subStatus, f.author_id, f.authorName, f.seoScore, f.finalPlag,
      parseInt(f.is_members_only), parseInt(f.is_premium), parseInt(f.credits_required) || 1, f.relatedBlogsJson, f.coAuthorsJson, parseInt(f.send_notification_email),
-     f.badge_expert_reviewed ? 1 : 0, f.badge_sap_notes_verified ? 1 : 0, f.badge_tested_s4hana ? 1 : 0, f.badge_field_validated ? 1 : 0, f.difficulty_level, f.newContentVersion,
+     f.badge_expert_reviewed ? 1 : 0, f.badge_sap_notes_verified ? 1 : 0, f.badge_tested_s4hana ? 1 : 0, f.badge_field_validated ? 1 : 0, f.difficulty_level, f.newContentVersion, f.preview_paragraphs != null ? parseInt(f.preview_paragraphs) || null : null,
      ...publishParams, id]
   );
 }
@@ -246,12 +257,12 @@ async function insertBlog(db, f) {
       meta_title, meta_description, meta_keywords, schema_type, article_section,
       status, submission_status,
       seo_score, plagiarism_score, plagiarism_status, is_members_only, is_premium, credits_required, related_blogs, co_authors,
-      send_notification_email, badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level, content_version,
+      send_notification_email, badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level, content_version, preview_paragraphs,
       publish_date, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?,""),CURRENT_DATE), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              ?, ?,
              ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?,
+             ?, ?, ?, ?, ?, ?, ?, ?,
              ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
     [f.newId, f.title, f.slug, f.excerpt, f.content, f.authorName, f.author_id, f.date || '', f.image, f.image_alt || null, f.category, f.secondaryCatsJson, f.tags, f.faqsJson,
      f.cta_title, f.cta_description, f.cta_button_text, f.cta_button_link,
@@ -260,13 +271,13 @@ async function insertBlog(db, f) {
      f.targetStatus, f.subStatus,
      f.seoScore, f.finalPlag, parseInt(f.is_members_only), parseInt(f.is_premium), parseInt(f.credits_required) || 1, f.relatedBlogsJson, f.coAuthorsJson,
      parseInt(f.send_notification_email),
-     f.badge_expert_reviewed ? 1 : 0, f.badge_sap_notes_verified ? 1 : 0, f.badge_tested_s4hana ? 1 : 0, f.badge_field_validated ? 1 : 0, f.difficulty_level, '1.0',
+     f.badge_expert_reviewed ? 1 : 0, f.badge_sap_notes_verified ? 1 : 0, f.badge_tested_s4hana ? 1 : 0, f.badge_field_validated ? 1 : 0, f.difficulty_level, '1.0', f.preview_paragraphs != null ? parseInt(f.preview_paragraphs) || null : null,
      f.publishDateVal]
   );
 }
 
 async function findForDelete(db, id) {
-  const [rows] = await db.execute('SELECT author_id, image FROM blogs WHERE id = ? OR slug = ?', [id, id]);
+  const [rows] = await db.execute('SELECT author_id, image, content FROM blogs WHERE id = ? OR slug = ?', [id, id]);
   return rows[0] || null;
 }
 
@@ -276,6 +287,6 @@ async function deleteBlogById(db, id) {
 
 module.exports = {
   getExclusivePremiumCounts, findSuggestedCurrent, findSameCategoryCandidates, findCrossCategoryCandidates, findPopularFallback,
-  updateBadges, findSingleBySlugOrId, hasUnlockedBlog, findUnlockedSlugsForMember, findList, findAuthorDisplayName, slugExists, findExistingForUpdate,
+  updateBadges, findSingleBySlugOrId, hasUnlockedBlog, findUnlockedSlugsForMember, findList, findByIds, findAuthorDisplayName, slugExists, findExistingForUpdate,
   cascadeSlugChange, saveEditForReview, updateBlogStandard, insertBlog, findForDelete, deleteBlogById,
 };

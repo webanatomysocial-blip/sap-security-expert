@@ -319,18 +319,25 @@ export default function CommunitySection() {
             {/* Featured Insight */}
             {/* Featured Insight Carousel */}
             {heroArticles && heroArticles.length > 0 && (
-              <div
-                className="featured-insight-card"
-                style={
-                  activeBg
-                    ? {
-                        backgroundImage: `url(${getImageUrl(activeBg)})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }
-                    : undefined
-                }
-              >
+              <div className="featured-insight-card">
+                {activeBg && (
+                  <img
+                    src={getImageUrl(activeBg)}
+                    alt=""
+                    fetchPriority="high"
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      objectPosition: "center",
+                      zIndex: 0,
+                      borderRadius: "inherit",
+                    }}
+                  />
+                )}
                 <span className="featured-badge">Featured Insight</span>
 
                 <div className="hero-carousel-content">

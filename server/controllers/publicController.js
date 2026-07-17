@@ -13,7 +13,7 @@ const homepage = async (req, res) => {
   const cacheKey = 'homepage_data_public';
 
   if (!isAdmin && !isLocal) {
-    const cached = cache.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached) {
       const etag = '"' + crypto.createHash('md5').update(cached).digest('hex') + '"';
       res.setHeader('ETag', etag);
@@ -51,7 +51,7 @@ const homepage = async (req, res) => {
     const latestNews = await repo.findNews(db, nowUtc);
 
     const payload = JSON.stringify({ status: 'success', heroArticles, recent, trending, contributors, expertPicks, premiumArticles, latestNews });
-    if (!isAdmin && !isLocal) cache.set(cacheKey, payload);
+    if (!isAdmin && !isLocal) cache.set(cacheKey, payload).catch(() => {});
     else cache.invalidate(cacheKey);
 
     return res.type('json').send(payload);
@@ -350,7 +350,7 @@ const sitemap = async (req, res) => {
   const db = req.db;
   try {
     // Always use the canonical production domain — never localhost
-    const siteUrl = (process.env.CANONICAL_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
+    const siteUrl = (process.env.CANONICAL_URL || 'https://sapsecurityexpert.com').replace(/\/$/, '');
     const today = new Date().toISOString().slice(0, 10);
 
     const blogs = await repo.findBlogsForSitemap(db);
@@ -364,6 +364,7 @@ const sitemap = async (req, res) => {
       { loc: '/videos',                       priority: '0.7', changefreq: 'weekly'  },
       { loc: '/product-reviews',              priority: '0.7', changefreq: 'weekly'  },
       { loc: '/expert-recommendations',       priority: '0.7', changefreq: 'weekly'  },
+      { loc: '/downloads',                    priority: '0.7', changefreq: 'weekly'  },
       { loc: '/become-a-contributor',         priority: '0.6', changefreq: 'monthly' },
       { loc: '/authors/raghu-boddu',          priority: '0.8', changefreq: 'monthly' },
       { loc: '/learning/security-fundamentals', priority: '0.7', changefreq: 'monthly' },
@@ -423,8 +424,8 @@ const postsSitemap = async (req, res) => {
 // GET /api/seo-meta?path=/articles/some-slug
 const SEO_STATIC = {
   '/': {
-    title: 'SAP Security, GRC & Cybersecurity Community - Tutorials & Best Practices | SAP Security Expert',
-    description: 'Join 10,000+ SAP Security, GRC, and BTP professionals. Access expert tutorials, best practices, and guides to protect your SAP landscape and advance your career.',
+    title: 'SAP Security, GRC & Cybersecurity Community | SAP Security Expert',
+    description: 'Discover SAP Security Expert for SAP Security, GRC, Cybersecurity, SAP BTP, SAP IAG, S/4HANA Security, tutorials, best practices, expert insights, and community resources to strengthen your SAP landscape.',
   },
   '/blogs': { title: 'Blogs & Tutorials | SAP Security Expert', description: 'Read our latest blogs, tutorials, and step-by-step guides on SAP Security, GRC, and cloud compliance.' },
   '/about': { title: 'About Us | SAP Security Expert', description: 'Learn more about SAP Security Expert, our mission, and our team of enterprise security specialists.' },
@@ -452,21 +453,22 @@ const SEO_STATIC = {
 };
 
 const SEO_CATEGORIES = {
-  'sap-btp-security': { title: 'SAP BTP Cloud Security Guide | SAP Security Expert', description: 'Secure SAP BTP with step-by-step tutorials on IAS/IPS, Role Collections, API security, and tenant hardening. Expert guides for cloud security professionals.' },
-  'sap-grc': { title: 'SAP GRC Governance Risk Compliance | SAP Security Expert', description: 'Master SAP GRC with expert guides on ARA rulesets, ARM workflows, EAM firefighter logs, and BRM role governance. Practical compliance tutorials for GRC professionals.' },
-  'sap-public-cloud': { title: 'SAP Cloud Security Guide - Public Cloud | SAP Security Expert', description: 'Secure SAP S/4HANA Cloud Public Edition with tutorials on IAS/IPS IAM, business catalog permissions, and communication arrangements for cloud compliance.' },
-  'sap-cybersecurity': { title: 'SAP Cybersecurity Resources & Insights | SAP Security Expert', description: 'Protect SAP environments from advanced threats. Learn ABAP code auditing, SIEM integration, infrastructure hardening, and vulnerability management best practices.' },
-  'sap-iag': { title: 'SAP IAG Identity Access Governance | SAP Security Expert', description: 'Govern identities with SAP IAG. Learn SoD checks, intelligent access analysis, automated provisioning, and cloud-native risk management in hybrid environments.' },
-  'sap-security': { title: 'SAP Security Services & Solutions | SAP Security Expert', description: 'Master SAP Security with step-by-step guides on role design (PFCG), authorization objects, SoD, audit strategies, and RFC/gateway hardening for enterprise systems.' },
-  'sap-s4hana-security': { title: 'SAP S/4HANA Security Best Practices | SAP Security Expert', description: 'Secure SAP S/4HANA with expert tutorials on HANA DB permissions, business catalog mapping, role migration from ECC, and Fiori UX authorization design.' },
-  'sap-fiori-security': { title: 'SAP Fiori Security & UX Protection | SAP Security Expert', description: 'Harden SAP Fiori with guides on catalog and spaces design, OData service security, Web Dispatcher hardening, and SSO configuration for secure UX delivery.' },
-  'sap-sac-security': { title: 'SAP Analytics Cloud (SAC) Security | SAP Security Expert', description: 'Secure SAP Analytics Cloud: user provisioning, folder permissions, RLS data access, SSO via IAS, and governance best practices for secure enterprise reporting.' },
-  'sap-cis': { title: 'SAP Cloud Identity Services Guide | SAP Security Expert', description: 'Master SAP Cloud Identity Services. Learn Identity Authentication Service (IAS), Identity Provisioning Service (IPS), Single Sign-On (SSO) configuration, and user provisioning.' },
-  'sap-successfactors-security': { title: 'SAP SuccessFactors Security & RBP | SAP Security Expert', description: 'Secure HCM data with SAP SuccessFactors RBP. Learn permission groups, target populations, SSO via IAS, and GDPR-compliant data privacy configurations.' },
-  'sap-access-control': { title: 'SAP GRC Access Control Expert Guide | SAP Security Expert', description: 'Master SAP GRC Access Control: ARA rulesets, ARM workflows, EAM firefighter logs, and BRM role design. Step-by-step tutorials for GRC professionals.' },
-  'sap-process-control': { title: 'SAP GRC Process Control & Continuous Monitoring | SAP Security Expert', description: 'Automate SAP compliance with GRC Process Control. Learn continuous control monitoring (CCM), internal control testing, and audit-ready frameworks.' },
-  'sap-security-other': { title: 'Advanced SAP Security Topics & Custom Developments | SAP Security Expert', description: 'Explore niche SAP security domains: ABAP code audits, interface security, legacy system hardening, and custom authorization object design guides.' },
+  'sap-security': { title: 'SAP Security Guide: Roles, Authorizations & Best Practices', description: 'Explore SAP Security tutorials, role management, authorizations, auditing, compliance, and best practices to secure your SAP landscape with expert insights.' },
+  'sap-s4hana-security': { title: 'SAP S/4HANA Security: Best Practices & Expert Guides', description: 'Learn SAP S/4HANA Security with expert guides on roles, authorizations, Fiori security, compliance, cloud security, and best practices for protecting your SAP landscape.' },
+  'sap-fiori-security': { title: 'SAP Fiori Security: Roles, Authorization & Best Practices', description: 'Learn SAP Fiori Security with expert guides on roles, authorizations, authentication, Launchpad security, and best practices to secure your SAP Fiori environment.' },
+  'sap-btp-security': { title: 'SAP BTP Security: Best Practices & Expert Guides', description: 'Explore SAP BTP Security with expert guides on identity and access management, authentication, authorization, cloud security, and best practices.' },
+  'sap-public-cloud': { title: 'SAP Public Cloud Guide: Security & Best Practices', description: 'Learn SAP S/4HANA Cloud Public Edition security, including IAM, IAS/IPS, user access, business catalogs, integrations, audit strategies, and best practices.' },
+  'sap-sac-security': { title: 'SAP Analytics Cloud Security Guide | SAP Security Expert', description: 'Explore SAP Analytics Cloud Security with expert guides on user access, roles, permissions, authentication, data protection, and security governance best practices.' },
+  'sap-cis': { title: 'SAP CIS Security Guide | IAS, IPS & Identity Management', description: 'Explore SAP Cloud Identity Services (CIS) with expert guides on IAS, IPS, identity management, authentication, provisioning, and secure access governance.' },
+  'sap-successfactors-security': { title: 'SAP SuccessFactors Security Guide | SAP Security Expert', description: 'Learn SAP SuccessFactors Security best practices for roles, permissions, identity management, authentication, data protection, and secure HR access governance.' },
+  'sap-security-other': { title: 'SAP Security Topics & Expert Guides | SAP Security Expert', description: 'Explore SAP Security resources covering tools, technologies, governance, compliance, and best practices to strengthen SAP landscapes with expert insights.' },
+  'sap-grc': { title: 'SAP GRC Guide: Access Control & Risk Management', description: 'Explore SAP GRC solutions with expert guides on Access Control, SoD analysis, risk management, compliance, workflows, and SAP security best practices.' },
+  'sap-access-control': { title: 'SAP Access Control: Roles, SoD & Best Practices', description: 'Learn SAP Access Control best practices for user access, roles, SoD analysis, risk management, approvals, and governance to secure SAP environments.' },
+  'sap-process-control': { title: 'SAP Process Control: Compliance & Risk Management Guide', description: 'Explore SAP Process Control for compliance management, internal controls, risk monitoring, control automation, and audit readiness with expert SAP insights.' },
+  'sap-iag': { title: 'SAP IAG: Identity Access Governance & Best Practices', description: 'Explore SAP IAG with expert guides on identity access governance, user provisioning, access requests, risk analysis, IAM, and secure SAP cloud access.' },
+  'sap-cybersecurity': { title: 'SAP Cybersecurity Guide | SAP Security Best Practices', description: 'Explore SAP Cybersecurity best practices for threat protection, vulnerability management, monitoring, incident response, and securing SAP applications and data.' },
   'sap-licensing': { title: 'SAP Licensing Guide & Compliance | SAP Security Expert', description: 'Understand SAP licensing metrics, user types, indirect access rules, and contract optimisation strategies to manage costs and avoid audit risk.' },
+  'downloads': { title: 'SAP Security Downloads — Templates, Tools & Checklists | SAP Security Expert', description: 'Download free SAP security templates, audit checklists, GRC configuration guides, and tools curated by SAP security professionals.' },
 };
 
 const DEFAULT_META = {
@@ -477,7 +479,7 @@ const DEFAULT_META = {
 const seoMeta = asyncHandler(async (req, res) => {
   const db = req.db;
   const path = (req.query.path || '/').replace(/\?.*$/, '').replace(/\/$/, '') || '/';
-  const siteUrl = (process.env.CANONICAL_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
+  const siteUrl = (process.env.CANONICAL_URL || 'https://sapsecurityexpert.com').replace(/\/$/, '');
 
   res.setHeader('Cache-Control', 'public, max-age=300');
 
@@ -596,8 +598,32 @@ const newsBySlug = async (req, res) => {
   }
 };
 
+const fs = require('fs');
+const path = require('path');
+
+// Reads the latest version from CHANGELOG.md (first ## [x.y.z] line),
+// falls back to the latest DB entry, then falls back to '3.0.0'.
+const appVersion = async (req, res) => {
+  try {
+    const changelogPath = path.join(__dirname, '../../CHANGELOG.md');
+    if (fs.existsSync(changelogPath)) {
+      const text = fs.readFileSync(changelogPath, 'utf8');
+      const match = text.match(/^## \[([^\]]+)\]/m);
+      if (match) return res.json({ version: match[1] });
+    }
+    // Fall back to latest DB entry
+    const [rows] = await req.db.execute(
+      'SELECT version FROM changelogs ORDER BY created_at DESC LIMIT 1'
+    );
+    if (rows.length) return res.json({ version: rows[0].version });
+    return res.json({ version: '3.0.0' });
+  } catch {
+    return res.json({ version: '3.0.0' });
+  }
+};
+
 module.exports = {
   homepage, popularTags, search, leaderboard, publicMemberProfile, communityStats, categories, trendingTopics,
   announcementsPublic, authors, recordView, captcha, deleteAccount, content, sitemap, seoMeta, postsSitemap,
-  learnings, learningsCounts, news, newsBySlug, sendMail,
+  learnings, learningsCounts, news, newsBySlug, sendMail, appVersion,
 };

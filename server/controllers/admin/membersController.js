@@ -4,7 +4,7 @@ const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
-const { grantBonus } = require('../../services/CreditHelper');
+const { grantBonus, getActivityCredits } = require('../../services/CreditHelper');
 const repo = require('../../repositories/admin/membersRepository');
 
 // GET /api/admin/members?status=all|pending|approved|rejected|deleted
@@ -31,14 +31,19 @@ const performAction = asyncHandler(async (req, res) => {
     await repo.approve(db, id);
     notifier.notifyMemberApproved(member.email, member.name).catch(() => {});
 
-    // Grant 10 registration welcome credits (once only)
-    grantBonus(db, id, 10, 'Registration welcome bonus').catch((e) => console.error('[approve_credits]', e.message));
+    // Grant registration welcome credits (amount from credit_activities table)
+    getActivityCredits(db, 'new_registration', 10).then((amt) =>
+      grantBonus(db, id, amt, 'Registration welcome bonus')
+    ).catch((e) => console.error('[approve_credits]', e.message));
 
-    // Credit the referrer +2 if this member was referred
+    // Credit the referrer if this member was referred (amount from credit_activities table)
     if (member.referred_by_code) {
       const referrer = await repo.findApprovedByReferralCode(db, member.referred_by_code);
       if (referrer) {
-        grantBonus(db, referrer.id, 2, `Referral bonus: member #${id} joined`).catch((e) => console.error('[referral_credits]', e.message));
+        const firstName = (member.name || '').split(' ')[0] || `Member #${id}`;
+        getActivityCredits(db, 'referral', 2).then((amt) =>
+          grantBonus(db, referrer.id, amt, `Referral bonus: ${firstName} joined`)
+        ).catch((e) => console.error('[referral_credits]', e.message));
       }
     }
 

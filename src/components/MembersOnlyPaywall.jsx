@@ -12,23 +12,39 @@ function extractTOC(html) {
   }
   return items.slice(0, 8);
 }
-// next-disabled: import "../css/members-paywall.css";
+
 /**
- * MembersOnlyPaywall
- *
- * For logged-out users:
- *   - Shows only the first ~1 paragraph of content (via CSS max-height + fade)
- *   - Displays a lock card with Login / Sign Up buttons beneath the preview
- *
- * For logged-in members:
- *   - Renders children normally with no restriction.
- *
- * Usage:
- *   <MembersOnlyPaywall>
- *     <YourContent />
- *   </MembersOnlyPaywall>
+ * Slice HTML to the first `n` block-level elements (p, h2, h3, h4, ul, ol, blockquote, table).
+ * Returns the sliced HTML string so we render only the preview portion.
  */
-const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
+function sliceToBlocks(html, n) {
+  if (!html || !n) return html;
+  const blockRe = /<(p|h[2-6]|ul|ol|blockquote|table|div|figure)[\s>]/gi;
+  let count = 0;
+  let idx = 0;
+  let match;
+  blockRe.lastIndex = 0;
+  while ((match = blockRe.exec(html)) !== null) {
+    count++;
+    if (count === n) {
+      // Find the closing tag for this block
+      const tag = match[1].toLowerCase();
+      const closeTag = `</${tag}>`;
+      const closeIdx = html.toLowerCase().indexOf(closeTag, match.index);
+      if (closeIdx !== -1) {
+        idx = closeIdx + closeTag.length;
+      } else {
+        idx = match.index + match[0].length;
+      }
+      break;
+    }
+    idx = match.index + match[0].length;
+  }
+  return count === 0 ? html : html.slice(0, idx);
+}
+
+// next-disabled: import "../css/members-paywall.css";
+const MembersOnlyPaywall = ({ children, rawContent = "", previewParagraphs = 3 }) => {
   const { isLoggedIn } = useMemberAuth();
   const navigate = useNavigate();
 
@@ -37,11 +53,16 @@ const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
   }
 
   const toc = extractTOC(rawContent);
+  const previewHtml = sliceToBlocks(rawContent, previewParagraphs);
 
   return (
     <>
-      {/* Preview — first ~20% of content */}
-      <div className="members-content-preview">{children}</div>
+      {/* Preview — N block elements then hard cut */}
+      <div
+        className="members-content-preview"
+        style={{ maxHeight: "none", WebkitMaskImage: "none", maskImage: "none" }}
+        dangerouslySetInnerHTML={{ __html: previewHtml }}
+      />
 
       {/* TOC panel */}
       {toc.length > 0 && (
@@ -63,7 +84,7 @@ const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
       )}
 
       {/* Paywall card */}
-      <div className="members-paywall-overlay">
+      <div className="members-paywall-overlay" style={{ position: "relative", marginTop: 0 }}>
         <div className="members-paywall-gradient" />
         <div className="members-paywall-card paywall-card-redesigned">
           <div className="paywall-icon-container">
@@ -78,7 +99,7 @@ const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
           <p className="paywall-subtext-redesigned">
             This article is reserved for registered members. Create a free account to read it in full · no credits, no charge, just a quick sign-up.
           </p>
-          
+
           <button
             className="paywall-primary-btn"
             onClick={() => navigate("/member/signup")}
