@@ -2,7 +2,7 @@ const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
-const { grantBonus } = require('../../services/CreditHelper');
+const { grantBonus, getActivityCredits } = require('../../services/CreditHelper');
 const repo = require('../../repositories/admin/commentsRepository');
 
 const ALLOWED_STATUSES = ['approved', 'rejected', 'pending'];
@@ -46,7 +46,9 @@ const save = asyncHandler(async (req, res) => {
       // Use member_id directly from the comment row — reliable even if email changed
       const memberId = comm.member_id;
       if (memberId) {
-        grantBonus(db, memberId, 2, `Approved comment #${id}`).catch(() => {});
+        getActivityCredits(db, 'approved_comment', 2).then((amt) =>
+          grantBonus(db, memberId, amt, `Approved comment #${id}`)
+        ).catch(() => {});
 
         // Grant first_comment achievement immediately on approval
         const cnt = await repo.countApprovedByMember(db, memberId);

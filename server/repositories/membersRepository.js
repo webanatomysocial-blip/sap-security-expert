@@ -232,8 +232,7 @@ async function ensureAchievementTables(db) {
   // the current, emoji-free values every time the server starts instead.
   for (const [id, label, description, icon, color, bg, criteria] of types) {
     await db.execute(
-      `INSERT INTO member_achievement_types (id, label, description, icon, color, bg, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE label = VALUES(label), description = VALUES(description), icon = VALUES(icon), color = VALUES(color), bg = VALUES(bg), criteria = VALUES(criteria)`,
+      `INSERT IGNORE INTO member_achievement_types (id, label, description, icon, color, bg, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [id, label, description, icon, color, bg, criteria]
     ).catch(() => {});
   }

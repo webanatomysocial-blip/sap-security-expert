@@ -44,6 +44,8 @@ api.interceptors.request.use((config) => {
 
 // ── Public endpoints ─────────────────────────────────────────────────────────
 export const getPosts = (page = 1) => api.get(`/posts?page=${page}`);
+export const getPostsByIds = (ids) => api.get(`/posts/by-ids?ids=${ids.join(',')}`);
+
 export const getPostBySlug = (slug, params = {}) => api.get(`/posts/${slug}`, { params });
 export const getSuggestedArticles = (slug) => api.get(`/posts/${slug}/suggested`);
 export const updateBlogBadges = (id, badges) => api.put(`/posts/${id}/badges`, badges);
@@ -224,6 +226,16 @@ export const getMemberCreditBalance = (memberId) => api.get(`/admin/member-credi
 export const grantAdminCredits = (member_id, amount, note) => api.post('/admin/grant-credits', { member_id, amount, note });
 export const bulkGrantAdminCredits = ({ target, member_ids, amount, note }) =>
   api.post('/admin/bulk-grant-credits', { target, member_ids, amount, note });
+export const getAdminCreditActivities = () => api.get('/admin/credit-activities');
+export const saveCreditActivity = (data) => api.post('/admin/credit-activities', data);
+export const deleteCreditActivity = (id) => api.delete(`/admin/credit-activities/${id}`);
+
+export const getAdminAchievementTypes = () => api.get('/admin/achievement-types');
+export const saveAchievementType = (data) => api.post('/admin/achievement-types', data);
+export const deleteAchievementType = (id) => api.delete(`/admin/achievement-types/${id}`);
+export const getAdminSettings = () => api.get('/admin/settings');
+export const saveAdminSetting = (key, value) => api.post('/admin/settings', { key, value });
+export const getPublicSettings = () => api.get('/admin/settings/public');
 
 // Email templates
 export const getEmailTemplates = () => api.get('/admin/email-templates');
@@ -252,5 +264,11 @@ export const claimLinkedInBonus = () => api.post('/payments/linkedin-bonus');
 export const claimCompleteProfileBonus = () => api.post('/payments/complete-profile-bonus');
 export const reportArticleError = (blog_slug, description) => api.post('/payments/report-error', { blog_slug, description });
 export const claimProductReviewBonus = (product_id) => api.post('/payments/product-review-bonus', { product_id });
+
+// Download assets
+export const uploadDownloadAsset = (formData) => api.post('/upload-download-asset', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const downloadFile = (file_url, credits_required) => api.post('/payments/download-file', { file_url, credits_required });
+export const getMyDownloads = () => api.get('/payments/my-downloads');
+export const getDownloadToken = (file_url) => api.post('/downloads/token', { file_url });
 
 export default api;

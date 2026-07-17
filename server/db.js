@@ -89,6 +89,10 @@ class SQLiteAdapter {
 
   release() { /* no-op — SQLite uses a single shared connection */ }
 
+  // MySQL pool connections have getConnection(); mirror it so transaction controllers
+  // that call db.getConnection() work in SQLite dev mode without code changes.
+  async getConnection() { return this; }
+
   get inTransaction() { return this._inTx; }
 }
 
@@ -130,6 +134,7 @@ if (isSQLite) {
     { name: 'badge_field_validated',       def: "INTEGER NOT NULL DEFAULT 0" },
     { name: 'difficulty_level',            def: "TEXT DEFAULT NULL" },
     { name: 'content_version',             def: "TEXT NOT NULL DEFAULT '1.0'" },
+    { name: 'preview_paragraphs',          def: "INTEGER DEFAULT NULL" },
   ];
   const existing = sqliteDb.prepare("PRAGMA table_info(blogs)").all().map(r => r.name);
   for (const col of blogsColumns) {
@@ -413,6 +418,18 @@ if (isSQLite) {
   sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_unlock_member ON member_blog_unlocks(member_id)').run();
 
   sqliteDb.prepare(`
+    CREATE TABLE IF NOT EXISTS member_file_downloads (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      member_id INTEGER NOT NULL,
+      file_url TEXT NOT NULL,
+      credits_spent INTEGER NOT NULL DEFAULT 0,
+      downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(member_id, file_url)
+    )
+  `).run();
+  sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_dld_member ON member_file_downloads(member_id)').run();
+
+  sqliteDb.prepare(`
     CREATE TABLE IF NOT EXISTS post_views (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       post_id TEXT NOT NULL,
@@ -436,6 +453,44 @@ if (isSQLite) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `).run();
+
+  sqliteDb.prepare(`
+    CREATE TABLE IF NOT EXISTS credit_activities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT NOT NULL UNIQUE,
+      label TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      credits INTEGER NOT NULL DEFAULT 1,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+
+  sqliteDb.prepare(`
+    CREATE TABLE IF NOT EXISTS site_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+  sqliteDb.prepare("INSERT OR IGNORE INTO site_settings (key, value) VALUES ('paywall_default_preview_paragraphs', '3')").run();
+
+  // Seed default activities (INSERT OR IGNORE so re-runs are safe)
+  const defaultActivities = [
+    ['new_registration',  'New Registration',                    'Credits awarded when a new member registers',              10],
+    ['approved_comment',  'Approved Comment',                    'Credits awarded when a comment is approved',               2],
+    ['referral',          'Referral (new member registers)',     'Credits awarded when a referred member joins',             2],
+    ['article_published', 'Article Published (Community Author)','Credits awarded when a contributed article is published',  20],
+    ['podcast_guest',     'Podcast Guest',                       'Credits awarded for appearing on the podcast',            20],
+    ['error_report',      'Report an Error',                     'Credits awarded when a member reports an article error',   1],
+    ['complete_profile',  'Complete Profile',                    'Credits awarded when a member completes their profile',    2],
+    ['product_review',    'Submit a Product Review',             'Credits awarded when a member submits a product review',   5],
+    ['linkedin_share',    'LinkedIn Share',                      'Credits awarded when a member shares on LinkedIn',         5],
+  ];
+  const insertAct = sqliteDb.prepare(
+    "INSERT OR IGNORE INTO credit_activities (`key`, label, description, credits) VALUES (?, ?, ?, ?)"
+  );
+  for (const row of defaultActivities) insertAct.run(...row);
 
 } else {
   const mysql = require('mysql2/promise');
@@ -473,7 +528,7 @@ async function runAutoPublish(conn) {
   lastAutoPublish = now;
   const nowUtc = new Date().toISOString().slice(0, 19).replace('T', ' ');
   try {
-    await conn.execute(
+    const [blogResult] = await conn.execute(
       "UPDATE blogs SET status = 'published' WHERE status = 'scheduled' AND publish_date <= ?",
       [nowUtc]
     );
@@ -481,6 +536,11 @@ async function runAutoPublish(conn) {
       "UPDATE announcements SET status = 'active' WHERE status = 'scheduled' AND publish_date <= ?",
       [nowUtc]
     );
+    // Bust homepage cache whenever a scheduled article goes live
+    if (blogResult?.affectedRows > 0) {
+      const CacheService = require('./services/CacheService');
+      new CacheService().invalidate('homepage_data_public');
+    }
   } catch { /* fail silently */ }
 }
 

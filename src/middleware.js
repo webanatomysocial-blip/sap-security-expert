@@ -27,7 +27,7 @@ export function middleware(request) {
     `default-src 'self'`,
     // 'unsafe-eval' is only needed for webpack Fast Refresh in dev — production
     // React/Next.js bundles don't eval().
-    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''} https://checkout.razorpay.com`,
+    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''} https://checkout.razorpay.com https://www.googletagmanager.com`,
     // style-src keeps 'unsafe-inline': React's style={{}} prop sets styles via
     // the DOM style API (not governed by CSP either way), but Next's dev
     // overlay and third-party CSS (Bootstrap Icons, Google Fonts) inject
@@ -41,8 +41,8 @@ export function middleware(request) {
     // before compressing/uploading) — without it those loads are blocked and
     // silently fall back to skipping compression/validation entirely.
     `img-src 'self' data: blob: https:`,
-    `connect-src 'self' https://api.razorpay.com`,
-    `frame-src https://api.razorpay.com https://checkout.razorpay.com`,
+    `connect-src 'self' https://api.razorpay.com https://www.googletagmanager.com https://www.google-analytics.com`,
+    `frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.googletagmanager.com`,
     `object-src 'none'`,
     `base-uri 'self'`,
   ].join('; ');

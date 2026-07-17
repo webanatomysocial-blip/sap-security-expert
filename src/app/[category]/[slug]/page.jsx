@@ -42,6 +42,7 @@ const CATEGORY_LABELS = {
   'audit-compliance': 'Audit & Compliance',
   'grc-advanced': 'GRC & Advanced Topics',
   'sap-licensing': 'SAP Licensing',
+  'downloads': 'Downloads',
 };
 
 // ── Data fetching ────────────────────────────────────────────────────────────

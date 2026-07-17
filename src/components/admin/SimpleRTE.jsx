@@ -2,9 +2,9 @@ import React, { useRef, useEffect } from "react";
 import "../../css/AdminDashboard.css"; // Ensure styling
 import { useConfirm } from "../../context/ConfirmationContext";
 
-const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHeight = "800px" }) => {
+const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px", maxHeight = "800px" }) => {
   const editorRef = useRef(null);
-  const [isSourceView, setIsSourceView] = React.useState(false);
+  const [isSourceView, setIsSourceView] = React.useState(true);
   const { openConfirm } = useConfirm();
   const savedSelection = useRef(null);
   // Always-current value ref so toggleSourceView can read latest HTML without stale closures
@@ -45,7 +45,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
         const sel = window.getSelection();
         sel.removeAllRanges();
         sel.addRange(savedSelection.current);
-      } catch (_) { /* range may be stale if DOM changed */ }
+      } catch { /* range may be stale if DOM changed */ }
       editorRef.current.focus();
     }
   };
@@ -54,6 +54,22 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
   // never when the change originated from the editor itself.
   useEffect(() => {
     document.execCommand("defaultParagraphSeparator", false, "p");
+  }, []);
+
+  const focusEnd = () => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const range = document.createRange();
+    range.selectNodeContents(editorRef.current);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  };
+
+  useEffect(() => {
+    if (onReady) onReady({ saveSelection, insertHtmlBlock, focusEnd });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -512,29 +528,60 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
     }
   };
 
-  // Strip <style>/<script> tags and event-handler attributes so pasted or
-  // user-authored HTML blocks cannot leak global CSS or execute JS.
+  // Strip <script> tags and event-handler attributes.
+  // NOTE: <iframe> and <style> are intentionally preserved —
+  // admins legitimately embed podcast/video iframes in article content.
   const sanitizeInsertedHtml = (html) => {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    doc.querySelectorAll('style, script').forEach(el => el.remove());
-    doc.querySelectorAll('*').forEach(el => {
+    // Use a template element to parse without a full document context so
+    // the browser doesn't block iframe srcs the way DOMParser does.
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const root = tpl.content;
+    root.querySelectorAll('script').forEach(el => el.remove());
+    root.querySelectorAll('*').forEach(el => {
       Array.from(el.attributes).forEach(attr => {
         if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
       });
     });
-    return doc.body.innerHTML;
+    const div = document.createElement('div');
+    div.appendChild(root.cloneNode(true));
+    return div.innerHTML;
   };
 
   // ── Insert raw HTML block at cursor ────────────────────────────────────────
+  // Uses direct DOM range insertion instead of execCommand('insertHTML') because
+  // browsers strip <iframe> and other "unsafe" tags when going through execCommand.
   const insertHtmlBlock = (html) => {
     if (!html.trim()) return;
     const safeHtml = sanitizeInsertedHtml(html);
     if (!safeHtml.trim()) return;
     restoreSelection();
     editorRef.current?.focus();
-    // Use execCommand so the insertion is in the browser's undo history
-    document.execCommand('insertHTML', false, safeHtml + '<p><br></p>');
-    cleanAndDispatch();
+
+    const tpl = document.createElement('template');
+    tpl.innerHTML = safeHtml + '<p><br></p>';
+    const frag = tpl.content;
+
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      // insertNode inserts the fragment at the current cursor position
+      range.insertNode(frag);
+      // Move cursor after inserted content
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      // No selection — append to end of editor
+      editorRef.current.appendChild(frag);
+    }
+
+    // Trigger onChange with the updated innerHTML directly (skip DOMParser
+    // so iframes in the content are not sanitized away)
+    const updated = editorRef.current.innerHTML;
+    lastSyncedValue.current = updated;
+    onChange(updated);
   };
 
   // ── Insert CTA block at cursor ──────────────────────────────────────────────
@@ -1128,6 +1175,69 @@ const SimpleRTE = ({ value, onChange, onImageUpload, minHeight = "400px", maxHei
         }
         .rte-cta-block a:hover,
         .rte-cta-btn:hover { transform: scale(1.04); }
+
+        /* ── Download Block in editor ─────────────────────────────── */
+        .rte-content .sap-download-block {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          border: 1.5px solid #7dd3fc;
+          border-radius: 12px;
+          padding: 14px 18px;
+          margin: 20px 0;
+          user-select: none;
+          cursor: default;
+          position: relative;
+        }
+        .rte-content .sap-download-block .sdb-icon {
+          font-size: 1.75rem;
+          flex-shrink: 0;
+          line-height: 1;
+        }
+        .rte-content .sap-download-block .sdb-icon::before {
+          content: "⬇";
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          background: #0284c7;
+          border-radius: 10px;
+          font-size: 1.1rem;
+          color: #fff;
+        }
+        .rte-content .sap-download-block .sdb-info {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .rte-content .sap-download-block .sdb-info strong {
+          color: #0f172a;
+          font-size: 0.9rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .rte-content .sap-download-block .sdb-info small {
+          color: #64748b;
+          font-size: 0.78rem;
+        }
+        .rte-content .sap-download-block .sdb-action {
+          background: #0284c7;
+          color: #fff;
+          border-radius: 8px;
+          padding: 7px 16px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          white-space: nowrap;
+          flex-shrink: 0;
+          letter-spacing: 0.01em;
+        }
+        /* Cursor marker — invisible placeholder inserted when modal opens */
+        .rte-content [data-sap-cursor] { display: inline; }
       `}</style>
 
       {/* ── HTML Code Modal ───────────────────────────────────── */}

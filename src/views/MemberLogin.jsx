@@ -67,6 +67,7 @@ const MemberLogin = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const returnTo = location.state?.fromAuth ? "/" : (location.state?.from || new URLSearchParams(location.search).get("return") || "/");
 
   // Already signed in — don't show the login form again, just send them
   // straight to where they were headed (or the homepage). Skipped while the
@@ -76,7 +77,6 @@ const MemberLogin = () => {
   // gets a chance to be seen.
   useEffect(() => {
     if (isLoggedIn && !contributorChoice) {
-      const returnTo = location.state?.fromAuth ? "/" : (location.state?.from || "/");
       navigate(returnTo, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

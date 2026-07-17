@@ -1,6 +1,6 @@
 const { asyncHandler } = require('../utils/asyncHandler');
 const { sendError } = require('../utils/apiResponse');
-const { calculateSeoScore, checkPlagiarismScore, deleteImage } = require('../utils/helpers');
+const { calculateSeoScore, checkPlagiarismScore, deleteImage, deleteUploadedFile, extractDownloadUrls } = require('../utils/helpers');
 const { sanitizeBlogHtml } = require('../utils/sanitize');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
@@ -216,6 +216,14 @@ const list = asyncHandler(async (req, res) => {
     // contributors viewing their own post still need draft/review fields.
     if (!hasAdminAccess) stripInternalFields(blog);
 
+    // Public, non-locked posts can be cached by the browser/CDN for 5 minutes
+    const isPublicAndOpen = !isAdmin && !isContributor && !blog.premium_locked && !isMembersOnly;
+    if (isPublicAndOpen) {
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+    } else {
+      res.setHeader('Cache-Control', 'private, no-store');
+    }
+
     return res.json(blog);
   }
 
@@ -292,7 +300,7 @@ const save = asyncHandler(async (req, res) => {
           faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link = null,
           is_members_only: rawIsMembersOnly = 0, send_notification_email = 0, status: requestedStatus, related_blogs,
           schema_type = 'BlogPosting', article_section = null, co_authors = [],
-          difficulty_level: rawDifficultyLevel = null } = data;
+          difficulty_level: rawDifficultyLevel = null, preview_paragraphs: rawPreviewParagraphs = null } = data;
 
   // Badges, is_premium, and credits_required are admin-only fields — contributors
   // submitting these in the request body must be silently ignored so they cannot
@@ -303,6 +311,7 @@ const save = asyncHandler(async (req, res) => {
   const badge_field_validated = isAdmin ? (data.badge_field_validated ?? 0) : 0;
   const is_premium = isAdmin ? (data.is_premium ?? 0) : 0;
   const credits_required = isAdmin ? (data.credits_required ?? 1) : 1;
+  const preview_paragraphs = isAdmin && rawPreviewParagraphs != null ? (parseInt(rawPreviewParagraphs) || null) : null;
   const VALID_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
   const difficulty_level = VALID_LEVELS.includes(rawDifficultyLevel) ? rawDifficultyLevel : null;
   const content = sanitizeBlogHtml(rawContent);
@@ -380,7 +389,16 @@ const save = asyncHandler(async (req, res) => {
       return res.json({ status: 'success', message: msg, plagiarism_score: finalPlag });
     }
 
-    // Standard update
+    // Standard update — safe to clean up replaced files now that the live columns are being overwritten
+    if (ex.image && ex.image !== image && ex.image.startsWith('/uploads/blogs/')) {
+      deleteImage(ex.image);
+    }
+    const oldDownloads = extractDownloadUrls(ex.content);
+    const newDownloads = new Set(extractDownloadUrls(content));
+    for (const url of oldDownloads) {
+      if (!newDownloads.has(url)) deleteUploadedFile(url);
+    }
+
     const targetStatus = isAdmin ? (requestedStatus || 'approved') : 'draft';
     const subStatus = isAdmin ? targetStatus : 'submitted';
     const plagRes = await checkPlagiarismScore(content, id, db);
@@ -395,6 +413,7 @@ const save = asyncHandler(async (req, res) => {
       targetStatus, subStatus, author_id, authorName, seoScore, finalPlag,
       is_members_only, is_premium, credits_required, relatedBlogsJson, coAuthorsJson, send_notification_email,
       badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level, newContentVersion,
+      preview_paragraphs,
       setPublishDate,
     });
     cache.invalidate('homepage_data_public');
@@ -426,6 +445,7 @@ const save = asyncHandler(async (req, res) => {
       seoScore, finalPlag, is_members_only, is_premium, credits_required, relatedBlogsJson, coAuthorsJson,
       send_notification_email,
       badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level,
+      preview_paragraphs,
       publishDateVal,
     });
     cache.invalidate('homepage_data_public');
@@ -455,10 +475,20 @@ const remove = asyncHandler(async (req, res) => {
   }
 
   if (blog.image) deleteImage(blog.image);
+  for (const url of extractDownloadUrls(blog.content)) deleteUploadedFile(url);
   await repo.deleteBlogById(db, id);
   new CacheService().invalidate('homepage_data_public');
 
   return res.json({ status: 'success', message: 'Blog deleted' });
 });
 
-module.exports = { exclusiveCount, suggested, updateBadges, list, save, remove };
+// GET /api/posts/by-ids?ids=1,2,3 — fetch a small set of posts by ID for related-blogs widgets
+const byIds = asyncHandler(async (req, res) => {
+  const raw = String(req.query.ids || '');
+  const ids = raw.split(',').map(s => s.trim()).filter(Boolean).slice(0, 20);
+  if (!ids.length) return res.json([]);
+  const rows = await repo.findByIds(req.db, ids);
+  return res.json(rows);
+});
+
+module.exports = { exclusiveCount, suggested, updateBadges, byIds, list, save, remove };

@@ -1,5 +1,6 @@
 import React from "react";
 import SimpleRTE from "../SimpleRTE.jsx";
+import { uploadDownloadAsset } from "../../../services/api";
 
 const ALL_CATEGORIES = [
   { value: "sap-security", label: "SAP Security" },
@@ -20,6 +21,7 @@ const ALL_CATEGORIES = [
   { value: "podcasts", label: "Expert Voices/Podcasts" },
   { value: "videos", label: "Videos" },
   { value: "expert-recommendations", label: "Expert Articles" },
+  { value: "downloads", label: "Downloads" },
 ];
 
 const BlogEditor = ({
@@ -44,6 +46,76 @@ const BlogEditor = ({
 }) => {
   const ACTIVE_CATEGORIES = customCategories || ALL_CATEGORIES;
   const [blogSearch, setBlogSearch] = React.useState("");
+
+  // ── Download block (shown only when category === "downloads") ────────────
+  const rteApi = React.useRef(null);
+  const contentAtInsert = React.useRef("");
+  const [dlModal, setDlModal] = React.useState({ open: false });
+  const [dlFile, setDlFile] = React.useState(null);
+  const [dlCredits, setDlCredits] = React.useState("5");
+  const [dlUploading, setDlUploading] = React.useState(false);
+  const [dlError, setDlError] = React.useState("");
+
+  // Parse all download blocks out of the HTML for the "Attached Files" list
+  const parseDownloadBlocks = (html) => {
+    const blocks = [];
+    const re = /<div[^>]*data-sap-download="1"[^>]*>[\s\S]*?<\/div>/gi;
+    let m;
+    while ((m = re.exec(html || "")) !== null) {
+      const tag = m[0];
+      const get = (attr) => { const r = new RegExp(`${attr}="([^"]*)"`, 'i'); const x = r.exec(tag); return x ? x[1] : ""; };
+      blocks.push({ fileUrl: get("data-file-url"), fileName: get("data-file-name"), fileSize: get("data-file-size"), credits: get("data-credits"), fullMatch: m[0] });
+    }
+    return blocks;
+  };
+
+  const openDlModal = () => {
+    // Snapshot the current content so we know exactly where to append after upload.
+    // This avoids marker/selection tricks that break across async boundaries.
+    contentAtInsert.current = formData.content || "";
+    setDlFile(null);
+    setDlCredits("5");
+    setDlError("");
+    setDlModal({ open: true });
+  };
+
+  const cancelDlModal = () => {
+    setDlModal({ open: false });
+  };
+
+  const handleInsertDownload = async () => {
+    if (!dlFile) { setDlError("Please select a file."); return; }
+    const credits = Math.max(0, parseInt(dlCredits) || 0);
+    setDlUploading(true);
+    setDlError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", dlFile);
+      const { data } = await uploadDownloadAsset(fd);
+      if (data.status !== "success") throw new Error(data.message || "Upload failed");
+      const ext = data.originalName.split(".").pop().toUpperCase();
+      const creditLabel = credits === 0 ? "Free" : `Download · ${credits} credit${credits !== 1 ? "s" : ""}`;
+      const blockHtml = `<div class="sap-download-block" data-sap-download="1" data-file-url="${data.url}" data-file-name="${data.originalName}" data-file-size="${data.size}" data-credits="${credits}" contenteditable="false"><span class="sdb-icon"></span><span class="sdb-info"><strong>${data.originalName}</strong><small>${data.size} · ${ext}</small></span><span class="sdb-action">${creditLabel}</span></div>`;
+      // Insert block after the content that existed when the button was clicked,
+      // plus a fresh empty paragraph so the editor stays typeable below the block.
+      const newContent = contentAtInsert.current + blockHtml + "<p><br></p>";
+      handleContentChange(newContent);
+      setDlModal({ open: false });
+      // After React commits the new content and the useEffect rewrites innerHTML,
+      // move focus + cursor to the end of the editor so the admin can keep typing.
+      setTimeout(() => {
+        if (rteApi.current?.focusEnd) rteApi.current.focusEnd();
+      }, 80);
+    } catch (err) {
+      setDlError(err.message || "Upload failed. Please try again.");
+    } finally {
+      setDlUploading(false);
+    }
+  };
+
+  const removeDownloadBlock = (fullMatch) => {
+    handleContentChange((formData.content || "").replace(fullMatch, ""));
+  };
 
   const handleToggleSecondary = (value) => {
     const current = formData.secondary_categories || [];
@@ -147,8 +219,135 @@ const BlogEditor = ({
               value={formData.content}
               onChange={handleContentChange}
               onImageUpload={rteImageUpload}
+              onReady={(api) => { rteApi.current = api; }}
             />
+            {formData.category === "downloads" && (() => {
+              const attachedBlocks = parseDownloadBlocks(formData.content);
+              return (
+                <div style={{ marginTop: "12px" }}>
+                  {/* Insert button */}
+                  <button
+                    type="button"
+                    onClick={openDlModal}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "7px", background: "#0f172a", color: "#fff", border: "none", borderRadius: "8px", padding: "9px 18px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer" }}
+                  >
+                    <i className="bi bi-file-earmark-arrow-down-fill"></i> Insert Download Block
+                  </button>
+
+                  {/* Attached files list */}
+                  {attachedBlocks.length > 0 && (
+                    <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
+                        Attached Files in Content
+                      </p>
+                      {attachedBlocks.map((b, i) => {
+                        const ext = (b.fileName || "").split(".").pop().toUpperCase();
+                        return (
+                          <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", background: "#f0f9ff", border: "1.5px solid #bae6fd", borderRadius: "10px", padding: "11px 16px" }}>
+                            <i className="bi bi-file-earmark-arrow-down" style={{ fontSize: "1.4rem", color: "#0284c7", flexShrink: 0 }}></i>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <strong style={{ display: "block", fontSize: "0.875rem", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.fileName}</strong>
+                              <small style={{ color: "#64748b", fontSize: "0.78rem" }}>{b.fileSize} · {ext} · {b.credits === "0" || b.credits === 0 ? "Free" : `${b.credits} credit${b.credits !== "1" ? "s" : ""} to download`}</small>
+                            </div>
+                            <button
+                              type="button"
+                              title="Remove from content"
+                              onClick={() => removeDownloadBlock(b.fullMatch)}
+                              style={{ background: "#fee2e2", border: "none", color: "#dc2626", borderRadius: "6px", width: "30px", height: "30px", cursor: "pointer", fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                            >
+                              <i className="bi bi-trash3"></i>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
+
+          {/* ── Download Block Modal ──────────────────────────────────── */}
+          {dlModal.open && (
+            <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+              <div style={{ background: "#fff", borderRadius: "16px", padding: "32px", width: "500px", maxWidth: "96vw", boxShadow: "0 24px 64px rgba(0,0,0,0.22)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "22px" }}>
+                  <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className="bi bi-file-earmark-arrow-down-fill" style={{ color: "#0284c7", fontSize: "1.2rem" }}></i>
+                  </div>
+                  <h4 style={{ margin: 0, fontSize: "1.05rem", color: "#0f172a", fontWeight: 700 }}>Insert Download Block</h4>
+                </div>
+
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#475569", marginBottom: "6px" }}>
+                  Select file <span style={{ color: "#94a3b8", fontWeight: 400 }}>(PDF, ZIP, DOCX, XLSX, PPTX, CSV, TXT — max 50 MB)</span>
+                </label>
+                <div style={{ border: "2px dashed #cbd5e1", borderRadius: "10px", padding: "20px", textAlign: "center", marginBottom: "16px", background: dlFile ? "#f0fdf4" : "#f8fafc", borderColor: dlFile ? "#86efac" : "#cbd5e1", transition: "all 0.2s" }}>
+                  {dlFile ? (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                      <i className="bi bi-file-earmark-check-fill" style={{ color: "#16a34a", fontSize: "1.5rem" }}></i>
+                      <div style={{ textAlign: "left" }}>
+                        <strong style={{ display: "block", fontSize: "0.875rem", color: "#15803d" }}>{dlFile.name}</strong>
+                        <small style={{ color: "#64748b" }}>{(dlFile.size / 1024 / 1024).toFixed(2)} MB</small>
+                      </div>
+                      <button type="button" onClick={() => setDlFile(null)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "1.1rem", marginLeft: "4px" }}>
+                        <i className="bi bi-x-circle"></i>
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <i className="bi bi-cloud-arrow-up" style={{ fontSize: "2rem", color: "#94a3b8", display: "block", marginBottom: "6px" }}></i>
+                      <label htmlFor="dl-file-input" style={{ cursor: "pointer", color: "#3b82f6", fontWeight: 600, fontSize: "0.875rem" }}>
+                        Click to choose a file
+                      </label>
+                      <input
+                        id="dl-file-input"
+                        type="file"
+                        accept=".pdf,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+                        onChange={(e) => setDlFile(e.target.files[0] || null)}
+                        style={{ display: "none" }}
+                      />
+                    </>
+                  )}
+                </div>
+
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#475569", marginBottom: "6px" }}>
+                  Credits required to download
+                  <span style={{ color: "#94a3b8", fontWeight: 400, marginLeft: "6px" }}>Set 0 for free</span>
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
+                  <button type="button" onClick={() => setDlCredits(c => String(Math.max(0, parseInt(c || 0) - 1)))} style={{ width: "36px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", cursor: "pointer", fontSize: "1.1rem" }}>−</button>
+                  <input
+                    type="number"
+                    min="0"
+                    value={dlCredits}
+                    onChange={(e) => setDlCredits(e.target.value)}
+                    style={{ flex: 1, padding: "8px 12px", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: "1rem", fontWeight: 700, textAlign: "center", background: "#f8fafc" }}
+                  />
+                  <button type="button" onClick={() => setDlCredits(c => String(parseInt(c || 0) + 1))} style={{ width: "36px", height: "36px", border: "1px solid #e2e8f0", borderRadius: "8px", background: "#f8fafc", cursor: "pointer", fontSize: "1.1rem" }}>+</button>
+                </div>
+
+                {dlError && (
+                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
+                    <p style={{ color: "#dc2626", fontSize: "0.85rem", margin: 0 }}><i className="bi bi-exclamation-triangle-fill"></i> {dlError}</p>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                  <button type="button" onClick={cancelDlModal} style={{ padding: "9px 22px", borderRadius: "8px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0" }}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleInsertDownload}
+                    disabled={dlUploading || !dlFile}
+                    style={{ padding: "9px 22px", borderRadius: "8px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", background: "#0f172a", color: "#fff", border: "none", opacity: (dlUploading || !dlFile) ? 0.5 : 1, display: "inline-flex", alignItems: "center", gap: "7px" }}
+                  >
+                    {dlUploading ? <><i className="bi bi-hourglass-split"></i> Uploading…</> : <><i className="bi bi-cloud-arrow-up-fill"></i> Upload & Insert</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Dynamic Children (SEO, FAQ, CTA) */}
@@ -283,6 +482,35 @@ const BlogEditor = ({
                   </span>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Paywall Preview — how many paragraphs to show before the gate */}
+          {isAdmin && (formData.is_members_only == 1 || formData.is_premium == 1) && (
+            <div className="form-group" style={{ marginBottom: "20px", background: "#f0f9ff", border: "1.5px solid #bae6fd", borderRadius: 8, padding: "14px 16px" }}>
+              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "700", color: "#0369a1" }}>
+                <i className="bi bi-eye-slash-fill" style={{ color: "#0369a1" }}></i>
+                Paywall Preview — Paragraphs to show
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+                <input
+                  type="number"
+                  name="preview_paragraphs"
+                  min="1"
+                  max="50"
+                  placeholder="3"
+                  value={formData.preview_paragraphs ?? ""}
+                  onChange={handleInputChange}
+                  className="form-control"
+                  style={{ width: "100px", padding: "8px 10px", fontSize: "0.9rem", border: "1.5px solid #bae6fd", background: "#f0f9ff" }}
+                />
+                <span style={{ fontSize: "0.8rem", color: "#0369a1" }}>
+                  {formData.preview_paragraphs ? `${formData.preview_paragraphs} block(s) shown before paywall` : "Leave blank to use site default (3)"}
+                </span>
+              </div>
+              <span style={{ fontSize: "0.75rem", color: "#0369a1", marginTop: "6px", display: "block" }}>
+                Counts paragraphs, headings, lists, and tables. Overrides the site-wide default.
+              </span>
             </div>
           )}
 

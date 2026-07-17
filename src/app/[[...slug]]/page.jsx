@@ -135,6 +135,7 @@ function buildMeta(d) {
   return {
     title: d.title,
     description: d.description,
+    robots: 'index, follow',
     alternates: { canonical: d.url },
     openGraph: {
       title: d.title,
@@ -162,6 +163,7 @@ function defaultMeta(path) {
   return {
     title,
     description,
+    robots: 'index, follow',
     alternates: { canonical: url },
     openGraph: {
       title,

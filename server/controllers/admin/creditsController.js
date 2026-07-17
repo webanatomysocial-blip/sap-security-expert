@@ -219,7 +219,79 @@ const getCreditStats = asyncHandler(async (req, res) => {
   return sendSuccess(res, { stats });
 });
 
+// GET /api/admin/credit-activities
+const listActivities = asyncHandler(async (req, res) => {
+  const activities = await repo.findAllActivities(req.db);
+  return sendSuccess(res, { activities });
+});
+
+// POST /api/admin/credit-activities
+const saveActivity = async (req, res, next) => {
+  const { id, key, label, description, credits, is_active } = req.body || {};
+  if (!label || credits == null) {
+    return sendError(res, 'label and credits are required', 400);
+  }
+  if (!id && !key) {
+    return sendError(res, 'key is required for new activities', 400);
+  }
+  const parsedCredits = parseInt(credits);
+  if (isNaN(parsedCredits) || parsedCredits < 0) {
+    return sendError(res, 'credits must be a non-negative integer', 400);
+  }
+  try {
+    await repo.upsertActivity(req.db, {
+      id: id || null, key, label, description,
+      credits: parsedCredits,
+      is_active: is_active === true || is_active === 1 || is_active === '1' ? 1 : 0,
+    });
+    return sendSuccess(res, { message: id ? 'Activity updated.' : 'Activity created.' });
+  } catch (err) {
+    if (err.message?.includes('UNIQUE') || err.message?.includes('Duplicate')) {
+      return sendError(res, 'Activity key already exists.', 409);
+    }
+    return next(err);
+  }
+};
+
+// DELETE /api/admin/credit-activities/:id
+const deleteActivity = asyncHandler(async (req, res) => {
+  await repo.deleteActivity(req.db, req.params.id);
+  return sendSuccess(res, { message: 'Activity deleted.' });
+});
+
+// ── Achievement Types ─────────────────────────────────────────────────────────
+
+// GET /api/admin/achievement-types
+const listAchievements = asyncHandler(async (req, res) => {
+  const achievements = await repo.findAllAchievementTypes(req.db);
+  return sendSuccess(res, { achievements });
+});
+
+// POST /api/admin/achievement-types
+const saveAchievement = async (req, res, next) => {
+  const { id, label, description, icon, color, bg, criteria } = req.body || {};
+  if (!id || !label || !description || !icon || !color || !bg || !criteria) {
+    return sendError(res, 'id, label, description, icon, color, bg, and criteria are all required', 400);
+  }
+  const safeId = id.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+  if (!safeId) return sendError(res, 'id must contain at least one alphanumeric character', 400);
+  try {
+    await repo.upsertAchievementType(req.db, { id: safeId, label, description, icon, color, bg, criteria });
+    return sendSuccess(res, { message: 'Achievement saved.' });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+// DELETE /api/admin/achievement-types/:id
+const deleteAchievement = asyncHandler(async (req, res) => {
+  await repo.deleteAchievementType(req.db, req.params.id);
+  return sendSuccess(res, { message: 'Achievement deleted.' });
+});
+
 module.exports = {
   listBundles, saveBundle, deleteBundle, listCoupons, saveCoupon, deleteCoupon,
   grantCredits, bulkGrantCredits, listTransactions, getMemberCredits, getCreditStats,
+  listActivities, saveActivity, deleteActivity,
+  listAchievements, saveAchievement, deleteAchievement,
 };

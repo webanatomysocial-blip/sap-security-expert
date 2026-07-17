@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Image from "next/image";
 import { VITE_SITE_URL } from "../utils/env";
@@ -15,6 +15,14 @@ import {
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const [version, setVersion] = useState(APP_VERSION);
+
+  useEffect(() => {
+    fetch("/api/version")
+      .then((r) => r.json())
+      .then((d) => { if (d?.version) setVersion(d.version); })
+      .catch(() => {});
+  }, []);
 
   return (
     <footer className="footer-container">
@@ -125,6 +133,12 @@ const Footer = () => {
                   Responsible AI
                 </Link>
               </li>
+              <li>
+                <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer">Sitemap</a>
+              </li>
+              <li>
+                <a href="/llms.txt" target="_blank" rel="noopener noreferrer">LLMs.txt</a>
+              </li>
             </ul>
           </div>
         </div>
@@ -157,7 +171,7 @@ const Footer = () => {
             color: "#64748b", borderRadius: "20px", padding: "2px 10px",
             fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em",
           }}>
-            <i className="bi bi-layers-fill" style={{ fontSize: "0.7rem" }} /> Platform v{APP_VERSION}
+            <i className="bi bi-layers-fill" style={{ fontSize: "0.7rem" }} /> Platform v{version}
           </span>
         </p>
       </div>

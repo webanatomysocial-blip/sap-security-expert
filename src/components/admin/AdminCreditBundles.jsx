@@ -10,6 +10,9 @@ import {
   getAdminCoupons, saveCoupon, deleteCoupon,
   getCreditStats, getAllCreditTransactions, grantAdminCredits, bulkGrantAdminCredits,
   getAdminMembers,
+  getAdminCreditActivities, saveCreditActivity, deleteCreditActivity,
+  getAdminAchievementTypes, saveAchievementType, deleteAchievementType,
+  getAdminSettings, saveAdminSetting,
 } from "../../services/api";
 import { downloadCSV } from "../../services/exportUtils";
 
@@ -58,6 +61,104 @@ export default function AdminCreditBundles() {
   const [bulkForm, setBulkForm] = useState({ amount: "", note: "" });
   const [bulkErrors, setBulkErrors] = useState({});
 
+  // Achievements tab
+  const EMPTY_ACHIEVEMENT = { id: "", label: "", description: "", icon: "bi-stars", color: "#7c3aed", bg: "#faf5ff", criteria: "" };
+  const [achievements, setAchievements] = useState([]);
+  const [achievementModal, setAchievementModal] = useState(false);
+  const [achievementForm, setAchievementForm] = useState(EMPTY_ACHIEVEMENT);
+  const [achievementErrors, setAchievementErrors] = useState({});
+  const [savingAchievement, setSavingAchievement] = useState(false);
+  const [isEditingAchievement, setIsEditingAchievement] = useState(false);
+
+  const fetchAchievements = useCallback(async () => {
+    try {
+      const res = await getAdminAchievementTypes();
+      setAchievements(res.data?.achievements || []);
+    } catch { addToast("Failed to load achievements", "error"); }
+  }, [addToast]);
+
+  const openAchievementModal = (ach = null) => {
+    setIsEditingAchievement(!!ach);
+    setAchievementForm(ach ? { ...ach } : EMPTY_ACHIEVEMENT);
+    setAchievementErrors({});
+    setAchievementModal(true);
+  };
+
+  const handleSaveAchievement = async () => {
+    const errs = {};
+    if (!achievementForm.id) errs.id = "Key is required";
+    if (!achievementForm.label) errs.label = "Label is required";
+    if (!achievementForm.description) errs.description = "Description is required";
+    if (!achievementForm.icon) errs.icon = "Icon class is required";
+    if (!achievementForm.criteria) errs.criteria = "Criteria is required";
+    setAchievementErrors(errs);
+    if (Object.keys(errs).length) return;
+    setSavingAchievement(true);
+    try {
+      await saveAchievementType(achievementForm);
+      addToast(isEditingAchievement ? "Achievement updated." : "Achievement created.", "success");
+      setAchievementModal(false);
+      fetchAchievements();
+    } catch (err) {
+      addToast(err.response?.data?.message || "Failed to save achievement", "error");
+    } finally { setSavingAchievement(false); }
+  };
+
+  const handleDeleteAchievement = (ach) => {
+    openConfirm({
+      title: "Delete Achievement",
+      message: `Delete "${ach.label}"? Members who already earned it keep it, but it won't appear for new earners.`,
+      confirmLabel: "Delete",
+      confirmClass: "btn-danger",
+      onConfirm: async () => {
+        try {
+          await deleteAchievementType(ach.id);
+          addToast("Achievement deleted.", "success");
+          fetchAchievements();
+        } catch { addToast("Failed to delete achievement", "error"); }
+      },
+    });
+  };
+
+  // Activities tab
+  const EMPTY_ACTIVITY = { id: null, key: "", label: "", description: "", credits: "", is_active: 1 };
+  const [activities, setActivities] = useState([]);
+  const [activityModal, setActivityModal] = useState(false);
+  const [activityForm, setActivityForm] = useState(EMPTY_ACTIVITY);
+  const [activityErrors, setActivityErrors] = useState({});
+  const [savingActivity, setSavingActivity] = useState(false);
+
+  const [paywallDefault, setPaywallDefault] = useState(3);
+  const [savingPaywallDefault, setSavingPaywallDefault] = useState(false);
+
+  const fetchActivities = useCallback(async () => {
+    try {
+      const [actRes, settingsRes] = await Promise.all([
+        getAdminCreditActivities(),
+        getAdminSettings(),
+      ]);
+      setActivities(actRes.data?.activities || []);
+      const val = settingsRes.data?.settings?.paywall_default_preview_paragraphs;
+      if (val != null) setPaywallDefault(parseInt(val) || 3);
+    } catch {
+      addToast("Failed to load activities", "error");
+    }
+  }, [addToast]);
+
+  const handleSavePaywallDefault = async () => {
+    const n = parseInt(paywallDefault);
+    if (isNaN(n) || n < 1 || n > 50) { addToast("Enter a number between 1 and 50", "error"); return; }
+    setSavingPaywallDefault(true);
+    try {
+      await saveAdminSetting("paywall_default_preview_paragraphs", n);
+      addToast("Default preview paragraphs saved", "success");
+    } catch {
+      addToast("Save failed", "error");
+    } finally {
+      setSavingPaywallDefault(false);
+    }
+  };
+
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -102,11 +203,66 @@ export default function AdminCreditBundles() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Lazy-load transactions / members when tab is switched
+  // Lazy-load transactions / members / activities when tab is switched
   useEffect(() => {
     if (tab === "transactions" && transactions.length === 0) fetchTransactions();
     if (tab === "grant" && members.length === 0) fetchMembers();
+    if (tab === "grant" && activities.length === 0) fetchActivities();
+    if (tab === "activities" && activities.length === 0) fetchActivities();
+    if (tab === "achievements" && achievements.length === 0) fetchAchievements();
   }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Activity handlers ─────────────────────────────────────────────────────
+  const openActivityModal = (act = EMPTY_ACTIVITY) => {
+    setActivityForm({ ...act, credits: String(act.credits ?? "") });
+    setActivityErrors({});
+    setActivityModal(true);
+  };
+
+  const handleSaveActivity = async () => {
+    const errs = {};
+    if (!activityForm.label.trim()) errs.label = "Label is required";
+    if (!activityForm.id && !activityForm.key.trim()) errs.key = "Key is required";
+    if (activityForm.key && !/^[a-z0-9_]+$/.test(activityForm.key)) errs.key = "Key: lowercase letters, numbers, underscores only";
+    const credits = parseInt(activityForm.credits);
+    if (isNaN(credits) || credits < 0) errs.credits = "Credits must be 0 or more";
+    if (Object.keys(errs).length) { setActivityErrors(errs); return; }
+    setSavingActivity(true);
+    try {
+      await saveCreditActivity({
+        id: activityForm.id,
+        key: activityForm.key.trim(),
+        label: activityForm.label.trim(),
+        description: activityForm.description.trim(),
+        credits,
+        is_active: activityForm.is_active,
+      });
+      addToast(activityForm.id ? "Activity updated" : "Activity created", "success");
+      setActivityModal(false);
+      fetchActivities();
+    } catch (err) {
+      addToast(err.response?.data?.message || "Save failed", "error");
+    } finally {
+      setSavingActivity(false);
+    }
+  };
+
+  const handleDeleteActivity = (act) => {
+    openConfirm({
+      title: "Delete Activity",
+      message: `Delete "${act.label}"? This won't affect credits already granted.`,
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+          await deleteCreditActivity(act.id);
+          addToast("Activity deleted", "success");
+          fetchActivities();
+        } catch {
+          addToast("Delete failed", "error");
+        }
+      },
+    });
+  };
 
   // ── Grant Credits handler ─────────────────────────────────────────────────
   const handleGrant = async () => {
@@ -401,6 +557,8 @@ export default function AdminCreditBundles() {
         {[
           { key: "bundles", label: "Credit Bundles", icon: "bi-stack" },
           { key: "coupons", label: "Coupons", icon: "bi-ticket-perforated-fill" },
+          { key: "activities", label: "Earn Activities", icon: "bi-lightning-charge-fill" },
+          { key: "achievements", label: "Achievements", icon: "bi-trophy-fill" },
           { key: "transactions", label: "Transactions", icon: "bi-receipt" },
           { key: "grant", label: "Grant Credits", icon: "bi-gift-fill" },
         ].map((t) => (
@@ -761,6 +919,22 @@ export default function AdminCreditBundles() {
               {grantErrors.amount && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{grantErrors.amount}</p>}
             </div>
 
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label className="form-label">Activity <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional — auto-fills note)</span></label>
+              <select
+                className="form-control"
+                onChange={(e) => {
+                  const act = activities.find((a) => a.key === e.target.value);
+                  if (act) setGrantForm((p) => ({ ...p, note: act.label, amount: p.amount || String(act.credits) }));
+                }}
+                defaultValue=""
+              >
+                <option value="">— Select activity —</option>
+                {activities.filter((a) => a.is_active).map((a) => (
+                  <option key={a.key} value={a.key}>{a.label} ({a.credits} credits)</option>
+                ))}
+              </select>
+            </div>
             <div className="form-group" style={{ marginBottom: 24 }}>
               <label className="form-label">Note <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
               <input
@@ -925,6 +1099,22 @@ export default function AdminCreditBundles() {
               {bulkErrors.amount && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{bulkErrors.amount}</p>}
             </div>
 
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label className="form-label">Activity <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional — auto-fills note)</span></label>
+              <select
+                className="form-control"
+                onChange={(e) => {
+                  const act = activities.find((a) => a.key === e.target.value);
+                  if (act) setBulkForm((p) => ({ ...p, note: act.label, amount: p.amount || String(act.credits) }));
+                }}
+                defaultValue=""
+              >
+                <option value="">— Select activity —</option>
+                {activities.filter((a) => a.is_active).map((a) => (
+                  <option key={a.key} value={a.key}>{a.label} ({a.credits} credits)</option>
+                ))}
+              </select>
+            </div>
             <div className="form-group" style={{ marginBottom: 24 }}>
               <label className="form-label">Note <span style={{ color: "#94a3b8", fontWeight: 400 }}>(optional)</span></label>
               <input
@@ -947,6 +1137,370 @@ export default function AdminCreditBundles() {
           </div>
           )}
         </div>
+      )}
+
+      {/* ── EARN ACTIVITIES ──────────────────────────────────────────────────── */}
+      {tab === "activities" && (
+        <>
+        {/* Global paywall preview setting */}
+        <div className="admin-card" style={{ marginBottom: 20 }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
+            <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Paywall Preview — Site Default</h2>
+            <p style={{ margin: "2px 0 0", fontSize: 13, color: "#94a3b8" }}>How many paragraphs/blocks to show before the paywall on exclusive &amp; premium articles. Per-article setting in the blog editor overrides this.</p>
+          </div>
+          <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              className="form-control"
+              style={{ width: 100 }}
+              value={paywallDefault}
+              onChange={(e) => setPaywallDefault(e.target.value)}
+            />
+            <span style={{ fontSize: 13, color: "#64748b" }}>block(s) shown before paywall</span>
+            <button
+              className="btn-primary"
+              onClick={handleSavePaywallDefault}
+              disabled={savingPaywallDefault}
+              style={{ padding: "8px 20px", opacity: savingPaywallDefault ? 0.7 : 1 }}
+            >
+              {savingPaywallDefault ? "Saving…" : "Save Default"}
+            </button>
+          </div>
+        </div>
+        <div className="admin-card">
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
+            <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Earn Activities</h2>
+            <p style={{ margin: "2px 0 0", fontSize: 13, color: "#94a3b8" }}>Configure how many credits members earn for each action.</p>
+          </div>
+          <TableScrollContainer>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Label</th>
+                  <th>Description</th>
+                  <th style={{ textAlign: "center" }}>Credits</th>
+                  <th style={{ textAlign: "center" }}>Status</th>
+                  <th style={{ textAlign: "center" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activities.length === 0 ? (
+                  <tr><td colSpan={6} style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>No activities yet.</td></tr>
+                ) : activities.map((act) => (
+                  <tr key={act.id}>
+                    <td><code style={{ fontSize: 12, background: "#f1f5f9", padding: "2px 6px", borderRadius: 4 }}>{act.key}</code></td>
+                    <td style={{ fontWeight: 600 }}>{act.label}</td>
+                    <td style={{ color: "#64748b", fontSize: 13 }}>{act.description || "—"}</td>
+                    <td style={{ textAlign: "center" }}>
+                      <span style={{ fontWeight: 700, color: "#ee5e42", fontSize: 15 }}>{act.credits}</span>
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <span style={{
+                        display: "inline-block", padding: "2px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+                        background: act.is_active ? "#dcfce7" : "#f1f5f9",
+                        color: act.is_active ? "#16a34a" : "#94a3b8",
+                      }}>
+                        {act.is_active ? "Active" : "Disabled"}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <ActionMenu items={[
+                        { label: "Edit", icon: "bi-pencil", onClick: () => openActivityModal(act) },
+                        { label: "Delete", icon: "bi-trash", className: "text-danger", onClick: () => handleDeleteActivity(act) },
+                      ]} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScrollContainer>
+        </div>
+        </>
+      )}
+
+      {/* ── Achievements Tab ──────────────────────────────────────────────────── */}
+      {tab === "achievements" && (
+        <div className="admin-card">
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
+            <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Achievements</h2>
+            <p style={{ margin: "2px 0 0", fontSize: 13, color: "#94a3b8" }}>Badges members earn for completing specific actions.</p>
+          </div>
+          <TableScrollContainer>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Badge</th>
+                  <th>Key</th>
+                  <th>Label</th>
+                  <th>Description</th>
+                  <th>Criteria</th>
+                  <th style={{ textAlign: "center" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {achievements.length === 0 ? (
+                  <tr><td colSpan={6} style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>No achievements yet.</td></tr>
+                ) : achievements.map((ach) => (
+                  <tr key={ach.id}>
+                    <td style={{ textAlign: "center" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "50%", background: ach.bg, color: ach.color, fontSize: 18 }}>
+                        <i className={`bi ${ach.icon}`} />
+                      </span>
+                    </td>
+                    <td><code style={{ fontSize: 12, background: "#f1f5f9", padding: "2px 6px", borderRadius: 4 }}>{ach.id}</code></td>
+                    <td style={{ fontWeight: 600 }}>{ach.label}</td>
+                    <td style={{ color: "#64748b", fontSize: 13 }}>{ach.description}</td>
+                    <td style={{ color: "#64748b", fontSize: 13 }}>{ach.criteria}</td>
+                    <td style={{ textAlign: "center" }}>
+                      <ActionMenu items={[
+                        { label: "Edit", icon: "bi-pencil", onClick: () => openAchievementModal(ach) },
+                        { label: "Delete", icon: "bi-trash", className: "text-danger", onClick: () => handleDeleteAchievement(ach) },
+                      ]} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScrollContainer>
+        </div>
+      )}
+
+      {/* ── Achievement Modal ─────────────────────────────────────────────────── */}
+      {achievementModal && createPortal(
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setAchievementModal(false)}>
+          <div className="modal-container" style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ padding: 10, background: "#fef3c7", borderRadius: 10 }}>
+                  <i className="bi bi-trophy-fill" style={{ color: "#d97706", fontSize: 20 }} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0 }}>{isEditingAchievement ? "Edit Achievement" : "New Achievement"}</h3>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--slate-500)" }}>
+                    {isEditingAchievement ? "Update badge details" : "Define a new badge for members to earn"}
+                  </p>
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setAchievementModal(false)}><LuX /></button>
+            </div>
+            <div className="modal-body" data-lenis-prevent style={{ padding: 24 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">Key (ID) <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input
+                    className="form-control"
+                    placeholder="e.g. first_comment"
+                    value={achievementForm.id}
+                    disabled={isEditingAchievement}
+                    onChange={(e) => setAchievementForm((p) => ({ ...p, id: e.target.value }))}
+                    style={achievementErrors.id ? { borderColor: "#dc2626" } : {}}
+                  />
+                  {achievementErrors.id && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{achievementErrors.id}</p>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Label <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input
+                    className="form-control"
+                    placeholder="e.g. First Voice"
+                    value={achievementForm.label}
+                    onChange={(e) => setAchievementForm((p) => ({ ...p, label: e.target.value }))}
+                    style={achievementErrors.label ? { borderColor: "#dc2626" } : {}}
+                  />
+                  {achievementErrors.label && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{achievementErrors.label}</p>}
+                </div>
+              </div>
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">Description <span style={{ color: "#dc2626" }}>*</span></label>
+                <input
+                  className="form-control"
+                  placeholder="e.g. Had your first comment approved"
+                  value={achievementForm.description}
+                  onChange={(e) => setAchievementForm((p) => ({ ...p, description: e.target.value }))}
+                  style={achievementErrors.description ? { borderColor: "#dc2626" } : {}}
+                />
+                {achievementErrors.description && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{achievementErrors.description}</p>}
+              </div>
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">Criteria <span style={{ color: "#dc2626" }}>*</span></label>
+                <input
+                  className="form-control"
+                  placeholder="e.g. 1 approved comment"
+                  value={achievementForm.criteria}
+                  onChange={(e) => setAchievementForm((p) => ({ ...p, criteria: e.target.value }))}
+                  style={achievementErrors.criteria ? { borderColor: "#dc2626" } : {}}
+                />
+                {achievementErrors.criteria && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{achievementErrors.criteria}</p>}
+              </div>
+              {/* Icon Class — full width */}
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">Icon Class <span style={{ color: "#dc2626" }}>*</span></label>
+                <input
+                  className="form-control"
+                  placeholder="e.g. bi-stars"
+                  value={achievementForm.icon}
+                  onChange={(e) => setAchievementForm((p) => ({ ...p, icon: e.target.value }))}
+                  style={achievementErrors.icon ? { borderColor: "#dc2626" } : {}}
+                />
+                {achievementErrors.icon && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{achievementErrors.icon}</p>}
+              </div>
+
+              {/* Color pickers — 2 columns */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+                <div className="form-group">
+                  <label className="form-label">Icon Color</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="color"
+                      value={achievementForm.color}
+                      onChange={(e) => setAchievementForm((p) => ({ ...p, color: e.target.value }))}
+                      style={{ width: 40, height: 40, padding: 2, border: "1px solid #e2e8f0", borderRadius: 8, cursor: "pointer", flexShrink: 0 }}
+                    />
+                    <input
+                      className="form-control"
+                      value={achievementForm.color}
+                      onChange={(e) => setAchievementForm((p) => ({ ...p, color: e.target.value }))}
+                      style={{ fontFamily: "monospace", fontSize: 13 }}
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Badge Background</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input
+                      type="color"
+                      value={achievementForm.bg}
+                      onChange={(e) => setAchievementForm((p) => ({ ...p, bg: e.target.value }))}
+                      style={{ width: 40, height: 40, padding: 2, border: "1px solid #e2e8f0", borderRadius: 8, cursor: "pointer", flexShrink: 0 }}
+                    />
+                    <input
+                      className="form-control"
+                      value={achievementForm.bg}
+                      onChange={(e) => setAchievementForm((p) => ({ ...p, bg: e.target.value }))}
+                      style={{ fontFamily: "monospace", fontSize: 13 }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Live badge preview */}
+              {achievementForm.icon && (
+                <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, marginBottom: 24 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 48, height: 48, borderRadius: "50%", background: achievementForm.bg, color: achievementForm.color, fontSize: 24, flexShrink: 0 }}>
+                    <i className={`bi ${achievementForm.icon}`} />
+                  </span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{achievementForm.label || "Badge Label"}</div>
+                    <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{achievementForm.description || "Description preview"}</div>
+                  </div>
+                  <span style={{ marginLeft: "auto", fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Preview</span>
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                <button className="btn-cancel" onClick={() => setAchievementModal(false)}>Cancel</button>
+                <button className="btn-primary" onClick={handleSaveAchievement} disabled={savingAchievement} style={{ padding: "10px 28px", opacity: savingAchievement ? 0.7 : 1 }}>
+                  {savingAchievement ? "Saving…" : isEditingAchievement ? "Update Achievement" : "Create Achievement"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Activity Modal ────────────────────────────────────────────────────── */}
+      {activityModal && createPortal(
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setActivityModal(false)}>
+          <div className="modal-container" style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ padding: 10, background: "#fef3c7", borderRadius: 10 }}>
+                  <i className="bi bi-lightning-charge-fill" style={{ color: "#d97706", fontSize: 20 }} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0 }}>{activityForm.id ? "Edit Activity" : "New Earn Activity"}</h3>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--slate-500)" }}>
+                    {activityForm.id ? "Update credit amount and settings" : "Define a new way for members to earn credits"}
+                  </p>
+                </div>
+              </div>
+              <button className="modal-close-btn" onClick={() => setActivityModal(false)}><LuX size={20} /></button>
+            </div>
+            <div className="modal-body" data-lenis-prevent style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+              {!activityForm.id && (
+                <div className="form-group">
+                  <label className="form-label">Key <span style={{ color: "#ef4444" }}>*</span></label>
+                  <input
+                    className={`form-control${activityErrors.key ? " is-invalid" : ""}`}
+                    placeholder="e.g. linkedin_share"
+                    value={activityForm.key}
+                    onChange={(e) => setActivityForm((p) => ({ ...p, key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }))}
+                  />
+                  {activityErrors.key && <div className="invalid-feedback">{activityErrors.key}</div>}
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Unique identifier used in code. Cannot be changed after creation.</div>
+                </div>
+              )}
+              <div className="form-group">
+                <label className="form-label">Label <span style={{ color: "#ef4444" }}>*</span></label>
+                <input
+                  className={`form-control${activityErrors.label ? " is-invalid" : ""}`}
+                  placeholder="e.g. LinkedIn Share"
+                  value={activityForm.label}
+                  onChange={(e) => setActivityForm((p) => ({ ...p, label: e.target.value }))}
+                />
+                {activityErrors.label && <div className="invalid-feedback">{activityErrors.label}</div>}
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description</label>
+                <input
+                  className="form-control"
+                  placeholder="Short explanation shown to members"
+                  value={activityForm.description}
+                  onChange={(e) => setActivityForm((p) => ({ ...p, description: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Credits Awarded <span style={{ color: "#ef4444" }}>*</span></label>
+                <input
+                  type="number"
+                  min="0"
+                  className={`form-control${activityErrors.credits ? " is-invalid" : ""}`}
+                  placeholder="e.g. 5"
+                  value={activityForm.credits}
+                  onChange={(e) => setActivityForm((p) => ({ ...p, credits: e.target.value }))}
+                />
+                {activityErrors.credits && <div className="invalid-feedback">{activityErrors.credits}</div>}
+              </div>
+              <div className="form-group">
+                <label className="form-label">Status</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[{ v: 1, label: "Active" }, { v: 0, label: "Disabled" }].map(({ v, label }) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setActivityForm((p) => ({ ...p, is_active: v }))}
+                      style={{
+                        padding: "8px 20px", borderRadius: 8, border: "1px solid #e2e8f0", cursor: "pointer", fontWeight: 600, fontSize: 13,
+                        background: activityForm.is_active === v ? "#1e293b" : "#f8fafc",
+                        color: activityForm.is_active === v ? "#fff" : "#64748b",
+                      }}
+                    >{label}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid var(--slate-100)", padding: "14px 24px" }}>
+              <button className="btn-secondary" onClick={() => setActivityModal(false)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--slate-200)", background: "white", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button className="btn-primary" onClick={handleSaveActivity} disabled={savingActivity} style={{ padding: "8px 20px", borderRadius: 8, opacity: savingActivity ? 0.7 : 1 }}>
+                {savingActivity ? "Saving…" : activityForm.id ? "Update Activity" : "Create Activity"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Bundle Modal ─────────────────────────────────────────────────────── */}

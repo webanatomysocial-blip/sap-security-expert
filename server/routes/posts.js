@@ -4,6 +4,7 @@ const { checkPermission } = require('../middleware/permissions');
 const controller = require('../controllers/postsController');
 
 router.get('/exclusive-count', controller.exclusiveCount);
+router.get('/by-ids', controller.byIds);
 router.get('/:slug/suggested', controller.suggested);
 router.put('/:id/badges', requireAdmin, controller.updateBadges);
 router.get('/:idOrSlug?', requireAuth({ allowPublic: true }), controller.list);

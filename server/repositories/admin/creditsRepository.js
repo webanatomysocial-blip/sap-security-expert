@@ -130,9 +130,57 @@ async function getCreditStats(db) {
   };
 }
 
+async function findAllActivities(db) {
+  const [rows] = await db.execute('SELECT * FROM credit_activities ORDER BY id ASC');
+  return rows;
+}
+
+async function findActivityByKey(db, key) {
+  const [rows] = await db.execute('SELECT * FROM credit_activities WHERE `key`=? LIMIT 1', [key]);
+  return rows[0] || null;
+}
+
+async function upsertActivity(db, { id, key, label, description, credits, is_active }) {
+  if (id) {
+    await db.execute(
+      'UPDATE credit_activities SET label=?, description=?, credits=?, is_active=? WHERE id=?',
+      [label, description || '', credits, is_active, id]
+    );
+  } else {
+    await db.execute(
+      'INSERT INTO credit_activities (`key`, label, description, credits, is_active) VALUES (?, ?, ?, ?, ?)',
+      [key, label, description || '', credits, is_active ?? 1]
+    );
+  }
+}
+
+async function deleteActivity(db, id) {
+  await db.execute('DELETE FROM credit_activities WHERE id=?', [id]);
+}
+
+// ── Achievement Types ─────────────────────────────────────────────────────────
+async function findAllAchievementTypes(db) {
+  const [rows] = await db.execute('SELECT * FROM member_achievement_types ORDER BY id ASC');
+  return rows;
+}
+
+async function upsertAchievementType(db, { id, label, description, icon, color, bg, criteria }) {
+  await db.execute(
+    `INSERT INTO member_achievement_types (id, label, description, icon, color, bg, criteria) VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE label=VALUES(label), description=VALUES(description), icon=VALUES(icon), color=VALUES(color), bg=VALUES(bg), criteria=VALUES(criteria)`,
+    [id, label, description, icon, color, bg, criteria]
+  );
+}
+
+async function deleteAchievementType(db, id) {
+  await db.execute('DELETE FROM member_achievement_types WHERE id=?', [id]);
+}
+
 module.exports = {
   findAllBundles, updateBundle, createBundle, deleteBundle,
   findAllCoupons, updateCoupon, createCoupon, deleteCoupon,
   findMemberById, findAllApprovedMemberIds, findMemberCredits, incrementMemberBalance, upsertMemberBalance, createMemberCredits, insertAdjustmentTransaction,
   findAllTransactions, countTransactions, findMemberBalance, getCreditStats,
+  findAllActivities, findActivityByKey, upsertActivity, deleteActivity,
+  findAllAchievementTypes, upsertAchievementType, deleteAchievementType,
 };

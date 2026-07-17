@@ -71,4 +71,7 @@ router.get('/news', controller.news);
 // GET /api/news/:slug
 router.get('/news/:slug', controller.newsBySlug);
 
+// GET /api/version — current app version (latest from CHANGELOG.md or DB)
+router.get('/version', controller.appVersion);
+
 module.exports = router;
