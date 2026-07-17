@@ -215,13 +215,13 @@ async function updateBlogStandard(db, id, f) {
   let publishDateSql = '';
   const publishParams = [];
   if (f.setPublishDate) {
-    publishDateSql = 'publish_date = CURRENT_TIMESTAMP, date = COALESCE(NULLIF(?, ""), CURRENT_DATE),';
+    publishDateSql = "publish_date = CURRENT_TIMESTAMP, date = COALESCE(NULLIF(?, ''), CURRENT_DATE),";
     publishParams.push(f.date || '');
   }
 
   await db.execute(
     `UPDATE blogs SET
-     title=?, slug=?, excerpt=?, content=?, date=COALESCE(NULLIF(?,""),CURRENT_DATE), image=?, image_alt=?, category=?, tags=?, faqs=?,
+     title=?, slug=?, excerpt=?, content=?, date=COALESCE(NULLIF(?,''),CURRENT_DATE), image=?, image_alt=?, category=?, tags=?, faqs=?,
      secondary_categories=?,
      cta_title=?, cta_description=?, cta_button_text=?, cta_button_link=?,
      meta_title=?, meta_description=?, meta_keywords=?,
@@ -259,7 +259,7 @@ async function insertBlog(db, f) {
       seo_score, plagiarism_score, plagiarism_status, is_members_only, is_premium, credits_required, related_blogs, co_authors,
       send_notification_email, badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level, content_version, preview_paragraphs,
       publish_date, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?,""),CURRENT_DATE), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+     VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?,''),CURRENT_DATE), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              ?, ?,
              ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?,
              ?, ?, ?, ?, ?, ?, ?, ?,
