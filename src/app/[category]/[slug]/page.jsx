@@ -80,7 +80,7 @@ function addLazyLoading(html) {
 
 export async function generateMetadata({ params }) {
   const { category, slug } = await params;
-  if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert' };
+  if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert', robots: 'noindex, nofollow' };
 
   const path = `/${category}/${slug}`;
   const d = await fetchSeoMeta(path);
