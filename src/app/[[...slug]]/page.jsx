@@ -32,7 +32,7 @@ const CATEGORY_LABELS = {
 
 export async function generateMetadata({ params }) {
   const slug = (await params)?.slug || [];
-  if (SKIP_SEO.has(slug[0])) return { title: 'SAP Security Expert' };
+  if (SKIP_SEO.has(slug[0])) return { title: 'SAP Security Expert', robots: 'noindex, nofollow' };
 
   const path = slug.length ? '/' + slug.join('/') : '/';
 

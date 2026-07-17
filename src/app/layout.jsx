@@ -44,6 +44,7 @@ const websiteSchema = {
 export const metadata = {
   title: "SAP Security Expert",
   description: "The leading community for SAP Security, GRC, and BTP professionals.",
+  alternates: { canonical: SITE_URL },
 };
 
 export default async function RootLayout({ children }) {
