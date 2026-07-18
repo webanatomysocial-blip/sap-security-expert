@@ -26,9 +26,10 @@ const AdminManageUsers = () => {
   const USER_COLS = [
     { key: "name",    label: "Name" },
     { key: "email",   label: "Email" },
-    { key: "phone",   label: "Phone", optional: true },
-    { key: "company", label: "Company / Role", optional: true },
-    { key: "status",  label: "Status" },
+    { key: "phone",    label: "Phone", optional: true },
+    { key: "company",  label: "Company / Role", optional: true },
+    { key: "location", label: "Location", optional: true },
+    { key: "status",   label: "Status" },
     { key: "regdate", label: "Reg. Date", optional: true },
     { key: "actions", label: "Actions" },
   ];
@@ -304,6 +305,7 @@ const AdminManageUsers = () => {
                     <>
                       {show("phone") && <th className="col-md text-left">Phone</th>}
                       {show("company") && <th className="col-lg text-left">Company / Role</th>}
+                      {show("location") && <th className="col-md text-left">Location</th>}
                     </>
                   )}
                   <th className="col-sm text-center">Status</th>
@@ -341,6 +343,7 @@ const AdminManageUsers = () => {
                               {m.job_role ? <span style={{ fontSize: "0.78rem", color: "#64748b" }}>{m.job_role}</span> : (!m.company_name ? <span style={{ color: "#cbd5e1" }}>—</span> : null)}
                             </td>
                           )}
+                          {show("location") && <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.location || <span style={{ color: "#cbd5e1" }}>—</span>}</td>}
                         </>
                       )}
                       <td className="col-sm text-center">

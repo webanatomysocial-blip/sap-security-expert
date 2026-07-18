@@ -173,7 +173,7 @@ const Header = () => {
               <Link to="/podcasts">Podcasts</Link>
               <Link to="/videos">Videos</Link>
               <Link to="/expert-recommendations">Expert Articles</Link>
-              <a href="#">Resource Library</a>
+              <Link to="/downloads">Downloads</Link>
             </div>
           </div>
 
@@ -560,9 +560,9 @@ const Header = () => {
                 <Link to="/expert-recommendations" onClick={closeMenu}>
                   Expert Articles
                 </Link>
-                <a href="#" onClick={closeMenu}>
-                  Resource Library
-                </a>
+                <Link to="/downloads" onClick={closeMenu}>
+                  Downloads
+                </Link>
               </div>
             )}
           </div>

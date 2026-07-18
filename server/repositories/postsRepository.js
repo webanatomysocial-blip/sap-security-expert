@@ -243,7 +243,10 @@ async function updateBlogStandard(db, id, f) {
      f.meta_title, f.meta_description, f.meta_keywords,
      f.schema_type || 'BlogPosting', f.article_section || null,
      f.targetStatus, f.subStatus, f.author_id, f.authorName, f.seoScore, f.finalPlag,
-     parseInt(f.is_members_only), parseInt(f.is_premium), parseInt(f.credits_required) || 1, f.relatedBlogsJson, f.coAuthorsJson, parseInt(f.send_notification_email),
+     // is_members_only and is_premium are mutually exclusive — if both arrive
+     // (e.g. stale form state), premium wins and exclusive is cleared.
+     parseInt(f.is_premium) ? 0 : parseInt(f.is_members_only),
+     parseInt(f.is_premium), parseInt(f.credits_required) || 1, f.relatedBlogsJson, f.coAuthorsJson, parseInt(f.send_notification_email),
      f.badge_expert_reviewed ? 1 : 0, f.badge_sap_notes_verified ? 1 : 0, f.badge_tested_s4hana ? 1 : 0, f.badge_field_validated ? 1 : 0, f.difficulty_level, f.newContentVersion, f.preview_paragraphs != null ? parseInt(f.preview_paragraphs) || null : null,
      ...publishParams, id]
   );

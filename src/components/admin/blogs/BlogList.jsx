@@ -25,6 +25,8 @@ const BlogList = ({
   const [togglingMap, setTogglingMap] = useState({});
   const [premiumModal, setPremiumModal] = useState(null);
   const [premiumCredits, setPremiumCredits] = useState("1");
+  const [exclusiveModal, setExclusiveModal] = useState(null);
+  const [exclusivePreview, setExclusivePreview] = useState("");
   const [copiedSlug, setCopiedSlug] = useState(null);
   const { addToast } = useToast();
 
@@ -94,34 +96,42 @@ const BlogList = ({
     }
   };
 
-  const handleToggleExclusive = async (blog) => {
+  const handleToggleExclusive = (blog) => {
     // Premium and Exclusive are mutually exclusive
     if (Number(blog.is_premium) === 1) {
       addToast("Premium articles cannot be set as Exclusive. Remove the Premium flag first.", "error");
       return;
     }
-    const newVal = Number(blog.is_members_only) === 1 ? 0 : 1;
+    if (Number(blog.is_members_only) === 1) {
+      // Turning OFF — no modal needed
+      applyToggleExclusive(blog, 0, null);
+    } else {
+      // Turning ON — ask for preview paragraphs
+      setExclusivePreview(blog.preview_paragraphs ? String(blog.preview_paragraphs) : "");
+      setExclusiveModal(blog);
+    }
+  };
+
+  const applyToggleExclusive = async (blog, newVal, previewParagraphs) => {
     setTogglingMap((prev) => ({ ...prev, [blog.id]: true }));
+    setExclusiveModal(null);
     try {
-      const res = await toggleExclusiveContent({
-        id: blog.id,
-        is_members_only: newVal,
-      });
+      const payload = { id: blog.id, is_members_only: newVal };
+      if (newVal === 1 && previewParagraphs !== "" && previewParagraphs != null) {
+        payload.preview_paragraphs = parseInt(previewParagraphs) || null;
+      }
+      const res = await toggleExclusiveContent(payload);
       if (res.data?.status === "success") {
-        addToast(
-          `Exclusive content ${newVal ? "enabled" : "disabled"} successfully.`,
-          "success",
-        );
+        addToast(`Exclusive content ${newVal ? "enabled" : "disabled"} successfully.`, "success");
         setBlogs((prev) =>
           prev.map((b) =>
-            b.id === blog.id ? { ...b, is_members_only: newVal } : b,
+            b.id === blog.id
+              ? { ...b, is_members_only: newVal, ...(newVal === 1 && payload.preview_paragraphs != null ? { preview_paragraphs: payload.preview_paragraphs } : {}) }
+              : b,
           ),
         );
       } else {
-        addToast(
-          res.data?.message || "Failed to update exclusive content",
-          "error",
-        );
+        addToast(res.data?.message || "Failed to update exclusive content", "error");
       }
     } catch {
       addToast("Error updating exclusive content flag", "error");
@@ -495,6 +505,64 @@ const BlogList = ({
         </table>
       </TableScrollContainer>
     </div>
+
+    {/* ── Preview paragraphs modal for enabling exclusive ─────────────── */}
+    {exclusiveModal && createPortal(
+      <div
+        className="modal-overlay"
+        onClick={(e) => e.target === e.currentTarget && setExclusiveModal(null)}
+      >
+        <div className="modal-container" style={{ maxWidth: 420 }}>
+          <div className="modal-header">
+            <h3 style={{ margin: 0 }}>
+              <i className="bi bi-lock-fill" style={{ color: "#3b82f6", marginRight: 8 }}></i>
+              Set Preview Paragraphs
+            </h3>
+          </div>
+          <div className="modal-body">
+            <p style={{ color: "var(--slate-600)", fontSize: "0.9rem", marginBottom: 16 }}>
+              How many paragraphs/blocks should be visible before the paywall on <strong>"{exclusiveModal.title}"</strong>?
+            </p>
+            <input
+              type="number"
+              min="1"
+              max="99"
+              value={exclusivePreview}
+              onChange={(e) => setExclusivePreview(e.target.value)}
+              className="form-control"
+              placeholder="Leave blank for site default (3)"
+              style={{ width: "180px", padding: "8px 10px", fontSize: "1rem", border: "1.5px solid #93c5fd", background: "#eff6ff" }}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") applyToggleExclusive(exclusiveModal, 1, exclusivePreview);
+                if (e.key === "Escape") setExclusiveModal(null);
+              }}
+            />
+            <span style={{ fontSize: "0.78rem", color: "#1e40af", marginTop: 6, display: "block" }}>
+              Leave blank to use the site default. Per-article setting overrides site default.
+            </span>
+          </div>
+          <div className="modal-footer" style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid var(--slate-100)", padding: "14px 24px" }}>
+            <button
+              className="btn-secondary"
+              onClick={() => setExclusiveModal(null)}
+              style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--slate-200)", background: "white", fontWeight: 600, cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => applyToggleExclusive(exclusiveModal, 1, exclusivePreview)}
+              style={{ padding: "8px 18px", borderRadius: 8, background: "#3b82f6", color: "white", border: "none", fontWeight: 700, cursor: "pointer" }}
+            >
+              <i className="bi bi-lock-fill" style={{ marginRight: 6 }}></i>
+              Enable Exclusive
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
 
     {/* ── Credits modal for enabling premium ─────────────────────────── */}
     {premiumModal && createPortal(

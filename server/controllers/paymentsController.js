@@ -275,7 +275,6 @@ const unlockBlog = async (req, res) => {
 
   const db = req.db;
   const memberId = req.session.member_id;
-  let conn;
 
   try {
     // Match only on slug — never by numeric ID
@@ -286,36 +285,37 @@ const unlockBlog = async (req, res) => {
     }
     const creditsNeeded = parseInt(blog.credits_required || 0) || 1;
 
-    // Acquire a connection so the whole spend runs in one transaction
-    conn = await db.getConnection();
-    await conn.beginTransaction();
+    // req.db is already a dedicated per-request PoolConnection — run the
+    // transaction directly on it. getConnection() is a Pool method, not a
+    // PoolConnection method, so calling it here would throw in production.
+    await db.beginTransaction();
 
     // STEP 1 — Try to insert the unlock row first.
     // INSERT IGNORE means if a UNIQUE KEY on (member_id, blog_slug) already exists
     // the insert is a no-op and affectedRows = 0.  That's our idempotency guard:
     // whichever of two concurrent requests inserts first "wins"; the second sees 0
     // rows affected and returns early without touching credits.
-    const [unlockResult] = await conn.execute(
+    const [unlockResult] = await db.execute(
       'INSERT IGNORE INTO member_blog_unlocks (member_id, blog_slug, credits_spent) VALUES (?, ?, ?)',
       [memberId, blog.slug, creditsNeeded]
     );
 
     if (unlockResult.affectedRows === 0) {
       // Already unlocked (either pre-existing or a concurrent request beat us)
-      await conn.rollback();
+      await db.rollback();
       const balance = await repo.getMemberBalance(db, memberId);
       return res.json({ status: 'success', message: 'Already unlocked.', already_unlocked: true, new_balance: balance });
     }
 
     // STEP 2 — Deduct credits atomically; condition on sufficient balance
-    const [deductResult] = await conn.execute(
+    const [deductResult] = await db.execute(
       'UPDATE member_credits SET balance = balance - ?, updated_at = CURRENT_TIMESTAMP WHERE member_id = ? AND balance >= ?',
       [creditsNeeded, memberId, creditsNeeded]
     );
 
     if (deductResult.affectedRows === 0) {
       // Insufficient credits — roll back the unlock insert
-      await conn.rollback();
+      await db.rollback();
       const balance = await repo.getMemberBalance(db, memberId);
       return res.status(402).json({
         status: 'error',
@@ -326,12 +326,12 @@ const unlockBlog = async (req, res) => {
     }
 
     // STEP 3 — Record the spend transaction inside the same transaction
-    await conn.execute(
+    await db.execute(
       "INSERT INTO credit_transactions (member_id, type, credits_delta, note) VALUES (?, 'spend', ?, ?)",
       [memberId, -creditsNeeded, `Unlocked article: ${blog_slug}`]
     );
 
-    await conn.commit();
+    await db.commit();
 
     const newBalance = await repo.getMemberBalance(db, memberId);
     return res.json({
@@ -341,11 +341,9 @@ const unlockBlog = async (req, res) => {
       new_balance: newBalance,
     });
   } catch (err) {
-    if (conn) await conn.rollback().catch(() => {});
+    await db.rollback().catch(() => {});
     console.error('[POST /payments/unlock-blog]', err.message);
     return res.status(500).json({ status: 'error', message: 'Failed to unlock article.' });
-  } finally {
-    if (conn) conn.release();
   }
 };
 

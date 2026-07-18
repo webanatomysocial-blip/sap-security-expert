@@ -57,10 +57,14 @@ const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace
 const allowedOrigins = [
   siteUrl,
   siteUrl.replace('https://', 'https://www.'),
-  'http://localhost:5173', 'http://127.0.0.1:5173',
-  'http://localhost:3000', 'http://127.0.0.1:3000',
-  'http://localhost:8000', 'http://127.0.0.1:8000',
 ];
+if (!isProd) {
+  allowedOrigins.push(
+    'http://localhost:5173', 'http://127.0.0.1:5173',
+    'http://localhost:3000', 'http://127.0.0.1:3000',
+    'http://localhost:8000', 'http://127.0.0.1:8000',
+  );
+}
 // Optional extra origin for split-server setups (set FRONTEND_URL in .env if needed)
 if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL.replace(/\/$/, ''));
 
