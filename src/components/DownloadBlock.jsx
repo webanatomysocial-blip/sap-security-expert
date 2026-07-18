@@ -100,10 +100,8 @@ export default function DownloadBlock({ fileUrl, fileName, fileSize, credits }) 
               <><i className="bi bi-hourglass-split sap-dl-pulse"></i> Processing…</>
             ) : !isLoggedIn ? (
               <><i className="bi bi-lock-fill"></i> Log in</>
-            ) : isFree ? (
-              <><i className="bi bi-download"></i> Download</>
             ) : (
-              <><i className="bi bi-download"></i> Download &nbsp;·&nbsp; {creditsNum} cr</>
+              <><i className="bi bi-download"></i> Download</>
             )}
           </button>
         )}

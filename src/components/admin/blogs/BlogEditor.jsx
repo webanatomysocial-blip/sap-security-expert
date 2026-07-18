@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import SimpleRTE from "../SimpleRTE.jsx";
 import { uploadDownloadAsset } from "../../../services/api";
 
@@ -50,6 +51,8 @@ const BlogEditor = ({
   // ── Download block (shown only when category === "downloads") ────────────
   const rteApi = React.useRef(null);
   const contentAtInsert = React.useRef("");
+  const [exclusiveModal, setExclusiveModal] = React.useState(false);
+  const [exclusivePreview, setExclusivePreview] = React.useState("");
   const [dlModal, setDlModal] = React.useState({ open: false });
   const [dlFile, setDlFile] = React.useState(null);
   const [dlCredits, setDlCredits] = React.useState("5");
@@ -151,6 +154,7 @@ const BlogEditor = ({
       b.title.toLowerCase().includes(blogSearch.toLowerCase()),
   );
   return (
+    <>
     <div
       className="blog-editor-layout"
       style={{
@@ -441,19 +445,49 @@ const BlogEditor = ({
           </div>
 
           {isAdmin && (
+            <div className="form-group" style={{ marginBottom: "20px", background: "#eff6ff", border: "1.5px solid #93c5fd", borderRadius: 8, padding: "14px 16px" }}>
+              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", color: "#1e40af" }}>
+                <input
+                  type="checkbox"
+                  name="is_members_only"
+                  checked={formData.is_members_only == 1}
+                  disabled={formData.is_premium == 1}
+                  onChange={(e) => {
+                    const val = e.target.checked ? 1 : 0;
+                    if (val === 1) {
+                      // Open modal to ask for preview paragraphs
+                      setExclusivePreview(formData.preview_paragraphs ? String(formData.preview_paragraphs) : "");
+                      setExclusiveModal(true);
+                    } else {
+                      handleInputChange({ target: { name: "is_members_only", value: 0 } });
+                    }
+                  }}
+                  style={{ width: "16px", height: "16px", accentColor: "#3b82f6", cursor: formData.is_premium == 1 ? "not-allowed" : "pointer" }}
+                />
+                <i className="bi bi-lock-fill" style={{ color: "#3b82f6" }}></i>
+                Exclusive Article (Members Only)
+              </label>
+              <span style={{ fontSize: "0.78rem", color: "#1e40af", display: "block", marginTop: "4px" }}>
+                Only logged-in members can read this article. Free to access after login.
+              </span>
+            </div>
+          )}
+
+          {isAdmin && (
             <div className="form-group" style={{ marginBottom: "20px", background: "#fffbeb", border: "1.5px solid #fcd34d", borderRadius: 8, padding: "14px 16px" }}>
               <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "600", color: "#92400e" }}>
                 <input
                   type="checkbox"
                   name="is_premium"
                   checked={formData.is_premium == 1}
+                  disabled={formData.is_members_only == 1}
                   onChange={(e) => {
-                  const val = e.target.checked ? 1 : 0;
-                  handleInputChange({ target: { name: "is_premium", value: val } });
-                  // Premium and Exclusive are mutually exclusive — clear members-only when premium is enabled
-                  if (val === 1) handleInputChange({ target: { name: "is_members_only", value: 0 } });
-                }}
-                  style={{ width: "16px", height: "16px", accentColor: "#d97706" }}
+                    const val = e.target.checked ? 1 : 0;
+                    handleInputChange({ target: { name: "is_premium", value: val } });
+                    // Enabling premium clears exclusive — mutually exclusive flags
+                    if (val === 1) handleInputChange({ target: { name: "is_members_only", value: 0 } });
+                  }}
+                  style={{ width: "16px", height: "16px", accentColor: "#d97706", cursor: formData.is_members_only == 1 ? "not-allowed" : "pointer" }}
                 />
                 <i className="bi bi-star-fill" style={{ color: "#d97706" }}></i>
                 Premium Article (Paid)
@@ -959,6 +993,75 @@ const BlogEditor = ({
         </div>
       </div>
     </div>
+
+    {/* ── Exclusive modal — ask for preview paragraphs ─────────────────── */}
+    {exclusiveModal && createPortal(
+      <div
+        className="modal-overlay"
+        onClick={(e) => e.target === e.currentTarget && setExclusiveModal(false)}
+      >
+        <div className="modal-container" style={{ maxWidth: 420 }}>
+          <div className="modal-header">
+            <h3 style={{ margin: 0 }}>
+              <i className="bi bi-lock-fill" style={{ color: "#3b82f6", marginRight: 8 }}></i>
+              Set Preview Paragraphs
+            </h3>
+          </div>
+          <div className="modal-body">
+            <p style={{ color: "var(--slate-600)", fontSize: "0.9rem", marginBottom: 16 }}>
+              How many paragraphs/blocks should be visible before the paywall on this exclusive article?
+            </p>
+            <input
+              type="number"
+              min="1"
+              max="99"
+              value={exclusivePreview}
+              onChange={(e) => setExclusivePreview(e.target.value)}
+              className="form-control"
+              placeholder="Leave blank for site default (3)"
+              style={{ width: "200px", padding: "8px 10px", fontSize: "1rem", border: "1.5px solid #93c5fd", background: "#eff6ff" }}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setExclusiveModal(false);
+                if (e.key === "Enter") {
+                  handleInputChange({ target: { name: "is_members_only", value: 1 } });
+                  handleInputChange({ target: { name: "is_premium", value: 0 } });
+                  if (exclusivePreview !== "") handleInputChange({ target: { name: "preview_paragraphs", value: parseInt(exclusivePreview) || "" } });
+                  setExclusiveModal(false);
+                }
+              }}
+            />
+            <span style={{ fontSize: "0.78rem", color: "#1e40af", marginTop: 6, display: "block" }}>
+              Leave blank to use the site default. Counts paragraphs, headings, lists, and tables.
+            </span>
+          </div>
+          <div className="modal-footer" style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid var(--slate-100)", padding: "14px 24px" }}>
+            <button
+              className="btn-secondary"
+              onClick={() => setExclusiveModal(false)}
+              style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--slate-200)", background: "white", fontWeight: 600, cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                handleInputChange({ target: { name: "is_members_only", value: 1 } });
+                handleInputChange({ target: { name: "is_premium", value: 0 } });
+                if (exclusivePreview !== "") handleInputChange({ target: { name: "preview_paragraphs", value: parseInt(exclusivePreview) || "" } });
+                setExclusiveModal(false);
+              }}
+              style={{ padding: "8px 18px", borderRadius: 8, background: "#3b82f6", color: "white", border: "none", fontWeight: 700, cursor: "pointer" }}
+            >
+              <i className="bi bi-lock-fill" style={{ marginRight: 6 }}></i>
+              Enable Exclusive
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 };
 

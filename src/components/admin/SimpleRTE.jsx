@@ -4,7 +4,7 @@ import { useConfirm } from "../../context/ConfirmationContext";
 
 const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px", maxHeight = "800px" }) => {
   const editorRef = useRef(null);
-  const [isSourceView, setIsSourceView] = React.useState(true);
+  const [isSourceView, setIsSourceView] = React.useState(false);
   const { openConfirm } = useConfirm();
   const savedSelection = useRef(null);
   // Always-current value ref so toggleSourceView can read latest HTML without stale closures

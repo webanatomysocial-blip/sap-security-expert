@@ -44,7 +44,7 @@ const review = asyncHandler(async (req, res) => {
   // Non-admins cannot take any review action on their own submission.
   const reviewerId = req.session.admin_id;
   const isAdmin = req.session.role === 'admin';
-  if (!isAdmin && String(blog.author_user_id) === String(reviewerId)) {
+  if (!isAdmin && String(blog.author_id) === String(reviewerId)) {
     return sendError(res, 'You cannot review your own submission.', 403);
   }
 
@@ -124,7 +124,7 @@ const bulkRecalculatePlagiarism = asyncHandler(async (req, res) => {
 // POST /api/admin/blogs/toggle-exclusive
 const toggleExclusive = asyncHandler(async (req, res) => {
   const db = req.db;
-  const { id, is_members_only } = req.body || {};
+  const { id, is_members_only, preview_paragraphs } = req.body || {};
   if (!id) return sendError(res, 'ID required', 400);
 
   // Block enabling exclusive on a premium article
@@ -134,7 +134,7 @@ const toggleExclusive = asyncHandler(async (req, res) => {
       return sendError(res, 'Premium articles cannot be set as Exclusive.', 400);
     }
   }
-  await repo.updateExclusive(db, id, is_members_only ? 1 : 0);
+  await repo.updateExclusive(db, id, is_members_only ? 1 : 0, is_members_only ? preview_paragraphs : null);
   return sendSuccess(res, { message: 'Exclusive content setting updated.' });
 });
 
