@@ -125,6 +125,7 @@ const ManageContributorModal = ({ contributor, onClose }) => {
       };
       await updateContributorReputation(contributor.id, payload);
       addToast("Reputation saved.", "success");
+      onClose();
     } catch {
       addToast("Failed to save reputation.", "error");
     } finally {
@@ -534,11 +535,9 @@ const ManageContributorModal = ({ contributor, onClose }) => {
               )}
             </form>
           )}
-        </div>
 
-        {/* ── Author Reputation ────────────────────────────────── */}
-        <div style={{ padding: "0 24px 20px" }}>
-          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 20, marginTop: 4 }}>
+          {/* ── Author Reputation ────────────────────────────────── */}
+          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 20, marginTop: 20 }}>
             <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#0f172a", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
               <i className="bi bi-award-fill" style={{ color: "#ee5e42" }}></i> Author Reputation
             </div>
