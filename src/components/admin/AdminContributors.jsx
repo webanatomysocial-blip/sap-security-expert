@@ -31,7 +31,11 @@ const AdminContributors = () => {
     { key: "date",   label: "Date", optional: true },
     { key: "actions",label: "Actions" },
   ];
-  const [visibleCols, setVisibleCols] = useState(new Set(CONTRIB_COLS.filter(c => !c.optional).map(c => c.key)));
+  const [visibleCols, setVisibleCols] = useState(() => {
+    try { const s = localStorage.getItem("admin_contributors_cols"); if (s) return new Set(JSON.parse(s)); } catch {}
+    return new Set(CONTRIB_COLS.filter(c => !c.optional).map(c => c.key));
+  });
+  const handleColChange = (cols) => { setVisibleCols(cols); try { localStorage.setItem("admin_contributors_cols", JSON.stringify([...cols])); } catch {} };
   const show = (key) => visibleCols.has(key);
   const [filterStatus, setFilterStatus] = useState("approved"); // Default to approved
   const [selectedApp, setSelectedApp] = useState(null);
@@ -245,7 +249,7 @@ const AdminContributors = () => {
       ) : (
         <div className="admin-card">
           <div className="admin-table-controls">
-            <ColumnToggle columns={CONTRIB_COLS} visible={visibleCols} onChange={setVisibleCols} />
+            <ColumnToggle columns={CONTRIB_COLS} visible={visibleCols} onChange={handleColChange} />
           </div>
           <TableScrollContainer>
             <table className="admin-table">

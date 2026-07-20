@@ -12,6 +12,7 @@ import {
   getBlogAdsForSlug,
   trackBlogAdClick,
   getSuggestedArticles,
+  getMyDownloads,
 } from "../services/api";
 
 function InlineAd({ ad }) {
@@ -55,7 +56,7 @@ function splitOnDownloadBlocks(html) {
   return parts;
 }
 
-function buildContentWithAds(html, inlineAds) {
+function buildContentWithAds(html, inlineAds, unlockedFileUrls = new Set()) {
   const segments = splitOnDownloadBlocks(html || "");
   const sorted = [...inlineAds].sort((a, b) => a.position - b.position);
   const nodes = [];
@@ -65,7 +66,14 @@ function buildContentWithAds(html, inlineAds) {
   for (const seg of segments) {
     if (seg.type === "download") {
       nodes.push(
-        <DownloadBlock key={`dl-${key++}`} fileUrl={seg.fileUrl} fileName={seg.fileName} fileSize={seg.fileSize} credits={seg.credits} />
+        <DownloadBlock
+          key={`dl-${key++}`}
+          fileUrl={seg.fileUrl}
+          fileName={seg.fileName}
+          fileSize={seg.fileSize}
+          credits={seg.credits}
+          alreadyUnlocked={unlockedFileUrls.has(seg.fileUrl)}
+        />
       );
       continue;
     }
@@ -122,6 +130,7 @@ export default function DynamicBlog() {
   });
   const [inlineAds, setInlineAds] = useState([]);
   const [stripAds, setStripAds] = useState([]);
+  const [unlockedFileUrls, setUnlockedFileUrls] = useState(new Set());
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -262,6 +271,19 @@ export default function DynamicBlog() {
         })
         .catch((err) => console.error("Comments fetch failed", err));
     }
+
+    // Fetch files this member has already unlocked so DownloadBlocks can show
+    // "Already unlocked / Download again" instead of the purchase flow.
+    if (isLoggedIn) {
+      getMyDownloads()
+        .then((res) => {
+          const urls = (res.data?.downloads || []).map((d) => d.file_url);
+          setUnlockedFileUrls(new Set(urls));
+        })
+        .catch(() => {});
+    } else {
+      setUnlockedFileUrls(new Set());
+    }
   }, [blogId, location.pathname, navigate, isLoggedIn]);
 
   const handleCommentAdded = () => {
@@ -359,7 +381,7 @@ export default function DynamicBlog() {
         title={blog.title}
         content={
           <>
-            {buildContentWithAds(blog.content, inlineAds)}
+            {buildContentWithAds(blog.content, inlineAds, unlockedFileUrls)}
             {stripAds.map(ad => <StripAd key={ad.id} ad={ad} />)}
           </>
         }

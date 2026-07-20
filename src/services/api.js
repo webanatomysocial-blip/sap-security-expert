@@ -269,6 +269,7 @@ export const claimProductReviewBonus = (product_id) => api.post('/payments/produ
 export const uploadDownloadAsset = (formData) => api.post('/upload-download-asset', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 export const downloadFile = (file_url, credits_required) => api.post('/payments/download-file', { file_url, credits_required });
 export const getMyDownloads = () => api.get('/payments/my-downloads');
+export const issueDownloadToken = (file_url) => api.post('/downloads/token', { file_url });
 export const getDownloadToken = (file_url) => api.post('/downloads/token', { file_url });
 
 export default api;

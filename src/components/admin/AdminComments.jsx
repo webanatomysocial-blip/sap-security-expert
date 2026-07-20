@@ -31,7 +31,11 @@ const AdminComments = () => {
     { key: "status",  label: "Status" },
     { key: "actions", label: "Actions" },
   ];
-  const [visibleCols, setVisibleCols] = useState(new Set(COMMENT_COLS.filter(c => !c.optional).map(c => c.key)));
+  const [visibleCols, setVisibleCols] = useState(() => {
+    try { const s = localStorage.getItem("admin_comments_cols"); if (s) return new Set(JSON.parse(s)); } catch {}
+    return new Set(COMMENT_COLS.filter(c => !c.optional).map(c => c.key));
+  });
+  const handleColChange = (cols) => { setVisibleCols(cols); try { localStorage.setItem("admin_comments_cols", JSON.stringify([...cols])); } catch {} };
   const show = (key) => visibleCols.has(key);
   const [editText, setEditText] = useState("");
   const { addToast } = useToast();
@@ -234,7 +238,7 @@ const AdminComments = () => {
       <div className="admin-card">
         {loading ? <TableSkeleton cols={5} rows={8} /> : null}
         <div className="admin-table-controls">
-          <ColumnToggle columns={COMMENT_COLS} visible={visibleCols} onChange={setVisibleCols} />
+          <ColumnToggle columns={COMMENT_COLS} visible={visibleCols} onChange={handleColChange} />
         </div>
         <TableScrollContainer style={loading ? { display: "none" } : {}}>
           <table className="admin-table">

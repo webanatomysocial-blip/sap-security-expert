@@ -495,6 +495,121 @@ if (isSQLite) {
 } else {
   const mysql = require('mysql2/promise');
   const dbHost = process.env.DB_HOST || 'localhost';
+
+  // Auto-create tables that exist in the SQLite schema but may be missing from
+  // older MySQL deployments. Each statement is idempotent (IF NOT EXISTS / INSERT IGNORE).
+  // Runs once at startup; errors are logged but never crash the server.
+  async function ensureMySQLTables() {
+    let conn;
+    try {
+      const tmpPool = mysql.createPool({
+        host: dbHost,
+        port: parseInt(process.env.DB_PORT || '3306'),
+        user: process.env.DB_USER || '',
+        password: process.env.DB_PASS || '',
+        database: process.env.DB_NAME || '',
+        charset: process.env.DB_CHARSET || 'utf8mb4',
+        connectionLimit: 1,
+        timezone: '+00:00',
+      });
+      conn = await tmpPool.getConnection();
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS credit_activities (
+          id          INT          NOT NULL AUTO_INCREMENT,
+          \`key\`     VARCHAR(100) NOT NULL,
+          label       VARCHAR(255) NOT NULL,
+          description TEXT         DEFAULT '',
+          credits     INT          NOT NULL DEFAULT 1,
+          is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+          created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uq_ca_key (\`key\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      const defaultActivities = [
+        ['new_registration',  'New Registration',                    'Credits awarded when a new member registers',             10],
+        ['approved_comment',  'Approved Comment',                    'Credits awarded when a comment is approved',              2],
+        ['referral',          'Referral (new member registers)',     'Credits awarded when a referred member joins',            2],
+        ['article_published', 'Article Published (Community Author)','Credits awarded when a contributed article is published', 20],
+        ['podcast_guest',     'Podcast Guest',                       'Credits awarded for appearing on the podcast',           20],
+        ['error_report',      'Report an Error',                     'Credits awarded when a member reports an article error',  1],
+        ['complete_profile',  'Complete Profile',                    'Credits awarded when a member completes their profile',   2],
+        ['product_review',    'Submit a Product Review',             'Credits awarded when a member submits a product review',  5],
+        ['linkedin_share',    'LinkedIn Share',                      'Credits awarded when a member shares on LinkedIn',        5],
+      ];
+      for (const [key, label, description, credits] of defaultActivities) {
+        await conn.execute(
+          'INSERT IGNORE INTO credit_activities (`key`, label, description, credits) VALUES (?, ?, ?, ?)',
+          [key, label, description, credits]
+        );
+      }
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS site_settings (
+          \`key\`      VARCHAR(100) NOT NULL,
+          value        TEXT         NOT NULL,
+          updated_at   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (\`key\`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      await conn.execute(
+        "INSERT IGNORE INTO site_settings (`key`, value) VALUES ('paywall_default_preview_paragraphs', '3')"
+      );
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS member_file_downloads (
+          id           INT          NOT NULL AUTO_INCREMENT,
+          member_id    INT          NOT NULL,
+          file_url     VARCHAR(500) NOT NULL,
+          credits_spent INT         NOT NULL DEFAULT 0,
+          downloaded_at DATETIME    DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uq_dld (member_id, file_url(191)),
+          KEY idx_dld_member (member_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS email_logs (
+          id            INT          NOT NULL AUTO_INCREMENT,
+          recipient     VARCHAR(255) NOT NULL,
+          subject       VARCHAR(500) DEFAULT '',
+          status        VARCHAR(20)  DEFAULT 'pending',
+          error_message TEXT         DEFAULT NULL,
+          created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          KEY idx_el_recipient (recipient),
+          KEY idx_el_status    (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS email_queue (
+          id          INT           NOT NULL AUTO_INCREMENT,
+          recipient   VARCHAR(255)  NOT NULL,
+          blog_id     VARCHAR(100)  DEFAULT NULL,
+          subject     VARCHAR(500)  DEFAULT '',
+          body        LONGTEXT,
+          status      VARCHAR(20)   DEFAULT 'pending',
+          created_at  DATETIME      DEFAULT CURRENT_TIMESTAMP,
+          sent_at     DATETIME      DEFAULT NULL,
+          PRIMARY KEY (id),
+          UNIQUE KEY idx_recipient_blog (recipient, blog_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      console.log('[DB] MySQL table auto-check complete.');
+    } catch (err) {
+      console.error('[DB] ensureMySQLTables error (non-fatal):', err.message);
+    } finally {
+      if (conn) conn.release();
+    }
+  }
+
+  ensureMySQLTables();
+
   pool = mysql.createPool({
     host: dbHost,
     port: parseInt(process.env.DB_PORT || '3306'),

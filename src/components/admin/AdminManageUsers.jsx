@@ -33,7 +33,21 @@ const AdminManageUsers = () => {
     { key: "regdate", label: "Reg. Date", optional: true },
     { key: "actions", label: "Actions" },
   ];
-  const [visibleCols, setVisibleCols] = useState(new Set(USER_COLS.filter(c => !c.optional).map(c => c.key)));
+  const STORAGE_KEY = "admin_users_visible_cols";
+  const defaultCols = new Set(USER_COLS.filter(c => !c.optional).map(c => c.key));
+  const [visibleCols, setVisibleCols] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return new Set(JSON.parse(saved));
+    } catch {}
+    return defaultCols;
+  });
+
+  const handleColChange = (cols) => {
+    setVisibleCols(cols);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...cols])); } catch {}
+  };
+
   const show = (key) => visibleCols.has(key);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -288,7 +302,7 @@ const AdminManageUsers = () => {
       ) : (
         <div className="admin-card">
             <div className="admin-table-controls">
-              <ColumnToggle columns={USER_COLS} visible={visibleCols} onChange={setVisibleCols} />
+              <ColumnToggle columns={USER_COLS} visible={visibleCols} onChange={handleColChange} />
             </div>
           <TableScrollContainer>
             <table className="admin-table">

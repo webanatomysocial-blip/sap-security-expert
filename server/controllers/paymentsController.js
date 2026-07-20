@@ -524,14 +524,12 @@ const downloadFile = async (req, res) => {
   try {
     await db.beginTransaction();
 
-    // Idempotency guard: INSERT IGNORE means a second download of the same file
-    // is a no-op — the member gets the file again for free, no double-charge.
-    const [insertResult] = await db.execute(
-      'INSERT IGNORE INTO member_file_downloads (member_id, file_url, credits_spent) VALUES (?, ?, ?)',
-      [memberId, file_url, creditsNeeded]
+    // Check if already downloaded — issue free re-download token immediately.
+    const [[existing]] = await db.execute(
+      'SELECT id FROM member_file_downloads WHERE member_id = ? AND file_url = ? LIMIT 1',
+      [memberId, file_url]
     );
-
-    if (insertResult.affectedRows === 0) {
+    if (existing) {
       await db.commit();
       const token = require('crypto').randomBytes(24).toString('hex');
       if (!req.session.dl_tokens) req.session.dl_tokens = {};
@@ -539,29 +537,48 @@ const downloadFile = async (req, res) => {
       return res.json({ status: 'success', download_url: file_url, token, already_downloaded: true });
     }
 
+    // For paid files, verify balance BEFORE inserting the unlock row so we never
+    // create an access record that we'll have to roll back.
+    if (creditsNeeded > 0) {
+      const [[balRow]] = await db.execute(
+        'SELECT COALESCE(balance, 0) AS balance FROM member_credits WHERE member_id = ? LIMIT 1',
+        [memberId]
+      );
+      const balance = balRow?.balance ?? 0;
+      if (balance < creditsNeeded) {
+        await db.commit();
+        return res.status(402).json({
+          status: 'error',
+          message: `You need ${creditsNeeded} credit${creditsNeeded !== 1 ? 's' : ''} to download this file. Your balance: ${balance}.`,
+          balance,
+          credits_needed: creditsNeeded,
+        });
+      }
+    }
+
+    // Record the unlock.
+    await db.execute(
+      'INSERT INTO member_file_downloads (member_id, file_url, credits_spent) VALUES (?, ?, ?)',
+      [memberId, file_url, creditsNeeded]
+    );
+
+    // Deduct credits atomically (condition on balance so concurrent requests can't overdraw).
     if (creditsNeeded > 0) {
       const [deductResult] = await db.execute(
         'UPDATE member_credits SET balance = balance - ?, updated_at = CURRENT_TIMESTAMP WHERE member_id = ? AND balance >= ?',
         [creditsNeeded, memberId, creditsNeeded]
       );
       if (deductResult.affectedRows === 0) {
-        // Undo the file download row — member shouldn't get access without paying
-        await db.execute(
-          'DELETE FROM member_file_downloads WHERE member_id = ? AND file_url = ?',
-          [memberId, file_url]
-        );
-        // Read balance inside the transaction before committing so any failure
-        // here still triggers the catch rollback cleanly.
-        const [[balRow]] = await db.execute(
+        // Race condition: another request spent the credits between our check and now.
+        await db.rollback();
+        const [[balRow2]] = await db.execute(
           'SELECT COALESCE(balance, 0) AS balance FROM member_credits WHERE member_id = ? LIMIT 1',
           [memberId]
         );
-        const balance = balRow?.balance ?? 0;
-        await db.commit();
         return res.status(402).json({
           status: 'error',
-          message: `You need ${creditsNeeded} credit${creditsNeeded !== 1 ? 's' : ''} to download this file. Your balance: ${balance}.`,
-          balance,
+          message: `Insufficient credits. Your current balance: ${balRow2?.balance ?? 0}.`,
+          balance: balRow2?.balance ?? 0,
           credits_needed: creditsNeeded,
         });
       }
@@ -573,8 +590,6 @@ const downloadFile = async (req, res) => {
 
     await db.commit();
     const newBalance = await repo.getMemberBalance(db, memberId);
-    // Issue a one-time download token valid for 60 s. The stream endpoint
-    // consumes and deletes it immediately, so the URL can't be reused.
     const token = require('crypto').randomBytes(24).toString('hex');
     if (!req.session.dl_tokens) req.session.dl_tokens = {};
     req.session.dl_tokens[token] = { url: file_url, expires: Date.now() + 60_000 };

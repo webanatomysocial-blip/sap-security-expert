@@ -102,10 +102,10 @@
 /* Three Column Grid */
 .community-grid {
   display: grid;
-  grid-template-columns: 320px 1fr 320px;
-  gap: 24px;
+  grid-template-columns: 280px 1fr 280px;
+  gap: 20px;
   margin: 0 auto;
-  align-items: stretch;
+  align-items: start;
 }
 
 .community-left,
@@ -113,27 +113,20 @@
 .community-right {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
   height: auto;
-  align-self: stretch;
-}
-
-.community-left > *:last-child,
-.community-center > *:last-child,
-.community-right > *:last-child {
-  flex: 1;
+  min-width: 0; /* prevent columns from overflowing grid */
 }
 
 /* Widget Base Styles */
 .widget {
   background: #ffffff;
-  padding: 24px;
+  padding: 20px;
   border: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  /* Reserve space before async content loads to prevent CLS */
-  min-height: 200px;
-  contain: layout;
+  min-width: 0; /* prevent overflow in grid/flex parents */
+  overflow: hidden;
 }
 
 .widget-header {
@@ -238,15 +231,16 @@
   justify-content: center;
   background: transparent;
   border: none;
-  max-width: 300px;
-  margin: 0 auto;
-  overflow: visible; /* NEVER allow overflow: hidden that crops image */
+  padding: 0;
+  width: 100%;
+  overflow: hidden;
 }
 .promo-widget img {
-  width: 300px;
-  height: 300px;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
   object-fit: contain;
-  /* border-radius: 8px; Give it soft edges, clean look */
+  display: block;
 }
 
 /* Recent Topics */
@@ -627,10 +621,20 @@
   margin-right: -12px;
 }
 
-.activity-item img {
-  width: 120px;
-  height: 90px;
-  object-fit: contain;
+.activity-item .activity-img-wrapper {
+  flex-shrink: 0;
+  width: 100px;
+  height: 76px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+.activity-item .activity-img-wrapper img,
+.activity-item > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
   flex-shrink: 0;
 }
 
@@ -891,120 +895,129 @@
   color: #fff;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+/* Slightly tighten on mid-range desktops */
+@media (max-width: 1280px) {
   .community-grid {
-    grid-template-columns: 260px 1fr 260px;
-    gap: 20px;
+    grid-template-columns: 240px 1fr 240px;
+    gap: 16px;
   }
 }
 
-@media (max-width: 992px) {
+/* Small laptop / tablet landscape:
+   Drop to 2-col — center+right side-by-side, left goes full-width below */
+@media (max-width: 1100px) {
   .community-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 220px;
+    grid-template-rows: auto auto;
+    gap: 16px;
   }
-
-  .community-left,
-  .community-right {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-
   .community-center {
-    order: -1; /* Push Featured Insight to top on mobile/tablet */
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
   }
-
-  .community-left .widget,
-  .community-right .widget {
-    margin-bottom: 0;
-  }
-}
-
-@media (max-width: 768px) {
-  .community-section {
-    padding: 30px 0;
-  }
-
-  .promo-widget {
-    width: 100vw;
-    height: auto;
-    margin: 30px auto;
-  }
-
-  .promo-widget img {
-    width: 100vw;
-    max-width: 90vw;
-    height: auto;
-    aspect-ratio: 1 / 1;
-    object-fit: contain;
-    margin: 0 auto;
-    display: block;
-  }
-
-  .community-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .community-left,
   .community-right {
-    grid-template-columns: 1fr;
-    gap: 20px;
-    align-items: center;
-  }
-
-  .featured-insight-card {
-    padding: 24px 20px 22px 20px !important;
-    min-height: 340px;
-  }
-
-  .featured-insight-card h2 {
-    font-size: 1.5rem;
-  }
-
-  .activity-item {
+    grid-column: 2 / 3;
+    grid-row: 1 / 3;
     flex-direction: column;
-    gap: 15px;
+    gap: 14px;
   }
-
-  .activity-item img {
-    width: 100%;
-    height: 180px;
-    object-fit: cover;
-    border-radius: 8px;
+  .community-left {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 14px;
   }
-
-  .activity-content h4 {
-    font-size: 1.1rem;
-  }
-
-  .featured-meta {
-    gap: 8px 12px;
+  .community-left > .widget {
+    flex: 1 1 calc(50% - 7px);
+    min-width: 180px;
   }
 }
 
-@media (max-width: 480px) {
+/* Tablet portrait: single column */
+@media (max-width: 768px) {
   .community-section {
     padding: 20px 0;
   }
-  .widget {
-    padding: 15px;
-  }
-  .featured-insight-card h2 {
-    font-size: 1.3rem;
-  }
-  .fi-footer {
+  .community-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    justify-items: center;
+    grid-template-rows: unset;
+    gap: 14px;
+  }
+  .community-center,
+  .community-right,
+  .community-left {
+    grid-column: unset;
+    grid-row: unset;
+    flex-direction: column;
+    gap: 14px;
+  }
+  /* Center first, then right sidebar 2-col, then left 2-col */
+  .community-center { order: 1; }
+  .community-right  { order: 2; display: grid; grid-template-columns: 1fr 1fr; }
+  .community-left   { order: 3; display: grid; grid-template-columns: 1fr 1fr; }
+
+  .featured-insight-card {
+    min-height: 280px;
+    padding: 18px 16px 16px !important;
+  }
+  .featured-insight-card h2 { font-size: 1.25rem; }
+
+  .activity-item { gap: 10px; }
+  .activity-item .activity-img-wrapper {
+    width: 80px;
+    height: 62px;
+  }
+  .activity-content h4 { font-size: 0.875rem; }
+  .activity-content p  { display: none; }
+
+  .featured-meta { gap: 6px 10px; font-size: 0.75rem; }
+}
+
+/* Mobile: full single column */
+@media (max-width: 540px) {
+  .community-section { padding: 14px 0; }
+  .widget { padding: 14px; }
+
+  .community-right,
+  .community-left {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .featured-insight-card {
+    min-height: 240px;
+    padding: 14px 12px 12px !important;
+  }
+  .featured-insight-card h2 { font-size: 1.1rem; }
+
+  /* Stack thumbnail above content on mobile */
+  .activity-item {
+    flex-direction: column;
     gap: 10px;
   }
-  .hero-carousel-dots {
-    order: -1;
+  .activity-item .activity-img-wrapper {
+    width: 100%;
+    height: 150px;
   }
-  .btn-read-insight {
-    justify-content: center;
+  .activity-content p { display: block; font-size: 0.8rem; }
+
+  /* Footer */
+  .fi-footer {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
+  .hero-carousel-dots { justify-content: center; order: -1; }
+  .btn-read-insight    { justify-content: flex-start; }
+
+  .popular-tags-list { gap: 6px; }
+  .popular-tag-pill  { font-size: 0.72rem; padding: 3px 9px; }
+
+  .cag-grid   { gap: 8px; }
+  .cag-number { font-size: 1.15rem; }
 }
 
 /* New Contributor Card Styles */
@@ -1115,8 +1128,11 @@
   padding: 16px 0px;
   border-bottom: 1px solid #e2e8f0;
   margin-bottom: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.ra-tabs::-webkit-scrollbar { display: none; }
 
 .ra-tab-btn {
   display: flex;

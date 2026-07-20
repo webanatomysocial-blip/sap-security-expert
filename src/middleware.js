@@ -42,7 +42,7 @@ export function middleware(request) {
     // silently fall back to skipping compression/validation entirely.
     `img-src 'self' data: blob: https:`,
     `connect-src 'self' https://api.razorpay.com https://www.googletagmanager.com https://www.google-analytics.com`,
-    `frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.googletagmanager.com`,
+    `frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.googletagmanager.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com`,
     `object-src 'none'`,
     `base-uri 'self'`,
   ].join('; ');
