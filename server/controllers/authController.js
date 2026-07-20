@@ -80,7 +80,7 @@ const login = async (req, res) => {
       req.session.csrf_token = csrf_token;
 
       await repo.clearLoginAttempts(db, ip);
-      await audit.log(user.id, 'login_success', 'user', user.id, `IP: ${ip}`);
+      await audit.log({ userId: user.id, actor: user.username, action: 'login_success', targetType: 'user', targetId: user.id, ip });
 
       return res.json({
         status: 'success',
@@ -92,7 +92,7 @@ const login = async (req, res) => {
       });
     } else {
       await repo.recordFailedAttempt(db, ip, now);
-      await audit.log(null, 'login_failure', 'user', username, `IP: ${ip}`);
+      await audit.log({ userId: null, actor: username, action: 'login_failure', targetType: 'user', targetId: username, ip });
       return res.status(401).json({ status: 'error', message: 'The username or password you entered is incorrect.' });
     }
   } catch (err) {

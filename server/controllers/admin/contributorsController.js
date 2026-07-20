@@ -5,6 +5,7 @@ const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const { deleteImage } = require('../../utils/helpers');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
+const AuditService = require('../../services/AuditService');
 const repo = require('../../repositories/admin/contributorsRepository');
 
 // GET /api/admin/contributors — bare array, not the {status, ...} envelope
@@ -62,17 +63,23 @@ const performAction = asyncHandler(async (req, res) => {
       await repo.updateMemberPasswordByEmail(db, contributor.email, approveHash);
     }
 
+    const audit = AuditService.fromRequest(db, req);
     notifier.notifyContributorApproved(contributor.email, contributor.full_name, { password }).catch(() => {});
+    audit.logReq('contributor_approved', 'contributor', id, `Approved contributor: ${contributor.full_name} (${contributor.email})`).catch(() => {});
     return sendSuccess(res, { message: 'Contributor approved.' });
   } else if (normalised === 'reject') {
     await repo.updateStatus(db, id, 'rejected');
     notifier.notifyContributorRejected(contributor.email, contributor.full_name, reason || 'Application not approved.').catch(() => {});
+    const audit = AuditService.fromRequest(db, req);
+    audit.logReq('contributor_rejected', 'contributor', id, `Rejected contributor: ${contributor.full_name} (${contributor.email}). Reason: ${reason || 'none'}`).catch(() => {});
     return sendSuccess(res, { message: 'Contributor rejected.' });
   } else if (normalised === 'delete') {
     if (contributor.image) deleteImage(contributor.image);
     // Detach user account from contributor profile — user keeps their account as a regular member
     await repo.detachUserFromContributor(db, id);
     await repo.deleteContributor(db, id);
+    const audit = AuditService.fromRequest(db, req);
+    audit.logReq('contributor_deleted', 'contributor', id, `Deleted contributor: ${contributor.full_name} (${contributor.email})`).catch(() => {});
     return sendSuccess(res, { message: 'Contributor deleted. User account preserved as member.' });
   } else {
     return sendError(res, 'Unknown action', 400);
@@ -146,6 +153,8 @@ const createContributorLogin = asyncHandler(async (req, res) => {
     await repo.updateMemberPasswordByEmail(db, contributor.email, hash);
   }
 
+  const audit = AuditService.fromRequest(db, req);
+  audit.logReq('contributor_login_created', 'contributor', contributor_id, `Created login for contributor: ${contributor.full_name} (${contributor.email})`).catch(() => {});
   return sendSuccess(res, {
     message: 'Login credentials created.',
     username: contributor.email,
@@ -164,6 +173,10 @@ const updateContributorAccess = asyncHandler(async (req, res) => {
   if (permissions) {
     await repo.upsertPermissions(db, user_id, permissions);
   }
+
+  const audit = AuditService.fromRequest(db, req);
+  const permSummary = permissions ? Object.entries(permissions).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none' : 'unchanged';
+  audit.logReq('contributor_access_updated', 'user', user_id, `User #${user_id} active=${is_active ? 1 : 0}, permissions: ${permSummary}`).catch(() => {});
   return sendSuccess(res, { message: 'Access updated.' });
 });
 
@@ -184,6 +197,8 @@ const resetContributorPassword = asyncHandler(async (req, res) => {
     await repo.updateMemberPasswordByEmail(db, user.email, hash);
   }
 
+  const audit = AuditService.fromRequest(db, req);
+  audit.logReq('contributor_password_reset', 'user', user_id, `Password reset for contributor user #${user_id}${user ? ` (${user.email})` : ''}`).catch(() => {});
   return sendSuccess(res, { message: 'Password reset.', new_password: newPassword });
 });
 
@@ -206,6 +221,8 @@ const deleteContributorLegacy = asyncHandler(async (req, res) => {
   await repo.deleteContributor(db, id);
 
   notifier.notifyContributorDowngradedToMember(email, contributor.full_name).catch(() => {});
+  const audit = AuditService.fromRequest(db, req);
+  audit.logReq('contributor_deleted', 'contributor', id, `Deleted contributor: ${contributor.full_name} (${email})`).catch(() => {});
   return sendSuccess(res, { message: 'Contributor deleted. Account preserved as member.' });
 });
 

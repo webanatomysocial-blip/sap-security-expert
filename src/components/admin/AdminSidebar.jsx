@@ -84,7 +84,7 @@ const AdminSidebar = ({
     },
     {
       label: "Change Logs",
-      path: "/admin/changelog",
+      path: "/admin/audit-logs",
       icon: "bi-clock-history",
     },
   ];
