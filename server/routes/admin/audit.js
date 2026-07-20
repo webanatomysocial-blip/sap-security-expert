@@ -31,8 +31,7 @@ router.get('/', requireAdmin, async (req, res) => {
     );
 
     const [rows] = await db.execute(
-      `SELECT id, user_id, actor, action, target_type, target_id, details, ip,
-              COALESCE(created_at, \`timestamp\`) AS created_at
+      `SELECT id, user_id, actor, action, target_type, target_id, details, ip, created_at
        FROM audit_logs ${where}
        ORDER BY id DESC
        LIMIT ? OFFSET ?`,

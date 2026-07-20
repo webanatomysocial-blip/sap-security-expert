@@ -492,8 +492,14 @@ if (isSQLite) {
   const auditCols = sqliteDb.prepare('PRAGMA table_info(audit_logs)').all().map(r => r.name);
   if (!auditCols.includes('actor'))      sqliteDb.prepare('ALTER TABLE audit_logs ADD COLUMN actor TEXT DEFAULT NULL').run();
   if (!auditCols.includes('ip'))         sqliteDb.prepare('ALTER TABLE audit_logs ADD COLUMN ip TEXT DEFAULT NULL').run();
-  // SQLite ALTER TABLE ADD COLUMN only accepts literal constants as defaults — CURRENT_TIMESTAMP is not allowed
-  if (!auditCols.includes('created_at')) sqliteDb.prepare('ALTER TABLE audit_logs ADD COLUMN created_at DATETIME DEFAULT NULL').run();
+  if (!auditCols.includes('created_at')) {
+    // SQLite ALTER TABLE ADD COLUMN only accepts literal constants — CURRENT_TIMESTAMP not allowed
+    sqliteDb.prepare('ALTER TABLE audit_logs ADD COLUMN created_at DATETIME DEFAULT NULL').run();
+    // Backfill from old `timestamp` column if it exists
+    if (auditCols.includes('timestamp')) {
+      sqliteDb.prepare('UPDATE audit_logs SET created_at = [timestamp] WHERE created_at IS NULL AND [timestamp] IS NOT NULL').run();
+    }
+  }
   try { sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_al_action ON audit_logs(action)').run(); } catch {}
   try { sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_al_created_at ON audit_logs(created_at)').run(); } catch {}
 
@@ -683,7 +689,13 @@ if (isSQLite) {
       const auditCols = await getColumns('audit_logs');
       if (!auditCols.includes('actor'))      await addCol('audit_logs', 'actor',      'VARCHAR(100) DEFAULT NULL AFTER user_id');
       if (!auditCols.includes('ip'))         await addCol('audit_logs', 'ip',         'VARCHAR(45)  DEFAULT NULL AFTER details');
-      if (!auditCols.includes('created_at')) await addCol('audit_logs', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP AFTER ip');
+      if (!auditCols.includes('created_at')) {
+        await addCol('audit_logs', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP AFTER ip');
+        // Backfill from old `timestamp` column for existing rows
+        if (auditCols.includes('timestamp')) {
+          await conn.execute('UPDATE audit_logs SET created_at = `timestamp` WHERE created_at IS NULL').catch(() => {});
+        }
+      }
 
       // ── members: profile_visibility, full_name (referenced by public profile route) ──
       const memberCols = await getColumns('members');
