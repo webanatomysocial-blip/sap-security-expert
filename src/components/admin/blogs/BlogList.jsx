@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import ActionMenu from "../ActionMenu";
 import ColumnToggle from "../ColumnToggle";
@@ -7,6 +7,8 @@ import {
   toggleExclusiveContent,
   togglePremiumContent,
   toggleExpertPick,
+  getAdminSettings,
+  saveAdminSetting,
 } from "../../../services/api";
 import { useToast } from "../../../context/ToastContext";
 import TableScrollContainer from "../TableScrollContainer";
@@ -52,9 +54,38 @@ const BlogList = ({
     { key: "plag",    label: "Plagiarism score", optional: true },
     { key: "actions", label: "Actions" },
   ];
-  const DEFAULT_VISIBLE = new Set(COL_DEFS.filter((c) => !c.optional).map((c) => c.key));
-  const [visibleCols, setVisibleCols] = useState(DEFAULT_VISIBLE);
+  const [visibleCols, setVisibleCols] = useState(() => {
+    try { const s = localStorage.getItem("admin_blogs_cols"); if (s) return new Set(JSON.parse(s)); } catch {}
+    return new Set(COL_DEFS.filter((c) => !c.optional).map((c) => c.key));
+  });
+  const handleColChange = (cols) => { setVisibleCols(cols); try { localStorage.setItem("admin_blogs_cols", JSON.stringify([...cols])); } catch {} };
   const show = (key) => visibleCols.has(key);
+
+  const [paywallDefault, setPaywallDefault] = useState(3);
+  const [savingPaywallDefault, setSavingPaywallDefault] = useState(false);
+
+  useEffect(() => {
+    getAdminSettings()
+      .then((res) => {
+        const val = res.data?.settings?.paywall_default_preview_paragraphs;
+        if (val != null) setPaywallDefault(parseInt(val) || 3);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSavePaywallDefault = async () => {
+    const n = parseInt(paywallDefault);
+    if (isNaN(n) || n < 1 || n > 50) { addToast("Enter a number between 1 and 50", "error"); return; }
+    setSavingPaywallDefault(true);
+    try {
+      await saveAdminSetting("paywall_default_preview_paragraphs", n);
+      addToast("Default preview paragraphs saved", "success");
+    } catch {
+      addToast("Save failed", "error");
+    } finally {
+      setSavingPaywallDefault(false);
+    }
+  };
 
   const copySlug = useCallback((blog) => {
     const category = (blog.category || "blogs").toLowerCase().replace(/\s+/g, "-");
@@ -216,12 +247,42 @@ const BlogList = ({
 
   return (
     <>
+    {/* Paywall Preview — Site Default */}
+    <div className="admin-card" style={{ marginBottom: 20 }}>
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
+        <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Paywall Preview — Site Default</h2>
+        <p style={{ margin: "4px 0 0", fontSize: 13, color: "#94a3b8" }}>
+          How many paragraphs/blocks to show before the paywall on exclusive &amp; premium articles. Per-article setting in the blog editor overrides this.
+        </p>
+      </div>
+      <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+        <input
+          type="number"
+          min="1"
+          max="50"
+          className="form-control"
+          style={{ width: 100 }}
+          value={paywallDefault}
+          onChange={(e) => setPaywallDefault(e.target.value)}
+        />
+        <span style={{ fontSize: 13, color: "#64748b" }}>block(s) shown before paywall</span>
+        <button
+          className="btn-primary"
+          onClick={handleSavePaywallDefault}
+          disabled={savingPaywallDefault}
+          style={{ padding: "8px 20px", opacity: savingPaywallDefault ? 0.7 : 1 }}
+        >
+          {savingPaywallDefault ? "Saving…" : "Save Default"}
+        </button>
+      </div>
+    </div>
+
     <div className="admin-card">
       <div className="admin-table-controls">
         <button onClick={handleExport} className="btn-filter" title="Export to CSV">
           <i className="bi bi-download"></i> Export
         </button>
-        <ColumnToggle columns={COL_DEFS} visible={visibleCols} onChange={setVisibleCols} />
+        <ColumnToggle columns={COL_DEFS} visible={visibleCols} onChange={handleColChange} />
       </div>
       <TableScrollContainer>
         <table className="admin-table">

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
-import { downloadFile } from "../services/api";
+import { downloadFile, issueDownloadToken } from "../services/api";
 
 const EXT_META = {
   pdf:  { icon: "bi-file-earmark-pdf-fill",         color: "#dc2626", bg: "#fef2f2" },
@@ -17,32 +17,59 @@ const EXT_META = {
 };
 const DEFAULT_META = { icon: "bi-file-earmark-fill", color: "#64748b", bg: "#f8fafc" };
 
-export default function DownloadBlock({ fileUrl, fileName, fileSize, credits }) {
+export default function DownloadBlock({ fileUrl, fileName, fileSize, credits, alreadyUnlocked = false }) {
   const { isLoggedIn, refreshCredits } = useMemberAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [state, setState] = useState("idle"); // idle | loading | done | error
+  // idle | loading | unlocked | downloading | error
+  const [state, setState] = useState(alreadyUnlocked ? "unlocked" : "idle");
   const [errMsg, setErrMsg] = useState("");
+
+  // Sync if parent resolves alreadyUnlocked after initial render
+  useEffect(() => {
+    if (alreadyUnlocked) setState("unlocked");
+  }, [alreadyUnlocked]);
 
   const ext = (fileName || "").split(".").pop().toLowerCase();
   const meta = EXT_META[ext] || DEFAULT_META;
   const creditsNum = parseInt(credits) || 0;
   const isFree = creditsNum === 0;
 
+  const triggerStreamDownload = (token) => {
+    setState("downloading");
+    window.location.href = `/api/downloads/stream?token=${token}`;
+    // After a moment the page is still mounted (browser handles the download
+    // inline); reset to "unlocked" so the button is usable again.
+    setTimeout(() => setState("unlocked"), 3000);
+  };
+
   const handleDownload = async () => {
     if (!isLoggedIn) {
       navigate("/member/login", { state: { from: location.pathname + location.search } });
       return;
     }
+
+    // Already unlocked — just get a fresh token, no credit deduction.
+    if (state === "unlocked") {
+      setState("loading");
+      setErrMsg("");
+      try {
+        const { data } = await issueDownloadToken(fileUrl);
+        triggerStreamDownload(data.token);
+      } catch (err) {
+        setState("unlocked");
+        setErrMsg("Could not start download. Please try again.");
+      }
+      return;
+    }
+
     setState("loading");
     setErrMsg("");
     try {
       const { data } = await downloadFile(fileUrl, creditsNum);
       refreshCredits();
-      setState("done");
-      // Use the one-time token returned by the server — pasting or sharing the
-      // resulting URL returns 403 because the token is consumed on first use.
-      window.location.href = `/api/downloads/stream?token=${data.token}`;
+      if (data.already_downloaded) setState("unlocked");
+      triggerStreamDownload(data.token);
     } catch (err) {
       setState("error");
       console.error("[DownloadBlock] download error:", err?.response?.status, err?.response?.data, err?.message);
@@ -62,6 +89,8 @@ export default function DownloadBlock({ fileUrl, fileName, fileSize, credits }) 
     }
   };
 
+  const isUnlocked = state === "unlocked" || state === "downloading";
+
   return (
     <div className="sap-dl-wrap">
       {/* Left: icon */}
@@ -75,29 +104,36 @@ export default function DownloadBlock({ fileUrl, fileName, fileSize, credits }) 
         <span className="sap-dl-name">{fileName || "Download"}</span>
         <div className="sap-dl-meta-row">
           {fileSize && <span className="sap-dl-size">{fileSize}</span>}
-          {!isFree && (
+          {isUnlocked ? (
+            <span className="sap-dl-unlocked-badge">
+              <i className="bi bi-unlock-fill"></i> Already unlocked
+            </span>
+          ) : !isFree ? (
             <span className="sap-dl-credit-badge">
               <i className="bi bi-coin"></i> {creditsNum} credit{creditsNum !== 1 ? "s" : ""}
             </span>
+          ) : (
+            <span className="sap-dl-free-badge">Free</span>
           )}
-          {isFree && <span className="sap-dl-free-badge">Free</span>}
         </div>
       </div>
 
       {/* Right: action */}
       <div className="sap-dl-right">
-        {state === "done" ? (
+        {state === "downloading" ? (
           <span className="sap-dl-ok">
-            <i className="bi bi-check-circle-fill"></i> Downloading
+            <i className="bi bi-arrow-down-circle-fill sap-dl-pulse"></i> Downloading…
           </span>
         ) : (
           <button
-            className="sap-dl-btn"
+            className={`sap-dl-btn${isUnlocked ? " sap-dl-btn--redownload" : ""}`}
             onClick={handleDownload}
             disabled={state === "loading"}
           >
             {state === "loading" ? (
               <><i className="bi bi-hourglass-split sap-dl-pulse"></i> Processing…</>
+            ) : isUnlocked ? (
+              <><i className="bi bi-download"></i> Download again</>
             ) : !isLoggedIn ? (
               <><i className="bi bi-lock-fill"></i> Log in</>
             ) : (
@@ -172,6 +208,24 @@ export default function DownloadBlock({ fileUrl, fileName, fileSize, credits }) 
           padding: 2px 9px;
           font-size: 0.72rem;
           font-weight: 700;
+        }
+        .sap-dl-unlocked-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: #eff6ff;
+          color: #1d4ed8;
+          border: 1px solid #bfdbfe;
+          border-radius: 50px;
+          padding: 2px 9px;
+          font-size: 0.72rem;
+          font-weight: 700;
+        }
+        .sap-dl-btn--redownload {
+          background: #1d4ed8 !important;
+        }
+        .sap-dl-btn--redownload:hover:not(:disabled) {
+          background: #1e40af !important;
         }
 
         .sap-dl-right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }

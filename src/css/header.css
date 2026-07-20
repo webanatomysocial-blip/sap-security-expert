@@ -393,6 +393,30 @@
   align-items: center;
 }
 
+/* Small laptop / medium desktop */
+@media (max-width: 1280px) and (min-width: 769px) {
+  .header-container-premium {
+    padding: 0 20px;
+  }
+  .header-nav-desktop {
+    gap: 14px;
+  }
+  .nav-link {
+    font-size: 12px;
+  }
+  .logo-img {
+    width: 160px;
+  }
+  .btn-header-login {
+    padding: 8px 14px;
+    font-size: 12.5px;
+  }
+  .btn-header-signup {
+    padding: 9px 16px;
+    font-size: 12.5px;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .header-container-premium {

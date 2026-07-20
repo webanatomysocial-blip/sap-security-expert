@@ -59,7 +59,11 @@ const AdminAnnouncements = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("published"); // "published" | "review" | "draft"
 
-  const [visibleCols, setVisibleCols] = useState(new Set(ANNC_COLS.filter(c => !c.optional).map(c => c.key)));
+  const [visibleCols, setVisibleCols] = useState(() => {
+    try { const s = localStorage.getItem("admin_announcements_cols"); if (s) return new Set(JSON.parse(s)); } catch {}
+    return new Set(ANNC_COLS.filter(c => !c.optional).map(c => c.key));
+  });
+  const handleColChange = (cols) => { setVisibleCols(cols); try { localStorage.setItem("admin_announcements_cols", JSON.stringify([...cols])); } catch {} };
   const show = (key) => visibleCols.has(key);
 
   const { addToast } = useToast();
@@ -320,7 +324,7 @@ const AdminAnnouncements = () => {
       <div className="admin-card">
         {loading ? <TableSkeleton cols={4} rows={7} /> : null}
         <div className="admin-table-controls">
-          <ColumnToggle columns={ANNC_COLS} visible={visibleCols} onChange={setVisibleCols} />
+          <ColumnToggle columns={ANNC_COLS} visible={visibleCols} onChange={handleColChange} />
         </div>
         <TableScrollContainer style={loading ? { display: "none" } : {}}>
           <table className="admin-table">

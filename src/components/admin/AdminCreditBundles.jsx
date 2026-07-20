@@ -12,7 +12,6 @@ import {
   getAdminMembers,
   getAdminCreditActivities, saveCreditActivity, deleteCreditActivity,
   getAdminAchievementTypes, saveAchievementType, deleteAchievementType,
-  getAdminSettings, saveAdminSetting,
 } from "../../services/api";
 import { downloadCSV } from "../../services/exportUtils";
 
@@ -128,36 +127,14 @@ export default function AdminCreditBundles() {
   const [activityErrors, setActivityErrors] = useState({});
   const [savingActivity, setSavingActivity] = useState(false);
 
-  const [paywallDefault, setPaywallDefault] = useState(3);
-  const [savingPaywallDefault, setSavingPaywallDefault] = useState(false);
-
   const fetchActivities = useCallback(async () => {
     try {
-      const [actRes, settingsRes] = await Promise.all([
-        getAdminCreditActivities(),
-        getAdminSettings(),
-      ]);
+      const actRes = await getAdminCreditActivities();
       setActivities(actRes.data?.activities || []);
-      const val = settingsRes.data?.settings?.paywall_default_preview_paragraphs;
-      if (val != null) setPaywallDefault(parseInt(val) || 3);
     } catch {
       addToast("Failed to load activities", "error");
     }
   }, [addToast]);
-
-  const handleSavePaywallDefault = async () => {
-    const n = parseInt(paywallDefault);
-    if (isNaN(n) || n < 1 || n > 50) { addToast("Enter a number between 1 and 50", "error"); return; }
-    setSavingPaywallDefault(true);
-    try {
-      await saveAdminSetting("paywall_default_preview_paragraphs", n);
-      addToast("Default preview paragraphs saved", "success");
-    } catch {
-      addToast("Save failed", "error");
-    } finally {
-      setSavingPaywallDefault(false);
-    }
-  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -1142,33 +1119,6 @@ export default function AdminCreditBundles() {
       {/* ── EARN ACTIVITIES ──────────────────────────────────────────────────── */}
       {tab === "activities" && (
         <>
-        {/* Global paywall preview setting */}
-        <div className="admin-card" style={{ marginBottom: 20 }}>
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
-            <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Paywall Preview — Site Default</h2>
-            <p style={{ margin: "2px 0 0", fontSize: 13, color: "#94a3b8" }}>How many paragraphs/blocks to show before the paywall on exclusive &amp; premium articles. Per-article setting in the blog editor overrides this.</p>
-          </div>
-          <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-            <input
-              type="number"
-              min="1"
-              max="50"
-              className="form-control"
-              style={{ width: 100 }}
-              value={paywallDefault}
-              onChange={(e) => setPaywallDefault(e.target.value)}
-            />
-            <span style={{ fontSize: 13, color: "#64748b" }}>block(s) shown before paywall</span>
-            <button
-              className="btn-primary"
-              onClick={handleSavePaywallDefault}
-              disabled={savingPaywallDefault}
-              style={{ padding: "8px 20px", opacity: savingPaywallDefault ? 0.7 : 1 }}
-            >
-              {savingPaywallDefault ? "Saving…" : "Save Default"}
-            </button>
-          </div>
-        </div>
         <div className="admin-card">
           <div style={{ padding: "16px 20px", borderBottom: "1px solid #e2e8f0" }}>
             <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Earn Activities</h2>

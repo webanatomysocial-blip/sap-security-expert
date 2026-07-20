@@ -276,6 +276,15 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
         "PRE",
         "CODE",
         "SPAN",
+        "IFRAME",
+        "FIGURE",
+        "FIGCAPTION",
+        "TABLE",
+        "THEAD",
+        "TBODY",
+        "TR",
+        "TH",
+        "TD",
       ];
 
       const sanitizeNode = (node) => {

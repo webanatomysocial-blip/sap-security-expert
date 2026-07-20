@@ -36,7 +36,11 @@ const AdminBlogReview = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
 
-  const [visibleCols, setVisibleCols] = useState(new Set(REVIEW_COLS.filter(c => !c.optional).map(c => c.key)));
+  const [visibleCols, setVisibleCols] = useState(() => {
+    try { const s = localStorage.getItem("admin_blogreview_cols"); if (s) return new Set(JSON.parse(s)); } catch {}
+    return new Set(REVIEW_COLS.filter(c => !c.optional).map(c => c.key));
+  });
+  const handleColChange = (cols) => { setVisibleCols(cols); try { localStorage.setItem("admin_blogreview_cols", JSON.stringify([...cols])); } catch {} };
   const show = (key) => visibleCols.has(key);
 
   const { addToast } = useToast();
@@ -261,7 +265,7 @@ const AdminBlogReview = () => {
         ) : (
           <>
             <div className="admin-table-controls">
-              <ColumnToggle columns={REVIEW_COLS} visible={visibleCols} onChange={setVisibleCols} />
+              <ColumnToggle columns={REVIEW_COLS} visible={visibleCols} onChange={handleColChange} />
             </div>
           <TableScrollContainer>
             <table
