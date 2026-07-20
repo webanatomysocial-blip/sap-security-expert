@@ -5,6 +5,7 @@ const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
 const { grantBonus, getActivityCredits } = require('../../services/CreditHelper');
+const AuditService = require('../../services/AuditService');
 const repo = require('../../repositories/admin/membersRepository');
 
 // GET /api/admin/members?status=all|pending|approved|rejected|deleted
@@ -26,10 +27,12 @@ const performAction = asyncHandler(async (req, res) => {
 
   const mailService = MailService.getInstance(db);
   const notifier = new NotificationService(mailService);
+  const audit = AuditService.fromRequest(db, req);
 
   if (action === 'approve') {
     await repo.approve(db, id);
     notifier.notifyMemberApproved(member.email, member.name).catch(() => {});
+    audit.logReq('member_approved', 'member', id, `Approved member: ${member.name} (${member.email})`).catch(() => {});
 
     // Grant registration welcome credits (amount from credit_activities table)
     getActivityCredits(db, 'new_registration', 10).then((amt) =>
@@ -51,24 +54,29 @@ const performAction = asyncHandler(async (req, res) => {
   } else if (action === 'reject') {
     await repo.reject(db, id, rejectReason);
     notifier.notifyMemberRejected(member.email, member.name, rejectReason).catch(() => {});
+    audit.logReq('member_rejected', 'member', id, `Rejected member: ${member.name} (${member.email}). Reason: ${rejectReason}`).catch(() => {});
     return sendSuccess(res, { message: 'Member rejected.' });
   } else if (action === 'suspend') {
     await repo.suspend(db, id);
+    audit.logReq('member_suspended', 'member', id, `Suspended member: ${member.name} (${member.email})`).catch(() => {});
     return sendSuccess(res, { message: 'Member suspended.' });
   } else if (action === 'reactivate') {
     await repo.reactivate(db, id, member.email);
     notifier.notifyMemberApproved(member.email, member.name).catch(() => {});
+    audit.logReq('member_reactivated', 'member', id, `Reactivated member: ${member.name} (${member.email})`).catch(() => {});
     return sendSuccess(res, { message: 'Member account reactivated.' });
   } else if (action === 'delete') {
     // Already soft-deleted (deactivated) — allow hard-delete the record permanently
     if (member.is_deleted == 1 || member.status === 'deleted' || member.status === 'deactivated') {
       await repo.hardDelete(db, id);
+      audit.logReq('member_hard_deleted', 'member', id, `Permanently deleted member record: ${member.name} (${member.email})`).catch(() => {});
       return sendSuccess(res, { message: 'Deleted user record permanently removed.' });
     }
 
     // Active member — deactivate directly (no OTP required)
     await repo.softDelete(db, id, member.email);
     notifier.notifyAccountDeleted(member.email, member.name).catch(() => {});
+    audit.logReq('member_deactivated', 'member', id, `Deactivated member: ${member.name} (${member.email})`).catch(() => {});
     return sendSuccess(res, { message: 'Member account deactivated.' });
   }
 
@@ -91,6 +99,9 @@ const resetPassword = asyncHandler(async (req, res) => {
   if (email) {
     await repo.syncPasswordToUser(db, email, hash).catch(() => {});
   }
+
+  const audit = AuditService.fromRequest(db, req);
+  audit.logReq('member_password_reset', 'member', member_id, `Password reset for member ID ${member_id}${email ? ` (${email})` : ''}`).catch(() => {});
 
   return sendSuccess(res, { message: 'Password reset.', new_password: newPassword });
 });

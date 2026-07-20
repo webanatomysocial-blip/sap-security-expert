@@ -80,6 +80,7 @@ const AdminCreditBundles       = lazy(() => import("./components/admin/AdminCred
 const AdminFeaturedInsights    = lazy(() => import("./components/admin/AdminFeaturedInsights"));
 const AdminEmailTemplates      = lazy(() => import("./components/admin/AdminEmailTemplates"));
 const AdminChangelog           = lazy(() => import("./components/admin/AdminChangelog"));
+const AdminAuditLogs           = lazy(() => import("./components/admin/AdminAuditLogs"));
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -221,6 +222,7 @@ function App() {
           <Route path="featured-insights" element={<ProtectedRoute><AdminFeaturedInsights /></ProtectedRoute>} />
           <Route path="email-templates" element={<ProtectedRoute adminOnly><AdminEmailTemplates /></ProtectedRoute>} />
           <Route path="changelog" element={<ProtectedRoute><AdminChangelog /></ProtectedRoute>} />
+          <Route path="audit-logs" element={<ProtectedRoute><AdminAuditLogs /></ProtectedRoute>} />
         </Route>
       </Routes>
     </Suspense>

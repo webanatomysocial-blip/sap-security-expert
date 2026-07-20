@@ -1,3 +1,4 @@
+const AuditService = require('../../services/AuditService');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const NotificationService = require('../../services/NotificationService');
@@ -51,6 +52,8 @@ const review = asyncHandler(async (req, res) => {
   const mailService = MailService.getInstance(db);
   const notifier = new NotificationService(mailService);
 
+  const audit = AuditService.fromRequest(db, req);
+
   if (action === 'approve') {
     const isEdited = blog.submission_status === 'edited';
 
@@ -65,6 +68,7 @@ const review = asyncHandler(async (req, res) => {
     const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
     const postUrl = `${siteUrl}/${blog.category}/${blog.slug}`;
     if (blog.author_email) notifier.notifyBlogApproved(blog.author_email, blog.title, postUrl).catch(() => {});
+    audit.logReq('blog_approved', 'blog', id, `Approved blog: "${blog.title}" by ${blog.author_email || 'unknown'}`).catch(() => {});
 
     // Grant +20 credits to the member account matching the blog author's email (once per blog)
     if (blog.author_email) {
@@ -80,11 +84,13 @@ const review = asyncHandler(async (req, res) => {
   } else if (action === 'reject') {
     await repo.rejectBlog(db, id, rejection_reason);
     if (blog.author_email) notifier.notifyBlogRejected(blog.author_email, blog.title, rejection_reason).catch(() => {});
+    audit.logReq('blog_rejected', 'blog', id, `Rejected blog: "${blog.title}". Reason: ${rejection_reason || 'none'}`).catch(() => {});
     return sendSuccess(res, { message: 'Blog rejected.' });
   } else {
     // draft
     await repo.moveToDraft(db, id, rejection_reason);
     if (blog.author_email) notifier.notifyBlogMovedToDraft(blog.author_email, blog.title, rejection_reason).catch(() => {});
+    audit.logReq('blog_moved_to_draft', 'blog', id, `Moved to draft: "${blog.title}". Note: ${rejection_reason || 'none'}`).catch(() => {});
     return sendSuccess(res, { message: 'Blog moved to draft.' });
   }
 });
@@ -135,6 +141,8 @@ const toggleExclusive = asyncHandler(async (req, res) => {
     }
   }
   await repo.updateExclusive(db, id, is_members_only ? 1 : 0, is_members_only ? preview_paragraphs : null);
+  const audit = AuditService.fromRequest(db, req);
+  audit.logReq('blog_exclusive_toggled', 'blog', id, `Blog #${id} exclusive=${is_members_only ? 1 : 0}, preview_paragraphs=${preview_paragraphs ?? 'n/a'}`).catch(() => {});
   return sendSuccess(res, { message: 'Exclusive content setting updated.' });
 });
 
@@ -146,6 +154,8 @@ const togglePremium = asyncHandler(async (req, res) => {
 
   const isPremium = is_premium ? 1 : 0;
   await repo.updatePremium(db, id, isPremium, credits_required != null ? (parseInt(credits_required) || 1) : null);
+  const audit = AuditService.fromRequest(db, req);
+  audit.logReq('blog_premium_toggled', 'blog', id, `Blog #${id} premium=${isPremium}, credits_required=${credits_required ?? 'n/a'}`).catch(() => {});
   return sendSuccess(res, { message: 'Premium setting updated.' });
 });
 
@@ -156,6 +166,8 @@ const toggleExpertPick = asyncHandler(async (req, res) => {
   if (!id) return sendError(res, 'ID required', 400);
 
   await repo.updateExpertPick(db, id, is_expert_pick ? 1 : 0);
+  const audit = AuditService.fromRequest(db, req);
+  audit.logReq('blog_expert_pick_toggled', 'blog', id, `Blog #${id} expert_pick=${is_expert_pick ? 1 : 0}`).catch(() => {});
   return sendSuccess(res, { message: 'Expert pick setting updated.' });
 });
 

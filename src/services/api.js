@@ -272,4 +272,7 @@ export const getMyDownloads = () => api.get('/payments/my-downloads');
 export const issueDownloadToken = (file_url) => api.post('/downloads/token', { file_url });
 export const getDownloadToken = (file_url) => api.post('/downloads/token', { file_url });
 
+// Audit logs
+export const getAuditLogs = (params = {}) => api.get('/admin/audit-logs', { params });
+
 export default api;

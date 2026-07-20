@@ -269,6 +269,9 @@ app.use('/api/admin/changelog', require('./routes/admin/changelog'));
 // Site settings (admin + public read)
 app.use('/api/admin/settings', require('./routes/admin/settings'));
 
+// Audit / change logs
+app.use('/api/admin/audit-logs', require('./routes/admin/audit'));
+
 // Cron endpoint (secured by CRON_SECRET)
 app.post('/api/cron/send-emails', async (req, res) => {
   const secret = req.query.secret || req.headers['x-cron-secret'];

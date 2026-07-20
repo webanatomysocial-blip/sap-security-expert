@@ -475,6 +475,54 @@ if (isSQLite) {
   `).run();
   sqliteDb.prepare("INSERT OR IGNORE INTO site_settings (key, value) VALUES ('paywall_default_preview_paragraphs', '3')").run();
 
+  sqliteDb.prepare(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id     INTEGER DEFAULT NULL,
+      actor       TEXT    DEFAULT NULL,
+      action      TEXT    NOT NULL,
+      target_type TEXT    DEFAULT NULL,
+      target_id   TEXT    DEFAULT NULL,
+      details     TEXT    DEFAULT NULL,
+      ip          TEXT    DEFAULT NULL,
+      created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+  // Migrate older audit_logs schema: add columns that didn't exist in the original table
+  const auditCols = sqliteDb.prepare('PRAGMA table_info(audit_logs)').all().map(r => r.name);
+  if (!auditCols.includes('actor'))      sqliteDb.prepare('ALTER TABLE audit_logs ADD COLUMN actor TEXT DEFAULT NULL').run();
+  if (!auditCols.includes('ip'))         sqliteDb.prepare('ALTER TABLE audit_logs ADD COLUMN ip TEXT DEFAULT NULL').run();
+  // SQLite ALTER TABLE ADD COLUMN only accepts literal constants as defaults — CURRENT_TIMESTAMP is not allowed
+  if (!auditCols.includes('created_at')) sqliteDb.prepare('ALTER TABLE audit_logs ADD COLUMN created_at DATETIME DEFAULT NULL').run();
+  try { sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_al_action ON audit_logs(action)').run(); } catch {}
+  try { sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_al_created_at ON audit_logs(created_at)').run(); } catch {}
+
+  sqliteDb.prepare(`
+    CREATE TABLE IF NOT EXISTS email_logs (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipient     TEXT NOT NULL,
+      subject       TEXT DEFAULT '',
+      status        TEXT DEFAULT 'pending',
+      error_message TEXT DEFAULT NULL,
+      created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+  sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_el_recipient ON email_logs(recipient)').run();
+
+  sqliteDb.prepare(`
+    CREATE TABLE IF NOT EXISTS email_queue (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipient   TEXT NOT NULL,
+      blog_id     TEXT DEFAULT NULL,
+      subject     TEXT DEFAULT '',
+      body        TEXT,
+      status      TEXT DEFAULT 'pending',
+      created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+      sent_at     DATETIME DEFAULT NULL,
+      UNIQUE(recipient, blog_id)
+    )
+  `).run();
+
   // Seed default activities (INSERT OR IGNORE so re-runs are safe)
   const defaultActivities = [
     ['new_registration',  'New Registration',                    'Credits awarded when a new member registers',              10],
@@ -599,6 +647,138 @@ if (isSQLite) {
           UNIQUE KEY idx_recipient_blog (recipient, blog_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+          id          INT          NOT NULL AUTO_INCREMENT,
+          user_id     INT          DEFAULT NULL,
+          actor       VARCHAR(100) DEFAULT NULL,
+          action      VARCHAR(100) NOT NULL,
+          target_type VARCHAR(100) DEFAULT NULL,
+          target_id   VARCHAR(100) DEFAULT NULL,
+          details     TEXT         DEFAULT NULL,
+          ip          VARCHAR(45)  DEFAULT NULL,
+          created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          KEY idx_al_user_id    (user_id),
+          KEY idx_al_action     (action),
+          KEY idx_al_created_at (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+      // ── Column migration helper ───────────────────────────────────────────────
+      // Uses INFORMATION_SCHEMA so it works on MySQL 5.7+, MySQL 8, and MariaDB.
+      async function getColumns(table) {
+        const [rows] = await conn.execute(
+          `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+          [table]
+        );
+        return rows.map(r => r.COLUMN_NAME);
+      }
+      async function addCol(table, col, def) {
+        await conn.execute(`ALTER TABLE \`${table}\` ADD COLUMN \`${col}\` ${def}`).catch(() => {});
+      }
+
+      // ── audit_logs: add actor, ip, created_at (old schema only had timestamp) ──
+      const auditCols = await getColumns('audit_logs');
+      if (!auditCols.includes('actor'))      await addCol('audit_logs', 'actor',      'VARCHAR(100) DEFAULT NULL AFTER user_id');
+      if (!auditCols.includes('ip'))         await addCol('audit_logs', 'ip',         'VARCHAR(45)  DEFAULT NULL AFTER details');
+      if (!auditCols.includes('created_at')) await addCol('audit_logs', 'created_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP AFTER ip');
+
+      // ── members: profile_visibility, full_name (referenced by public profile route) ──
+      const memberCols = await getColumns('members');
+      if (!memberCols.includes('profile_visibility')) await addCol('members', 'profile_visibility', "LONGTEXT DEFAULT NULL");
+      if (!memberCols.includes('full_name'))          await addCol('members', 'full_name',          "VARCHAR(255) DEFAULT NULL");
+      if (!memberCols.includes('referral_code'))      await addCol('members', 'referral_code',      "VARCHAR(20) DEFAULT NULL");
+      if (!memberCols.includes('referred_by_code'))   await addCol('members', 'referred_by_code',   "VARCHAR(20) DEFAULT NULL");
+      if (!memberCols.includes('username'))            await addCol('members', 'username',           "VARCHAR(255) DEFAULT NULL");
+      if (!memberCols.includes('is_deleted'))          await addCol('members', 'is_deleted',         "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!memberCols.includes('receive_blog_emails')) await addCol('members', 'receive_blog_emails',"TINYINT(1) NOT NULL DEFAULT 1");
+      if (!memberCols.includes('updated_at'))          await addCol('members', 'updated_at',         "DATETIME DEFAULT NULL");
+      if (!memberCols.includes('deleted_at'))          await addCol('members', 'deleted_at',         "DATETIME DEFAULT NULL");
+      if (!memberCols.includes('deletion_method'))     await addCol('members', 'deletion_method',    "VARCHAR(50) DEFAULT NULL");
+      if (!memberCols.includes('deletion_ip'))         await addCol('members', 'deletion_ip',        "VARCHAR(45) DEFAULT NULL");
+      if (!memberCols.includes('deletion_confirmation_method')) await addCol('members', 'deletion_confirmation_method', "VARCHAR(50) DEFAULT NULL");
+
+      // ── blogs: all columns added after original schema ─────────────────────────
+      const blogCols = await getColumns('blogs');
+      if (!blogCols.includes('secondary_categories'))       await addCol('blogs', 'secondary_categories',       "LONGTEXT DEFAULT NULL");
+      if (!blogCols.includes('draft_secondary_categories')) await addCol('blogs', 'draft_secondary_categories', "LONGTEXT DEFAULT NULL");
+      if (!blogCols.includes('image_alt'))                  await addCol('blogs', 'image_alt',                  "VARCHAR(255) DEFAULT NULL");
+      if (!blogCols.includes('draft_image_alt'))            await addCol('blogs', 'draft_image_alt',            "VARCHAR(255) DEFAULT NULL");
+      if (!blogCols.includes('co_authors'))                 await addCol('blogs', 'co_authors',                 "TEXT DEFAULT NULL");
+      if (!blogCols.includes('type'))                       await addCol('blogs', 'type',                       "VARCHAR(20) NOT NULL DEFAULT 'blog'");
+      if (!blogCols.includes('is_members_only'))            await addCol('blogs', 'is_members_only',            "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!blogCols.includes('is_premium'))                 await addCol('blogs', 'is_premium',                 "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!blogCols.includes('is_queued_for_members'))      await addCol('blogs', 'is_queued_for_members',      "TINYINT(1) DEFAULT 0");
+      if (!blogCols.includes('credits_required'))           await addCol('blogs', 'credits_required',           "INT NOT NULL DEFAULT 0");
+      if (!blogCols.includes('preview_paragraphs'))         await addCol('blogs', 'preview_paragraphs',         "INT DEFAULT NULL");
+      if (!blogCols.includes('schema_type'))                await addCol('blogs', 'schema_type',                "VARCHAR(100) DEFAULT 'Article'");
+      if (!blogCols.includes('article_section'))            await addCol('blogs', 'article_section',            "VARCHAR(255) DEFAULT NULL");
+      if (!blogCols.includes('send_notification_email'))    await addCol('blogs', 'send_notification_email',    "TINYINT(1) DEFAULT 0");
+      if (!blogCols.includes('homepage_featured'))          await addCol('blogs', 'homepage_featured',          "TINYINT(1) DEFAULT 0");
+      if (!blogCols.includes('homepage_featured_image'))    await addCol('blogs', 'homepage_featured_image',    "LONGTEXT DEFAULT NULL");
+      if (!blogCols.includes('homepage_featured_order'))    await addCol('blogs', 'homepage_featured_order',    "INT DEFAULT NULL");
+      if (!blogCols.includes('is_expert_pick'))             await addCol('blogs', 'is_expert_pick',             "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!blogCols.includes('badge_expert_reviewed'))      await addCol('blogs', 'badge_expert_reviewed',      "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!blogCols.includes('badge_sap_notes_verified'))   await addCol('blogs', 'badge_sap_notes_verified',   "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!blogCols.includes('badge_tested_s4hana'))        await addCol('blogs', 'badge_tested_s4hana',        "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!blogCols.includes('badge_field_validated'))      await addCol('blogs', 'badge_field_validated',      "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!blogCols.includes('difficulty_level'))           await addCol('blogs', 'difficulty_level',           "VARCHAR(50) DEFAULT NULL");
+      if (!blogCols.includes('content_version'))            await addCol('blogs', 'content_version',            "VARCHAR(20) NOT NULL DEFAULT '1.0'");
+
+      // ── contributors: columns added after original schema ─────────────────────
+      const contCols = await getColumns('contributors');
+      if (!contCols.includes('is_deleted'))                   await addCol('contributors', 'is_deleted',                   "TINYINT(1) DEFAULT 0");
+      if (!contCols.includes('deleted_at'))                   await addCol('contributors', 'deleted_at',                   "DATETIME DEFAULT NULL");
+      if (!contCols.includes('deletion_ip'))                  await addCol('contributors', 'deletion_ip',                  "VARCHAR(45) DEFAULT NULL");
+      if (!contCols.includes('deletion_method'))              await addCol('contributors', 'deletion_method',              "VARCHAR(50) DEFAULT NULL");
+      if (!contCols.includes('deletion_confirmation_method')) await addCol('contributors', 'deletion_confirmation_method', "VARCHAR(50) DEFAULT NULL");
+      if (!contCols.includes('sap_certifications'))           await addCol('contributors', 'sap_certifications',           "TEXT DEFAULT NULL");
+      if (!contCols.includes('sap_press_books'))              await addCol('contributors', 'sap_press_books',              "TEXT DEFAULT NULL");
+      if (!contCols.includes('implementations_count'))        await addCol('contributors', 'implementations_count',        "INT DEFAULT 0");
+      if (!contCols.includes('peer_rating'))                  await addCol('contributors', 'peer_rating',                  "DECIMAL(3,2) DEFAULT 0.00");
+      if (!contCols.includes('peer_rating_count'))            await addCol('contributors', 'peer_rating_count',            "INT DEFAULT 0");
+      if (!contCols.includes('experience_years'))             await addCol('contributors', 'experience_years',             "INT DEFAULT 0");
+
+      // ── users: columns added after original schema ────────────────────────────
+      const userCols = await getColumns('users');
+      if (!userCols.includes('full_name'))                    await addCol('users', 'full_name',                    "LONGTEXT DEFAULT NULL");
+      if (!userCols.includes('bio'))                          await addCol('users', 'bio',                          "LONGTEXT DEFAULT NULL");
+      if (!userCols.includes('designation'))                  await addCol('users', 'designation',                  "LONGTEXT DEFAULT NULL");
+      if (!userCols.includes('linkedin'))                     await addCol('users', 'linkedin',                     "LONGTEXT DEFAULT NULL");
+      if (!userCols.includes('twitter_handle'))               await addCol('users', 'twitter_handle',               "LONGTEXT DEFAULT NULL");
+      if (!userCols.includes('personal_website'))             await addCol('users', 'personal_website',             "LONGTEXT DEFAULT NULL");
+      if (!userCols.includes('profile_image'))                await addCol('users', 'profile_image',                "VARCHAR(255) DEFAULT NULL");
+      if (!userCols.includes('is_active'))                    await addCol('users', 'is_active',                    "INT NOT NULL DEFAULT 1");
+      if (!userCols.includes('is_deleted'))                   await addCol('users', 'is_deleted',                   "TINYINT(1) DEFAULT 0");
+      if (!userCols.includes('deleted_at'))                   await addCol('users', 'deleted_at',                   "DATETIME DEFAULT NULL");
+      if (!userCols.includes('deletion_ip'))                  await addCol('users', 'deletion_ip',                  "VARCHAR(45) DEFAULT NULL");
+      if (!userCols.includes('deletion_method'))              await addCol('users', 'deletion_method',              "VARCHAR(50) DEFAULT NULL");
+      if (!userCols.includes('deletion_confirmation_method')) await addCol('users', 'deletion_confirmation_method', "VARCHAR(50) DEFAULT NULL");
+
+      // ── user_permissions: premium article access ──────────────────────────────
+      const upCols = await getColumns('user_permissions');
+      if (!upCols.includes('can_review_blogs'))           await addCol('user_permissions', 'can_review_blogs',           "INT DEFAULT 0");
+      if (!upCols.includes('can_access_premium_articles')) await addCol('user_permissions', 'can_access_premium_articles',"TINYINT(1) NOT NULL DEFAULT 0");
+
+      // ── credit_transactions: refund column ───────────────────────────────────
+      const ctCols = await getColumns('credit_transactions');
+      if (!ctCols.includes('razorpay_refund_id')) await addCol('credit_transactions', 'razorpay_refund_id', "VARCHAR(255) DEFAULT NULL");
+      if (!ctCols.includes('razorpay_order_id'))  await addCol('credit_transactions', 'razorpay_order_id',  "VARCHAR(255) DEFAULT NULL");
+
+      // ── payment_orders: payment_id column ────────────────────────────────────
+      const poCols = await getColumns('payment_orders');
+      if (!poCols.includes('razorpay_payment_id')) await addCol('payment_orders', 'razorpay_payment_id', "VARCHAR(255) DEFAULT NULL");
+
+      // ── announcements: columns added after original schema ───────────────────
+      const annCols = await getColumns('announcements');
+      if (!annCols.includes('slug'))       await addCol('announcements', 'slug',       "TEXT DEFAULT ''");
+      if (!annCols.includes('content'))    await addCol('announcements', 'content',    "TEXT DEFAULT ''");
+      if (!annCols.includes('excerpt'))    await addCol('announcements', 'excerpt',    "TEXT DEFAULT ''");
+      if (!annCols.includes('image'))      await addCol('announcements', 'image',      "TEXT DEFAULT ''");
+      if (!annCols.includes('image_alt'))  await addCol('announcements', 'image_alt',  "TEXT DEFAULT ''");
+      if (!annCols.includes('updated_at')) await addCol('announcements', 'updated_at', "DATETIME DEFAULT NULL");
 
       console.log('[DB] MySQL table auto-check complete.');
     } catch (err) {

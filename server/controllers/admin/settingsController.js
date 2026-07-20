@@ -1,3 +1,4 @@
+const AuditService = require('../../services/AuditService');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const repo = require('../../repositories/admin/settingsRepository');
@@ -21,6 +22,9 @@ const saveSetting = asyncHandler(async (req, res) => {
     if (isNaN(n) || n < 1 || n > 50) return sendError(res, 'Preview paragraphs must be between 1 and 50', 400);
     await repo.setSetting(req.db, key, n);
   }
+
+  const audit = AuditService.fromRequest(req.db, req);
+  audit.logReq('setting_changed', 'setting', key, `Setting "${key}" changed to "${value}"`).catch(() => {});
 
   return sendSuccess(res, { message: 'Setting saved.' });
 });
