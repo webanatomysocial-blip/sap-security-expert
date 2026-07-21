@@ -66,7 +66,7 @@ export default function DownloadBlock({ fileUrl, fileName, fileSize, credits, al
     setState("loading");
     setErrMsg("");
     try {
-      const { data } = await downloadFile(fileUrl, creditsNum);
+      const { data } = await downloadFile(fileUrl, creditsNum, fileName);
       refreshCredits();
       if (data.already_downloaded) setState("unlocked");
       triggerStreamDownload(data.token);

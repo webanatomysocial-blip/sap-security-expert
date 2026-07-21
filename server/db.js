@@ -422,12 +422,15 @@ if (isSQLite) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       member_id INTEGER NOT NULL,
       file_url TEXT NOT NULL,
+      original_name TEXT DEFAULT NULL,
       credits_spent INTEGER NOT NULL DEFAULT 0,
       downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(member_id, file_url)
     )
   `).run();
   sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_dld_member ON member_file_downloads(member_id)').run();
+  const dldCols = sqliteDb.prepare('PRAGMA table_info(member_file_downloads)').all().map(r => r.name);
+  if (!dldCols.includes('original_name')) sqliteDb.prepare('ALTER TABLE member_file_downloads ADD COLUMN original_name TEXT DEFAULT NULL').run();
 
   sqliteDb.prepare(`
     CREATE TABLE IF NOT EXISTS post_views (
@@ -614,11 +617,12 @@ if (isSQLite) {
 
       await conn.execute(`
         CREATE TABLE IF NOT EXISTS member_file_downloads (
-          id           INT          NOT NULL AUTO_INCREMENT,
-          member_id    INT          NOT NULL,
-          file_url     VARCHAR(500) NOT NULL,
-          credits_spent INT         NOT NULL DEFAULT 0,
-          downloaded_at DATETIME    DEFAULT CURRENT_TIMESTAMP,
+          id            INT          NOT NULL AUTO_INCREMENT,
+          member_id     INT          NOT NULL,
+          file_url      VARCHAR(500) NOT NULL,
+          original_name VARCHAR(500) DEFAULT NULL,
+          credits_spent INT          NOT NULL DEFAULT 0,
+          downloaded_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (id),
           UNIQUE KEY uq_dld (member_id, file_url(191)),
           KEY idx_dld_member (member_id)
@@ -782,6 +786,10 @@ if (isSQLite) {
       // ── payment_orders: payment_id column ────────────────────────────────────
       const poCols = await getColumns('payment_orders');
       if (!poCols.includes('razorpay_payment_id')) await addCol('payment_orders', 'razorpay_payment_id', "VARCHAR(255) DEFAULT NULL");
+
+      // ── member_file_downloads: original_name column ───────────────────────────
+      const dldCols = await getColumns('member_file_downloads');
+      if (!dldCols.includes('original_name')) await addCol('member_file_downloads', 'original_name', "VARCHAR(500) DEFAULT NULL AFTER file_url");
 
       // ── announcements: columns added after original schema ───────────────────
       const annCols = await getColumns('announcements');

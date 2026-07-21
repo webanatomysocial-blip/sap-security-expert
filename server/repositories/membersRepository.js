@@ -115,7 +115,7 @@ async function findContributorApprovedByEmail(db, email) {
 async function updateMemberProfile(db, memberId, fields) {
   const updates = ['name=?', 'phone=?', 'location=?', 'company_name=?', 'job_role=?', 'receive_blog_emails=?', 'updated_at=CURRENT_TIMESTAMP'];
   const params = [fields.name, fields.phone || null, fields.location || null, fields.company_name || null, fields.job_role || null,
-    fields.receive_blog_emails != null ? parseInt(fields.receive_blog_emails) : 1];
+    fields.receive_blog_emails != null ? (['true','1',1,true].includes(fields.receive_blog_emails) ? 1 : 0) : 1];
 
   if (fields.profile_visibility) {
     updates.push('profile_visibility=?');

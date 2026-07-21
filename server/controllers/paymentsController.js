@@ -512,7 +512,8 @@ const downloadFile = async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Please log in to download files.' });
   }
-  const { file_url, credits_required } = req.body || {};
+  const { file_url, credits_required, file_name } = req.body || {};
+  const originalName = (file_name && typeof file_name === 'string') ? file_name.trim().slice(0, 500) : null;
   if (!file_url || typeof file_url !== 'string' || !file_url.startsWith('/uploads/downloads/')) {
     return res.status(400).json({ status: 'error', message: 'Invalid file URL.' });
   }
@@ -558,8 +559,8 @@ const downloadFile = async (req, res) => {
 
     // Record the unlock.
     await db.execute(
-      'INSERT INTO member_file_downloads (member_id, file_url, credits_spent) VALUES (?, ?, ?)',
-      [memberId, file_url, creditsNeeded]
+      'INSERT INTO member_file_downloads (member_id, file_url, original_name, credits_spent) VALUES (?, ?, ?, ?)',
+      [memberId, file_url, originalName, creditsNeeded]
     );
 
     // Deduct credits atomically (condition on balance so concurrent requests can't overdraw).
@@ -603,7 +604,7 @@ const downloadFile = async (req, res) => {
 
 const myDownloads = async (req, res) => {
   const [rows] = await req.db.execute(
-    'SELECT file_url, credits_spent, downloaded_at FROM member_file_downloads WHERE member_id = ? ORDER BY downloaded_at DESC',
+    'SELECT file_url, original_name, credits_spent, downloaded_at FROM member_file_downloads WHERE member_id = ? ORDER BY downloaded_at DESC',
     [req.session.member_id]
   );
   return res.json({ status: 'success', downloads: rows });
