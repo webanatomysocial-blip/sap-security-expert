@@ -18,10 +18,10 @@ const getProfile = asyncHandler(async (req, res) => {
 // and members.profile_image so all three portals stay in sync.
 const updateProfile = asyncHandler(async (req, res) => {
   const db = req.db;
-  const { full_name, email, bio, designation, linkedin } = req.body || {};
+  const { full_name, email, bio, designation, linkedin, twitter_handle, personal_website } = req.body || {};
 
   const profileImage = req.file ? '/uploads/profiles/' + req.file.filename : null;
-  await repo.updateProfile(db, req.session.admin_id, { full_name, email, bio, designation, linkedin, profile_image: profileImage });
+  await repo.updateProfile(db, req.session.admin_id, { full_name, email, bio, designation, linkedin, twitter_handle, personal_website, profile_image: profileImage });
 
   if (profileImage) {
     await repo.syncProfileImageToContributor(db, req.session.admin_id, profileImage).catch(() => {});
