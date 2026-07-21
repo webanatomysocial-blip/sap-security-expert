@@ -1,6 +1,7 @@
 async function findProfile(db, userId) {
   const [rows] = await db.execute(
-    `SELECT u.id, u.username, u.email, u.full_name, u.role, u.bio, u.designation, u.linkedin,
+    `SELECT u.id, u.username, u.email, u.full_name, u.role, u.bio, u.designation,
+            u.linkedin, u.twitter_handle, u.personal_website,
             COALESCE(u.profile_image, c.image) AS profile_image
      FROM users u
      LEFT JOIN contributors c ON u.contributor_id = c.id
@@ -14,8 +15,15 @@ async function findProfile(db, userId) {
 // values are parameterized. Matches the pattern already verified safe
 // elsewhere in this codebase (members.js, this file's own prior version).
 async function updateProfile(db, userId, fields) {
-  const updates = ['full_name=?', 'bio=?', 'designation=?', 'linkedin=?'];
-  const params = [fields.full_name || null, fields.bio || null, fields.designation || null, fields.linkedin || null];
+  const updates = ['full_name=?', 'bio=?', 'designation=?', 'linkedin=?', 'twitter_handle=?', 'personal_website=?'];
+  const params = [
+    fields.full_name || null,
+    fields.bio || null,
+    fields.designation || null,
+    fields.linkedin || null,
+    fields.twitter_handle || null,
+    fields.personal_website || null,
+  ];
 
   if (fields.email) { updates.push('email=?'); params.push(fields.email); }
   if (fields.profile_image) { updates.push('profile_image=?'); params.push(fields.profile_image); }
