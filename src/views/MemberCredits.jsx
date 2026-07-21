@@ -540,8 +540,8 @@ export default function MemberCredits() {
               </thead>
               <tbody>
                 {downloads.map((d, i) => {
-                  const fileName = d.file_url.split("/").pop();
-                  const ext = fileName.split(".").pop().toUpperCase();
+                  const displayName = d.original_name || d.file_url.split("/").pop();
+                  const ext = displayName.split(".").pop().toUpperCase();
                   return (
                     <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
                       <td style={{ padding: "14px 16px" }}>
@@ -550,7 +550,7 @@ export default function MemberCredits() {
                             <i className="bi bi-file-earmark-fill" style={{ color: "#2563eb", fontSize: 16 }}></i>
                           </div>
                           <div>
-                            <span style={{ fontWeight: 600, color: "#334155", display: "block" }}>{fileName}</span>
+                            <span style={{ fontWeight: 600, color: "#334155", display: "block" }}>{displayName}</span>
                             <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{ext}</span>
                           </div>
                         </div>
