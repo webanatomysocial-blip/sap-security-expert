@@ -5,6 +5,7 @@ const { sanitizeBlogHtml } = require('../utils/sanitize');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const CacheService = require('../services/CacheService');
+const { revalidateBlog } = require('../utils/revalidate');
 const repo = require('../repositories/postsRepository');
 
 const cache = new CacheService(1800);
@@ -417,6 +418,7 @@ const save = asyncHandler(async (req, res) => {
       setPublishDate,
     });
     cache.invalidate('homepage_data_public');
+    revalidateBlog(category, slug).catch(() => {});
 
     if (['approved','published'].includes(targetStatus) && send_notification_email) {
       mailService.queuePendingBlogNotifications().catch(() => {});
@@ -449,6 +451,9 @@ const save = asyncHandler(async (req, res) => {
       publishDateVal,
     });
     cache.invalidate('homepage_data_public');
+    if (['approved','published'].includes(targetStatus)) {
+      revalidateBlog(category, slug).catch(() => {});
+    }
 
     if (!isAdmin) notifier.notifyBlogSubmitted(title, authorName).catch(() => {});
     if (['approved','published'].includes(targetStatus) && send_notification_email) {

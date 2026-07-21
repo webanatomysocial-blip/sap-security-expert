@@ -6,6 +6,7 @@ const MailService = require('../../services/MailService');
 const CacheService = require('../../services/CacheService');
 const { grantBonus, getActivityCredits } = require('../../services/CreditHelper');
 const { checkPlagiarismScore } = require('../../utils/helpers');
+const { revalidateBlog } = require('../../utils/revalidate');
 const repo = require('../../repositories/admin/blogsRepository');
 
 const cache = new CacheService(1800);
@@ -64,6 +65,7 @@ const review = asyncHandler(async (req, res) => {
     }
 
     cache.invalidate('homepage_data_public');
+    revalidateBlog(blog.category, blog.slug).catch(() => {});
 
     const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
     const postUrl = `${siteUrl}/${blog.category}/${blog.slug}`;
