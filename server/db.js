@@ -808,7 +808,8 @@ if (isSQLite) {
     }
   }
 
-  ensureMySQLTables();
+  // Delay slightly so the MySQL pool is fully ready before running migrations
+  setTimeout(ensureMySQLTables, 3000);
 
   pool = mysql.createPool({
     host: dbHost,
