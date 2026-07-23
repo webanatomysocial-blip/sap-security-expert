@@ -671,7 +671,16 @@ const BlogEditor = ({
                   handleInputChange({
                     target: {
                       name: "co_authors",
-                      value: [...current, { id: author.id, name: author.display_name, image: author.image || null }],
+                      value: [...current, {
+                        id: author.id,
+                        name: author.display_name,
+                        image: author.image || null,
+                        bio: author.bio || null,
+                        designation: author.designation || null,
+                        linkedin: author.linkedin || null,
+                        twitter_handle: author.twitter_handle || null,
+                        personal_website: author.personal_website || null,
+                      }],
                     },
                   });
                   e.target.value = "";

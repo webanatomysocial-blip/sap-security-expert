@@ -366,6 +366,10 @@ const BlogLayout = ({
       <div className={`blog-sticky-header${isSticky ? " blog-sticky-header--visible" : ""}`}>
         <div className="blog-sticky-inner">
           <nav className="blog-sticky-breadcrumb" aria-label="Breadcrumb">
+            <Link to="/" className="breadcrumb-logo-link" aria-label="SAP Security Expert Home">
+              <img src="/fav.png" alt="SAP Security Expert" className="breadcrumb-site-icon" />
+            </Link>
+            <span className="breadcrumb-sep"><i className="bi bi-chevron-right"></i></span>
             <Link to="/" className="breadcrumb-link">Home</Link>
             <span className="breadcrumb-sep"><i className="bi bi-chevron-right"></i></span>
             {category && (
@@ -684,6 +688,26 @@ const BlogLayout = ({
                         <div className="bl-author-card__body">
                           <h3 className="bl-author-name">{ca.name}</h3>
                           {ca.designation && <p className="bl-author-designation">{ca.designation}</p>}
+                          <p className="bl-author-bio">{ca.bio || ""}</p>
+                          {(ca.linkedin || ca.twitter_handle || ca.personal_website) && (
+                            <div className="bl-author-socials">
+                              {ca.linkedin && (
+                                <a href={ca.linkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
+                                  <FaLinkedin size={15} />
+                                </a>
+                              )}
+                              {ca.twitter_handle && (
+                                <a href={ca.twitter_handle} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
+                                  <FaXTwitter size={15} />
+                                </a>
+                              )}
+                              {ca.personal_website && (
+                                <a href={ca.personal_website} target="_blank" rel="noopener noreferrer" title="Website" className="bl-social-link bl-social-link--web">
+                                  <FaGlobe size={15} />
+                                </a>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
