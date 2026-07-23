@@ -207,7 +207,7 @@ async function findActiveAuthors(db) {
     `SELECT u.id, u.username, u.role,
        COALESCE(c.full_name, u.full_name, u.username) as display_name,
        COALESCE(c.image, u.profile_image) as image,
-       c.bio as bio,
+       c.short_bio as bio,
        c.designation as designation,
        c.linkedin as linkedin,
        c.twitter_handle as twitter_handle,
