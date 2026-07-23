@@ -702,15 +702,15 @@ export default function LearningHub() {
     getLearningCounts().then(res => { if (res.data) setLearningCounts(res.data); }).catch(() => {});
   }, []);
 
-  // Reveal on scroll
+  // Reveal on scroll — re-run when learningCounts loads so dynamically rendered cards are observed
   useEffect(() => {
     const obs = new IntersectionObserver(
       entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } }),
       { threshold: 0.08 }
     );
-    document.querySelectorAll('.lh-reveal').forEach(el => obs.observe(el));
+    document.querySelectorAll('.lh-reveal:not(.in)').forEach(el => obs.observe(el));
     return () => obs.disconnect();
-  }, []);
+  }, [learningCounts]);
 
   // Animate progress bar when it appears
   useEffect(() => {
