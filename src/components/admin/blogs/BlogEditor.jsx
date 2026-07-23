@@ -225,7 +225,7 @@ const BlogEditor = ({
               onImageUpload={rteImageUpload}
               onReady={(api) => { rteApi.current = api; }}
             />
-            {formData.category === "downloads" && (() => {
+            {(formData.category === "downloads" || (formData.secondary_categories || []).includes("downloads")) && (() => {
               const attachedBlocks = parseDownloadBlocks(formData.content);
               return (
                 <div style={{ marginTop: "12px" }}>
