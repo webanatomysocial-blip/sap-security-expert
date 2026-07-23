@@ -525,7 +525,9 @@ const BlogLayout = ({
               <PremiumPaywall creditsRequired={creditsRequired} blogSlug={blogSlug} onSuccess={onPaymentSuccess} inline />
             </>
           ) : isMembersOnly ? (
-            <MembersOnlyPaywall rawContent={rawContent} previewParagraphs={effectivePreview} />
+            <MembersOnlyPaywall rawContent={rawContent} previewParagraphs={effectivePreview}>
+              <article className="blog-content-body">{content}</article>
+            </MembersOnlyPaywall>
           ) : (
             <article className="blog-content-body">{content}</article>
           )}
