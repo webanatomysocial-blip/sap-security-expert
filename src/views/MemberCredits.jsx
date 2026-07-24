@@ -229,6 +229,7 @@ export default function MemberCredits() {
   }
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [referral, setReferral] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -237,6 +238,7 @@ export default function MemberCredits() {
 
   const reload = () => {
     setLoading(true);
+    setLoadError(false);
     getMyTransactions()
       .then((r) => {
         setData(r.data);
@@ -246,7 +248,7 @@ export default function MemberCredits() {
         // showing the correct live number right next to it.
         if (typeof r.data?.balance === "number") onCreditsPurchased(r.data.balance);
       })
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   };
 
@@ -278,6 +280,20 @@ export default function MemberCredits() {
   const bonusCredits   = allTx.filter((t) => t.type === "bonus" || (t.credits_delta > 0 && t.amount_paise === 0 && t.type !== "spend"));
   const unlocks        = data?.unlocks || [];
   const totalSpent     = allTx.reduce((s, t) => s + (t.amount_paise || 0), 0);
+
+  if (loadError) {
+    return (
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "80px 20px", textAlign: "center" }}>
+        <Helmet><title>My Credits &amp; Transactions | SAP Security Expert</title></Helmet>
+        <p style={{ fontSize: "2.5rem", margin: "0 0 16px" }}>⚠️</p>
+        <h2 style={{ margin: "0 0 8px", color: "#1e293b" }}>Failed to load your data</h2>
+        <p style={{ color: "#64748b", marginBottom: 24 }}>There was a problem connecting to the server. Please try again.</p>
+        <button onClick={reload} style={{ padding: "10px 24px", background: "#1e293b", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontSize: "0.95rem" }}>
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 20px 80px" }}>

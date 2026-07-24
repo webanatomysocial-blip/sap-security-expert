@@ -283,23 +283,26 @@ app.post('/api/cron/send-emails', async (req, res) => {
   }
   try {
     const MailService = require('./services/MailService');
-    const mailService = MailService.getInstance(req.db);
+    const mailService = MailService.getInstance();
+    // Claim rows atomically — prevents double-send if two drainers run at once
+    const [claimed] = await req.db.execute(
+      "UPDATE email_queue SET status='sending' WHERE status='pending' ORDER BY id ASC LIMIT 12"
+    );
+    if (!claimed.affectedRows) return res.json({ status: 'success', sent: 0, total: 0 });
     const [emails] = await req.db.execute(
-      "SELECT id, recipient, subject, body, attempts FROM email_queue WHERE status = 'pending' ORDER BY id ASC LIMIT 12"
+      "SELECT id, recipient, subject, body, attempts FROM email_queue WHERE status='sending' ORDER BY id ASC LIMIT 12"
     );
     let sent = 0;
     for (const email of emails) {
       const attempts = email.attempts + 1;
-      const ok = await mailService.sendDirect(email.recipient, email.subject, email.body);
+      const ok = await mailService.sendDirect(req.db, email.recipient, email.subject, email.body);
       if (ok) {
         await req.db.execute("UPDATE email_queue SET status='sent', sent_at=CURRENT_TIMESTAMP, attempts=? WHERE id=?", [attempts, email.id]);
         sent++;
+      } else if (attempts >= 3) {
+        await req.db.execute("UPDATE email_queue SET status='failed', attempts=?, error_message='Max attempts reached' WHERE id=?", [attempts, email.id]);
       } else {
-        if (attempts >= 3) {
-          await req.db.execute("UPDATE email_queue SET status='failed', attempts=?, error_message='Max attempts reached' WHERE id=?", [attempts, email.id]);
-        } else {
-          await req.db.execute("UPDATE email_queue SET attempts=? WHERE id=?", [attempts, email.id]);
-        }
+        await req.db.execute("UPDATE email_queue SET status='pending', attempts=? WHERE id=?", [attempts, email.id]);
       }
     }
     return res.json({ status: 'success', sent, total: emails.length });
@@ -379,21 +382,27 @@ if (!isSQLite && process.env.NODE_ENV === 'production') {
       try {
         const { pool } = require('./db');
         conn = await pool.getConnection();
-        const mailService = MailService.getInstance(conn);
+        const mailService = MailService.getInstance();
+        // Claim rows atomically — prevents double-send if the HTTP cron endpoint
+        // fires at the same time as this in-process timer.
+        const [claimed] = await conn.execute(
+          "UPDATE email_queue SET status='sending' WHERE status='pending' ORDER BY id ASC LIMIT 12"
+        );
+        if (!claimed.affectedRows) return;
         const [emails] = await conn.execute(
-          "SELECT id, recipient, subject, body, attempts FROM email_queue WHERE status = 'pending' ORDER BY id ASC LIMIT 12"
+          "SELECT id, recipient, subject, body, attempts FROM email_queue WHERE status='sending' ORDER BY id ASC LIMIT 12"
         );
         let sent = 0;
         for (const email of emails) {
           const attempts = email.attempts + 1;
-          const ok = await mailService.sendDirect(email.recipient, email.subject, email.body);
+          const ok = await mailService.sendDirect(conn, email.recipient, email.subject, email.body);
           if (ok) {
             await conn.execute("UPDATE email_queue SET status='sent', sent_at=CURRENT_TIMESTAMP, attempts=? WHERE id=?", [attempts, email.id]);
             sent++;
           } else if (attempts >= 3) {
             await conn.execute("UPDATE email_queue SET status='failed', attempts=?, error_message='Max attempts reached' WHERE id=?", [attempts, email.id]);
           } else {
-            await conn.execute("UPDATE email_queue SET attempts=? WHERE id=?", [attempts, email.id]);
+            await conn.execute("UPDATE email_queue SET status='pending', attempts=? WHERE id=?", [attempts, email.id]);
           }
         }
         if (emails.length) console.log(`[cron] Sent ${sent}/${emails.length} emails`);

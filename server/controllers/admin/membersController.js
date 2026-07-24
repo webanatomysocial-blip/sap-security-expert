@@ -25,8 +25,8 @@ const performAction = asyncHandler(async (req, res) => {
   const member = await repo.findById(db, id);
   if (!member) return sendError(res, 'Member not found', 404);
 
-  const mailService = MailService.getInstance(db);
-  const notifier = new NotificationService(mailService);
+  const mailService = MailService.getInstance();
+  const notifier = new NotificationService(mailService, db);
   const audit = AuditService.fromRequest(db, req);
 
   if (action === 'approve') {

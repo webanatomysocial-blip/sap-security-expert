@@ -208,8 +208,8 @@ const signup = async (req, res) => {
       receive_blog_emails, newRefCode, referredByCode,
     });
 
-    const mailService = MailService.getInstance(db);
-    const notifier = new NotificationService(mailService);
+    const mailService = MailService.getInstance();
+    const notifier = new NotificationService(mailService, db);
     notifier.notifyMemberSignupSubmitted(email, name).catch(() => {});
 
     return res.json({
@@ -321,6 +321,7 @@ async function grantAndNotify(db, mailer, memberId, achievementId, memberEmail, 
   const { label, description } = type;
   if (mailer) {
     const sent = await mailer.send(
+      db,
       memberEmail,
       `🏅 Achievement Unlocked: ${label}`,
       'member/achievement_unlocked',
@@ -395,7 +396,7 @@ const achievements = asyncHandler(async (req, res) => {
   const memberEmail = memberRow?.email || null;
   const memberName = memberRow?.name || 'Member';
   const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
-  const mailer = MailService.getInstance(db);
+  const mailer = MailService.getInstance();
 
   // Auto-grant logic only runs for the authenticated member's own session
   if (memberId) {
@@ -460,7 +461,7 @@ const grantAchievement = asyncHandler(async (req, res) => {
   const memberEmail = memberRow?.email || null;
   const memberName = memberRow?.name || 'Member';
   const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
-  const mailer = MailService.getInstance(db);
+  const mailer = MailService.getInstance();
   await grantAndNotify(db, mailer, member_id, achievement_id, memberEmail, memberName, siteUrl);
   return res.json({ status: 'success', message: 'Achievement granted.' });
 });

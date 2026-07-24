@@ -38,8 +38,8 @@ const save = asyncHandler(async (req, res) => {
 
   const comm = await repo.findAuthorInfoById(db, id);
   if (comm) {
-    const mailService = MailService.getInstance(db);
-    const notifier = new NotificationService(mailService);
+    const mailService = MailService.getInstance();
+    const notifier = new NotificationService(mailService, db);
     if (status === 'approved') {
       notifier.notifyCommentApproved(comm.email, comm.user_name).catch(() => {});
       // Grant +2 credits to the member who posted the comment (once per comment)
