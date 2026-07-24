@@ -59,7 +59,7 @@ export default function CommunitySection() {
   const [expertPicks, setExpertPicks] = useState([]);
   const [premiumArticles, setPremiumArticles] = useState([]);
   const [latestNews, setLatestNews] = useState([]);
-  const [activeTab, setActiveTab] = useState("recent");
+  const [activeTab, setActiveTab] = useState("all");
   const [trending, setTrending] = useState([]);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [homepageLoading, setHomepageLoading] = useState(true);
