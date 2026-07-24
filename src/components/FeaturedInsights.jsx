@@ -79,8 +79,11 @@ export default function FeaturedInsights({ id }) {
     const categoryKey = categoryMapping[activeTab];
     return allBlogs
       .filter((blog) => {
-        // Direct match
-        if (blog.category === categoryKey || blog.subCategory === categoryKey)
+        // Direct match (primary or secondary categories)
+        const secCats = Array.isArray(blog.secondary_categories)
+          ? blog.secondary_categories
+          : (() => { try { return JSON.parse(blog.secondary_categories || '[]'); } catch { return []; } })();
+        if (blog.category === categoryKey || blog.subCategory === categoryKey || secCats.includes(categoryKey))
           return true;
 
         // Parent aggregation logic
