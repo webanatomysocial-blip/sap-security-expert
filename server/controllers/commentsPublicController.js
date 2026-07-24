@@ -143,8 +143,8 @@ const saveComment = async (req, res) => {
 
     await repo.insertComment(db, { postId: post_id, storedName: stored_name, email, content, parentId: parent_id, memberId: member_id });
 
-    const mailService = MailService.getInstance(db);
-    const notifier = new NotificationService(mailService);
+    const mailService = MailService.getInstance();
+    const notifier = new NotificationService(mailService, db);
     notifier.notifyCommentSubmitted(email, notify_name).catch(() => {});
     notifier.notifyAdminNewComment({
       article_title: articleTitle,

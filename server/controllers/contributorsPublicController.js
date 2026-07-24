@@ -51,8 +51,8 @@ const apply = async (req, res) => {
           productEvaluation: input.productEvaluation || 'No', personalWebsite: input.personalWebsite || '',
           twitterHandle: input.twitterHandle || '', imagePath,
         });
-        const mailService = MailService.getInstance(db);
-        const notifier = new NotificationService(mailService);
+        const mailService = MailService.getInstance();
+        const notifier = new NotificationService(mailService, db);
         notifier.notifyContributorApplicationSubmitted(email, { name: input.fullName, experience: input.yearsExperience, details: input.proposedTopics }).catch(() => {});
         return sendSuccess(res, { message: 'Application re-submitted successfully', id: existing.id });
       }
@@ -73,8 +73,8 @@ const apply = async (req, res) => {
       twitterHandle: input.twitterHandle || '', imagePath,
     });
 
-    const mailService = MailService.getInstance(db);
-    const notifier = new NotificationService(mailService);
+    const mailService = MailService.getInstance();
+    const notifier = new NotificationService(mailService, db);
     notifier.notifyContributorApplicationSubmitted(email, { name: input.fullName, experience: input.yearsExperience, details: input.proposedTopics }).catch(() => {});
 
     return sendSuccess(res, { message: 'Application submitted successfully', id: newId });

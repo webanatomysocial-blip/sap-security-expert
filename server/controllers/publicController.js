@@ -251,8 +251,8 @@ const sendMail = asyncHandler(async (req, res) => {
   `;
 
   const MailService = require('../services/MailService');
-  const mailService = MailService.getInstance(db);
-  const sent = await mailService.sendDirect(ADMIN_EMAIL, `Contact Form: ${reason}`, body);
+  const mailService = MailService.getInstance();
+  const sent = await mailService.sendDirect(db, ADMIN_EMAIL, `Contact Form: ${reason}`, body);
 
   if (!sent) {
     return res.status(502).json({ status: 'error', message: 'Failed to send message. Please try again later.' });
@@ -309,7 +309,7 @@ const deleteAccount = async (req, res) => {
 
     const MailService = require('../services/MailService');
     const NotificationService = require('../services/NotificationService');
-    const notifier = new NotificationService(MailService.getInstance(db));
+    const notifier = new NotificationService(MailService.getInstance(), db);
     notifier.notifyAccountDeleted(memberEmail, memberName).catch(() => {});
 
     req.session.destroy(() => {});

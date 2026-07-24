@@ -54,7 +54,7 @@ const sendOtp = async (req, res) => {
     const otpService = new OTPService(db);
     const code = await otpService.generateOTP(email, type, ip);
 
-    const mailService = MailService.getInstance(db);
+    const mailService = MailService.getInstance();
     const subjectMap = { reset: 'Password Reset Verification Code', delete_account: 'Account Deletion Verification Code' };
     const templateMap = { delete_account: 'member/account_deletion_otp' };
     const subject = subjectMap[type] || 'Verification Code';
@@ -64,8 +64,13 @@ const sendOtp = async (req, res) => {
     const userNameRow = memberNameRow ? null : await repo.findUserNameByEmail(db, email);
     const name = (memberNameRow || userNameRow)?.name || 'Member';
 
-    const ok = await mailService.send(email, subject, template, { name, code, year: new Date().getFullYear() });
-    if (!ok) throw new Error('Failed to send verification email. Please contact support.');
+    const ok = await mailService.send(db, email, subject, template, { name, code, year: new Date().getFullYear() });
+    if (!ok) {
+      // SMTP failed — queue for retry so the user can still receive the code
+      await mailService.queueTransactional(db, email, subject,
+        `<p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`
+      );
+    }
 
     return res.json({ status: 'success', message: 'If an account exists with this email, a verification code has been sent.' });
   } catch (err) {
@@ -114,8 +119,8 @@ const forgotPassword = async (req, res) => {
     const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
     const resetUrl = `${siteUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
-    const mailService = MailService.getInstance(db);
-    const notifier = new NotificationService(mailService);
+    const mailService = MailService.getInstance();
+    const notifier = new NotificationService(mailService, db);
     await notifier.notifyPasswordReset(email, resetUrl);
 
     return res.json({ status: 'success', message: 'If an account exists with this email, reset instructions have been sent.' });

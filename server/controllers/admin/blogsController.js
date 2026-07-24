@@ -50,8 +50,8 @@ const review = asyncHandler(async (req, res) => {
     return sendError(res, 'You cannot review your own submission.', 403);
   }
 
-  const mailService = MailService.getInstance(db);
-  const notifier = new NotificationService(mailService);
+  const mailService = MailService.getInstance();
+  const notifier = new NotificationService(mailService, db);
 
   const audit = AuditService.fromRequest(db, req);
 

@@ -8,8 +8,7 @@ const TEMPLATES_DIR = path.join(__dirname, '../templates');
 let _instance = null;
 
 class MailService {
-  constructor(db) {
-    this.db = db;
+  constructor() {
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
@@ -23,21 +22,15 @@ class MailService {
     this.logFile = path.join(__dirname, '../logs/mail.log');
   }
 
-  static getInstance(db) {
-    if (!_instance) {
-      _instance = new MailService(db);
-    } else {
-      // Always update the db reference so the singleton never holds on to a
-      // stale/released pool connection from a previous request or cron run.
-      // (Node.js is single-threaded: updating this before await points is safe
-      // within a single logical call chain.)
-      _instance.db = db;
-    }
+  // Fix #3: db is never stored on the instance — passed per-call so concurrent
+  // requests can't interfere with each other's logging connection.
+  static getInstance() {
+    if (!_instance) _instance = new MailService();
     return _instance;
   }
 
   /** Send using an HTML template file with {{placeholder}} substitution */
-  async send(to, subject, templatePath, data = {}) {
+  async send(db, to, subject, templatePath, data = {}) {
     const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
     data.site_url = data.site_url || siteUrl;
     data.site_domain = data.site_domain || new URL(siteUrl).hostname;
@@ -70,12 +63,12 @@ class MailService {
       this._logFile(`Mail Error to ${to}: ${error}`);
       return false;
     } finally {
-      await this._logDb(to, subject, status, error);
+      await this._logDb(db, to, subject, status, error);
     }
   }
 
   /** Send with a raw HTML body */
-  async sendDirect(to, subject, body) {
+  async sendDirect(db, to, subject, body) {
     let status = 'failed';
     let error = null;
     try {
@@ -92,14 +85,30 @@ class MailService {
       error = err.message;
       return false;
     } finally {
-      await this._logDb(to, subject, status, error);
+      await this._logDb(db, to, subject, status, error);
+    }
+  }
+
+  // Fix #2: Queue a transactional email (OTP, password reset, approval) so it
+  // gets retried automatically if SMTP is temporarily unavailable.
+  async queueTransactional(db, to, subject, body) {
+    try {
+      await db.execute(
+        `INSERT INTO email_queue (recipient, blog_id, subject, body, status, created_at)
+         VALUES (?, NULL, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+        [to, subject, body]
+      );
+      return true;
+    } catch (err) {
+      this._logFile(`queueTransactional failed for ${to}: ${err.message}`);
+      return false;
     }
   }
 
   /** Queue new blog notifications for all opted-in members */
-  async queuePendingBlogNotifications() {
+  async queuePendingBlogNotifications(db) {
     try {
-      const [blogs] = await this.db.execute(
+      const [blogs] = await db.execute(
         `SELECT id, title, slug, author, category FROM blogs
          WHERE status IN ('approved','published')
            AND send_notification_email = 1
@@ -107,7 +116,7 @@ class MailService {
       );
       if (!blogs.length) return;
 
-      const [members] = await this.db.execute(
+      const [members] = await db.execute(
         `SELECT name, email FROM members
          WHERE status = 'approved' AND is_deleted = 0 AND receive_blog_emails = 1`
       );
@@ -133,25 +142,23 @@ class MailService {
           body = `<p>New article: <strong>${blog.title}</strong> by ${authorName}. Read it at <a href="${postUrl}">${postUrl}</a></p>`;
         }
 
-        await this.db.beginTransaction();
+        await db.beginTransaction();
         try {
-          // blog.id must be stored as a string — a numeric coercion in MySQL
-          // would collapse all blog IDs to 0 and break the unique dedup index.
           const blogIdStr = String(blog.id);
           for (const member of members) {
-            await this.db.execute(
+            await db.execute(
               `INSERT IGNORE INTO email_queue (recipient, blog_id, subject, body, status, created_at)
                VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
               [member.email, blogIdStr, subject, body]
             );
           }
-          await this.db.execute(
+          await db.execute(
             'UPDATE blogs SET is_queued_for_members = 1 WHERE id = ?',
             [blog.id]
           );
-          await this.db.commit();
+          await db.commit();
         } catch (err) {
-          await this.db.rollback();
+          await db.rollback();
           this._logFile(`Queue transaction failed for blog ${blog.id}: ${err.message}`);
         }
       }
@@ -166,9 +173,9 @@ class MailService {
     fs.appendFileSync(this.logFile, `[${new Date().toISOString()}] ${message}\n`);
   }
 
-  async _logDb(recipient, subject, status, error) {
+  async _logDb(db, recipient, subject, status, error) {
     try {
-      await this.db.execute(
+      await db.execute(
         'INSERT INTO email_logs (recipient, subject, status, error_message, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
         [recipient, subject, status, error]
       );

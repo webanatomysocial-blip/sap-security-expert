@@ -5,9 +5,10 @@ const MailService = require('../../services/MailService');
 // POST /api/admin/test-email — send a test email to the configured admin address
 router.post('/', requireAdmin, async (req, res) => {
   const adminEmail = process.env.ADMIN_EMAIL || 'hello@sapsecurityexpert.com';
-  const mail = MailService.getInstance(req.db);
+  const mail = MailService.getInstance();
 
   const sent = await mail.sendDirect(
+    req.db,
     adminEmail,
     '✅ Test Email — SAP Security Expert',
     `<p>This is a test email sent at <strong>${new Date().toISOString()}</strong>.</p>

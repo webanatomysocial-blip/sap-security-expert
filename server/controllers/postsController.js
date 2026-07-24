@@ -351,7 +351,7 @@ const save = asyncHandler(async (req, res) => {
   const faqsJson = JSON.stringify(sanitizedFaqs);
   const relatedBlogsJson = Array.isArray(related_blogs) ? JSON.stringify(related_blogs) : (related_blogs || null);
 
-  const mailService = MailService.getInstance(db);
+  const mailService = MailService.getInstance();
   const notifier = new NotificationService(mailService);
 
   if (id) {
@@ -421,7 +421,7 @@ const save = asyncHandler(async (req, res) => {
     revalidateBlog(category, slug).catch(() => {});
 
     if (['approved','published'].includes(targetStatus) && send_notification_email) {
-      mailService.queuePendingBlogNotifications().catch(() => {});
+      mailService.queuePendingBlogNotifications(db).catch(() => {});
     }
 
     let msg = 'Blog updated';
@@ -457,7 +457,7 @@ const save = asyncHandler(async (req, res) => {
 
     if (!isAdmin) notifier.notifyBlogSubmitted(title, authorName).catch(() => {});
     if (['approved','published'].includes(targetStatus) && send_notification_email) {
-      mailService.queuePendingBlogNotifications().catch(() => {});
+      mailService.queuePendingBlogNotifications(db).catch(() => {});
     }
 
     let msg = 'Blog created';

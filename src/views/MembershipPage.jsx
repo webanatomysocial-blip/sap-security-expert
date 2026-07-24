@@ -239,7 +239,7 @@ export default function MembershipPage() {
             {couponData && (
               <p style={{ fontSize: 13, color: "#16a34a", marginTop: 6 }}>
                 <i className="bi bi-check-circle-fill" style={{ marginRight: 4 }}></i>
-                Coupon applied: {couponData.discount_type === "percentage" ? `${couponData.discount_value}% off` : `₹${couponData.discount_value} off`}
+                Coupon applied: ₹{(couponData.discount_paise / 100).toFixed(0)} off
               </p>
             )}
           </div>
