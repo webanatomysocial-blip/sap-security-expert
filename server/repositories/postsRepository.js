@@ -142,8 +142,8 @@ async function findList(db, { isContributor, authorOnly, currentUserId, isAdminL
   }
 
   if (filterCategory) {
-    sql += ' AND (b.category = ? OR b.subCategory = ?)';
-    params.push(filterCategory, filterCategory);
+    sql += ' AND (b.category = ? OR b.subCategory = ? OR JSON_CONTAINS(b.secondary_categories, JSON_QUOTE(?)))';
+    params.push(filterCategory, filterCategory, filterCategory);
   }
 
   if (trending) {
