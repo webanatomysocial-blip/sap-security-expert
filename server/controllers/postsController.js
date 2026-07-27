@@ -180,25 +180,34 @@ const list = asyncHandler(async (req, res) => {
     // Parse co_authors JSON
     try { blog.co_authors = blog.co_authors ? JSON.parse(blog.co_authors) : []; } catch { blog.co_authors = []; }
 
-    // Enrich co-authors with live contributor data (bio, designation, socials)
-    // so old records stored before those fields were saved also display correctly.
+    // Enrich co-authors with live data. Co-author IDs are user.id values, so
+    // join users → contributors to pick up both contributor profiles and admin users.
     if (blog.co_authors.length > 0) {
       const coIds = blog.co_authors.map(ca => ca.id).filter(Boolean);
       if (coIds.length > 0) {
         const placeholders = coIds.map(() => '?').join(',');
-        const [contribRows] = await db.execute(
-          `SELECT id, full_name, image, short_bio AS bio, designation, linkedin, twitter_handle, personal_website
-           FROM contributors WHERE id IN (${placeholders})`,
+        const [liveRows] = await db.execute(
+          `SELECT u.id,
+             COALESCE(c.full_name, u.full_name, u.username) AS name,
+             COALESCE(c.image, u.profile_image) AS image,
+             c.short_bio AS bio,
+             c.designation AS designation,
+             c.linkedin AS linkedin,
+             c.twitter_handle AS twitter_handle,
+             c.personal_website AS personal_website
+           FROM users u
+           LEFT JOIN contributors c ON u.contributor_id = c.id
+           WHERE u.id IN (${placeholders})`,
           coIds
         );
-        const contribMap = {};
-        contribRows.forEach(r => { contribMap[r.id] = r; });
+        const liveMap = {};
+        liveRows.forEach(r => { liveMap[r.id] = r; });
         blog.co_authors = blog.co_authors.map(ca => {
-          const live = contribMap[ca.id];
+          const live = liveMap[ca.id];
           if (!live) return ca;
           return {
             id: ca.id,
-            name: live.full_name || ca.name,
+            name: live.name || ca.name,
             image: live.image || ca.image,
             bio: live.bio || ca.bio || '',
             designation: live.designation || ca.designation || '',

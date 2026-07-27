@@ -1160,8 +1160,8 @@
 }
 
 .bl-authors-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
@@ -1295,7 +1295,7 @@
 
 @media (max-width: 640px) {
   .bl-authors-grid {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
   .bl-author-card {
     padding: 16px;

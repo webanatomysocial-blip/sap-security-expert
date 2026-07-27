@@ -610,7 +610,7 @@ const BlogLayout = ({
                 <p className="bl-authors-label">
                   {co_authors && co_authors.length > 0 ? "" : "About the author"}
                 </p>
-                <div className="bl-authors-grid" style={(!co_authors || co_authors.length === 0) ? { gridTemplateColumns: '1fr' } : undefined}>
+                <div className="bl-authors-grid">
                   {/* Primary author */}
                   <div className="bl-author-card bl-author-card--primary">
                     <div className="bl-author-card__left">
