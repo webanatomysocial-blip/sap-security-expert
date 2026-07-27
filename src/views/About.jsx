@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { getApprovedContributors } from '../services/api';
 // next-disabled: import '../css/About.css';
 
@@ -84,15 +83,6 @@ export default function About() {
 
   return (
     <div className="about-wrapper">
-      <Helmet>
-        <title>About Us | SAP Security Expert</title>
-        <meta
-          name="description"
-          content="SAP Security Expert is the leading practitioner community for SAP Security, GRC, BTP, and Identity professionals. Learn about our mission, contributors, and editorial standards."
-        />
-        <link rel="canonical" href="http://sapsecurityexpert.com/about" />
-      </Helmet>
-
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="about-hero">
         <div className="about-hero-inner">

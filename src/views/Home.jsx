@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import {
@@ -18,17 +17,10 @@ import CommunitySection from "../components/CommunitySection";
 import TrendingStrip from "../components/TrendingStrip";
 // next-disabled: import "../css/Home.css";
 // Dummy data for visual layout
-import SEO from "../components/SEO";
-
 export default function Home() {
   const { isLoggedIn, member } = useMemberAuth();
   return (
     <div className="home-wrapper">
-      <SEO
-        title="Home"
-        description="The leading community for SAP Security, GRC, and BTP professionals. Get the latest insights, tutorials, and best practices."
-        url={window.location.href}
-      />
 
       <TrendingStrip />
 
