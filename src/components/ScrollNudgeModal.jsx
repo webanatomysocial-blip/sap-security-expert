@@ -97,7 +97,7 @@ export default function ScrollNudgeModal({ isFreeArticle = true, isExclusiveArti
             <div className="sn-actions">
               <button
                 className="sn-btn-primary"
-                onClick={() => { dismiss(); navigate("/member/register"); }}
+                onClick={() => { dismiss(); navigate("/member/signup"); }}
               >
                 Create Free Account
               </button>

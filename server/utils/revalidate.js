@@ -1,7 +1,9 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const NEXT_URL = (process.env.SITE_URL || 'http://127.0.0.1:3000').replace(/\/$/, '');
+const NEXT_URL = (process.env.NODE_ENV === 'development'
+  ? (process.env.FRONTEND_URL || 'http://localhost:3000')
+  : (process.env.SITE_URL || 'http://127.0.0.1:3000')).replace(/\/$/, '');
 const SECRET = process.env.REVALIDATE_SECRET;
 
 /**

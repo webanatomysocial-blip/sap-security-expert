@@ -73,14 +73,8 @@ const review = asyncHandler(async (req, res) => {
     audit.logReq('blog_approved', 'blog', id, `Approved blog: "${blog.title}" by ${blog.author_email || 'unknown'}`).catch(() => {});
 
     // Grant +20 credits to the member account matching the blog author's email (once per blog)
-    if (blog.author_email) {
-      const member = await repo.findMemberIdByEmail(db, blog.author_email);
-      if (member) {
-        getActivityCredits(db, 'article_published', 20).then((amt) =>
-          grantBonus(db, member.id, amt, `Article published: ${blog.title}`)
-        ).catch(() => {});
-      }
-    }
+    const { grantArticlePublishedCredits } = require('../../services/CreditHelper');
+    await grantArticlePublishedCredits(db, id).catch(() => {});
 
     return sendSuccess(res, { message: 'Blog approved and published.' });
   } else if (action === 'reject') {

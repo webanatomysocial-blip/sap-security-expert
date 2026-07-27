@@ -207,11 +207,11 @@ async function findActiveAuthors(db) {
     `SELECT u.id, u.username, u.role,
        COALESCE(c.full_name, u.full_name, u.username) as display_name,
        COALESCE(c.image, u.profile_image) as image,
-       c.short_bio as bio,
-       c.designation as designation,
-       c.linkedin as linkedin,
-       c.twitter_handle as twitter_handle,
-       c.personal_website as personal_website
+       COALESCE(c.short_bio, u.bio) as bio,
+       COALESCE(c.designation, u.designation) as designation,
+       COALESCE(c.linkedin, u.linkedin) as linkedin,
+       COALESCE(c.twitter_handle, u.twitter_handle) as twitter_handle,
+       COALESCE(c.personal_website, u.personal_website) as personal_website
      FROM users u
      LEFT JOIN contributors c ON u.contributor_id = c.id
      WHERE u.is_active = 1

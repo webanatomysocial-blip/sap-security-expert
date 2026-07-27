@@ -600,11 +600,12 @@ const save = asyncHandler(async (req, res) => {
     cache.invalidate('homepage_data_public');
     revalidateBlog(category, slug).catch(() => {});
 
-    if (['approved','published'].includes(targetStatus) && !['approved','published'].includes(ex.status)) {
-      grantArticleCredits(db, author_id, title).catch(() => {});
-    }
-    if (['approved','published'].includes(targetStatus) && send_notification_email) {
-      mailService.queuePendingBlogNotifications(db).catch(() => {});
+    if (['approved','published'].includes(targetStatus)) {
+      const { grantArticlePublishedCredits } = require('../../services/CreditHelper');
+      await grantArticlePublishedCredits(db, id).catch(() => {});
+      if (send_notification_email) {
+        mailService.queuePendingBlogNotifications(db).catch(() => {});
+      }
     }
 
     let msg = 'Blog updated';
@@ -636,6 +637,8 @@ const save = asyncHandler(async (req, res) => {
     cache.invalidate('homepage_data_public');
     if (['approved','published'].includes(targetStatus)) {
       revalidateBlog(category, slug).catch(() => {});
+      const { grantArticlePublishedCredits } = require('../../services/CreditHelper');
+      await grantArticlePublishedCredits(db, newId).catch(() => {});
     }
 
     if (!isAdmin) notifier.notifyBlogSubmitted(title, authorName).catch(() => {});
