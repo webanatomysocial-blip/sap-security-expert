@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import ClientApp from '../../[[...slug]]/ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
+const SSR_SECRET = process.env.REVALIDATE_SECRET || '';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
 const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next']);
@@ -51,6 +52,8 @@ async function fetchBlog(slug) {
   try {
     const res = await fetch(`${INTERNAL_API}/api/posts/${encodeURIComponent(slug)}`, {
       next: { revalidate: 300 },
+      headers: { 'X-SSR-Internal': SSR_SECRET },
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -83,32 +86,49 @@ export async function generateMetadata({ params }) {
   if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert', robots: 'noindex, nofollow' };
 
   const path = `/${category}/${slug}`;
+
+  // Try seoMeta first (already resolves meta_title, meta_description, keywords, absolute image)
   const d = await fetchSeoMeta(path);
 
-  if (!d) return { title: 'SAP Security Expert' };
+  // Fall back to direct blog fetch so we always have real title/description
+  const fallbackBlog = d ? null : await fetchBlog(slug);
 
-  const image = d.image
-    ? (d.image.startsWith('http') ? d.image : `${SITE_URL}${d.image}`)
+  const rawTitle = d?.title
+    || (fallbackBlog ? (fallbackBlog.meta_title || fallbackBlog.title) + ' | SAP Security Expert' : 'SAP Security Expert');
+  const title = rawTitle.includes('|') ? rawTitle : `${rawTitle} | SAP Security Expert`;
+
+  const description = d?.description
+    || fallbackBlog?.meta_description
+    || fallbackBlog?.excerpt
+    || 'Expert SAP Security insights and best practices.';
+
+  const keywords = d?.keywords || fallbackBlog?.meta_keywords || null;
+
+  const rawImage = d?.image || fallbackBlog?.image || null;
+  const image = rawImage
+    ? (rawImage.startsWith('http') ? rawImage : `${SITE_URL}${rawImage}`)
     : `${SITE_URL}/assets/sapsecurityexpert-black.png`;
 
+  const canonical = d?.url || `${SITE_URL}${path}`;
+
   return {
-    title: d.title,
-    description: d.description,
+    title,
+    description,
     robots: 'index, follow',
-    ...(d.keywords ? { keywords: d.keywords } : {}),
-    alternates: { canonical: d.url || `${SITE_URL}${path}` },
+    ...(keywords ? { keywords } : {}),
+    alternates: { canonical },
     openGraph: {
-      title: d.title,
-      description: d.description,
-      url: d.url || `${SITE_URL}${path}`,
+      title,
+      description,
+      url: canonical,
       siteName: 'SAP Security Expert',
       images: [{ url: image }],
       type: 'article',
     },
     twitter: {
       card: 'summary_large_image',
-      title: d.title,
-      description: d.description,
+      title,
+      description,
       images: [image],
     },
   };
@@ -228,7 +248,7 @@ export default async function BlogPostPage({ params }) {
   const hasCta = blog.cta_title;
   const isMembersOnly = parseInt(blog.is_members_only || 0) === 1;
   const isPremium = parseInt(blog.is_premium || 0) === 1;
-  const isPremiumLocked = !!blog.premium_locked;
+  // isPremiumLocked is only used by the client SPA; SSR bypass returns full content for Googlebot
   const nonce = (await headers()).get('x-nonce') || undefined;
 
   return (
@@ -247,8 +267,8 @@ export default async function BlogPostPage({ params }) {
         AppWrapper removes this div the moment the React SPA mounts,
         so real users only ever see the interactive SPA version.
       */}
-      <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
-      <div className="blog-post-wrapper">
+      <div id="ssr-blog-content" suppressHydrationWarning style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+      <div className="blog-post-wrapper" suppressHydrationWarning>
         <div className="container blog-container">
           <main className="blog-main-column">
 
@@ -307,12 +327,13 @@ export default async function BlogPostPage({ params }) {
 
             {/* Article content */}
             <article
+              suppressHydrationWarning
               className="blog-content-body"
-              dangerouslySetInnerHTML={{ __html: addLazyLoading(isMembersOnly ? (blog.content || '').substring(0, 600) + '...' : (blog.content || '')) }}
+              dangerouslySetInnerHTML={{ __html: addLazyLoading(blog.content || '') }}
             />
 
-            {/* FAQs — never shown for premium-locked or members-only */}
-            {faqs.length > 0 && !isPremiumLocked && !isMembersOnly && (
+            {/* FAQs */}
+            {faqs.length > 0 && (
               <section className="blog-faqs-section" style={{ marginTop: '40px' }}>
                 <h2>Frequently Asked Questions</h2>
                 {faqs.map((faq, i) => (
@@ -326,8 +347,8 @@ export default async function BlogPostPage({ params }) {
               </section>
             )}
 
-            {/* CTA block — not shown for locked content */}
-            {hasCta && !isPremiumLocked && !isMembersOnly && (
+            {/* CTA block */}
+            {hasCta && (
               <div className="blog-cta-section" style={{ background: 'linear-gradient(135deg,#1e40af,#3b82f6)', color: '#fff', padding: '40px', borderRadius: '16px', textAlign: 'center', margin: '40px 0' }}>
                 <h2 style={{ fontSize: '1.8rem', marginBottom: '16px', color: '#fff' }}>{blog.cta_title}</h2>
                 {blog.cta_description && <p style={{ opacity: 0.9, marginBottom: '24px' }}>{blog.cta_description}</p>}
@@ -339,8 +360,8 @@ export default async function BlogPostPage({ params }) {
               </div>
             )}
 
-            {/* Author card — not shown for locked content */}
-            {authorName && !isPremiumLocked && (
+            {/* Author card */}
+            {authorName && (
               <div className="author-profile-card" style={{ display: 'flex', gap: '20px', padding: '30px', background: '#f8fafc', borderRadius: '16px', marginTop: '40px', border: '1px solid #e2e8f0' }}>
                 {blog.author_image && (
                   <Image
@@ -352,7 +373,7 @@ export default async function BlogPostPage({ params }) {
                     style={{ borderRadius: '50%', objectFit: 'cover' }}
                   />
                 )}
-                <div>
+                <div suppressHydrationWarning>
                   {blog.author_contributor_id ? (
                     <a href={`/contributor/${blog.author_contributor_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                       <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', color: '#0f172a' }}>{authorName}</h3>

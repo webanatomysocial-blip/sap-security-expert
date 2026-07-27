@@ -188,17 +188,22 @@ const recordView = asyncHandler(async (req, res) => {
   }
 
   // Resolve to the integer blog ID (post_views.post_id is INTEGER FK → blogs.id)
-  const blogId = await repo.findBlogIdBySlugOrId(db, id);
+  let blogId;
+  try { blogId = await repo.findBlogIdBySlugOrId(db, id); } catch (_) { return res.json({ status: 'skipped' }); }
   if (!blogId) return res.json({ status: 'skipped' });
 
-  // Check if this visitor already viewed this post in the last 24 hours
-  if (await repo.findRecentViewByVisitor(db, blogId, visitor_token)) {
+  try {
+    // Check if this visitor already viewed this post in the last 24 hours
+    if (await repo.findRecentViewByVisitor(db, blogId, visitor_token)) {
+      return res.json({ status: 'skipped' });
+    }
+    // Record the view and increment the counter atomically
+    await repo.insertPostView(db, blogId, visitor_token);
+    await repo.incrementViewCount(db, blogId);
+  } catch (err) {
+    console.error('[recordView]', err.message);
     return res.json({ status: 'skipped' });
   }
-
-  // Record the view and increment the counter atomically
-  await repo.insertPostView(db, blogId, visitor_token);
-  await repo.incrementViewCount(db, blogId);
   return res.json({ status: 'success' });
 });
 
@@ -535,12 +540,19 @@ const seoMeta = asyncHandler(async (req, res) => {
           desc = DEFAULT_META.description;
         }
 
+        const rawTitle = b.meta_title || b.title;
+        const title = rawTitle.includes('|') ? rawTitle : `${rawTitle} | SAP Security Expert`;
+        const rawImage = b.image || null;
+        const image = rawImage
+          ? (rawImage.startsWith('http') ? rawImage : siteUrl + rawImage)
+          : null;
+
         return res.json({
           status: 'success',
-          title: `${b.title} | SAP Security Expert`,
+          title,
           description: desc,
           keywords: b.meta_keywords || null,
-          image: b.image || null,
+          image,
           author: b.author_name,
           url: siteUrl + path,
         });

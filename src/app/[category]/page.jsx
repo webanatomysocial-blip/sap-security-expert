@@ -80,29 +80,38 @@ async function fetchSeoMeta(path) {
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
+const DEFAULT_IMAGE = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
+
 export async function generateMetadata({ params }) {
   const { category } = await params;
-  if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert' };
+  if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert', robots: 'noindex, nofollow' };
 
   const path = `/${category}`;
   const d = await fetchSeoMeta(path);
-  if (!d) return { title: 'SAP Security Expert' };
+
+  const title = d?.title || `${CATEGORY_LABELS[category] || 'SAP Security Expert'} | SAP Security Expert`;
+  const description = d?.description || 'Expert SAP Security, GRC, and BTP guides, tutorials, and best practices.';
+  const canonical = d?.url || `${SITE_URL}${path}`;
+  const image = d?.image || DEFAULT_IMAGE;
 
   return {
-    title: d.title,
-    description: d.description,
-    alternates: { canonical: d.url || `${SITE_URL}${path}` },
+    title,
+    description,
+    robots: 'index, follow',
+    alternates: { canonical },
     openGraph: {
-      title: d.title,
-      description: d.description,
-      url: d.url || `${SITE_URL}${path}`,
+      title,
+      description,
+      url: canonical,
       siteName: 'SAP Security Expert',
+      images: [{ url: image }],
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
-      title: d.title,
-      description: d.description,
+      title,
+      description,
+      images: [image],
     },
   };
 }

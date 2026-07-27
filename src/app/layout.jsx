@@ -41,10 +41,29 @@ const websiteSchema = {
   },
 };
 
+const DEFAULT_TITLE = 'SAP Security Expert';
+const DEFAULT_DESC = 'The leading community for SAP Security, GRC, and BTP professionals.';
+const DEFAULT_IMAGE = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
+
 export const metadata = {
-  title: "SAP Security Expert",
-  description: "The leading community for SAP Security, GRC, and BTP professionals.",
+  title: DEFAULT_TITLE,
+  description: DEFAULT_DESC,
+  robots: 'index, follow',
   alternates: { canonical: SITE_URL },
+  openGraph: {
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESC,
+    url: SITE_URL,
+    siteName: 'SAP Security Expert',
+    images: [{ url: DEFAULT_IMAGE }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESC,
+    images: [DEFAULT_IMAGE],
+  },
 };
 
 export default async function RootLayout({ children }) {
@@ -52,17 +71,20 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Google Tag Manager */}
+        {/* charset + viewport must come before any scripts per HTML spec */}
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        {/* Google Tag Manager — as high in <head> as possible after required meta */}
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-W8C8PFTK');` }} />
         {/* End Google Tag Manager */}
-        <meta charSet="UTF-8" />
+
         <link rel="icon" type="image/svg+xml" href="/fav.png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="google-adsense-account" content="ca-pub-5501267075758433" />
+        <meta name="google-site-verification" content="4HfxE-z5fk8PHUMJPDFDuOPPm73HtE8zpQZ_MHpfL5o" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-        <meta name="google-site-verification" content="4HfxE-z5fk8PHUMJPDFDuOPPm73HtE8zpQZ_MHpfL5o" />
         {/* Site-wide structured data — Organization + WebSite (SearchAction) */}
         <script
           type="application/ld+json"

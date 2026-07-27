@@ -8,25 +8,8 @@ const CacheService = require('../services/CacheService');
 const { revalidateBlog } = require('../utils/revalidate');
 const repo = require('../repositories/postsRepository');
 const settingsRepo = require('../repositories/admin/settingsRepository');
-const { grantBonus, getActivityCredits } = require('../services/CreditHelper');
 
 const cache = new CacheService(1800);
-
-async function grantArticleCredits(db, authorId, blogTitle) {
-  try {
-    const [rows] = await db.execute(
-      'SELECT u.email FROM users u WHERE u.id = ? LIMIT 1', [authorId]
-    );
-    const email = rows[0]?.email;
-    if (!email) return;
-    const [mRows] = await db.execute(
-      'SELECT id FROM members WHERE LOWER(email)=LOWER(?) LIMIT 1', [email]
-    );
-    if (!mRows[0]) return;
-    const amt = await getActivityCredits(db, 'article_published', 20);
-    await grantBonus(db, mRows[0].id, amt, `Article published: ${blogTitle}`);
-  } catch { /* non-critical */ }
-}
 
 // Internal-only DB columns (draft/pending-edit fields, moderation/plagiarism
 // data, review metadata) that must never reach a public API response — the
@@ -162,6 +145,12 @@ const list = asyncHandler(async (req, res) => {
   const isAdmin = sess.admin_logged_in && sess.role === 'admin';
   const isContributor = sess.admin_logged_in && sess.role === 'contributor';
   const currentUserId = sess.admin_id || null;
+
+  // Internal SSR bypass: Next.js server components fetch with this header+secret
+  // so Googlebot gets full article content for indexing (no paywall truncation).
+  // Validated against REVALIDATE_SECRET so only the Next.js server can use it.
+  const ssrSecret = process.env.REVALIDATE_SECRET || '';
+  const isInternalSSR = !!(ssrSecret && req.headers['x-ssr-internal'] === ssrSecret);
   const nowUtc = new Date().toISOString().slice(0, 19).replace('T', ' ');
   const authorOnly = req.query.author_only == '1';
 
@@ -217,9 +206,8 @@ const list = asyncHandler(async (req, res) => {
           const live = liveMap[ca.id];
           if (!live) return ca;
           // For admin users with no contributor record, fall back to static profile
-          const staticFallback = live.role === 'admin'
-            ? (ADMIN_PROFILES[live.username] || ADMIN_PROFILES['raghu'])
-            : null;
+          const staticFallback = ADMIN_PROFILES[live.username]
+            || (live.role === 'admin' ? ADMIN_PROFILES['raghu'] : null);
           return {
             id: ca.id,
             name: live.name || ca.name,
@@ -238,8 +226,9 @@ const list = asyncHandler(async (req, res) => {
     const isMembersOnly = parseInt(blog.is_members_only || 0);
     const isMember = !!sess.member_logged_in;
     // Super-admins bypass all gates. Contributors bypass members-only gate for their OWN blogs only.
+    // isInternalSSR bypasses all gates so Googlebot gets full content for indexing.
     const isOwnBlog = isContributor && currentUserId && String(blog.author_user_id) === String(currentUserId);
-    const hasAdminAccess = isAdmin || isOwnBlog;
+    const hasAdminAccess = isAdmin || isOwnBlog || isInternalSSR;
 
     // Resolve how many blocks/lines to expose before the paywall:
     // per-article setting wins; falls back to site default; then hardcoded 3.
@@ -255,96 +244,210 @@ const list = asyncHandler(async (req, res) => {
     //
     // "matching close" helper: finds the close tag that matches the Nth opening
     // of <tag> starting from `fromPos`, handling nested same-type tags.
-    function findMatchingClose(html, tag, fromPos) {
-      const lo = html.toLowerCase();
-      const open = `<${tag}`;
-      const close = `</${tag}>`;
-      let depth = 1, pos = fromPos;
-      while (pos < lo.length) {
-        const o = lo.indexOf(open, pos);
-        const c = lo.indexOf(close, pos);
-        if (c === -1) return -1;
-        // Check that the candidate open tag is actually a tag (not a substring of another tag)
-        const validOpen = o !== -1 && o < c && (lo[o + open.length] === '>' || lo[o + open.length] === ' ' || lo[o + open.length] === '\n' || lo[o + open.length] === '\t' || lo[o + open.length] === '/');
-        if (validOpen) { depth++; pos = o + open.length; }
-        else { depth--; pos = c + close.length; if (depth === 0) return pos; }
+// Return html sliced to the end of the nth countable block.
+    // "Blocks" = p, ul, ol, blockquote, table, figure — headings never count.
+    // Empty / whitespace-only blocks are skipped.
+    // Uses simple forward scan; for each block opening tag we find the FIRST
+    // matching close tag (indexOf). Nested same-tags inside ul/ol may cause a
+    // slightly early cut, but that is always safe (never shows too much).
+    function truncateHtmlFallback(html, targetLength) {
+      if (!html) return '';
+      let outputText = '';
+      let textCount = 0;
+      const openTags = [];
+      const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+
+      let i = 0;
+      while (i < html.length) {
+        if (html[i] === '<') {
+          const gt = html.indexOf('>', i);
+          if (gt === -1) {
+            outputText += html.slice(i);
+            break;
+          }
+          const tagStr = html.slice(i, gt + 1);
+          const isClosing = tagStr.startsWith('</');
+          const isSelfClosing = tagStr.endsWith('/>');
+
+          const tagNameMatch = tagStr.match(/^<\/?([a-zA-Z0-9:-]+)/);
+          const tagName = tagNameMatch ? tagNameMatch[1].toLowerCase() : '';
+
+          if (tagName) {
+            if (isClosing) {
+              const index = openTags.lastIndexOf(tagName);
+              if (index !== -1) {
+                openTags.splice(index);
+              }
+            } else if (!isSelfClosing && !voidElements.has(tagName)) {
+              openTags.push(tagName);
+            }
+          }
+
+          outputText += tagStr;
+          i = gt + 1;
+        } else if (html[i] === '&') {
+          const semi = html.indexOf(';', i);
+          if (semi !== -1 && semi - i < 10) {
+            outputText += html.slice(i, semi + 1);
+            textCount++;
+            i = semi + 1;
+          } else {
+            outputText += html[i];
+            textCount++;
+            i++;
+          }
+        } else {
+          outputText += html[i];
+          textCount++;
+          i++;
+        }
+
+        if (textCount >= targetLength) {
+          outputText += '...';
+          for (let j = openTags.length - 1; j >= 0; j--) {
+            outputText += `</${openTags[j]}>`;
+          }
+          return outputText;
+        }
       }
-      return -1;
+      return html;
     }
 
     function sliceToBlocks(html, n) {
       if (!html || !n || n <= 0) return '';
-      const BLOCKS = new Set(['p','h1','h2','h3','h4','h5','h6','ul','ol','blockquote','table','figure','div','section']);
-      const tagRe = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
-      let count = 0, match;
-      const openStack = []; // tracks ancestors of the current position
+      const lo = html.toLowerCase();
+      const TAGS = ['blockquote', 'figure', 'table', 'ul', 'ol', 'p']; // longest first avoids prefix collisions
+      let count = 0;
+      let pos = 0;
 
-      while ((match = tagRe.exec(html)) !== null) {
-        const full = match[0];
-        const tag = match[1].toLowerCase();
-        if (!BLOCKS.has(tag)) continue;
-        if (full.endsWith('/>')) continue;
-
-        if (!full.startsWith('</')) {
-          // Opening tag
-          openStack.push(tag);
-          count++;
-
-          if (count === n) {
-            // Find the matching close tag for this element
-            const afterOpen = match.index + full.length;
-            const closeEnd = findMatchingClose(html, tag, afterOpen);
-            let endPos = closeEnd !== -1 ? closeEnd : afterOpen;
-
-            // Build output: content up to end of Nth element …
-            let result = html.slice(0, endPos);
-            // … then close any still-open ancestors (the Nth element itself was closed above)
-            openStack.pop(); // remove Nth element
-            for (let i = openStack.length - 1; i >= 0; i--) {
-              result += `</${openStack[i]}>`;
+      while (pos < lo.length) {
+        // Find the next opening tag that belongs to our countable set
+        let earliest = -1, earliestTag = '', earliestEnd = -1;
+        for (const t of TAGS) {
+          // Must be <tag> or <tag ...> — not a closing tag, not a prefix of another tag
+          let search = pos;
+          while (search < lo.length) {
+            const idx = lo.indexOf(`<${t}`, search);
+            if (idx === -1) break;
+            const after = idx + t.length + 1; // char after tag name
+            const ch = lo[after];
+            if (ch === '>' || ch === ' ' || ch === '\n' || ch === '\t' || ch === '\r') {
+              // Find end of opening tag
+              const gt = lo.indexOf('>', idx);
+              if (gt === -1) { search = idx + 1; continue; }
+              if (lo[gt - 1] === '/') { search = gt + 1; continue; } // self-closing
+              if (earliest === -1 || idx < earliest) {
+                earliest = idx;
+                earliestTag = t;
+                earliestEnd = gt + 1; // position right after the opening >
+              }
+              break;
             }
-            return result;
+            search = idx + 1;
           }
-        } else {
-          // Closing tag — pop matching open from stack
-          const idx = openStack.lastIndexOf(tag);
-          if (idx !== -1) openStack.splice(idx, 1);
         }
+
+        if (earliest === -1) break; // no more countable blocks
+
+        const tag = earliestTag;
+        const afterOpen = earliestEnd;
+        const closeTag = `</${tag}>`;
+
+        // Find the first </tag> after afterOpen — this handles the common case
+        // (p tags are never nested; ul/ol may be, but we accept a slightly early cut)
+        const closeIdx = lo.indexOf(closeTag, afterOpen);
+        if (closeIdx === -1) {
+          pos = afterOpen; // no close tag found, skip past open and keep going
+          continue;
+        }
+
+        const closeEnd = closeIdx + closeTag.length;
+        const inner = html.slice(afterOpen, closeIdx);
+
+        pos = closeEnd; // advance for next iteration
+
+        if (!inner.replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, '').trim()) continue; // skip empty
+
+        count++;
+        if (count === n) return html.slice(0, closeEnd);
       }
-      return html; // fewer blocks than n — return everything
+
+      if (count === 0) {
+        return truncateHtmlFallback(html, n * 400);
+      }
+      return html; // fewer than n blocks — show all
     }
 
+    // "Lines" mode: counts approx. text lines (~80 chars each) across all countable elements.
+    // Handles multi-line paragraphs by truncating the block content.
     function sliceToLines(html, n) {
       if (!html || !n || n <= 0) return '';
-      const target = n * 80; // ~80 visible chars per line
-      let textLen = 0, inTag = false, cutPos = -1;
-      for (let i = 0; i < html.length; i++) {
-        const c = html[i];
-        if (c === '<') { inTag = true; continue; }
-        if (c === '>') { inTag = false; continue; }
-        if (!inTag) {
-          textLen++;
-          if (textLen >= target) { cutPos = i + 1; break; }
+      const lo = html.toLowerCase();
+      const TAGS = ['blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'p'];
+      let count = 0;
+      let pos = 0;
+
+      while (pos < lo.length) {
+        let earliest = -1, earliestTag = '', earliestEnd = -1;
+        for (const t of TAGS) {
+          let search = pos;
+          while (search < lo.length) {
+            const idx = lo.indexOf(`<${t}`, search);
+            if (idx === -1) break;
+            const after = idx + t.length + 1;
+            const ch = lo[after];
+            if (ch === '>' || ch === ' ' || ch === '\n' || ch === '\t' || ch === '\r') {
+              const gt = lo.indexOf('>', idx);
+              if (gt === -1) { search = idx + 1; continue; }
+              if (lo[gt - 1] === '/') { search = gt + 1; continue; }
+              if (earliest === -1 || idx < earliest) {
+                earliest = idx;
+                earliestTag = t;
+                earliestEnd = gt + 1;
+              }
+              break;
+            }
+            search = idx + 1;
+          }
+        }
+
+        if (earliest === -1) break;
+
+        const tag = earliestTag;
+        const afterOpen = earliestEnd;
+        const closeTag = `</${tag}>`;
+        const closeIdx = lo.indexOf(closeTag, afterOpen);
+        if (closeIdx === -1) { pos = afterOpen; continue; }
+
+        const closeEnd = closeIdx + closeTag.length;
+        const inner = html.slice(afterOpen, closeIdx);
+
+        pos = closeEnd;
+
+        const plainText = inner.replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').trim();
+        if (!plainText) continue;
+
+        const linesInBlock = Math.ceil(plainText.length / 80);
+
+        if (count + linesInBlock <= n) {
+          count += linesInBlock;
+          if (count === n) return html.slice(0, closeEnd);
+        } else {
+          // Must truncate this block
+          const charsToKeep = (n - count) * 80;
+          if (plainText.length > charsToKeep) {
+            const truncatedText = plainText.slice(0, charsToKeep) + '...';
+            return html.slice(0, afterOpen) + truncatedText + closeTag;
+          } else {
+            return html.slice(0, closeEnd);
+          }
         }
       }
-      if (cutPos === -1) return html;
-      // advance to end of current text node before the next tag
-      while (cutPos < html.length && html[cutPos] !== '<') cutPos++;
-      // close any unclosed block-level ancestors
-      const BLOCKS = new Set(['p','h1','h2','h3','h4','h5','h6','ul','ol','blockquote','table','figure','div','section']);
-      const tagRe2 = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
-      const stack = [];
-      let m2;
-      while ((m2 = tagRe2.exec(html)) !== null) {
-        if (m2.index >= cutPos) break;
-        const full = m2[0], tag = m2[1].toLowerCase();
-        if (!BLOCKS.has(tag) || full.endsWith('/>')) continue;
-        if (!full.startsWith('</')) { stack.push(tag); }
-        else { const idx = stack.lastIndexOf(tag); if (idx !== -1) stack.splice(idx, 1); }
+
+      if (count === 0) {
+        return truncateHtmlFallback(html, n * 80);
       }
-      let result = html.slice(0, cutPos);
-      for (let i = stack.length - 1; i >= 0; i--) result += `</${stack[i]}>`;
-      return result;
+      return html;
     }
 
     const sliceContent = (html, n) => effectiveUnit === 'lines' ? sliceToLines(html, n) : sliceToBlocks(html, n);
@@ -369,7 +472,7 @@ const list = asyncHandler(async (req, res) => {
     const isPremium = parseInt(blog.is_premium || 0);
     const creditsRequired = parseInt(blog.credits_required || 0);
     // Only grant access via explicit permission flag — NOT by admin role alone
-    const hasGrantedAccess = !!(sess.permissions?.can_access_premium_articles);
+    const hasGrantedAccess = !!(sess.permissions?.can_access_premium_articles) || isInternalSSR;
     if (isPremium && !hasGrantedAccess) {
       let hasUnlocked = false;
       if (sess.member_logged_in && sess.member_id) {
@@ -601,7 +704,7 @@ const save = asyncHandler(async (req, res) => {
     revalidateBlog(category, slug).catch(() => {});
 
     if (['approved','published'].includes(targetStatus)) {
-      const { grantArticlePublishedCredits } = require('../../services/CreditHelper');
+      const { grantArticlePublishedCredits } = require('../services/CreditHelper');
       await grantArticlePublishedCredits(db, id).catch(() => {});
       if (send_notification_email) {
         mailService.queuePendingBlogNotifications(db).catch(() => {});
@@ -637,14 +740,11 @@ const save = asyncHandler(async (req, res) => {
     cache.invalidate('homepage_data_public');
     if (['approved','published'].includes(targetStatus)) {
       revalidateBlog(category, slug).catch(() => {});
-      const { grantArticlePublishedCredits } = require('../../services/CreditHelper');
+      const { grantArticlePublishedCredits } = require('../services/CreditHelper');
       await grantArticlePublishedCredits(db, newId).catch(() => {});
     }
 
     if (!isAdmin) notifier.notifyBlogSubmitted(title, authorName).catch(() => {});
-    if (['approved','published'].includes(targetStatus)) {
-      grantArticleCredits(db, author_id, title).catch(() => {});
-    }
     if (['approved','published'].includes(targetStatus) && send_notification_email) {
       mailService.queuePendingBlogNotifications(db).catch(() => {});
     }

@@ -62,7 +62,12 @@ if (!isProd) {
   allowedOrigins.push(
     'http://localhost:5173', 'http://127.0.0.1:5173',
     'http://localhost:3000', 'http://127.0.0.1:3000',
+    'http://localhost:3001', 'http://127.0.0.1:3001',
+    'http://localhost:3002', 'http://127.0.0.1:3002',
+    'http://localhost:3003', 'http://127.0.0.1:3003',
+    'http://localhost:3004', 'http://127.0.0.1:3004',
     'http://localhost:8000', 'http://127.0.0.1:8000',
+    'http://dev.sapsecurityexpert.com',
   );
 }
 // Optional extra origin for split-server setups (set FRONTEND_URL in .env if needed)
@@ -71,7 +76,7 @@ if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL.repla
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error('Not allowed by CORS'));
+    cb(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -353,6 +358,10 @@ app.use((err, req, res, next) => {
 // files (src/app/robots.js and src/app/sitemap.js). These Express routes serve
 // as a fallback if Express is accessed directly (bypassing Next.js).
 const canonicalUrl = (process.env.CANONICAL_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
+
+// Redirect legacy register URL to the signup page — handles hard navigations
+// before the React bundle has a chance to intercept with its own client-side route.
+app.get('/member/register', (_req, res) => res.redirect(301, '/member/signup'));
 
 app.get('/robots.txt', (_req, res) => {
   res.set('Content-Type', 'text/plain');

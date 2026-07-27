@@ -65,7 +65,7 @@ async function grantArticlePublishedCredits(db, blogId) {
     if (!member) return;
 
     const amt = await getActivityCredits(db, 'article_published', 20);
-    const note = `Article published: "${blog.title}"`;
+    const note = `Article published: blog #${blog.id}`;
     await grantBonus(db, member.id, amt, note);
   } catch (err) {
     console.error('[CreditHelper] Failed to grant article credits:', err.message);

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
+import { useAuth } from "../context/AuthContext";
 
 function extractTOC(html) {
   if (!html) return [];
@@ -16,9 +17,12 @@ function extractTOC(html) {
 // next-disabled: import "../css/members-paywall.css";
 const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
   const { isLoggedIn } = useMemberAuth();
+  const { isAuthenticated, role } = useAuth();
   const navigate = useNavigate();
 
-  if (isLoggedIn) {
+  const isAdminOrContributor = isAuthenticated && (role === "admin" || role === "contributor");
+
+  if (isLoggedIn || isAdminOrContributor) {
     return <>{children}</>;
   }
 
@@ -28,10 +32,9 @@ const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
 
   return (
     <>
-      {/* Preview — N block elements then hard cut */}
-      <div
-        className="members-content-preview"
-        style={{ maxHeight: "none", WebkitMaskImage: "none", maskImage: "none" }}
+      {/* Preview — N block elements then hard cut, same styles as full content */}
+      <article
+        className="blog-content-body"
         dangerouslySetInnerHTML={{ __html: previewHtml }}
       />
 

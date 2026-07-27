@@ -27,8 +27,11 @@ const BlogList = ({
   const [togglingMap, setTogglingMap] = useState({});
   const [premiumModal, setPremiumModal] = useState(null);
   const [premiumCredits, setPremiumCredits] = useState("1");
+  const [premiumPreview, setPremiumPreview] = useState("");
+  const [premiumPreviewUnit, setPremiumPreviewUnit] = useState("blocks");
   const [exclusiveModal, setExclusiveModal] = useState(null);
   const [exclusivePreview, setExclusivePreview] = useState("");
+  const [exclusivePreviewUnit, setExclusivePreviewUnit] = useState("blocks");
   const [copiedSlug, setCopiedSlug] = useState(null);
   const { addToast } = useToast();
 
@@ -139,11 +142,12 @@ const BlogList = ({
     } else {
       // Turning ON — ask for preview paragraphs
       setExclusivePreview(blog.preview_paragraphs ? String(blog.preview_paragraphs) : "");
+      setExclusivePreviewUnit(blog.preview_unit || "blocks");
       setExclusiveModal(blog);
     }
   };
 
-  const applyToggleExclusive = async (blog, newVal, previewParagraphs) => {
+  const applyToggleExclusive = async (blog, newVal, previewParagraphs, previewUnit) => {
     setTogglingMap((prev) => ({ ...prev, [blog.id]: true }));
     setExclusiveModal(null);
     try {
@@ -151,13 +155,14 @@ const BlogList = ({
       if (newVal === 1 && previewParagraphs !== "" && previewParagraphs != null) {
         payload.preview_paragraphs = parseInt(previewParagraphs) || null;
       }
+      if (newVal === 1) payload.preview_unit = previewUnit || "blocks";
       const res = await toggleExclusiveContent(payload);
       if (res.data?.status === "success") {
         addToast(`Exclusive content ${newVal ? "enabled" : "disabled"} successfully.`, "success");
         setBlogs((prev) =>
           prev.map((b) =>
             b.id === blog.id
-              ? { ...b, is_members_only: newVal, ...(newVal === 1 && payload.preview_paragraphs != null ? { preview_paragraphs: payload.preview_paragraphs } : {}) }
+              ? { ...b, is_members_only: newVal, ...(newVal === 1 && payload.preview_paragraphs != null ? { preview_paragraphs: payload.preview_paragraphs, preview_unit: payload.preview_unit } : {}) }
               : b,
           ),
         );
@@ -174,20 +179,24 @@ const BlogList = ({
   const handleTogglePremium = (blog) => {
     if (Number(blog.is_premium) === 1) {
       // Turning OFF — no modal needed
-      applyTogglePremium(blog, 0, null);
+      applyTogglePremium(blog, 0, null, null, null);
     } else {
-      // Turning ON — ask for credits count
+      // Turning ON — ask for credits + preview
       setPremiumCredits(String(blog.credits_required || 1));
+      setPremiumPreview(blog.preview_paragraphs ? String(blog.preview_paragraphs) : "");
+      setPremiumPreviewUnit(blog.preview_unit || "blocks");
       setPremiumModal(blog);
     }
   };
 
-  const applyTogglePremium = async (blog, newVal, credits) => {
+  const applyTogglePremium = async (blog, newVal, credits, preview, previewUnit) => {
     setTogglingMap((prev) => ({ ...prev, [`p_${blog.id}`]: true }));
     setPremiumModal(null);
     try {
       const payload = { id: blog.id, is_premium: newVal };
       if (newVal === 1 && credits != null) payload.credits_required = parseInt(credits) || 1;
+      if (newVal === 1 && preview !== "" && preview != null) payload.preview_paragraphs = parseInt(preview) || null;
+      if (newVal === 1) payload.preview_unit = previewUnit || "blocks";
       const res = await togglePremiumContent(payload);
       if (res.data?.status === "success") {
         addToast(`Premium ${newVal ? "enabled" : "disabled"}.`, "success");
@@ -199,6 +208,7 @@ const BlogList = ({
                 // Enabling premium clears exclusive — they are mutually exclusive
                 ...(newVal === 1 ? { is_members_only: 0 } : {}),
                 ...(newVal === 1 && credits != null ? { credits_required: parseInt(credits) || 1 } : {}),
+                ...(newVal === 1 ? { preview_paragraphs: preview !== "" && preview != null ? parseInt(preview) || null : null, preview_unit: previewUnit || "blocks" } : {}),
               }
             : b)
         );
@@ -584,23 +594,34 @@ const BlogList = ({
             <p style={{ color: "var(--slate-600)", fontSize: "0.9rem", marginBottom: 16 }}>
               How many paragraphs/blocks should be visible before the paywall on <strong>"{exclusiveModal.title}"</strong>?
             </p>
-            <input
-              type="number"
-              min="1"
-              max="99"
-              value={exclusivePreview}
-              onChange={(e) => setExclusivePreview(e.target.value)}
-              className="form-control"
-              placeholder="Leave blank for site default (3)"
-              style={{ width: "180px", padding: "8px 10px", fontSize: "1rem", border: "1.5px solid #93c5fd", background: "#eff6ff" }}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") applyToggleExclusive(exclusiveModal, 1, exclusivePreview);
-                if (e.key === "Escape") setExclusiveModal(null);
-              }}
-            />
-            <span style={{ fontSize: "0.78rem", color: "#1e40af", marginTop: 6, display: "block" }}>
-              Leave blank to use the site default. Per-article setting overrides site default.
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="number"
+                min="1"
+                max="99"
+                value={exclusivePreview}
+                onChange={(e) => setExclusivePreview(e.target.value)}
+                className="form-control"
+                placeholder="3"
+                style={{ width: "90px", padding: "8px 10px", fontSize: "1rem", border: "1.5px solid #93c5fd", background: "#eff6ff" }}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") applyToggleExclusive(exclusiveModal, 1, exclusivePreview, exclusivePreviewUnit);
+                  if (e.key === "Escape") setExclusiveModal(null);
+                }}
+              />
+              <select
+                value={exclusivePreviewUnit}
+                onChange={(e) => setExclusivePreviewUnit(e.target.value)}
+                className="form-control"
+                style={{ width: "110px", padding: "8px 10px", fontSize: "0.9rem", border: "1.5px solid #93c5fd", background: "#eff6ff" }}
+              >
+                <option value="blocks">Blocks</option>
+                <option value="lines">Lines</option>
+              </select>
+            </div>
+            <span style={{ fontSize: "0.75rem", color: "#1e40af", marginTop: 6, display: "block" }}>
+              Blocks = paragraphs/headings/lists. Leave blank to use site default.
             </span>
           </div>
           <div className="modal-footer" style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid var(--slate-100)", padding: "14px 24px" }}>
@@ -613,7 +634,7 @@ const BlogList = ({
             </button>
             <button
               className="btn-primary"
-              onClick={() => applyToggleExclusive(exclusiveModal, 1, exclusivePreview)}
+              onClick={() => applyToggleExclusive(exclusiveModal, 1, exclusivePreview, exclusivePreviewUnit)}
               style={{ padding: "8px 18px", borderRadius: 8, background: "#3b82f6", color: "white", border: "none", fontWeight: 700, cursor: "pointer" }}
             >
               <i className="bi bi-lock-fill" style={{ marginRight: 6 }}></i>
@@ -640,8 +661,12 @@ const BlogList = ({
           </div>
           <div className="modal-body">
             <p style={{ color: "var(--slate-600)", fontSize: "0.9rem", marginBottom: 16 }}>
-              How many credits must a member spend to unlock <strong>"{premiumModal.title}"</strong>?
+              Configure premium access for <strong>"{premiumModal.title}"</strong>.
             </p>
+
+            <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#92400e", display: "block", marginBottom: 6 }}>
+              <i className="bi bi-coin" style={{ marginRight: 6 }}></i>Credits Required to Unlock
+            </label>
             <input
               type="number"
               min="1"
@@ -652,12 +677,40 @@ const BlogList = ({
               style={{ width: "120px", padding: "8px 10px", fontSize: "1rem", border: "1.5px solid #fcd34d", background: "#fffef0" }}
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === "Enter") applyTogglePremium(premiumModal, 1, premiumCredits);
+                if (e.key === "Enter") applyTogglePremium(premiumModal, 1, premiumCredits, premiumPreview, premiumPreviewUnit);
                 if (e.key === "Escape") setPremiumModal(null);
               }}
             />
-            <span style={{ fontSize: "0.78rem", color: "#78350f", marginTop: 6, display: "block" }}>
+            <span style={{ fontSize: "0.78rem", color: "#78350f", marginTop: 4, marginBottom: 14, display: "block" }}>
               Credits are non-refundable after unlock. Members get lifetime access.
+            </span>
+
+            <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#0369a1", display: "block", marginBottom: 6, marginTop: 12 }}>
+              <i className="bi bi-eye-slash-fill" style={{ marginRight: 6 }}></i>Preview before paywall
+            </label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="number"
+                min="1"
+                max="200"
+                placeholder="3"
+                value={premiumPreview}
+                onChange={(e) => setPremiumPreview(e.target.value)}
+                className="form-control"
+                style={{ width: "90px", padding: "8px 10px", fontSize: "0.9rem", border: "1.5px solid #bae6fd", background: "#f0f9ff" }}
+              />
+              <select
+                value={premiumPreviewUnit}
+                onChange={(e) => setPremiumPreviewUnit(e.target.value)}
+                className="form-control"
+                style={{ width: "110px", padding: "8px 10px", fontSize: "0.9rem", border: "1.5px solid #bae6fd", background: "#f0f9ff" }}
+              >
+                <option value="blocks">Blocks</option>
+                <option value="lines">Lines</option>
+              </select>
+            </div>
+            <span style={{ fontSize: "0.75rem", color: "#0369a1", marginTop: 4, display: "block" }}>
+              Blocks = paragraphs/headings/lists. Leave blank to use site default.
             </span>
           </div>
           <div className="modal-footer" style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid var(--slate-100)", padding: "14px 24px" }}>
@@ -670,7 +723,7 @@ const BlogList = ({
             </button>
             <button
               className="btn-primary"
-              onClick={() => applyTogglePremium(premiumModal, 1, premiumCredits)}
+              onClick={() => applyTogglePremium(premiumModal, 1, premiumCredits, premiumPreview, premiumPreviewUnit)}
               disabled={!premiumCredits || parseInt(premiumCredits) < 1}
               style={{ padding: "8px 18px", borderRadius: 8, background: "#d97706", color: "white", border: "none", fontWeight: 700, cursor: "pointer" }}
             >

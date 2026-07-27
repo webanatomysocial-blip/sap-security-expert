@@ -66,7 +66,7 @@ export default async function CatchAll({ params }) {
   if (!isHomepage && !isCategory) {
     return (
       <>
-        <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+        <div id="ssr-blog-content" suppressHydrationWarning style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
           <p>SAP Security Expert — expert knowledge for SAP Security, GRC, and BTP professionals.</p>
         </div>
         <ClientApp />
@@ -100,7 +100,7 @@ export default async function CatchAll({ params }) {
 
   return (
     <>
-      <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+      <div id="ssr-blog-content" suppressHydrationWarning style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
         <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
           <header style={{ textAlign: 'center', padding: '40px 0 30px' }}>
             <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>
@@ -160,7 +160,12 @@ export default async function CatchAll({ params }) {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+const DEFAULT_IMAGE = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
+
 function buildMeta(d) {
+  const image = d.image
+    ? (d.image.startsWith('http') ? d.image : `${SITE_URL}${d.image}`)
+    : DEFAULT_IMAGE;
   return {
     title: d.title,
     description: d.description,
@@ -172,14 +177,14 @@ function buildMeta(d) {
       description: d.description,
       url: d.url,
       siteName: 'SAP Security Expert',
-      ...(d.image ? { images: [{ url: d.image }] } : {}),
+      images: [{ url: image }],
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
       title: d.title,
       description: d.description,
-      ...(d.image ? { images: [d.image] } : {}),
+      images: [image],
     },
   };
 }
