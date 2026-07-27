@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { Helmet } from "react-helmet-async";
+import { useState, useEffect } from "react";
 import { 
   HiOutlineMail, 
   HiOutlineChatAlt2, 
@@ -91,14 +90,6 @@ const ContactUs = () => {
 
   return (
     <div className="contact-page">
-      <Helmet>
-        <title>Contact Us | SAP Security Expert</title>
-        <meta
-          name="description"
-          content="Get in touch with SAP Security Expert team."
-        />
-      </Helmet>
-
       <div className="contact-hero">
         <div className="contact-hero-left">
           <h1>Let's Connect!</h1>

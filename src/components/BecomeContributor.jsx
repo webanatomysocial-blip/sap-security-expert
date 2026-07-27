@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 // next-disabled: import "../css/BecomeContributor.css";
-import { Helmet } from "react-helmet-async";
 
 const BecomeContributor = () => {
   const navigate = useNavigate();
@@ -148,10 +147,6 @@ const BecomeContributor = () => {
 
   return (
     <div className="become-contributor-page">
-      <Helmet>
-        <title>Become a Contributor | SAP Security Expert</title>
-      </Helmet>
-
       {/* HERO SECTION */}
       <section className="contributor-hero">
         <div className="container">

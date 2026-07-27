@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 // next-disabled: import "../css/BecomeContributor.css";
-import { Helmet } from "react-helmet-async";
 import { applyContributor } from "../services/api";
 import { useToast } from "../context/ToastContext";
 
@@ -206,10 +205,6 @@ const ContributorApplication = () => {
 
   return (
     <div className="become-contributor-page">
-      <Helmet>
-        <title>Apply to Contribute | SAP Security Expert</title>
-      </Helmet>
-
       <div className="contributor-hero">
         <div className="container">
           <h1>Contributor Application</h1>

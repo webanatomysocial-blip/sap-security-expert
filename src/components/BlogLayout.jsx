@@ -11,7 +11,6 @@ import { VITE_SITE_URL } from "../utils/env";
 import ShareButton from "./ShareButton";
 import BlogSidebar from "./BlogSidebar";
 import CommentSection from "./CommentSection";
-import SEO from "./SEO";
 import AuthorProfile from "./AuthorProfile";
 import FAQ from "./FAQ";
 import { useMemberAuth } from "../context/MemberAuthContext";
@@ -205,7 +204,12 @@ const BlogLayout = ({
     return () => observer.disconnect();
   }, []);
 
-  // JSON-LD Schema Construction
+  // Update browser tab title on SPA navigation (Next.js generateMetadata handles <head> for SSR/bots)
+  useEffect(() => {
+    if (metaTitle || title) document.title = (metaTitle || title) + ' | SAP Security Expert';
+  }, [metaTitle, title]);
+
+  // JSON-LD Schema Construction — kept for potential future use but not injected (SSR page handles it)
   const schemaData = useMemo(() => {
     const domain = VITE_SITE_URL;
     const absoluteImage = image
@@ -380,21 +384,6 @@ const BlogLayout = ({
           </div>
         </div>
       </div>
-      <SEO
-        title={metaTitle || title}
-        description={
-          metaDescription ||
-          `${title} - Written by ${author_name || "SAP Security Expert"}. Read more on SAP Security Expert.`
-        }
-        image={image}
-        url={currentUrl}
-        type="article"
-        author={author_name}
-        keywords={
-          metaKeywords || `SAP Security, ${title}, ${author_name}, SAP Blog`
-        }
-        schemaData={schemaData}
-      />
       {/* Reading Progress Bar */}
       {/* <div className="reading-progress-bar" ref={progressBarRef}></div> */}
 
