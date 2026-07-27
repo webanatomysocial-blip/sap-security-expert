@@ -18,24 +18,6 @@ import { useMemberAuth } from "../context/MemberAuthContext";
 import MembersOnlyPaywall from "./MembersOnlyPaywall";
 import PremiumPaywall from "./PremiumPaywall";
 
-function sliceToBlocks(html, n) {
-  if (!html || !n) return html;
-  const blockRe = /<(p|h[2-6]|ul|ol|blockquote|table|div|figure)[\s>]/gi;
-  let count = 0; let idx = 0; let match;
-  blockRe.lastIndex = 0;
-  while ((match = blockRe.exec(html)) !== null) {
-    count++;
-    if (count === n) {
-      const closeTag = `</${match[1].toLowerCase()}>`;
-      const closeIdx = html.toLowerCase().indexOf(closeTag, match.index);
-      idx = closeIdx !== -1 ? closeIdx + closeTag.length : match.index + match[0].length;
-      break;
-    }
-    idx = match.index + match[0].length;
-  }
-  return count === 0 ? html : html.slice(0, idx);
-}
-
 // Register ScrollTrigger
 gsap.registerPlugin(ScrollTrigger);
 
@@ -146,11 +128,12 @@ const BlogLayout = ({
   content_version = null,
   author_contributor_id = null,
   blogType = null,
-  preview_paragraphs = null,
 }) => {
   const { isLoggedIn } = useMemberAuth();
-  const effectivePreview = preview_paragraphs != null ? parseInt(preview_paragraphs) : 3;
-  const previewHtml = sliceToBlocks(rawContent, effectivePreview);
+  // rawContent is already server-truncated to the correct preview block count.
+  // The server reads the site default and per-article override from the DB,
+  // so the frontend just renders what it received — no re-slicing needed.
+  const previewHtml = rawContent;
   const progressBarRef = useRef(null);
   const metaRowRef = useRef(null);
   const [isSticky, setIsSticky] = useState(false);
@@ -525,7 +508,7 @@ const BlogLayout = ({
               <PremiumPaywall creditsRequired={creditsRequired} blogSlug={blogSlug} onSuccess={onPaymentSuccess} inline />
             </>
           ) : isMembersOnly ? (
-            <MembersOnlyPaywall rawContent={rawContent} previewParagraphs={effectivePreview}>
+            <MembersOnlyPaywall rawContent={rawContent}>
               <article className="blog-content-body">{content}</article>
             </MembersOnlyPaywall>
           ) : (

@@ -254,6 +254,7 @@ const list = asyncHandler(async (req, res) => {
     if (isMembersOnly && !isMember && !hasAdminAccess) {
       const fullMembersContent = blog.content || '';
       blog.content = sliceToBlocks(fullMembersContent, effectivePreview) || fullMembersContent.slice(0, 300);
+      blog.paywall_preview = effectivePreview;
       blog.faqs = null;
       blog.cta_title = 'Professional Content Locked';
       blog.cta_description = 'Join our expert community to access premium SAP security insights.';
@@ -281,6 +282,7 @@ const list = asyncHandler(async (req, res) => {
         blog.premium_locked = true;
         blog.premium_locked_reason = sess.member_logged_in ? 'credits' : 'login';
         blog.credits_required = creditsRequired;
+        blog.paywall_preview = effectivePreview;
         const fullContent = blog.content || '';
         blog.content = sliceToBlocks(fullContent, effectivePreview) || fullContent.slice(0, 300);
         blog.faqs = null;
