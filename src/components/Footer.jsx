@@ -134,7 +134,7 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer">Sitemap</a>
+                <Link to="/sitemap">Sitemap</Link>
               </li>
               <li>
                 <a href="/llms.txt" target="_blank" rel="noopener noreferrer">LLMs.txt</a>
