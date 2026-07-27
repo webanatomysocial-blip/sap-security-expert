@@ -247,23 +247,30 @@ const list = asyncHandler(async (req, res) => {
     const siteDefaultPreview = siteDefaultRaw != null ? parseInt(siteDefaultRaw) : 3;
     const effectivePreview = blog.preview_paragraphs != null ? parseInt(blog.preview_paragraphs) : siteDefaultPreview;
 
-    // Slice HTML to N block-level elements (p, h2-h6, ul, ol, blockquote, table, figure)
+    // Slice HTML to N top-level block elements. Tracks nesting depth so a <div>
+    // containing inner <p> tags counts as ONE block (not 1 + N), and the output
+    // is always well-formed (never cuts mid-nesting leaving unclosed tags).
     function sliceToBlocks(html, n) {
-      if (!html || !n) return html;
-      const blockRe = /<(p|h[2-6]|ul|ol|blockquote|table|div|figure)[\s>]/gi;
-      let count = 0; let idx = 0; let match;
-      blockRe.lastIndex = 0;
-      while ((match = blockRe.exec(html)) !== null) {
-        count++;
-        if (count === n) {
-          const closeTag = `</${match[1].toLowerCase()}>`;
-          const closeIdx = html.toLowerCase().indexOf(closeTag, match.index);
-          idx = closeIdx !== -1 ? closeIdx + closeTag.length : match.index + match[0].length;
-          break;
+      if (!html || !n || n <= 0) return '';
+      const BLOCKS = new Set(['p','h1','h2','h3','h4','h5','h6','ul','ol','blockquote','table','figure','div','section']);
+      const tagRe = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+      let depth = 0, count = 0, match;
+      while ((match = tagRe.exec(html)) !== null) {
+        const full = match[0];
+        const tag = match[1].toLowerCase();
+        if (!BLOCKS.has(tag)) continue;
+        if (full.endsWith('/>')) continue; // self-closing
+        if (!full.startsWith('</')) {
+          if (depth === 0) count++;
+          depth++;
+        } else {
+          if (depth > 0) depth--;
+          if (depth === 0 && count === n) {
+            return html.slice(0, match.index + full.length);
+          }
         }
-        idx = match.index + match[0].length;
       }
-      return count === 0 ? html : html.slice(0, idx);
+      return html; // fewer top-level blocks than n — return everything
     }
 
     if (isMembersOnly && !isMember && !hasAdminAccess) {
