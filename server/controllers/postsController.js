@@ -182,12 +182,23 @@ const list = asyncHandler(async (req, res) => {
 
     // Enrich co-authors with live data. Co-author IDs are user.id values, so
     // join users → contributors to pick up both contributor profiles and admin users.
+    // Admin users (e.g. Raghu Boddu) have no contributor record, so their bio/socials
+    // come from a server-side static profile keyed by username.
+    const ADMIN_PROFILES = {
+      raghu: {
+        bio: 'Raghu Boddu is a technology leader and cybersecurity professional with extensive experience in SAP Security, GRC, data protection, and enterprise risk management, and is the author of books on SAP Access Control, SAP Process Control, and SAP Identity Access Governance (IAG).',
+        designation: 'SAP Security & GRC Expert | Founder',
+        linkedin: 'https://www.linkedin.com/in/bodduraghu/',
+        twitter_handle: 'https://x.com/GRCwithRaghu',
+        personal_website: 'https://raghuboddu.com/',
+      },
+    };
     if (blog.co_authors.length > 0) {
       const coIds = blog.co_authors.map(ca => ca.id).filter(Boolean);
       if (coIds.length > 0) {
         const placeholders = coIds.map(() => '?').join(',');
         const [liveRows] = await db.execute(
-          `SELECT u.id,
+          `SELECT u.id, u.username, u.role,
              COALESCE(c.full_name, u.full_name, u.username) AS name,
              COALESCE(c.image, u.profile_image) AS image,
              c.short_bio AS bio,
@@ -205,15 +216,19 @@ const list = asyncHandler(async (req, res) => {
         blog.co_authors = blog.co_authors.map(ca => {
           const live = liveMap[ca.id];
           if (!live) return ca;
+          // For admin users with no contributor record, fall back to static profile
+          const staticFallback = live.role === 'admin'
+            ? (ADMIN_PROFILES[live.username] || ADMIN_PROFILES['raghu'])
+            : null;
           return {
             id: ca.id,
             name: live.name || ca.name,
             image: live.image || ca.image,
-            bio: live.bio || ca.bio || '',
-            designation: live.designation || ca.designation || '',
-            linkedin: live.linkedin || ca.linkedin || '',
-            twitter_handle: live.twitter_handle || ca.twitter_handle || '',
-            personal_website: live.personal_website || ca.personal_website || '',
+            bio: live.bio || ca.bio || staticFallback?.bio || '',
+            designation: live.designation || ca.designation || staticFallback?.designation || '',
+            linkedin: live.linkedin || ca.linkedin || staticFallback?.linkedin || '',
+            twitter_handle: live.twitter_handle || ca.twitter_handle || staticFallback?.twitter_handle || '',
+            personal_website: live.personal_website || ca.personal_website || staticFallback?.personal_website || '',
           };
         });
       }
