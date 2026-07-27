@@ -412,7 +412,7 @@ export default function DynamicBlog() {
         badge_field_validated={blog.badge_field_validated}
         difficulty_level={blog.difficulty_level || null}
         content_version={blog.content_version || null}
-        preview_paragraphs={blog.preview_paragraphs ?? null}
+        preview_paragraphs={blog.paywall_preview ?? blog.preview_paragraphs ?? null}
         author_contributor_id={blog.author_contributor_id || null}
         dynamicRecentPosts={[]}
         viewCount={blog.view_count || 0}

@@ -13,38 +13,8 @@ function extractTOC(html) {
   return items.slice(0, 8);
 }
 
-/**
- * Slice HTML to the first `n` block-level elements (p, h2, h3, h4, ul, ol, blockquote, table).
- * Returns the sliced HTML string so we render only the preview portion.
- */
-function sliceToBlocks(html, n) {
-  if (!html || !n) return html;
-  const blockRe = /<(p|h[2-6]|ul|ol|blockquote|table|div|figure)[\s>]/gi;
-  let count = 0;
-  let idx = 0;
-  let match;
-  blockRe.lastIndex = 0;
-  while ((match = blockRe.exec(html)) !== null) {
-    count++;
-    if (count === n) {
-      // Find the closing tag for this block
-      const tag = match[1].toLowerCase();
-      const closeTag = `</${tag}>`;
-      const closeIdx = html.toLowerCase().indexOf(closeTag, match.index);
-      if (closeIdx !== -1) {
-        idx = closeIdx + closeTag.length;
-      } else {
-        idx = match.index + match[0].length;
-      }
-      break;
-    }
-    idx = match.index + match[0].length;
-  }
-  return count === 0 ? html : html.slice(0, idx);
-}
-
 // next-disabled: import "../css/members-paywall.css";
-const MembersOnlyPaywall = ({ children, rawContent = "", previewParagraphs = 3 }) => {
+const MembersOnlyPaywall = ({ children, rawContent = "" }) => {
   const { isLoggedIn } = useMemberAuth();
   const navigate = useNavigate();
 
@@ -53,7 +23,8 @@ const MembersOnlyPaywall = ({ children, rawContent = "", previewParagraphs = 3 }
   }
 
   const toc = extractTOC(rawContent);
-  const previewHtml = sliceToBlocks(rawContent, previewParagraphs);
+  // rawContent is already server-truncated to the correct preview block count.
+  const previewHtml = rawContent;
 
   return (
     <>
