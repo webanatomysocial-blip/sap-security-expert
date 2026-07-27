@@ -229,7 +229,7 @@ async function updateBlogStandard(db, id, f) {
      status=?, submission_status=?, rejection_feedback=NULL,
      author_id=?, author=?, seo_score=?, plagiarism_score=?, plagiarism_status='completed',
      is_members_only=?, is_premium=?, credits_required=?, related_blogs=?, co_authors=?, send_notification_email=?,
-     badge_expert_reviewed=?, badge_sap_notes_verified=?, badge_tested_s4hana=?, badge_field_validated=?, difficulty_level=?, content_version=?, preview_paragraphs=?,
+     badge_expert_reviewed=?, badge_sap_notes_verified=?, badge_tested_s4hana=?, badge_field_validated=?, difficulty_level=?, content_version=?, preview_paragraphs=?, preview_unit=?,
      updated_at=CURRENT_TIMESTAMP,
      ${publishDateSql}
      draft_title=NULL, draft_content=NULL, draft_excerpt=NULL, draft_image=NULL, draft_image_alt=NULL,
@@ -247,7 +247,7 @@ async function updateBlogStandard(db, id, f) {
      // (e.g. stale form state), premium wins and exclusive is cleared.
      parseInt(f.is_premium) ? 0 : parseInt(f.is_members_only),
      parseInt(f.is_premium), parseInt(f.credits_required) || 1, f.relatedBlogsJson, f.coAuthorsJson, parseInt(f.send_notification_email),
-     f.badge_expert_reviewed ? 1 : 0, f.badge_sap_notes_verified ? 1 : 0, f.badge_tested_s4hana ? 1 : 0, f.badge_field_validated ? 1 : 0, f.difficulty_level, f.newContentVersion, f.preview_paragraphs != null ? parseInt(f.preview_paragraphs) || null : null,
+     f.badge_expert_reviewed ? 1 : 0, f.badge_sap_notes_verified ? 1 : 0, f.badge_tested_s4hana ? 1 : 0, f.badge_field_validated ? 1 : 0, f.difficulty_level, f.newContentVersion, f.preview_paragraphs != null ? parseInt(f.preview_paragraphs) || null : null, f.preview_unit || 'blocks',
      ...publishParams, id]
   );
 }
@@ -260,12 +260,12 @@ async function insertBlog(db, f) {
       meta_title, meta_description, meta_keywords, schema_type, article_section,
       status, submission_status,
       seo_score, plagiarism_score, plagiarism_status, is_members_only, is_premium, credits_required, related_blogs, co_authors,
-      send_notification_email, badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level, content_version, preview_paragraphs,
+      send_notification_email, badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level, content_version, preview_paragraphs, preview_unit,
       publish_date, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?,''),CURRENT_DATE), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
              ?, ?,
              ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?,
-             ?, ?, ?, ?, ?, ?, ?, ?,
+             ?, ?, ?, ?, ?, ?, ?, ?, ?,
              ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
     [f.newId, f.title, f.slug, f.excerpt, f.content, f.authorName, f.author_id, f.date || '', f.image, f.image_alt || null, f.category, f.secondaryCatsJson, f.tags, f.faqsJson,
      f.cta_title, f.cta_description, f.cta_button_text, f.cta_button_link,
@@ -274,7 +274,7 @@ async function insertBlog(db, f) {
      f.targetStatus, f.subStatus,
      f.seoScore, f.finalPlag, parseInt(f.is_members_only), parseInt(f.is_premium), parseInt(f.credits_required) || 1, f.relatedBlogsJson, f.coAuthorsJson,
      parseInt(f.send_notification_email),
-     f.badge_expert_reviewed ? 1 : 0, f.badge_sap_notes_verified ? 1 : 0, f.badge_tested_s4hana ? 1 : 0, f.badge_field_validated ? 1 : 0, f.difficulty_level, '1.0', f.preview_paragraphs != null ? parseInt(f.preview_paragraphs) || null : null,
+     f.badge_expert_reviewed ? 1 : 0, f.badge_sap_notes_verified ? 1 : 0, f.badge_tested_s4hana ? 1 : 0, f.badge_field_validated ? 1 : 0, f.difficulty_level, '1.0', f.preview_paragraphs != null ? parseInt(f.preview_paragraphs) || null : null, f.preview_unit || 'blocks',
      f.publishDateVal]
   );
 }

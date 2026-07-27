@@ -519,31 +519,43 @@ const BlogEditor = ({
             </div>
           )}
 
-          {/* Paywall Preview — how many paragraphs to show before the gate */}
+          {/* Paywall Preview — how many blocks/lines to show before the gate */}
           {isAdmin && (formData.is_members_only == 1 || formData.is_premium == 1) && (
             <div className="form-group" style={{ marginBottom: "20px", background: "#f0f9ff", border: "1.5px solid #bae6fd", borderRadius: 8, padding: "14px 16px" }}>
               <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "700", color: "#0369a1" }}>
                 <i className="bi bi-eye-slash-fill" style={{ color: "#0369a1" }}></i>
-                Paywall Preview — Paragraphs to show
+                Paywall Preview
               </label>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
                 <input
                   type="number"
                   name="preview_paragraphs"
                   min="1"
-                  max="50"
+                  max="200"
                   placeholder="3"
                   value={formData.preview_paragraphs ?? ""}
                   onChange={handleInputChange}
                   className="form-control"
-                  style={{ width: "100px", padding: "8px 10px", fontSize: "0.9rem", border: "1.5px solid #bae6fd", background: "#f0f9ff" }}
+                  style={{ width: "90px", padding: "8px 10px", fontSize: "0.9rem", border: "1.5px solid #bae6fd", background: "#f0f9ff" }}
                 />
+                <select
+                  name="preview_unit"
+                  value={formData.preview_unit ?? "blocks"}
+                  onChange={handleInputChange}
+                  className="form-control"
+                  style={{ width: "110px", padding: "8px 10px", fontSize: "0.9rem", border: "1.5px solid #bae6fd", background: "#f0f9ff" }}
+                >
+                  <option value="blocks">Blocks</option>
+                  <option value="lines">Lines</option>
+                </select>
                 <span style={{ fontSize: "0.8rem", color: "#0369a1" }}>
-                  {formData.preview_paragraphs ? `${formData.preview_paragraphs} block(s) shown before paywall` : "Leave blank to use site default (3)"}
+                  {formData.preview_paragraphs
+                    ? `${formData.preview_paragraphs} ${formData.preview_unit === "lines" ? "line(s)" : "block(s)"} shown before paywall`
+                    : "Leave blank to use site default"}
                 </span>
               </div>
               <span style={{ fontSize: "0.75rem", color: "#0369a1", marginTop: "6px", display: "block" }}>
-                Counts paragraphs, headings, lists, and tables. Overrides the site-wide default.
+                <strong>Blocks</strong> = paragraphs, headings, lists, tables. &nbsp;<strong>Lines</strong> = approx. text lines (~80 chars each). Overrides the site-wide default.
               </span>
             </div>
           )}

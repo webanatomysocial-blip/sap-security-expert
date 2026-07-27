@@ -66,10 +66,12 @@ CREATE TABLE IF NOT EXISTS `member_file_downloads` (
 -- 2. MISSING COLUMNS ON EXISTING TABLES
 -- -----------------------------------------------------------------------------
 
--- 2a. blogs — preview_paragraphs
+-- 2a. blogs — preview_paragraphs + preview_unit
 --     Referenced in postsRepository.js UPDATE and INSERT; not in prod schema.
 ALTER TABLE `blogs`
   ADD COLUMN IF NOT EXISTS `preview_paragraphs` INT DEFAULT NULL;
+ALTER TABLE `blogs`
+  ADD COLUMN IF NOT EXISTS `preview_unit` VARCHAR(10) DEFAULT 'blocks';
 
 -- 2b. payment_orders — razorpay_payment_id
 --     Already in prod schema — included here as a reference; skip if present.
