@@ -77,7 +77,7 @@ const review = asyncHandler(async (req, res) => {
       const member = await repo.findMemberIdByEmail(db, blog.author_email);
       if (member) {
         getActivityCredits(db, 'article_published', 20).then((amt) =>
-          grantBonus(db, member.id, amt, `Article published: blog #${id}`)
+          grantBonus(db, member.id, amt, `Article published: ${blog.title}`)
         ).catch(() => {});
       }
     }
