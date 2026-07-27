@@ -501,7 +501,7 @@ const list = asyncHandler(async (req, res) => {
     // Public, non-locked posts can be cached by the browser/CDN for 5 minutes
     const isPublicAndOpen = !isAdmin && !isContributor && !blog.premium_locked && !isMembersOnly;
     if (isPublicAndOpen) {
-      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=60');
     } else {
       res.setHeader('Cache-Control', 'private, no-store');
     }
