@@ -17,6 +17,11 @@ const STATIC_PAGES = [
   { url: '/contributors',              priority: 0.6, changeFrequency: 'weekly'  },
   { url: '/leaderboard',               priority: 0.5, changeFrequency: 'weekly'  },
   { url: '/transactions',              priority: 0.6, changeFrequency: 'monthly' },
+  { url: '/downloads',                 priority: 0.7, changeFrequency: 'weekly'  },
+  { url: '/sap-licensing',             priority: 0.7, changeFrequency: 'weekly'  },
+  { url: '/sitemap',                   priority: 0.4, changeFrequency: 'monthly' },
+  { url: '/privacy-policy',            priority: 0.3, changeFrequency: 'yearly'  },
+  { url: '/terms-conditions',          priority: 0.3, changeFrequency: 'yearly'  },
   { url: '/learning/security-fundamentals', priority: 0.7, changeFrequency: 'monthly' },
   { url: '/learning/user-management',      priority: 0.7, changeFrequency: 'monthly' },
   { url: '/learning/role-management',      priority: 0.7, changeFrequency: 'monthly' },
@@ -41,6 +46,7 @@ const CATEGORY_PAGES = [
   'sap-process-control',
   'sap-security-other',
   'sap-licensing',
+  'downloads',
 ];
 
 const toDate = (raw, fallback) => {
