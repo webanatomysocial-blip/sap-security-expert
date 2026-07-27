@@ -136,7 +136,7 @@ async function findIsPremiumById(db, id) {
   return row || null;
 }
 
-async function updateExclusive(db, id, isMembersOnly, previewParagraphs) {
+async function updateExclusive(db, id, isMembersOnly, previewParagraphs, previewUnit) {
   if (isMembersOnly) {
     // Enabling exclusive: clear is_premium (mutually exclusive flags — a blog
     // cannot be both. If it was premium, any member who had it unlocked via
@@ -144,9 +144,10 @@ async function updateExclusive(db, id, isMembersOnly, previewParagraphs) {
     // members-only gate instead of the credit paywall, which is the correct
     // intent when the admin explicitly switches from premium to exclusive).
     const pp = previewParagraphs != null ? parseInt(previewParagraphs) || null : null;
+    const pu = ['lines', 'blocks'].includes(previewUnit) ? previewUnit : 'blocks';
     await db.execute(
-      'UPDATE blogs SET is_members_only=1, is_premium=0, preview_paragraphs=? WHERE id=?',
-      [pp, id]
+      'UPDATE blogs SET is_members_only=1, is_premium=0, preview_paragraphs=?, preview_unit=? WHERE id=?',
+      [pp, pu, id]
     );
   } else {
     await db.execute('UPDATE blogs SET is_members_only=0 WHERE id=?', [id]);

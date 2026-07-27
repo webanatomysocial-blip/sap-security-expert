@@ -132,7 +132,7 @@ const bulkRecalculatePlagiarism = asyncHandler(async (req, res) => {
 // POST /api/admin/blogs/toggle-exclusive
 const toggleExclusive = asyncHandler(async (req, res) => {
   const db = req.db;
-  const { id, is_members_only, preview_paragraphs } = req.body || {};
+  const { id, is_members_only, preview_paragraphs, preview_unit } = req.body || {};
   if (!id) return sendError(res, 'ID required', 400);
 
   // Block enabling exclusive on a premium article
@@ -142,7 +142,7 @@ const toggleExclusive = asyncHandler(async (req, res) => {
       return sendError(res, 'Premium articles cannot be set as Exclusive.', 400);
     }
   }
-  await repo.updateExclusive(db, id, is_members_only ? 1 : 0, is_members_only ? preview_paragraphs : null);
+  await repo.updateExclusive(db, id, is_members_only ? 1 : 0, is_members_only ? preview_paragraphs : null, preview_unit);
   const audit = AuditService.fromRequest(db, req);
   audit.logReq('blog_exclusive_toggled', 'blog', id, `Blog #${id} exclusive=${is_members_only ? 1 : 0}, preview_paragraphs=${preview_paragraphs ?? 'n/a'}`).catch(() => {});
   return sendSuccess(res, { message: 'Exclusive content setting updated.' });

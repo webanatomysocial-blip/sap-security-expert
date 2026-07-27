@@ -53,21 +53,50 @@ export async function generateMetadata({ params }) {
 export default async function CatchAll({ params }) {
   const slug = (await params)?.slug || [];
   const isHomepage = slug.length === 0;
+  const firstSegment = slug[0] || '';
+  const isCategory = Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, firstSegment) && slug.length === 1;
 
-  if (!isHomepage) {
+  // Admin/member routes: no SSR content needed
+  if (SKIP_SEO.has(firstSegment)) {
     return <ClientApp />;
   }
 
-  // Homepage: fetch recent articles for SSR
+  // Non-homepage, non-category pages: inject a minimal descriptive block so
+  // Google doesn't see an empty body and flag it as a Soft 404
+  if (!isHomepage && !isCategory) {
+    return (
+      <>
+        <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+          <p>SAP Security Expert — expert knowledge for SAP Security, GRC, and BTP professionals.</p>
+        </div>
+        <ClientApp />
+      </>
+    );
+  }
+
+  // Homepage or category page: fetch articles for SSR
   let recentArticles = [];
   try {
-    const res = await fetch(`${INTERNAL_API}/api/posts`, { next: { revalidate: 3600 } });
+    const apiUrl = isCategory
+      ? `${INTERNAL_API}/api/posts?category=${encodeURIComponent(firstSegment)}&limit=20`
+      : `${INTERNAL_API}/api/posts`;
+    const res = await fetch(apiUrl, { next: { revalidate: 3600 } });
     if (res.ok) {
       const data = await res.json();
       const posts = Array.isArray(data) ? data : (data.posts || data.blogs || []);
-      recentArticles = posts.slice(0, 10);
+      recentArticles = posts.slice(0, isCategory ? 20 : 10);
     }
   } catch (_) {}
+
+  const pageTitle = isCategory
+    ? `${CATEGORY_LABELS[firstSegment]} — Articles & Guides`
+    : 'SAP Security, GRC & Cybersecurity Community';
+  const pageSubtitle = isCategory
+    ? `Expert articles, tutorials, and best practices for ${CATEGORY_LABELS[firstSegment]}.`
+    : 'Expert tutorials, best practices, and guides to protect your SAP landscape and advance your career.';
+  const listHeading = isCategory
+    ? `${CATEGORY_LABELS[firstSegment]} Articles`
+    : 'Latest Security Guides & Tutorials';
 
   return (
     <>
@@ -75,17 +104,17 @@ export default async function CatchAll({ params }) {
         <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
           <header style={{ textAlign: 'center', padding: '40px 0 30px' }}>
             <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>
-              SAP Security, GRC &amp; Cybersecurity Community
+              {pageTitle}
             </h1>
             <p style={{ fontSize: '1.1rem', color: '#475569', maxWidth: '680px', margin: '0 auto' }}>
-              Expert tutorials, best practices, and guides to protect your SAP landscape and advance your career.
+              {pageSubtitle}
             </p>
           </header>
 
           {recentArticles.length > 0 && (
             <main style={{ marginTop: '20px' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginBottom: '20px' }}>
-                Latest Security Guides &amp; Tutorials
+                {listHeading}
               </h2>
               {recentArticles.map((article) => (
                 <div

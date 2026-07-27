@@ -241,11 +241,12 @@ const list = asyncHandler(async (req, res) => {
     const isOwnBlog = isContributor && currentUserId && String(blog.author_user_id) === String(currentUserId);
     const hasAdminAccess = isAdmin || isOwnBlog;
 
-    // Resolve how many blocks to expose before the paywall:
+    // Resolve how many blocks/lines to expose before the paywall:
     // per-article setting wins; falls back to site default; then hardcoded 3.
     const siteDefaultRaw = await settingsRepo.getSetting(db, 'paywall_default_preview_paragraphs');
     const siteDefaultPreview = siteDefaultRaw != null ? parseInt(siteDefaultRaw) : 3;
     const effectivePreview = blog.preview_paragraphs != null ? parseInt(blog.preview_paragraphs) : siteDefaultPreview;
+    const effectiveUnit = blog.preview_unit || 'blocks';
 
     // Slice HTML to N block-level elements (counting ALL occurrences, not just
     // top-level, so wrapped content like <div><p>...</p></div> is handled).
@@ -313,9 +314,44 @@ const list = asyncHandler(async (req, res) => {
       return html; // fewer blocks than n — return everything
     }
 
+    function sliceToLines(html, n) {
+      if (!html || !n || n <= 0) return '';
+      const target = n * 80; // ~80 visible chars per line
+      let textLen = 0, inTag = false, cutPos = -1;
+      for (let i = 0; i < html.length; i++) {
+        const c = html[i];
+        if (c === '<') { inTag = true; continue; }
+        if (c === '>') { inTag = false; continue; }
+        if (!inTag) {
+          textLen++;
+          if (textLen >= target) { cutPos = i + 1; break; }
+        }
+      }
+      if (cutPos === -1) return html;
+      // advance to end of current text node before the next tag
+      while (cutPos < html.length && html[cutPos] !== '<') cutPos++;
+      // close any unclosed block-level ancestors
+      const BLOCKS = new Set(['p','h1','h2','h3','h4','h5','h6','ul','ol','blockquote','table','figure','div','section']);
+      const tagRe2 = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+      const stack = [];
+      let m2;
+      while ((m2 = tagRe2.exec(html)) !== null) {
+        if (m2.index >= cutPos) break;
+        const full = m2[0], tag = m2[1].toLowerCase();
+        if (!BLOCKS.has(tag) || full.endsWith('/>')) continue;
+        if (!full.startsWith('</')) { stack.push(tag); }
+        else { const idx = stack.lastIndexOf(tag); if (idx !== -1) stack.splice(idx, 1); }
+      }
+      let result = html.slice(0, cutPos);
+      for (let i = stack.length - 1; i >= 0; i--) result += `</${stack[i]}>`;
+      return result;
+    }
+
+    const sliceContent = (html, n) => effectiveUnit === 'lines' ? sliceToLines(html, n) : sliceToBlocks(html, n);
+
     if (isMembersOnly && !isMember && !hasAdminAccess) {
       const fullMembersContent = blog.content || '';
-      blog.content = sliceToBlocks(fullMembersContent, effectivePreview) || fullMembersContent.slice(0, 300);
+      blog.content = sliceContent(fullMembersContent, effectivePreview) || fullMembersContent.slice(0, 300);
       blog.paywall_preview = effectivePreview;
       blog.faqs = null;
       blog.cta_title = 'Professional Content Locked';
@@ -346,7 +382,7 @@ const list = asyncHandler(async (req, res) => {
         blog.credits_required = creditsRequired;
         blog.paywall_preview = effectivePreview;
         const fullContent = blog.content || '';
-        blog.content = sliceToBlocks(fullContent, effectivePreview) || fullContent.slice(0, 300);
+        blog.content = sliceContent(fullContent, effectivePreview) || fullContent.slice(0, 300);
         blog.faqs = null;
         blog.author_bio = null;
         blog.author_linkedin = null;
@@ -443,7 +479,8 @@ const save = asyncHandler(async (req, res) => {
           faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link = null,
           is_members_only: rawIsMembersOnly = 0, send_notification_email = 0, status: requestedStatus, related_blogs,
           schema_type = 'BlogPosting', article_section = null, co_authors = [],
-          difficulty_level: rawDifficultyLevel = null, preview_paragraphs: rawPreviewParagraphs = null } = data;
+          difficulty_level: rawDifficultyLevel = null, preview_paragraphs: rawPreviewParagraphs = null,
+          preview_unit: rawPreviewUnit = 'blocks' } = data;
 
   // Badges, is_premium, and credits_required are admin-only fields — contributors
   // submitting these in the request body must be silently ignored so they cannot
@@ -455,6 +492,7 @@ const save = asyncHandler(async (req, res) => {
   const is_premium = isAdmin ? (data.is_premium ?? 0) : 0;
   const credits_required = isAdmin ? (data.credits_required ?? 1) : 1;
   const preview_paragraphs = isAdmin && rawPreviewParagraphs != null ? (parseInt(rawPreviewParagraphs) || null) : null;
+  const preview_unit = isAdmin ? (['lines', 'blocks'].includes(rawPreviewUnit) ? rawPreviewUnit : 'blocks') : 'blocks';
   const VALID_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
   const difficulty_level = VALID_LEVELS.includes(rawDifficultyLevel) ? rawDifficultyLevel : null;
   const content = sanitizeBlogHtml(rawContent);
@@ -556,7 +594,7 @@ const save = asyncHandler(async (req, res) => {
       targetStatus, subStatus, author_id, authorName, seoScore, finalPlag,
       is_members_only, is_premium, credits_required, relatedBlogsJson, coAuthorsJson, send_notification_email,
       badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level, newContentVersion,
-      preview_paragraphs,
+      preview_paragraphs, preview_unit,
       setPublishDate,
     });
     cache.invalidate('homepage_data_public');
@@ -592,7 +630,7 @@ const save = asyncHandler(async (req, res) => {
       seoScore, finalPlag, is_members_only, is_premium, credits_required, relatedBlogsJson, coAuthorsJson,
       send_notification_email,
       badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level,
-      preview_paragraphs,
+      preview_paragraphs, preview_unit,
       publishDateVal,
     });
     cache.invalidate('homepage_data_public');
