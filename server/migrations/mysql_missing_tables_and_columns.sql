@@ -125,10 +125,23 @@ ALTER TABLE `comments`
 ALTER TABLE `post_views`
   ADD INDEX IF NOT EXISTS `idx_post_views_post_created` (`post_id`, `created_at`);
 
--- members
+-- members — missing columns added after initial schema
 ALTER TABLE `members`
-  ADD INDEX IF NOT EXISTS `idx_members_email`  (`email`),
-  ADD INDEX IF NOT EXISTS `idx_members_status` (`status`);
+  ADD COLUMN IF NOT EXISTS `username`           VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `credit_balance`     INT          NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS `referral_code`      VARCHAR(20)  DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `referred_by_code`   VARCHAR(20)  DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS `profile_visibility` TINYINT(1)   NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS `is_deleted`         TINYINT(1)   NOT NULL DEFAULT 0;
+
+ALTER TABLE `members`
+  ADD INDEX IF NOT EXISTS `idx_members_email`    (`email`),
+  ADD INDEX IF NOT EXISTS `idx_members_status`   (`status`),
+  ADD INDEX IF NOT EXISTS `idx_members_username` (`username`);
+
+-- post_views — ensure visitor_token column exists (prod schema may pre-date it)
+ALTER TABLE `post_views`
+  ADD COLUMN IF NOT EXISTS `visitor_token` VARCHAR(128) DEFAULT NULL;
 
 -- credit / unlock
 ALTER TABLE `member_blog_unlocks`

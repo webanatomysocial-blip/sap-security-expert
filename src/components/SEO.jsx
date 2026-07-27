@@ -1,4 +1,3 @@
-import React from "react";
 import { Helmet } from "react-helmet-async";
 import { VITE_SITE_URL } from "../utils/env";
 
@@ -49,10 +48,12 @@ const SEO = ({
       {/* Standard Metadata */}
       <title>{meta.title}</title>
       <meta name="description" content={meta.description} />
+      {meta.keywords && <meta name="keywords" content={meta.keywords} />}
       <meta name="author" content={meta.author} />
       <link rel="canonical" href={meta.url} />
 
-      {/* Open Graph / Facebook */}
+      {/* Open Graph */}
+      <meta property="og:site_name" content="SAP Security Expert" />
       <meta property="og:type" content={meta.type} />
       <meta property="og:url" content={meta.url} />
       <meta property="og:title" content={meta.title} />

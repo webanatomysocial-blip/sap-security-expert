@@ -1,4 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "react-router-dom";
@@ -205,10 +206,14 @@ const BlogLayout = ({
     return () => observer.disconnect();
   }, []);
 
-  // Update browser tab title on SPA navigation (Next.js generateMetadata handles <head> for SSR/bots)
-  useEffect(() => {
-    if (metaTitle || title) document.title = (metaTitle || title) + ' | SAP Security Expert';
-  }, [metaTitle, title]);
+  // SPA head tags — Helmet updates <head> on client navigation.
+  // Next.js generateMetadata handles SSR/bot head tags separately.
+  const pageTitle = ((metaTitle || title) ? (metaTitle || title) + ' | SAP Security Expert' : 'SAP Security Expert');
+  const pageDesc = metaDescription || title || '';
+  const pageImage = image
+    ? (image.startsWith('http') ? image : `${VITE_SITE_URL}${image.startsWith('/') ? '' : '/'}${image}`)
+    : `${VITE_SITE_URL}/assets/sapsecurityexpert-black.png`;
+  const pageUrl = currentUrl || `${VITE_SITE_URL}/${category}/${blogSlug}`;
 
   // JSON-LD Schema Construction — kept for potential future use but not injected (SSR page handles it)
   const schemaData = useMemo(() => {
@@ -350,6 +355,24 @@ const BlogLayout = ({
 
   return (
     <div className="blog-post-wrapper">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
+        {metaKeywords && <meta name="keywords" content={metaKeywords} />}
+        <link rel="canonical" href={pageUrl} />
+        <meta property="og:site_name" content="SAP Security Expert" />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:image" content={pageImage} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={pageUrl} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDesc} />
+        <meta name="twitter:image" content={pageImage} />
+        <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
+      </Helmet>
       {/* Sticky Post Header */}
       <div className={`blog-sticky-header${isSticky ? " blog-sticky-header--visible" : ""}`}>
         <div className="blog-sticky-inner">
@@ -653,26 +676,18 @@ const BlogLayout = ({
                     let caTwitter = ca.twitter_handle || ca.twitter || "";
                     let caWebsite = ca.personal_website || ca.website || "";
 
-                    if (caName.toLowerCase() === "raghu boddu" || ca.id === 1) {
-                      const fallback = staticAuthors.raghu_boddu || staticAuthors.admin;
-                      if (fallback) {
-                        if (!caBio) caBio = fallback.bio;
-                        if (!caImg || caImg.toUpperCase() === "NULL") caImg = fallback.image;
-                        if (!caDesignation) caDesignation = fallback.role || "SAP Security Architect & Founder";
-                        if (!caLinkedin) caLinkedin = fallback.socials?.linkedin;
-                        if (!caTwitter) caTwitter = fallback.socials?.twitter;
-                        if (!caWebsite) caWebsite = fallback.socials?.website;
-                      }
-                    } else {
+                    // Look up static author profile by slug ("Raghu Boddu" → "raghu_boddu"),
+                    // falling back to admin key for the site owner.
+                    {
                       const slugKey = caName.toLowerCase().replace(/\s+/g, "_");
-                      const fallback = staticAuthors[slugKey];
+                      const fallback = staticAuthors[slugKey] || staticAuthors.admin;
                       if (fallback) {
-                        if (!caBio) caBio = fallback.bio;
-                        if (!caImg || caImg.toUpperCase() === "NULL") caImg = fallback.image;
-                        if (!caDesignation) caDesignation = fallback.role;
-                        if (!caLinkedin) caLinkedin = fallback.socials?.linkedin;
-                        if (!caTwitter) caTwitter = fallback.socials?.twitter;
-                        if (!caWebsite) caWebsite = fallback.socials?.website;
+                        if (!caBio || !caBio.trim()) caBio = fallback.bio || "";
+                        if (!caImg || caImg.toUpperCase() === "NULL") caImg = fallback.image || "";
+                        if (!caDesignation || !caDesignation.trim()) caDesignation = fallback.role || (slugKey === "raghu_boddu" ? "SAP Security & GRC Expert | Founder" : "");
+                        if (!caLinkedin) caLinkedin = fallback.socials?.linkedin || "";
+                        if (!caTwitter) caTwitter = fallback.socials?.twitter || "";
+                        if (!caWebsite) caWebsite = fallback.socials?.website || "";
                       }
                     }
 

@@ -331,7 +331,7 @@ export default function MemberCredits() {
           { key: "purchases", label: "Purchase History", count: paidPurchases.length },
           { key: "activity", label: "Activity Credits", count: bonusCredits.length },
           { key: "unlocks", label: "Unlocked Articles", count: unlocks.length },
-          { key: "downloads", label: "Downloads", count: downloads?.length ?? 0 },
+          { key: "downloads", label: "Downloads", count: downloads === null ? "…" : downloads.length },
           { key: "referral", label: "Referral", count: referral?.referrals_count ?? 0 },
         ].map((t) => (
           <button

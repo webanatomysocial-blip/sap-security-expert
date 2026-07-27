@@ -154,17 +154,21 @@ async function updateExclusive(db, id, isMembersOnly, previewParagraphs, preview
   }
 }
 
-async function updatePremium(db, id, isPremium, creditsRequired) {
+async function updatePremium(db, id, isPremium, creditsRequired, previewParagraphs, previewUnit) {
   // Premium and Exclusive are mutually exclusive content tiers — switching a
   // blog to Premium must clear any lingering is_members_only flag, otherwise
   // the row is left in an inconsistent dual-flagged state (the admin list UI
   // optimistically displayed Exclusive as cleared, but the DB never was).
-  if (isPremium && creditsRequired != null) {
-    await db.execute('UPDATE blogs SET is_premium=?, is_members_only=0, credits_required=? WHERE id=?', [1, creditsRequired, id]);
-  } else if (isPremium) {
-    await db.execute('UPDATE blogs SET is_premium=?, is_members_only=0 WHERE id=?', [isPremium, id]);
+  const pp = previewParagraphs != null ? (parseInt(previewParagraphs) || null) : null;
+  const pu = ['lines', 'blocks'].includes(previewUnit) ? previewUnit : 'blocks';
+  if (isPremium) {
+    const cr = creditsRequired != null ? (parseInt(creditsRequired) || 1) : 1;
+    await db.execute(
+      'UPDATE blogs SET is_premium=1, is_members_only=0, credits_required=?, preview_paragraphs=?, preview_unit=? WHERE id=?',
+      [cr, pp, pu, id]
+    );
   } else {
-    await db.execute('UPDATE blogs SET is_premium=? WHERE id=?', [isPremium, id]);
+    await db.execute('UPDATE blogs SET is_premium=0 WHERE id=?', [id]);
   }
 }
 

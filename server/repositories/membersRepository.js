@@ -2,11 +2,20 @@ const { isSQLite } = require('../db');
 
 // ── Login ─────────────────────────────────────────────────────────────────
 async function findMemberByEmailOrUsername(db, emailInput) {
-  const [rows] = await db.execute(
-    'SELECT * FROM members WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1',
-    [emailInput, emailInput]
-  );
-  return rows[0] || null;
+  try {
+    const [rows] = await db.execute(
+      'SELECT * FROM members WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1',
+      [emailInput, emailInput]
+    );
+    return rows[0] || null;
+  } catch (_) {
+    // Fallback: username column may not exist in prod yet (run migration to fix)
+    const [rows] = await db.execute(
+      'SELECT * FROM members WHERE LOWER(email) = LOWER(?) LIMIT 1',
+      [emailInput]
+    );
+    return rows[0] || null;
+  }
 }
 
 async function findUserByEmailOrUsername(db, emailInput) {

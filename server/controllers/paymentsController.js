@@ -603,11 +603,15 @@ const downloadFile = async (req, res) => {
 };
 
 const myDownloads = async (req, res) => {
-  const [rows] = await req.db.execute(
-    'SELECT file_url, original_name, credits_spent, downloaded_at FROM member_file_downloads WHERE member_id = ? ORDER BY downloaded_at DESC',
-    [req.session.member_id]
-  );
-  return res.json({ status: 'success', downloads: rows });
+  try {
+    const [rows] = await req.db.execute(
+      'SELECT file_url, original_name, credits_spent, downloaded_at FROM member_file_downloads WHERE member_id = ? ORDER BY downloaded_at DESC',
+      [req.session.member_id]
+    );
+    return res.json({ status: 'success', downloads: rows });
+  } catch {
+    return res.json({ status: 'success', downloads: [] });
+  }
 };
 
 module.exports = {

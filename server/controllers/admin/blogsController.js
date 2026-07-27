@@ -4,7 +4,6 @@ const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
 const CacheService = require('../../services/CacheService');
-const { grantBonus, getActivityCredits } = require('../../services/CreditHelper');
 const { checkPlagiarismScore } = require('../../utils/helpers');
 const { revalidateBlog } = require('../../utils/revalidate');
 const repo = require('../../repositories/admin/blogsRepository');
@@ -145,13 +144,13 @@ const toggleExclusive = asyncHandler(async (req, res) => {
 // POST /api/admin/blogs/toggle-premium
 const togglePremium = asyncHandler(async (req, res) => {
   const db = req.db;
-  const { id, is_premium, credits_required } = req.body || {};
+  const { id, is_premium, credits_required, preview_paragraphs, preview_unit } = req.body || {};
   if (!id) return sendError(res, 'ID required', 400);
 
   const isPremium = is_premium ? 1 : 0;
-  await repo.updatePremium(db, id, isPremium, credits_required != null ? (parseInt(credits_required) || 1) : null);
+  await repo.updatePremium(db, id, isPremium, credits_required != null ? (parseInt(credits_required) || 1) : null, isPremium ? preview_paragraphs : null, preview_unit);
   const audit = AuditService.fromRequest(db, req);
-  audit.logReq('blog_premium_toggled', 'blog', id, `Blog #${id} premium=${isPremium}, credits_required=${credits_required ?? 'n/a'}`).catch(() => {});
+  audit.logReq('blog_premium_toggled', 'blog', id, `Blog #${id} premium=${isPremium}, credits_required=${credits_required ?? 'n/a'}, preview_paragraphs=${preview_paragraphs ?? 'n/a'}`).catch(() => {});
   return sendSuccess(res, { message: 'Premium setting updated.' });
 });
 
