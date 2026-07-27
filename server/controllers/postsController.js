@@ -247,30 +247,70 @@ const list = asyncHandler(async (req, res) => {
     const siteDefaultPreview = siteDefaultRaw != null ? parseInt(siteDefaultRaw) : 3;
     const effectivePreview = blog.preview_paragraphs != null ? parseInt(blog.preview_paragraphs) : siteDefaultPreview;
 
-    // Slice HTML to N top-level block elements. Tracks nesting depth so a <div>
-    // containing inner <p> tags counts as ONE block (not 1 + N), and the output
-    // is always well-formed (never cuts mid-nesting leaving unclosed tags).
+    // Slice HTML to N block-level elements (counting ALL occurrences, not just
+    // top-level, so wrapped content like <div><p>...</p></div> is handled).
+    // After finding the Nth block's closing tag, any unclosed ancestor tags
+    // are appended so the output is always well-formed HTML.
+    //
+    // "matching close" helper: finds the close tag that matches the Nth opening
+    // of <tag> starting from `fromPos`, handling nested same-type tags.
+    function findMatchingClose(html, tag, fromPos) {
+      const lo = html.toLowerCase();
+      const open = `<${tag}`;
+      const close = `</${tag}>`;
+      let depth = 1, pos = fromPos;
+      while (pos < lo.length) {
+        const o = lo.indexOf(open, pos);
+        const c = lo.indexOf(close, pos);
+        if (c === -1) return -1;
+        // Check that the candidate open tag is actually a tag (not a substring of another tag)
+        const validOpen = o !== -1 && o < c && (lo[o + open.length] === '>' || lo[o + open.length] === ' ' || lo[o + open.length] === '\n' || lo[o + open.length] === '\t' || lo[o + open.length] === '/');
+        if (validOpen) { depth++; pos = o + open.length; }
+        else { depth--; pos = c + close.length; if (depth === 0) return pos; }
+      }
+      return -1;
+    }
+
     function sliceToBlocks(html, n) {
       if (!html || !n || n <= 0) return '';
       const BLOCKS = new Set(['p','h1','h2','h3','h4','h5','h6','ul','ol','blockquote','table','figure','div','section']);
       const tagRe = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
-      let depth = 0, count = 0, match;
+      let count = 0, match;
+      const openStack = []; // tracks ancestors of the current position
+
       while ((match = tagRe.exec(html)) !== null) {
         const full = match[0];
         const tag = match[1].toLowerCase();
         if (!BLOCKS.has(tag)) continue;
-        if (full.endsWith('/>')) continue; // self-closing
+        if (full.endsWith('/>')) continue;
+
         if (!full.startsWith('</')) {
-          if (depth === 0) count++;
-          depth++;
-        } else {
-          if (depth > 0) depth--;
-          if (depth === 0 && count === n) {
-            return html.slice(0, match.index + full.length);
+          // Opening tag
+          openStack.push(tag);
+          count++;
+
+          if (count === n) {
+            // Find the matching close tag for this element
+            const afterOpen = match.index + full.length;
+            const closeEnd = findMatchingClose(html, tag, afterOpen);
+            let endPos = closeEnd !== -1 ? closeEnd : afterOpen;
+
+            // Build output: content up to end of Nth element …
+            let result = html.slice(0, endPos);
+            // … then close any still-open ancestors (the Nth element itself was closed above)
+            openStack.pop(); // remove Nth element
+            for (let i = openStack.length - 1; i >= 0; i--) {
+              result += `</${openStack[i]}>`;
+            }
+            return result;
           }
+        } else {
+          // Closing tag — pop matching open from stack
+          const idx = openStack.lastIndexOf(tag);
+          if (idx !== -1) openStack.splice(idx, 1);
         }
       }
-      return html; // fewer top-level blocks than n — return everything
+      return html; // fewer blocks than n — return everything
     }
 
     if (isMembersOnly && !isMember && !hasAdminAccess) {
