@@ -177,17 +177,18 @@ function App() {
           <Route path="apply-contributor" element={<ContributorApplication />} />
           <Route path="contributor/:id" element={<ContributorProfile />} />
           <Route path="leaderboard" element={<ContributorsLeaderboard />} />
-          <Route path="member/:id" element={<MemberPublicProfile />} />
           <Route path="about" element={<About />} />
           <Route path="contact-us" element={<ContactUs />} />
 
-          {/* Members Only Auth Pages */}
+          {/* Members Only Auth Pages — must come before member/:id */}
           <Route path="member/login" element={<MemberLogin />} />
           <Route path="member/signup" element={<MemberSignup />} />
+          <Route path="member/register" element={<Navigate to="/member/signup" replace />} />
           <Route path="member/credits" element={<MemberCredits />} />
           <Route path="member/achievements" element={<MemberAchievements />} />
           <Route path="member/invoice/:txId" element={<MemberInvoice />} />
           <Route path="member/settings" element={<ProfileSettings />} />
+          <Route path="member/:id" element={<MemberPublicProfile />} />
           <Route path="paid-articles" element={<PaidArticles />} />
           <Route path="membership" element={<MembershipPage />} />
           <Route path="forgot-password" element={<ForgotPassword />} />

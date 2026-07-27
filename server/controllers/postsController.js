@@ -7,8 +7,26 @@ const MailService = require('../services/MailService');
 const CacheService = require('../services/CacheService');
 const { revalidateBlog } = require('../utils/revalidate');
 const repo = require('../repositories/postsRepository');
+const settingsRepo = require('../repositories/admin/settingsRepository');
+const { grantBonus, getActivityCredits } = require('../services/CreditHelper');
 
 const cache = new CacheService(1800);
+
+async function grantArticleCredits(db, authorId, blogTitle) {
+  try {
+    const [rows] = await db.execute(
+      'SELECT u.email FROM users u WHERE u.id = ? LIMIT 1', [authorId]
+    );
+    const email = rows[0]?.email;
+    if (!email) return;
+    const [mRows] = await db.execute(
+      'SELECT id FROM members WHERE LOWER(email)=LOWER(?) LIMIT 1', [email]
+    );
+    if (!mRows[0]) return;
+    const amt = await getActivityCredits(db, 'article_published', 20);
+    await grantBonus(db, mRows[0].id, amt, `Article published: ${blogTitle}`);
+  } catch { /* non-critical */ }
+}
 
 // Internal-only DB columns (draft/pending-edit fields, moderation/plagiarism
 // data, review metadata) that must never reach a public API response — the
@@ -162,6 +180,36 @@ const list = asyncHandler(async (req, res) => {
     // Parse co_authors JSON
     try { blog.co_authors = blog.co_authors ? JSON.parse(blog.co_authors) : []; } catch { blog.co_authors = []; }
 
+    // Enrich co-authors with live contributor data (bio, designation, socials)
+    // so old records stored before those fields were saved also display correctly.
+    if (blog.co_authors.length > 0) {
+      const coIds = blog.co_authors.map(ca => ca.id).filter(Boolean);
+      if (coIds.length > 0) {
+        const placeholders = coIds.map(() => '?').join(',');
+        const [contribRows] = await db.execute(
+          `SELECT id, full_name, image, short_bio AS bio, designation, linkedin, twitter_handle, personal_website
+           FROM contributors WHERE id IN (${placeholders})`,
+          coIds
+        );
+        const contribMap = {};
+        contribRows.forEach(r => { contribMap[r.id] = r; });
+        blog.co_authors = blog.co_authors.map(ca => {
+          const live = contribMap[ca.id];
+          if (!live) return ca;
+          return {
+            id: ca.id,
+            name: live.full_name || ca.name,
+            image: live.image || ca.image,
+            bio: live.bio || ca.bio || '',
+            designation: live.designation || ca.designation || '',
+            linkedin: live.linkedin || ca.linkedin || '',
+            twitter_handle: live.twitter_handle || ca.twitter_handle || '',
+            personal_website: live.personal_website || ca.personal_website || '',
+          };
+        });
+      }
+    }
+
     // Exclusivity enforcement (free members gate)
     const isMembersOnly = parseInt(blog.is_members_only || 0);
     const isMember = !!sess.member_logged_in;
@@ -169,11 +217,34 @@ const list = asyncHandler(async (req, res) => {
     const isOwnBlog = isContributor && currentUserId && String(blog.author_user_id) === String(currentUserId);
     const hasAdminAccess = isAdmin || isOwnBlog;
 
+    // Resolve how many blocks to expose before the paywall:
+    // per-article setting wins; falls back to site default; then hardcoded 3.
+    const siteDefaultRaw = await settingsRepo.getSetting(db, 'paywall_default_preview_paragraphs');
+    const siteDefaultPreview = siteDefaultRaw != null ? parseInt(siteDefaultRaw) : 3;
+    const effectivePreview = blog.preview_paragraphs != null ? parseInt(blog.preview_paragraphs) : siteDefaultPreview;
+
+    // Slice HTML to N block-level elements (p, h2-h6, ul, ol, blockquote, table, figure)
+    function sliceToBlocks(html, n) {
+      if (!html || !n) return html;
+      const blockRe = /<(p|h[2-6]|ul|ol|blockquote|table|div|figure)[\s>]/gi;
+      let count = 0; let idx = 0; let match;
+      blockRe.lastIndex = 0;
+      while ((match = blockRe.exec(html)) !== null) {
+        count++;
+        if (count === n) {
+          const closeTag = `</${match[1].toLowerCase()}>`;
+          const closeIdx = html.toLowerCase().indexOf(closeTag, match.index);
+          idx = closeIdx !== -1 ? closeIdx + closeTag.length : match.index + match[0].length;
+          break;
+        }
+        idx = match.index + match[0].length;
+      }
+      return count === 0 ? html : html.slice(0, idx);
+    }
+
     if (isMembersOnly && !isMember && !hasAdminAccess) {
-      // Send only the first paragraph as teaser for non-members
       const fullMembersContent = blog.content || '';
-      const membersParagraphs = fullMembersContent.match(/<p[\s\S]*?<\/p>/gi) || [];
-      blog.content = membersParagraphs[0] || fullMembersContent.slice(0, 300);
+      blog.content = sliceToBlocks(fullMembersContent, effectivePreview) || fullMembersContent.slice(0, 300);
       blog.faqs = null;
       blog.cta_title = 'Professional Content Locked';
       blog.cta_description = 'Join our expert community to access premium SAP security insights.';
@@ -201,10 +272,8 @@ const list = asyncHandler(async (req, res) => {
         blog.premium_locked = true;
         blog.premium_locked_reason = sess.member_logged_in ? 'credits' : 'login';
         blog.credits_required = creditsRequired;
-        // Send ONLY the first paragraph as a teaser — not a fraction of the full article
         const fullContent = blog.content || '';
-        const paragraphs = fullContent.match(/<p[\s\S]*?<\/p>/gi) || [];
-        blog.content = paragraphs[0] || fullContent.slice(0, 300);
+        blog.content = sliceToBlocks(fullContent, effectivePreview) || fullContent.slice(0, 300);
         blog.faqs = null;
         blog.author_bio = null;
         blog.author_linkedin = null;
@@ -420,6 +489,9 @@ const save = asyncHandler(async (req, res) => {
     cache.invalidate('homepage_data_public');
     revalidateBlog(category, slug).catch(() => {});
 
+    if (['approved','published'].includes(targetStatus) && !['approved','published'].includes(ex.status)) {
+      grantArticleCredits(db, author_id, title).catch(() => {});
+    }
     if (['approved','published'].includes(targetStatus) && send_notification_email) {
       mailService.queuePendingBlogNotifications(db).catch(() => {});
     }
@@ -456,6 +528,9 @@ const save = asyncHandler(async (req, res) => {
     }
 
     if (!isAdmin) notifier.notifyBlogSubmitted(title, authorName).catch(() => {});
+    if (['approved','published'].includes(targetStatus)) {
+      grantArticleCredits(db, author_id, title).catch(() => {});
+    }
     if (['approved','published'].includes(targetStatus) && send_notification_email) {
       mailService.queuePendingBlogNotifications(db).catch(() => {});
     }

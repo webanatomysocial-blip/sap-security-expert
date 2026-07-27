@@ -256,15 +256,9 @@ export default function MemberCredits() {
     if (!isLoggedIn) { navigate("/member/login", { state: { from: "/member/credits" } }); return; }
     reload();
     getMemberReferral().then((r) => setReferral(r.data)).catch(() => {});
+    setDownloadsLoading(true);
+    getMyDownloads().then((r) => setDownloads(r.data?.downloads || [])).catch(() => setDownloads([])).finally(() => setDownloadsLoading(false));
   }, [isLoggedIn]);
-
-  // Lazy-load downloads when that tab is first opened
-  useEffect(() => {
-    if (activeTab === "downloads" && downloads === null) {
-      setDownloadsLoading(true);
-      getMyDownloads().then((r) => setDownloads(r.data?.downloads || [])).catch(() => setDownloads([])).finally(() => setDownloadsLoading(false));
-    }
-  }, [activeTab]);
 
   const handleCopy = () => {
     if (!referral?.referral_link) return;
