@@ -12,6 +12,7 @@ import ShareButton from "./ShareButton";
 import BlogSidebar from "./BlogSidebar";
 import CommentSection from "./CommentSection";
 import AuthorProfile from "./AuthorProfile";
+import { authors as staticAuthors } from "../data/authors";
 import FAQ from "./FAQ";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import MembersOnlyPaywall from "./MembersOnlyPaywall";
@@ -644,14 +645,44 @@ const BlogLayout = ({
 
                   {/* Co-author cards */}
                   {co_authors && co_authors.map((ca, idx) => {
-                    const caImg = ca.image ? ca.image.trim() : "";
+                    let caName = ca.name || "";
+                    let caBio = ca.bio || "";
+                    let caImg = ca.image ? ca.image.trim() : "";
+                    let caDesignation = ca.designation || "";
+                    let caLinkedin = ca.linkedin || "";
+                    let caTwitter = ca.twitter_handle || ca.twitter || "";
+                    let caWebsite = ca.personal_website || ca.website || "";
+
+                    if (caName.toLowerCase() === "raghu boddu" || ca.id === 1) {
+                      const fallback = staticAuthors.raghu_boddu || staticAuthors.admin;
+                      if (fallback) {
+                        if (!caBio) caBio = fallback.bio;
+                        if (!caImg || caImg.toUpperCase() === "NULL") caImg = fallback.image;
+                        if (!caDesignation) caDesignation = fallback.role || "SAP Security Architect & Founder";
+                        if (!caLinkedin) caLinkedin = fallback.socials?.linkedin;
+                        if (!caTwitter) caTwitter = fallback.socials?.twitter;
+                        if (!caWebsite) caWebsite = fallback.socials?.website;
+                      }
+                    } else {
+                      const slugKey = caName.toLowerCase().replace(/\s+/g, "_");
+                      const fallback = staticAuthors[slugKey];
+                      if (fallback) {
+                        if (!caBio) caBio = fallback.bio;
+                        if (!caImg || caImg.toUpperCase() === "NULL") caImg = fallback.image;
+                        if (!caDesignation) caDesignation = fallback.role;
+                        if (!caLinkedin) caLinkedin = fallback.socials?.linkedin;
+                        if (!caTwitter) caTwitter = fallback.socials?.twitter;
+                        if (!caWebsite) caWebsite = fallback.socials?.website;
+                      }
+                    }
+
                     const cleanCaImg = caImg === "" || caImg.toUpperCase() === "NULL" ? null : caImg;
                     return (
                       <div key={ca.id || idx} className="bl-author-card bl-author-card--coauthor">
                         <div className="bl-author-card__left">
                           <Image
                             src={cleanCaImg || "https://placehold.co/100x100?text=Author"}
-                            alt={ca.name || "Co-author"}
+                            alt={caName || "Co-author"}
                             width={64}
                             height={64}
                             className="bl-author-avatar"
@@ -660,23 +691,23 @@ const BlogLayout = ({
                           <span className="bl-author-role-badge bl-author-role-badge--coauthor">Co-author</span>
                         </div>
                         <div className="bl-author-card__body">
-                          <h3 className="bl-author-name">{ca.name}</h3>
-                          {ca.designation && <p className="bl-author-designation">{ca.designation}</p>}
-                          <p className="bl-author-bio">{ca.bio || ""}</p>
-                          {(ca.linkedin || ca.twitter_handle || ca.personal_website) && (
+                          <h3 className="bl-author-name">{caName}</h3>
+                          {caDesignation && <p className="bl-author-designation">{caDesignation}</p>}
+                          <p className="bl-author-bio">{caBio || ""}</p>
+                          {(caLinkedin || caTwitter || caWebsite) && (
                             <div className="bl-author-socials">
-                              {ca.linkedin && (
-                                <a href={ca.linkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
+                              {caLinkedin && (
+                                <a href={caLinkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
                                   <FaLinkedin size={15} />
                                 </a>
                               )}
-                              {ca.twitter_handle && (
-                                <a href={ca.twitter_handle} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
+                              {caTwitter && (
+                                <a href={caTwitter} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
                                   <FaXTwitter size={15} />
                                 </a>
                               )}
-                              {ca.personal_website && (
-                                <a href={ca.personal_website} target="_blank" rel="noopener noreferrer" title="Website" className="bl-social-link bl-social-link--web">
+                              {caWebsite && (
+                                <a href={caWebsite} target="_blank" rel="noopener noreferrer" title="Website" className="bl-social-link bl-social-link--web">
                                   <FaGlobe size={15} />
                                 </a>
                               )}

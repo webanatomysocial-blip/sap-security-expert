@@ -40,4 +40,36 @@ async function grantBonus(db, memberId, amount, note) {
   return true;
 }
 
-module.exports = { grantBonus, getActivityCredits };
+/**
+ * Grants credits to the author of a blog when it gets published/approved.
+ * Replay-safe using a unique note containing the blog's title.
+ */
+async function grantArticlePublishedCredits(db, blogId) {
+  if (!blogId) return;
+  try {
+    const [blogs] = await db.execute(
+      `SELECT b.id, b.title, u.email AS author_email
+       FROM blogs b
+       LEFT JOIN users u ON b.author_id = u.id
+       WHERE b.id = ? LIMIT 1`,
+      [blogId]
+    );
+    const blog = blogs[0];
+    if (!blog || !blog.author_email) return;
+
+    const [members] = await db.execute(
+      'SELECT id FROM members WHERE LOWER(email) = LOWER(?) LIMIT 1',
+      [blog.author_email]
+    );
+    const member = members[0];
+    if (!member) return;
+
+    const amt = await getActivityCredits(db, 'article_published', 20);
+    const note = `Article published: "${blog.title}"`;
+    await grantBonus(db, member.id, amt, note);
+  } catch (err) {
+    console.error('[CreditHelper] Failed to grant article credits:', err.message);
+  }
+}
+
+module.exports = { grantBonus, getActivityCredits, grantArticlePublishedCredits };
