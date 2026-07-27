@@ -94,6 +94,8 @@ export async function generateMetadata({ params }) {
   return {
     title: d.title,
     description: d.description,
+    robots: 'index, follow',
+    ...(d.keywords ? { keywords: d.keywords } : {}),
     alternates: { canonical: d.url || `${SITE_URL}${path}` },
     openGraph: {
       title: d.title,

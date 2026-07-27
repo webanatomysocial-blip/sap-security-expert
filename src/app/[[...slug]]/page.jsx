@@ -136,6 +136,7 @@ function buildMeta(d) {
     title: d.title,
     description: d.description,
     robots: 'index, follow',
+    ...(d.keywords ? { keywords: d.keywords } : {}),
     alternates: { canonical: d.url },
     openGraph: {
       title: d.title,
