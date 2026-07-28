@@ -4,7 +4,6 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { Helmet } from "react-helmet-async";
 import "../css/ContactForm.css";
 import "../css/MemberLogin.css";
 
@@ -141,9 +140,7 @@ const MemberLogin = () => {
       />
     )}
     <div className="login-page-wrapper">
-      <Helmet>
-        <title>Member Login | SAP Security Expert</title>
-      </Helmet>
+      <title>Member Login | SAP Security Expert</title>
 
       <div className="login-page-container">
         <div className="login-split-grid">

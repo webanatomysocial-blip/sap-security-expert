@@ -32,7 +32,7 @@ const CATEGORY_LABELS = {
 
 export async function generateMetadata({ params }) {
   const slug = (await params)?.slug || [];
-  if (SKIP_SEO.has(slug[0])) return { title: 'SAP Security Expert', robots: 'noindex, nofollow' };
+  if (SKIP_SEO.has(slug[0])) return { title: 'SAP Security Expert', robots: { index: false, follow: false } };
 
   const path = slug.length ? '/' + slug.join('/') : '/';
 
@@ -169,7 +169,10 @@ function buildMeta(d) {
   return {
     title: d.title,
     description: d.description,
-    robots: 'index, follow',
+    robots: {
+      index: true,
+      follow: true,
+    },
     ...(d.keywords ? { keywords: d.keywords } : {}),
     alternates: { canonical: d.url },
     openGraph: {
@@ -198,7 +201,10 @@ function defaultMeta(path) {
   return {
     title,
     description,
-    robots: 'index, follow',
+    robots: {
+      index: true,
+      follow: true,
+    },
     alternates: { canonical: url },
     openGraph: {
       title,

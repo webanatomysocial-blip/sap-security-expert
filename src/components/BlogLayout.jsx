@@ -1,5 +1,4 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "react-router-dom";
@@ -355,24 +354,24 @@ const BlogLayout = ({
 
   return (
     <div className="blog-post-wrapper">
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDesc} />
-        {metaKeywords && <meta name="keywords" content={metaKeywords} />}
-        <link rel="canonical" href={pageUrl} />
-        <meta property="og:site_name" content="SAP Security Expert" />
-        <meta property="og:type" content="article" />
-        <meta property="og:url" content={pageUrl} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDesc} />
-        <meta property="og:image" content={pageImage} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:url" content={pageUrl} />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDesc} />
-        <meta name="twitter:image" content={pageImage} />
-        <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
-      </Helmet>
+    <>
+      <title>{pageTitle}</title>
+      <meta name="description" content={pageDesc} />
+      {metaKeywords && <meta name="keywords" content={metaKeywords} />}
+      <link rel="canonical" href={pageUrl} />
+      <meta property="og:site_name" content="SAP Security Expert" />
+      <meta property="og:type" content="article" />
+      <meta property="og:url" content={pageUrl} />
+      <meta property="og:title" content={pageTitle} />
+      <meta property="og:description" content={pageDesc} />
+      <meta property="og:image" content={pageImage} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:url" content={pageUrl} />
+      <meta name="twitter:title" content={pageTitle} />
+      <meta name="twitter:description" content={pageDesc} />
+      <meta name="twitter:image" content={pageImage} />
+      <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
+    </>
       {/* Sticky Post Header */}
       <div className={`blog-sticky-header${isSticky ? " blog-sticky-header--visible" : ""}`}>
         <div className="blog-sticky-inner">

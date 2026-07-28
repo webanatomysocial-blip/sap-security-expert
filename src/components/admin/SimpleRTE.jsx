@@ -320,6 +320,14 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
           if (node.height) el.setAttribute("height", node.height);
           if (node.className) el.className = node.className;
         }
+        if (tag === "IFRAME") {
+          const attrs = ["src", "width", "height", "frameborder", "scrolling", "seamless", "allow", "allowfullscreen", "title", "style", "class", "id", "loading", "name"];
+          attrs.forEach((attr) => {
+            if (node.hasAttribute(attr)) {
+              el.setAttribute(attr, node.getAttribute(attr));
+            }
+          });
+        }
 
         node.childNodes.forEach((child) => {
           const clean = sanitizeNode(child);

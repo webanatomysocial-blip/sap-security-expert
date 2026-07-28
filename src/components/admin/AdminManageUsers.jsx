@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
 import ColumnToggle from "./ColumnToggle.jsx";
-import { Helmet } from "react-helmet-async";
 import { useAuth } from "../../context/AuthContext";
 import { getAdminMembers, manageAdminMember } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
@@ -263,9 +262,7 @@ const AdminManageUsers = () => {
 
   return (
     <div className="admin-page-wrapper">
-      <Helmet>
-        <title>Manage Members - Admin</title>
-      </Helmet>
+      <title>Manage Members - Admin</title>
 
       <div className="page-header">
         <div className="status-filter-tabs" style={{ margin: 0 }}>
