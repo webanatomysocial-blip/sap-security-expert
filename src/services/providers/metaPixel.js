@@ -7,18 +7,30 @@ const SCRIPT_ID = "consent-meta-pixel-script";
 export async function loadMetaPixel() {
   if (!PIXEL_ID) return false;
 
-  return loadScript({
+  // Bootstrap fbq() programmatically — avoids an inline <script> tag which
+  // would be blocked by the nonce-based CSP. The fbevents.js external script
+  // detects window.fbq already set and skips re-initialising.
+  if (!window.fbq) {
+    const fbq = function () {
+      fbq.callMethod ? fbq.callMethod.apply(fbq, arguments) : fbq.queue.push(arguments);
+    };
+    window.fbq = fbq;
+    window._fbq = fbq;
+    fbq.push = fbq;
+    fbq.loaded = true;
+    fbq.version = '2.0';
+    fbq.queue = [];
+  }
+
+  const loaded = await loadScript({
     id: SCRIPT_ID,
-    innerHTML: `
-      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-      document,'script','https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', '${PIXEL_ID}');
-      fbq('track', 'PageView');
-    `,
+    src: 'https://connect.facebook.net/en_US/fbevents.js',
   });
+  if (!loaded) return false;
+
+  window.fbq('init', PIXEL_ID);
+  window.fbq('track', 'PageView');
+  return true;
 }
 
 /** Meta Pixel's documented consent API. */

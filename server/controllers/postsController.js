@@ -225,9 +225,12 @@ const list = asyncHandler(async (req, res) => {
     // Exclusivity enforcement (free members gate)
     const isMembersOnly = parseInt(blog.is_members_only || 0);
     const isMember = !!sess.member_logged_in;
-    // Super-admins bypass all gates. Contributors bypass members-only gate for their OWN blogs only.
+    // Contributors bypass the paywall only for their OWN blogs.
     // isInternalSSR bypasses all gates so Googlebot gets full content for indexing.
+    // Admin role alone does NOT bypass the paywall — admins see the same gate as regular visitors.
     const isOwnBlog = isContributor && currentUserId && String(blog.author_user_id) === String(currentUserId);
+    const hasPaywallBypass = isOwnBlog || isInternalSSR;
+    // Admin still needs to see internal draft/review fields in the response.
     const hasAdminAccess = isAdmin || isOwnBlog || isInternalSSR;
 
     // Resolve how many blocks/lines to expose before the paywall:
@@ -319,6 +322,7 @@ const list = asyncHandler(async (req, res) => {
       const TAGS = ['blockquote', 'figure', 'table', 'ul', 'ol', 'p']; // longest first avoids prefix collisions
       let count = 0;
       let pos = 0;
+      let firstBlockEnd = -1;
 
       while (pos < lo.length) {
         // Find the next opening tag that belongs to our countable set
@@ -369,13 +373,21 @@ const list = asyncHandler(async (req, res) => {
         if (!inner.replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, '').trim()) continue; // skip empty
 
         count++;
+        if (count === 1) {
+          firstBlockEnd = closeEnd;
+        }
         if (count === n) return html.slice(0, closeEnd);
       }
 
       if (count === 0) {
         return truncateHtmlFallback(html, n * 400);
       }
-      return html; // fewer than n blocks — show all
+      // If the total count of blocks is less than or equal to n,
+      // we force truncate to 1 block so the paywall is not at the very bottom.
+      if (firstBlockEnd !== -1) {
+        return html.slice(0, firstBlockEnd);
+      }
+      return html;
     }
 
     // "Lines" mode: counts approx. text lines (~80 chars each) across all countable elements.
@@ -386,6 +398,7 @@ const list = asyncHandler(async (req, res) => {
       const TAGS = ['blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'p'];
       let count = 0;
       let pos = 0;
+      let firstLineContent = null;
 
       while (pos < lo.length) {
         let earliest = -1, earliestTag = '', earliestEnd = -1;
@@ -429,6 +442,15 @@ const list = asyncHandler(async (req, res) => {
 
         const linesInBlock = Math.ceil(plainText.length / 80);
 
+        // Save the first line slice for fallback
+        if (count === 0 && !firstLineContent) {
+          if (plainText.length > 80) {
+            firstLineContent = html.slice(0, afterOpen) + plainText.slice(0, 80) + '...' + closeTag;
+          } else {
+            firstLineContent = html.slice(0, closeEnd);
+          }
+        }
+
         if (count + linesInBlock <= n) {
           count += linesInBlock;
           if (count === n) return html.slice(0, closeEnd);
@@ -447,12 +469,17 @@ const list = asyncHandler(async (req, res) => {
       if (count === 0) {
         return truncateHtmlFallback(html, n * 80);
       }
+      // If the total count of lines is less than or equal to n,
+      // we force truncate to 1 line so the paywall is not at the very bottom.
+      if (firstLineContent) {
+        return firstLineContent;
+      }
       return html;
     }
 
     const sliceContent = (html, n) => effectiveUnit === 'lines' ? sliceToLines(html, n) : sliceToBlocks(html, n);
 
-    if (isMembersOnly && !isMember && !hasAdminAccess) {
+    if (isMembersOnly && !isMember && !hasPaywallBypass) {
       const fullMembersContent = blog.content || '';
       blog.content = sliceContent(fullMembersContent, effectivePreview) || fullMembersContent.slice(0, 300);
       blog.paywall_preview = effectivePreview;
