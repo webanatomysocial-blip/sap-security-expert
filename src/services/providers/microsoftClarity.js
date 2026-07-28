@@ -7,15 +7,16 @@ const SCRIPT_ID = "consent-clarity-script";
 export async function loadMicrosoftClarity() {
   if (!CLARITY_PROJECT_ID) return false;
 
+  // Set up the clarity queue programmatically — no inline <script> needed,
+  // which avoids CSP nonce violations. The external script below initialises
+  // itself when it loads and drains this queue.
+  window.clarity = window.clarity || function () {
+    (window.clarity.q = window.clarity.q || []).push(arguments);
+  };
+
   return loadScript({
     id: SCRIPT_ID,
-    innerHTML: `
-      (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-      })(window, document, "clarity", "script", "${CLARITY_PROJECT_ID}");
-    `,
+    src: `https://www.clarity.ms/tag/${CLARITY_PROJECT_ID}`,
   });
 }
 

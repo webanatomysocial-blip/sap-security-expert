@@ -27,7 +27,7 @@ export function middleware(request) {
     `default-src 'self'`,
     // 'unsafe-eval' is only needed for webpack Fast Refresh in dev — production
     // React/Next.js bundles don't eval().
-    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''} https://checkout.razorpay.com https://www.googletagmanager.com`,
+    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''} https://checkout.razorpay.com https://www.googletagmanager.com https://www.clarity.ms https://connect.facebook.net https://snap.licdn.com`,
     // style-src keeps 'unsafe-inline': React's style={{}} prop sets styles via
     // the DOM style API (not governed by CSP either way), but Next's dev
     // overlay and third-party CSS (Bootstrap Icons, Google Fonts) inject
@@ -41,7 +41,7 @@ export function middleware(request) {
     // before compressing/uploading) — without it those loads are blocked and
     // silently fall back to skipping compression/validation entirely.
     `img-src 'self' data: blob: https:`,
-    `connect-src 'self' https://api.razorpay.com https://www.googletagmanager.com https://www.google-analytics.com`,
+    `connect-src 'self' https://api.razorpay.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.clarity.ms https://connect.facebook.net https://www.facebook.com https://snap.licdn.com https://px.ads.linkedin.com`,
     `frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.googletagmanager.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com`,
     `object-src 'none'`,
     `base-uri 'self'`,
