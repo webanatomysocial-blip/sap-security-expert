@@ -28,7 +28,7 @@ const sanitizeOptions = {
     video: ['src', 'controls', 'autoplay', 'muted', 'loop', 'poster', 'width', 'height', 'class', 'id', 'style'],
     source: ['src', 'srcset', 'type', 'media', 'sizes'],
     audio: ['src', 'controls', 'autoplay', 'muted', 'loop', 'class', 'id', 'style'],
-    iframe: ['src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen', 'title', 'style', 'class', 'id', 'loading', 'scrolling', 'name'],
+    iframe: ['src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen', 'title', 'style', 'class', 'id', 'loading', 'scrolling', 'name', 'seamless'],
     table: ['width', 'cellpadding', 'cellspacing', 'border', 'align', 'bgcolor', 'summary', 'class', 'id', 'style'],
     thead: ['class', 'id', 'style', 'align', 'valign'],
     tbody: ['class', 'id', 'style', 'align', 'valign'],
@@ -87,7 +87,7 @@ const sanitizeOptions = {
   },
   // Only allow embeds from trusted video/doc hosts — arbitrary iframe src is
   // itself an XSS/clickjacking vector even with sandboxing.
-  allowedIframeHostnames: ['www.youtube.com', 'youtube.com', 'player.vimeo.com'],
+  allowedIframeHostnames: ['www.youtube.com', 'youtube.com', 'player.vimeo.com', 'share.transistor.fm', 'transistor.fm', 'open.spotify.com'],
   allowedSchemes: ['http', 'https', 'mailto'],
   allowProtocolRelative: false,
 };

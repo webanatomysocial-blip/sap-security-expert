@@ -83,7 +83,7 @@ function addLazyLoading(html) {
 
 export async function generateMetadata({ params }) {
   const { category, slug } = await params;
-  if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert', robots: 'noindex, nofollow' };
+  if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert', robots: { index: false, follow: false } };
 
   const path = `/${category}/${slug}`;
 
@@ -114,7 +114,10 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
-    robots: 'index, follow',
+    robots: {
+      index: true,
+      follow: true,
+    },
     ...(keywords ? { keywords } : {}),
     alternates: { canonical },
     openGraph: {

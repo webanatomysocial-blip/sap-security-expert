@@ -1,4 +1,3 @@
-import { Helmet } from "react-helmet-async";
 import { VITE_SITE_URL } from "../utils/env";
 
 const SEO = ({
@@ -44,7 +43,7 @@ const SEO = ({
   };
 
   return (
-    <Helmet>
+    <>
       {/* Standard Metadata */}
       <title>{meta.title}</title>
       <meta name="description" content={meta.description} />
@@ -71,7 +70,7 @@ const SEO = ({
       {schemaData && (
         <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
       )}
-    </Helmet>
+    </>
   );
 };
 

@@ -48,7 +48,10 @@ const DEFAULT_IMAGE = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
 export const metadata = {
   title: DEFAULT_TITLE,
   description: DEFAULT_DESC,
-  robots: 'index, follow',
+  robots: {
+    index: true,
+    follow: true,
+  },
   alternates: { canonical: SITE_URL },
   openGraph: {
     title: DEFAULT_TITLE,

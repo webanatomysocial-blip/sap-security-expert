@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Helmet } from "react-helmet-async";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
@@ -159,7 +158,7 @@ export default function AdminTeam() {
 
   return (
     <div className="admin-page-wrapper">
-      <Helmet><title>Manage Admins - Admin</title></Helmet>
+      <title>Manage Admins - Admin</title>
       <div className="page-header">
         <div className="page-header-actions">
           <button onClick={() => setShowCreate(true)} className="btn-primary btn-sm">

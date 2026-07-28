@@ -84,7 +84,7 @@ const DEFAULT_IMAGE = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
 
 export async function generateMetadata({ params }) {
   const { category } = await params;
-  if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert', robots: 'noindex, nofollow' };
+  if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert', robots: { index: false, follow: false } };
 
   const path = `/${category}`;
   const d = await fetchSeoMeta(path);
@@ -97,7 +97,10 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
-    robots: 'index, follow',
+    robots: {
+      index: true,
+      follow: true,
+    },
     alternates: { canonical },
     openGraph: {
       title,

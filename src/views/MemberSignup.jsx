@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
-import { Helmet } from "react-helmet-async";
+
 import "../css/MemberLogin.css";
 
 const MemberSignup = () => {
@@ -115,7 +115,7 @@ const MemberSignup = () => {
   if (success) {
     return (
       <div style={{ padding: "60px 24px", maxWidth: 900, margin: "0 auto" }}>
-        <Helmet><title>Registration Received | SAP Security Expert</title></Helmet>
+        <title>Registration Received | SAP Security Expert</title>
 
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{
@@ -225,7 +225,7 @@ const MemberSignup = () => {
 
   return (
     <div className="login-page-wrapper">
-      <Helmet><title>Become a Member | SAP Security Expert</title></Helmet>
+      <title>Become a Member | SAP Security Expert</title>
 
       <div className="login-page-container">
         <div className="login-split-grid">
