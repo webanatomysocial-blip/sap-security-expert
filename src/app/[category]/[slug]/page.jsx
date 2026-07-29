@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 import ClientApp from '../../[[...slug]]/ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
@@ -232,8 +233,11 @@ export default async function BlogPostPage({ params }) {
 
   const blog = await fetchBlog(slug);
 
-  // If not found or wrong category, hand off to the SPA
+  // If not found or wrong category, hand off to the SPA (or return 404 if it's a known blog category)
   if (!blog || (blog.status && blog.status === 'draft')) {
+    if (CATEGORY_LABELS[category]) {
+      notFound();
+    }
     return <ClientApp />;
   }
 
