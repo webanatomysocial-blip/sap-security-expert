@@ -90,7 +90,7 @@ export default async function CatchAll({ params }) {
       } catch (_) {}
     }
 
-    if (is404) {
+    if (is404 && (CATEGORY_LABELS[firstSegment] || firstSegment === 'news' || firstSegment === 'downloads')) {
       notFound();
     }
 
