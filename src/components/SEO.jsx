@@ -1,6 +1,10 @@
+'use client';
+import { useEffect } from "react";
 import { VITE_SITE_URL } from "../utils/env";
-import { Helmet } from "react-helmet-async";
 
+// Updates existing <head> meta tags that Next.js generateMetadata placed during
+// SSR. Never renders <title>/<meta> as JSX — in Next.js 15 + React 19, JSX
+// metadata rendered inside a Client Component stays in <body>, not <head>.
 const SEO = ({
   title,
   description,
@@ -11,8 +15,6 @@ const SEO = ({
   author,
   schemaData,
 }) => {
-  const siteTitle = "SAP Security Expert";
-  const fullTitle = title || siteTitle;
   const domain = VITE_SITE_URL;
 
   const getAbsoluteUrl = (path) => {
@@ -22,57 +24,64 @@ const SEO = ({
     return `${domain}/${path}`;
   };
 
-  const defaults = {
-    title: "SAP Security Expert",
-    description:
-      "The leading community for SAP Security, GRC, and BTP professionals.",
-    image: `${domain}/assets/fav.png`,
-    url: domain,
-    author: "SAP Security Expert",
-  };
+  const metaTitle       = title || "SAP Security Expert";
+  const metaDescription = description || "The leading community for SAP Security, GRC, and BTP professionals.";
+  const metaImage       = getAbsoluteUrl(image);
+  const metaUrl         = url || domain;
+  const metaKeywords    = keywords || "SAP Security, SAP GRC, SAP BTP, SAP Licensing, SAP Cybersecurity";
+  const metaAuthor      = author || "SAP Security Expert";
 
-  const meta = {
-    title: fullTitle,
-    description: description || defaults.description,
-    image: getAbsoluteUrl(image),
-    url: url || defaults.url,
-    type: type,
-    keywords:
-      keywords ||
-      "SAP Security, SAP GRC, SAP BTP, SAP Licensing, SAP Cybersecurity",
-    author: author || defaults.author,
-  };
+  useEffect(() => {
+    function setMeta(selector, attrKey, attrVal, content) {
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attrKey, attrVal);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    }
+    function setLink(rel, href) {
+      let el = document.querySelector(`link[rel="${rel}"]`);
+      if (!el) { el = document.createElement("link"); el.setAttribute("rel", rel); document.head.appendChild(el); }
+      el.setAttribute("href", href);
+    }
 
-  return (
-    <Helmet>
-      {/* Standard Metadata */}
-      <title>{meta.title}</title>
-      <meta name="description" content={meta.description} />
-      {meta.keywords && <meta name="keywords" content={meta.keywords} />}
-      <meta name="author" content={meta.author} />
-      <link rel="canonical" href={meta.url} />
+    document.title = metaTitle;
+    setMeta('meta[name="description"]',        "name",     "description",    metaDescription);
+    setMeta('meta[name="keywords"]',           "name",     "keywords",       metaKeywords);
+    setMeta('meta[name="author"]',             "name",     "author",         metaAuthor);
+    setLink("canonical", metaUrl);
 
-      {/* Open Graph */}
-      <meta property="og:site_name" content="SAP Security Expert" />
-      <meta property="og:type" content={meta.type} />
-      <meta property="og:url" content={meta.url} />
-      <meta property="og:title" content={meta.title} />
-      <meta property="og:description" content={meta.description} />
-      <meta property="og:image" content={meta.image} />
+    setMeta('meta[property="og:site_name"]',   "property", "og:site_name",   "SAP Security Expert");
+    setMeta('meta[property="og:type"]',        "property", "og:type",        type);
+    setMeta('meta[property="og:url"]',         "property", "og:url",         metaUrl);
+    setMeta('meta[property="og:title"]',       "property", "og:title",       metaTitle);
+    setMeta('meta[property="og:description"]', "property", "og:description", metaDescription);
+    setMeta('meta[property="og:image"]',       "property", "og:image",       metaImage);
 
-      {/* Twitter */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:url" content={meta.url} />
-      <meta name="twitter:title" content={meta.title} />
-      <meta name="twitter:description" content={meta.description} />
-      <meta name="twitter:image" content={meta.image} />
+    setMeta('meta[name="twitter:card"]',        "name", "twitter:card",        "summary_large_image");
+    setMeta('meta[name="twitter:url"]',         "name", "twitter:url",         metaUrl);
+    setMeta('meta[name="twitter:title"]',       "name", "twitter:title",       metaTitle);
+    setMeta('meta[name="twitter:description"]', "name", "twitter:description", metaDescription);
+    setMeta('meta[name="twitter:image"]',       "name", "twitter:image",       metaImage);
+  }, [metaTitle, metaDescription, metaImage, metaUrl, type, metaKeywords, metaAuthor]);
 
-      {/* JSON-LD Structured Data */}
-      {schemaData && (
-        <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
-      )}
-    </Helmet>
-  );
+  useEffect(() => {
+    if (!schemaData) return;
+    const id = "spa-page-schema";
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement("script");
+      el.id = id;
+      el.type = "application/ld+json";
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify(schemaData);
+    return () => { document.getElementById(id)?.remove(); };
+  }, [schemaData]);
+
+  return null;
 };
 
 export default SEO;

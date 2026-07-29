@@ -1,5 +1,4 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Link } from "react-router-dom";
@@ -206,14 +205,48 @@ const BlogLayout = ({
     return () => observer.disconnect();
   }, []);
 
-  // SPA head tags — Helmet updates <head> on client navigation.
-  // Next.js generateMetadata handles SSR/bot head tags separately.
+  // SPA head tags — useEffect updates the existing <head> tags that Next.js
+  // generateMetadata placed there during SSR. We never render <title>/<meta>
+  // as JSX (that would inject them into <body> in Next.js 15 + React 19).
   const pageTitle = ((metaTitle || title) ? (metaTitle || title) + ' | SAP Security Expert' : 'SAP Security Expert');
   const pageDesc = metaDescription || title || '';
   const pageImage = image
     ? (image.startsWith('http') ? image : `${VITE_SITE_URL}${image.startsWith('/') ? '' : '/'}${image}`)
     : `${VITE_SITE_URL}/assets/sapsecurityexpert-black.png`;
   const pageUrl = currentUrl || `${VITE_SITE_URL}/${category}/${blogSlug}`;
+
+  useEffect(() => {
+    // Helper: find existing meta tag or create one and append to <head>
+    function setMeta(selector, attrKey, attrVal, content) {
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attrKey, attrVal);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    }
+    function setLink(rel, href) {
+      let el = document.querySelector(`link[rel="${rel}"]`);
+      if (!el) { el = document.createElement('link'); el.setAttribute('rel', rel); document.head.appendChild(el); }
+      el.setAttribute('href', href);
+    }
+
+    document.title = pageTitle;
+    setMeta('meta[name="description"]',        'name',     'description',        pageDesc);
+    if (metaKeywords) setMeta('meta[name="keywords"]', 'name', 'keywords', metaKeywords);
+    setLink('canonical', pageUrl);
+
+    setMeta('meta[property="og:title"]',       'property', 'og:title',           pageTitle);
+    setMeta('meta[property="og:description"]', 'property', 'og:description',     pageDesc);
+    setMeta('meta[property="og:image"]',       'property', 'og:image',           pageImage);
+    setMeta('meta[property="og:url"]',         'property', 'og:url',             pageUrl);
+    setMeta('meta[property="og:type"]',        'property', 'og:type',            'article');
+
+    setMeta('meta[name="twitter:title"]',       'name', 'twitter:title',       pageTitle);
+    setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', pageDesc);
+    setMeta('meta[name="twitter:image"]',       'name', 'twitter:image',       pageImage);
+  }, [pageTitle, pageDesc, pageImage, pageUrl, metaKeywords]);
 
   // JSON-LD Schema Construction — kept for potential future use but not injected (SSR page handles it)
   const schemaData = useMemo(() => {
@@ -353,26 +386,23 @@ const BlogLayout = ({
 
   const categoryLabel = CATEGORY_LABELS[category] || category;
 
+  // Inject/update JSON-LD schema in <head> whenever schemaData changes.
+  useEffect(() => {
+    if (!schemaData) return;
+    const id = 'spa-blog-schema';
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('script');
+      el.id = id;
+      el.type = 'application/ld+json';
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify(schemaData);
+    return () => { document.getElementById(id)?.remove(); };
+  }, [schemaData]);
+
   return (
     <div className="blog-post-wrapper">
-    <Helmet>
-      <title>{pageTitle}</title>
-      <meta name="description" content={pageDesc} />
-      {metaKeywords && <meta name="keywords" content={metaKeywords} />}
-      <link rel="canonical" href={pageUrl} />
-      <meta property="og:site_name" content="SAP Security Expert" />
-      <meta property="og:type" content="article" />
-      <meta property="og:url" content={pageUrl} />
-      <meta property="og:title" content={pageTitle} />
-      <meta property="og:description" content={pageDesc} />
-      <meta property="og:image" content={pageImage} />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:url" content={pageUrl} />
-      <meta name="twitter:title" content={pageTitle} />
-      <meta name="twitter:description" content={pageDesc} />
-      <meta name="twitter:image" content={pageImage} />
-      <script type="application/ld+json">{JSON.stringify(schemaData)}</script>
-    </Helmet>
       {/* Sticky Post Header */}
       <div className={`blog-sticky-header${isSticky ? " blog-sticky-header--visible" : ""}`}>
         <div className="blog-sticky-inner">
