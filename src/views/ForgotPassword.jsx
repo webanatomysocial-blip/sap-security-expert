@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { sendOTP, verifyOTP, resetPasswordOTP } from "../services/api";
@@ -90,7 +91,9 @@ const ForgotPassword = () => {
 
   return (
     <div className="login-page-wrapper">
-      <title>Reset Password | SAP Security Expert</title>
+      <Helmet>
+        <title>Reset Password | SAP Security Expert</title>
+      </Helmet>
 
       <div className="login-page-container">
         <div className="login-split-grid">

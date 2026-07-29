@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
@@ -140,7 +141,9 @@ const MemberLogin = () => {
       />
     )}
     <div className="login-page-wrapper">
-      <title>Member Login | SAP Security Expert</title>
+      <Helmet>
+        <title>Member Login | SAP Security Expert</title>
+      </Helmet>
 
       <div className="login-page-container">
         <div className="login-split-grid">

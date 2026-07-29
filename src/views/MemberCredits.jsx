@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
@@ -277,7 +278,9 @@ export default function MemberCredits() {
   if (loadError) {
     return (
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "80px 20px", textAlign: "center" }}>
-        <title>My Credits &amp; Transactions | SAP Security Expert</title>
+        <Helmet>
+          <title>My Credits &amp; Transactions | SAP Security Expert</title>
+        </Helmet>
         <p style={{ fontSize: "2.5rem", margin: "0 0 16px" }}>⚠️</p>
         <h2 style={{ margin: "0 0 8px", color: "#1e293b" }}>Failed to load your data</h2>
         <p style={{ color: "#64748b", marginBottom: 24 }}>There was a problem connecting to the server. Please try again.</p>
@@ -290,7 +293,9 @@ export default function MemberCredits() {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 20px 80px" }}>
-      <title>My Credits &amp; Transactions | SAP Security Expert</title>
+      <Helmet>
+        <title>My Credits &amp; Transactions | SAP Security Expert</title>
+      </Helmet>
 
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
