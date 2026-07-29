@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import ClientApp from './ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
@@ -61,13 +62,60 @@ export default async function CatchAll({ params }) {
     return <ClientApp />;
   }
 
-  // Non-homepage, non-category pages: inject a minimal descriptive block so
-  // Google doesn't see an empty body and flag it as a Soft 404
+  // Non-homepage, non-category pages: fetch data and inject descriptive block
   if (!isHomepage && !isCategory) {
+    let article = null;
+    let is404 = false;
+    if (slug.length >= 2) {
+      const detailSlug = slug[slug.length - 1];
+      const fetchUrl = (firstSegment === 'news')
+        ? `${INTERNAL_API}/api/news/${encodeURIComponent(detailSlug)}`
+        : `${INTERNAL_API}/api/posts/${encodeURIComponent(detailSlug)}`;
+      try {
+        const res = await fetch(fetchUrl, { next: { revalidate: 3600 } });
+        if (res.status === 404) {
+          is404 = true;
+        } else if (res.ok) {
+          const rawArticle = await res.json();
+          if (rawArticle) {
+            if (Array.isArray(rawArticle)) {
+              article = rawArticle[0];
+            } else if (rawArticle.data) {
+              article = Array.isArray(rawArticle.data) ? rawArticle.data[0] : rawArticle.data;
+            } else {
+              article = rawArticle;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (is404) {
+      notFound();
+    }
+
     return (
       <>
         <div id="ssr-blog-content" suppressHydrationWarning style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
-          <p>SAP Security Expert — expert knowledge for SAP Security, GRC, and BTP professionals.</p>
+          {article ? (
+            <article style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+              <header style={{ padding: '40px 0 30px' }}>
+                <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>
+                  {article.title}
+                </h1>
+                <p style={{ fontSize: '1.1rem', color: '#475569', maxWidth: '680px', margin: '0 auto' }}>
+                  {article.meta_description || article.excerpt || ''}
+                </p>
+                <div style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '12px' }}>
+                  {article.author_name || 'SAP Security Expert'}
+                  {article.date || article.published_at || article.created_at ? ` · ${new Date(article.date || article.published_at || article.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                </div>
+              </header>
+              <div dangerouslySetInnerHTML={{ __html: article.content || '' }} />
+            </article>
+          ) : (
+            <p>SAP Security Expert — expert knowledge for SAP Security, GRC, and BTP professionals.</p>
+          )}
         </div>
         <ClientApp />
       </>

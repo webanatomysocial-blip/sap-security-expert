@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
@@ -262,7 +263,9 @@ const AdminManageUsers = () => {
 
   return (
     <div className="admin-page-wrapper">
-      <title>Manage Members - Admin</title>
+      <Helmet>
+        <title>Manage Members - Admin</title>
+      </Helmet>
 
       <div className="page-header">
         <div className="status-filter-tabs" style={{ margin: 0 }}>
