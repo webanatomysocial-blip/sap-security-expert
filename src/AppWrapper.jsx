@@ -5,7 +5,6 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import ScrollToTop from "./components/ScrollToTop";
 import Lenis from "lenis";
-import { HelmetProvider } from "react-helmet-async";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ToastProvider } from "./context/ToastContext";
 import { ConfirmationProvider } from "./context/ConfirmationContext";
@@ -53,22 +52,20 @@ export default function AppWrapper() {
 
   return (
     <ErrorBoundary>
-      <HelmetProvider>
-        <BrowserRouter>
-          <ToastProvider>
-            <AuthProvider>
-              <MemberAuthProvider>
-                <ConfirmationProvider>
-                  <ScrollToTop />
-                  <App />
-                  <CookieConsent />
-                  <ConsentScriptLoader />
-                </ConfirmationProvider>
-              </MemberAuthProvider>
-            </AuthProvider>
-          </ToastProvider>
-        </BrowserRouter>
-      </HelmetProvider>
+      <BrowserRouter>
+        <ToastProvider>
+          <AuthProvider>
+            <MemberAuthProvider>
+              <ConfirmationProvider>
+                <ScrollToTop />
+                <App />
+                <CookieConsent />
+                <ConsentScriptLoader />
+              </ConfirmationProvider>
+            </MemberAuthProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </BrowserRouter>
     </ErrorBoundary>
   );
 }
