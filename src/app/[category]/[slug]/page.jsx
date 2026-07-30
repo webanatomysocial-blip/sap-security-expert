@@ -351,7 +351,7 @@ export default async function BlogPostPage({ params }) {
                     <summary style={{ fontWeight: '700', cursor: 'pointer', fontSize: '1.05rem', color: '#1e293b' }}>
                       {faq.question}
                     </summary>
-                    <p style={{ marginTop: '10px', color: '#475569', lineHeight: '1.7' }}>{faq.answer}</p>
+                    <div style={{ marginTop: '10px', color: '#475569', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: faq.answer }} />
                   </details>
                 ))}
               </section>
