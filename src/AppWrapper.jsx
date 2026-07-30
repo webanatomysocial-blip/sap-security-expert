@@ -57,14 +57,30 @@ export default function AppWrapper() {
     document.body.style.overflow = "";
     document.body.style.height = "";
 
-    // Remove server-pre-rendered blog content once the SPA takes over
+    // Defer SSR content removal until the active route component signals it has
+    // rendered its own content (DynamicBlog calls window.__removeSsrContent() once
+    // the article API call settles). A 3-second fallback handles non-article pages
+    // (homepage, category listings) where no route component calls the function.
+    // This ensures Google's renderer always sees content — either from the SSR div
+    // or from the loaded SPA — never a bare skeleton loading state.
     const ssrEl = document.getElementById('ssr-blog-content');
-    if (ssrEl) ssrEl.remove();
+    if (ssrEl) {
+      const fallbackTimer = setTimeout(() => {
+        ssrEl.remove();
+        delete window.__removeSsrContent;
+      }, 3000);
+      window.__removeSsrContent = () => {
+        clearTimeout(fallbackTimer);
+        ssrEl.remove();
+        delete window.__removeSsrContent;
+      };
+    }
 
     return () => {
       lenis.destroy();
       window.removeEventListener('error', onChunkError);
       window.removeEventListener('unhandledrejection', onChunkError);
+      delete window.__removeSsrContent;
     };
   }, []);
 
