@@ -29,7 +29,25 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
     items: [], // { question, answer } pairs already added to this group
     question: '',
     answer: '',
+    answerSyncKey: 0, // incremented to imperatively sync innerHTML into the mini-RTE
   });
+  const accordionAnswerRef = React.useRef(null);
+
+  // Sync the mini-RTE innerHTML whenever answerSyncKey changes (programmatic set only).
+  React.useEffect(() => {
+    if (accordionAnswerRef.current) {
+      accordionAnswerRef.current.innerHTML = accordionModal.answer;
+      // place cursor at end
+      const el = accordionAnswerRef.current;
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accordionModal.answerSyncKey]);
 
   // Track the last value we wrote to the DOM so we never overwrite our own onChange
   const lastSyncedValue = useRef(null);
@@ -626,7 +644,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
     const groupName = `acc-${Date.now()}`;
     const html = items.map(({ question, answer }) => `<details class="rte-accordion-item" name="${groupName}">
   <summary class="rte-accordion-question">${question}</summary>
-  <div class="rte-accordion-answer"><p>${answer}</p></div>
+  <div class="rte-accordion-answer">${answer}</div>
 </details>`).join('\n');
     insertHtmlBlock(html);
   };
@@ -821,7 +839,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
             type="button"
             onClick={() => {
               saveSelection();
-              setAccordionModal({ open: true, items: [], question: '', answer: '' });
+              setAccordionModal({ open: true, items: [], question: '', answer: '', answerSyncKey: 1 });
             }}
             title="Insert Accordion"
             disabled={isSourceView}
@@ -1162,6 +1180,47 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
             font-size: 11.5px;
             color: #b91c1c;
         }
+        .acc-mini-toolbar {
+            display: flex;
+            gap: 4px;
+            padding: 6px 8px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+        }
+        .acc-mini-toolbar button {
+            padding: 2px 8px;
+            font-size: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            color: #334155;
+            line-height: 1.6;
+        }
+        .acc-mini-toolbar button:hover { background: #e2e8f0; }
+        .acc-mini-editor {
+            min-height: 100px;
+            max-height: 260px;
+            overflow-y: auto;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 0 0 6px 6px;
+            background: #fff;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #1e293b;
+            outline: none;
+        }
+        .acc-mini-editor:focus { border-color: #94a3b8; }
+        .acc-mini-editor:empty::before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+        .acc-mini-editor p { margin: 0 0 6px; }
+        .acc-mini-editor ul, .acc-mini-editor ol { margin: 0 0 6px; padding-left: 20px; }
         .rte-accordion-item-list {
             list-style: none;
             margin: 0 0 12px;
@@ -1535,6 +1594,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
                         items: m.items.filter((_, idx) => idx !== i),
                         question: item.question,
                         answer: item.answer,
+                        answerSyncKey: m.answerSyncKey + 1,
                       }))}
                     >
                       {item.question}
@@ -1564,21 +1624,46 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
               onChange={(e) => setAccordionModal((m) => ({ ...m, question: e.target.value }))}
             />
             <label>Answer *</label>
-            <textarea
-              rows={4}
-              placeholder="The answer shown when expanded"
-              value={accordionModal.answer}
-              onChange={(e) => setAccordionModal((m) => ({ ...m, answer: e.target.value }))}
+            <div className="acc-mini-toolbar">
+              {[
+                { cmd: 'bold',                label: <b>B</b>,   title: 'Bold' },
+                { cmd: 'italic',              label: <i>I</i>,   title: 'Italic' },
+                { cmd: 'insertUnorderedList', label: '• List',   title: 'Bullet list' },
+                { cmd: 'insertOrderedList',   label: '1. List',  title: 'Numbered list' },
+              ].map(({ cmd, label, title }) => (
+                <button
+                  key={cmd}
+                  type="button"
+                  title={title}
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // keep focus in contentEditable
+                    accordionAnswerRef.current?.focus();
+                    document.execCommand(cmd);
+                    setAccordionModal((m) => ({ ...m, answer: accordionAnswerRef.current?.innerHTML || m.answer }));
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div
+              ref={accordionAnswerRef}
+              contentEditable
+              suppressContentEditableWarning
+              className="acc-mini-editor"
+              data-placeholder="The answer shown when expanded…"
+              onInput={() => setAccordionModal((m) => ({ ...m, answer: accordionAnswerRef.current?.innerHTML || '' }))}
             />
             <button
               type="button"
               className="btn-cancel"
-              disabled={!accordionModal.question.trim() || !accordionModal.answer.trim()}
+              disabled={!accordionModal.question.trim() || !accordionModal.answer.replace(/<[^>]*>/g, '').trim()}
               onClick={() => setAccordionModal((m) => ({
                 ...m,
                 items: [...m.items, { question: m.question, answer: m.answer }],
                 question: '',
                 answer: '',
+                answerSyncKey: m.answerSyncKey + 1,
               }))}
             >
               + Add Item
@@ -1588,7 +1673,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
               <button
                 className="btn-cancel"
                 onClick={() => {
-                  setAccordionModal({ open: false, items: [], question: '', answer: '' });
+                  setAccordionModal({ open: false, items: [], question: '', answer: '', answerSyncKey: 0 });
                   restoreSelection();
                 }}
               >
@@ -1598,15 +1683,15 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
                 className="btn-insert"
                 disabled={
                   accordionModal.items.length === 0 &&
-                  (!accordionModal.question.trim() || !accordionModal.answer.trim())
+                  (!accordionModal.question.trim() || !accordionModal.answer.replace(/<[^>]*>/g, '').trim())
                 }
                 onClick={() => {
                   const items = [...accordionModal.items];
-                  if (accordionModal.question.trim() && accordionModal.answer.trim()) {
+                  if (accordionModal.question.trim() && accordionModal.answer.replace(/<[^>]*>/g, '').trim()) {
                     items.push({ question: accordionModal.question, answer: accordionModal.answer });
                   }
                   insertAccordionBlock(items);
-                  setAccordionModal({ open: false, items: [], question: '', answer: '' });
+                  setAccordionModal({ open: false, items: [], question: '', answer: '', answerSyncKey: 0 });
                 }}
               >
                 Insert{accordionModal.items.length > 0 ? ` (${accordionModal.items.length + (accordionModal.question.trim() && accordionModal.answer.trim() ? 1 : 0)})` : ''}
