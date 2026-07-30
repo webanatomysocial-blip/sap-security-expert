@@ -269,12 +269,15 @@ export default async function BlogPostPage({ params }) {
       />
 
       {/*
-        #ssr-blog-content — server-rendered article HTML.
-        Googlebot indexes this immediately without waiting for JS.
-        AppWrapper removes this div the moment the React SPA mounts,
-        so real users only ever see the interactive SPA version.
+        #ssr-blog-content — server-rendered article HTML, rendered visibly.
+        Real users and Googlebot both see this immediately without waiting on JS.
+        AppWrapper removes this div once the React SPA finishes mounting and
+        takes over with the interactive version. Must NOT be hidden (opacity/
+        1px/off-screen tricks) — a page whose only content is invisible until
+        JS runs gets flagged as Soft 404 whenever hydration is slow or fails,
+        which happens routinely right after a deploy.
       */}
-      <div id="ssr-blog-content" suppressHydrationWarning style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+      <div id="ssr-blog-content" suppressHydrationWarning>
       <div className="blog-post-wrapper" suppressHydrationWarning>
         <div className="container blog-container">
           <main className="blog-main-column">

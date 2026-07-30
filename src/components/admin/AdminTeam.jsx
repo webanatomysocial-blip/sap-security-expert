@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Helmet } from "react-helmet-async";
+import SEO from "../SEO";
 import { createPortal } from "react-dom";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
@@ -159,9 +159,7 @@ export default function AdminTeam() {
 
   return (
     <div className="admin-page-wrapper">
-      <Helmet>
-        <title>Manage Admins - Admin</title>
-      </Helmet>
+      <SEO title="Manage Admins - Admin" />
       <div className="page-header">
         <div className="page-header-actions">
           <button onClick={() => setShowCreate(true)} className="btn-primary btn-sm">

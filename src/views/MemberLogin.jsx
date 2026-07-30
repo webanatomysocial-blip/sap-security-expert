@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Helmet } from "react-helmet-async";
+import SEO from "../components/SEO";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
@@ -141,9 +141,7 @@ const MemberLogin = () => {
       />
     )}
     <div className="login-page-wrapper">
-      <Helmet>
-        <title>Member Login | SAP Security Expert</title>
-      </Helmet>
+      <SEO title="Member Login | SAP Security Expert" />
 
       <div className="login-page-container">
         <div className="login-split-grid">

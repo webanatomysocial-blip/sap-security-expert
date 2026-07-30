@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Helmet } from "react-helmet-async";
+import SEO from "../components/SEO";
 import { Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { sendOTP, verifyOTP, resetPasswordOTP } from "../services/api";
@@ -91,9 +91,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="login-page-wrapper">
-      <Helmet>
-        <title>Reset Password | SAP Security Expert</title>
-      </Helmet>
+      <SEO title="Reset Password | SAP Security Expert" />
 
       <div className="login-page-container">
         <div className="login-split-grid">

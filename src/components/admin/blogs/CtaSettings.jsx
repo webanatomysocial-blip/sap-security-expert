@@ -18,7 +18,7 @@ const CtaSettings = ({ formData, handleInputChange }) => {
         <label className="form-label">CTA Title</label>
         <input
           name="cta_title"
-          value={formData.cta_title}
+          value={formData.cta_title || ""}
           onChange={handleInputChange}
           className="form-control"
         />
@@ -38,7 +38,7 @@ const CtaSettings = ({ formData, handleInputChange }) => {
           <label className="form-label">Button Text</label>
           <input
             name="cta_button_text"
-            value={formData.cta_button_text}
+            value={formData.cta_button_text || ""}
             onChange={handleInputChange}
             className="form-control"
           />
@@ -48,7 +48,7 @@ const CtaSettings = ({ formData, handleInputChange }) => {
           <input
             type="url"
             name="cta_button_link"
-            value={formData.cta_button_link}
+            value={formData.cta_button_link || ""}
             onChange={handleInputChange}
             className="form-control"
             placeholder="https://..."

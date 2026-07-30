@@ -96,7 +96,7 @@ export default async function CatchAll({ params }) {
 
     return (
       <>
-        <div id="ssr-blog-content" suppressHydrationWarning style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+        <div id="ssr-blog-content" suppressHydrationWarning>
           {article ? (
             <article style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
               <header style={{ padding: '40px 0 30px' }}>
@@ -148,7 +148,7 @@ export default async function CatchAll({ params }) {
 
   return (
     <>
-      <div id="ssr-blog-content" suppressHydrationWarning style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+      <div id="ssr-blog-content" suppressHydrationWarning>
         <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
           <header style={{ textAlign: 'center', padding: '40px 0 30px' }}>
             <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>

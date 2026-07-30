@@ -15,6 +15,22 @@ import ConsentScriptLoader from "./components/ConsentScriptLoader";
 
 export default function AppWrapper() {
   useEffect(() => {
+    // A deploy replaces .next/static with new content-hashed chunk filenames.
+    // A tab or crawler holding HTML from just before the deploy will request
+    // chunks that no longer exist and hydration fails outright. Reload once
+    // to pick up the new build instead of leaving the visitor stuck on the
+    // static #ssr-blog-content fallback.
+    const onChunkError = (e) => {
+      const msg = e?.message || e?.reason?.message || '';
+      if (!/ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module/i.test(msg)) return;
+      const key = 'chunk-reload-attempted';
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+      window.location.reload();
+    };
+    window.addEventListener('error', onChunkError);
+    window.addEventListener('unhandledrejection', onChunkError);
+
     // Global Lenis initialization
     const lenis = new Lenis({
       duration: 1,
@@ -47,6 +63,8 @@ export default function AppWrapper() {
 
     return () => {
       lenis.destroy();
+      window.removeEventListener('error', onChunkError);
+      window.removeEventListener('unhandledrejection', onChunkError);
     };
   }, []);
 
