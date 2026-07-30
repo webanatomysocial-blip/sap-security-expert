@@ -4,6 +4,7 @@ import ClientApp from './ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
+const SSR_SECRET = process.env.REVALIDATE_SECRET || '';
 
 // Skip SSR meta for admin/member routes — no public SEO value
 const SKIP_SEO = new Set(['admin', 'member']);
@@ -72,7 +73,10 @@ export default async function CatchAll({ params }) {
         ? `${INTERNAL_API}/api/news/${encodeURIComponent(detailSlug)}`
         : `${INTERNAL_API}/api/posts/${encodeURIComponent(detailSlug)}`;
       try {
-        const res = await fetch(fetchUrl, { next: { revalidate: 3600 } });
+        const res = await fetch(fetchUrl, {
+          next: { revalidate: 3600 },
+          headers: SSR_SECRET ? { 'X-SSR-Internal': SSR_SECRET } : {},
+        });
         if (res.status === 404) {
           is404 = true;
         } else if (res.ok) {
