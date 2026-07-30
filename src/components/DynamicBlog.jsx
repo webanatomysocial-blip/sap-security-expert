@@ -286,6 +286,14 @@ export default function DynamicBlog() {
     }
   }, [blogId, location.pathname, navigate, isLoggedIn]);
 
+  // Once the article API call settles (success or error), the SPA has real content
+  // to show. Remove the SSR placeholder so there's no duplicate content visible.
+  useEffect(() => {
+    if (!loading) {
+      window.__removeSsrContent?.();
+    }
+  }, [loading]);
+
   const handleCommentAdded = () => {
     setCommentsCount((prevCount) => prevCount + 1);
   };
