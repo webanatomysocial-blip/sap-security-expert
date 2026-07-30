@@ -135,7 +135,7 @@ export default async function CategoryPage({ params }) {
   if (category === 'about') {
     return (
       <>
-        <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+        <div id="ssr-blog-content">
           <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
             <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>About SAP Security Expert</h1>
             <p style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.7 }}>
@@ -158,7 +158,7 @@ export default async function CategoryPage({ params }) {
   if (category === 'contact-us') {
     return (
       <>
-        <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+        <div id="ssr-blog-content">
           <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
             <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Contact SAP Security Expert</h1>
             <p style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.7 }}>
@@ -175,7 +175,7 @@ export default async function CategoryPage({ params }) {
   if (category === 'become-a-contributor') {
     return (
       <>
-        <div id="ssr-blog-content" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+        <div id="ssr-blog-content">
           <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
             <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Become a Contributor</h1>
             <p style={{ fontSize: '1.1rem', color: '#475569', lineHeight: 1.7 }}>

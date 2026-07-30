@@ -1141,6 +1141,50 @@
   transform: scale(1.04);
 }
 
+/* ── Inline Accordion blocks inserted via RTE toolbar ── */
+.rte-accordion-item {
+  border-bottom: 1px solid #e2e8f0;
+  margin: 0;
+}
+.rte-accordion-item + .rte-accordion-item {
+  border-top: none;
+}
+.rte-accordion-question {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  list-style: none;
+}
+.rte-accordion-question::-webkit-details-marker {
+  display: none;
+}
+.rte-accordion-question::after {
+  content: "+";
+  font-size: 24px;
+  color: #3b82f6;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+.rte-accordion-item[open] > .rte-accordion-question::after {
+  transform: rotate(45deg);
+}
+.rte-accordion-answer {
+  padding: 0 0 20px;
+}
+.rte-accordion-answer p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #334155;
+}
+
 /* ── Authors section ──────────────────────────────────────────────────────── */
 .bl-authors-section {
   margin-top: 40px;

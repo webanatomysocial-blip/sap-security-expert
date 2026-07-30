@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Helmet } from "react-helmet-async";
+import SEO from "../components/SEO";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
@@ -116,9 +116,7 @@ const MemberSignup = () => {
   if (success) {
     return (
       <div style={{ padding: "60px 24px", maxWidth: 900, margin: "0 auto" }}>
-        <Helmet>
-          <title>Registration Received | SAP Security Expert</title>
-        </Helmet>
+        <SEO title="Registration Received | SAP Security Expert" />
 
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{
@@ -228,9 +226,7 @@ const MemberSignup = () => {
 
   return (
     <div className="login-page-wrapper">
-      <Helmet>
-        <title>Become a Member | SAP Security Expert</title>
-      </Helmet>
+      <SEO title="Become a Member | SAP Security Expert" />
 
       <div className="login-page-container">
         <div className="login-split-grid">

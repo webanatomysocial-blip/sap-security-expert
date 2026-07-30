@@ -23,6 +23,14 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
     btnUrl: '',
   });
 
+  // ── Accordion Block Modal ─────────────────────────────────────────────────
+  const [accordionModal, setAccordionModal] = React.useState({
+    open: false,
+    items: [], // { question, answer } pairs already added to this group
+    question: '',
+    answer: '',
+  });
+
   // Track the last value we wrote to the DOM so we never overwrite our own onChange
   const lastSyncedValue = useRef(null);
 
@@ -611,6 +619,18 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
     insertHtmlBlock(html);
   };
 
+  // ── Insert Accordion block at cursor ────────────────────────────────────────
+  // Items sharing a `name` use the native <details> exclusive-open behavior —
+  // opening one auto-closes the others in the same group, no JS needed.
+  const insertAccordionBlock = (items) => {
+    const groupName = `acc-${Date.now()}`;
+    const html = items.map(({ question, answer }) => `<details class="rte-accordion-item" name="${groupName}">
+  <summary class="rte-accordion-question">${question}</summary>
+  <div class="rte-accordion-answer"><p>${answer}</p></div>
+</details>`).join('\n');
+    insertHtmlBlock(html);
+  };
+
   return (
     <div className={`simple-rte ${isSourceView ? "source-mode" : ""}`}>
       <div className="rte-toolbar">
@@ -796,6 +816,17 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
             disabled={isSourceView}
           >
             📣 CTA
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              saveSelection();
+              setAccordionModal({ open: true, items: [], question: '', answer: '' });
+            }}
+            title="Insert Accordion"
+            disabled={isSourceView}
+          >
+            🔽 Accordion
           </button>
         </div>
 
@@ -1131,6 +1162,65 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
             font-size: 11.5px;
             color: #b91c1c;
         }
+        .rte-accordion-item-list {
+            list-style: none;
+            margin: 0 0 12px;
+            padding: 0;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        .rte-accordion-item-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .rte-accordion-item-list li span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .rte-accordion-item-edit {
+            cursor: pointer;
+            flex: 1;
+        }
+        .rte-accordion-item-edit:hover {
+            text-decoration: underline;
+        }
+        .rte-accordion-item-move {
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .rte-accordion-item-move button {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 9px;
+            line-height: 1;
+            padding: 2px;
+        }
+        .rte-accordion-item-move button:hover:not(:disabled) { color: #3b82f6; }
+        .rte-accordion-item-move button:disabled {
+            color: #e2e8f0;
+            cursor: default;
+        }
+        .rte-accordion-item-remove {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .rte-accordion-item-remove:hover { color: #ef4444; }
         .rte-modal-actions {
             display: flex;
             justify-content: flex-end;
@@ -1192,6 +1282,46 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
         }
         .rte-cta-block a:hover,
         .rte-cta-btn:hover { transform: scale(1.04); }
+
+        /* ── Accordion Block display in editor & published blog ───── */
+        .rte-accordion-item {
+            border-bottom: 1px solid #e2e8f0;
+            margin: 0;
+        }
+        .rte-accordion-item + .rte-accordion-item { border-top: none; }
+        .rte-accordion-question {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            list-style: none;
+        }
+        .rte-accordion-question::-webkit-details-marker { display: none; }
+        .rte-accordion-question::after {
+            content: "+";
+            font-size: 24px;
+            color: #3b82f6;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+        .rte-accordion-item[open] > .rte-accordion-question::after {
+            transform: rotate(45deg);
+        }
+        .rte-accordion-answer {
+            padding: 0 0 20px;
+        }
+        .rte-accordion-answer p {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #334155;
+        }
 
         /* ── Download Block in editor ─────────────────────────────── */
         .rte-content .sap-download-block {
@@ -1355,6 +1485,131 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
                 }}
               >
                 Insert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Accordion Block Modal ─────────────────────────────── */}
+      {accordionModal.open && (
+        <div className="rte-modal-overlay" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="rte-modal">
+            <h4>🔽 Insert Accordion</h4>
+
+            {accordionModal.items.length > 0 && (
+              <ul className="rte-accordion-item-list">
+                {accordionModal.items.map((item, i) => (
+                  <li key={i}>
+                    <div className="rte-accordion-item-move">
+                      <button
+                        type="button"
+                        title="Move up"
+                        disabled={i === 0}
+                        onClick={() => setAccordionModal((m) => {
+                          const items = [...m.items];
+                          [items[i - 1], items[i]] = [items[i], items[i - 1]];
+                          return { ...m, items };
+                        })}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        title="Move down"
+                        disabled={i === accordionModal.items.length - 1}
+                        onClick={() => setAccordionModal((m) => {
+                          const items = [...m.items];
+                          [items[i + 1], items[i]] = [items[i], items[i + 1]];
+                          return { ...m, items };
+                        })}
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    <span
+                      className="rte-accordion-item-edit"
+                      title="Click to edit"
+                      onClick={() => setAccordionModal((m) => ({
+                        ...m,
+                        items: m.items.filter((_, idx) => idx !== i),
+                        question: item.question,
+                        answer: item.answer,
+                      }))}
+                    >
+                      {item.question}
+                    </span>
+                    <button
+                      type="button"
+                      className="rte-accordion-item-remove"
+                      title="Remove"
+                      onClick={() => setAccordionModal((m) => ({
+                        ...m,
+                        items: m.items.filter((_, idx) => idx !== i),
+                      }))}
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <label>Question *</label>
+            <input
+              type="text"
+              autoFocus
+              placeholder="e.g. What is SAP GRC?"
+              value={accordionModal.question}
+              onChange={(e) => setAccordionModal((m) => ({ ...m, question: e.target.value }))}
+            />
+            <label>Answer *</label>
+            <textarea
+              rows={4}
+              placeholder="The answer shown when expanded"
+              value={accordionModal.answer}
+              onChange={(e) => setAccordionModal((m) => ({ ...m, answer: e.target.value }))}
+            />
+            <button
+              type="button"
+              className="btn-cancel"
+              disabled={!accordionModal.question.trim() || !accordionModal.answer.trim()}
+              onClick={() => setAccordionModal((m) => ({
+                ...m,
+                items: [...m.items, { question: m.question, answer: m.answer }],
+                question: '',
+                answer: '',
+              }))}
+            >
+              + Add Item
+            </button>
+
+            <div className="rte-modal-actions">
+              <button
+                className="btn-cancel"
+                onClick={() => {
+                  setAccordionModal({ open: false, items: [], question: '', answer: '' });
+                  restoreSelection();
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-insert"
+                disabled={
+                  accordionModal.items.length === 0 &&
+                  (!accordionModal.question.trim() || !accordionModal.answer.trim())
+                }
+                onClick={() => {
+                  const items = [...accordionModal.items];
+                  if (accordionModal.question.trim() && accordionModal.answer.trim()) {
+                    items.push({ question: accordionModal.question, answer: accordionModal.answer });
+                  }
+                  insertAccordionBlock(items);
+                  setAccordionModal({ open: false, items: [], question: '', answer: '' });
+                }}
+              >
+                Insert{accordionModal.items.length > 0 ? ` (${accordionModal.items.length + (accordionModal.question.trim() && accordionModal.answer.trim() ? 1 : 0)})` : ''}
               </button>
             </div>
           </div>

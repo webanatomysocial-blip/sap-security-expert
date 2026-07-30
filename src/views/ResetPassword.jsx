@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Helmet } from "react-helmet-async";
+import SEO from "../components/SEO";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { resetWithToken } from "../services/api";
@@ -50,9 +50,7 @@ const ResetPassword = () => {
 
     return (
         <div style={{ padding: "100px 20px", display: "flex", justifyContent: "center", background: "#f8fafc" }}>
-            <Helmet>
-                <title>Reset Password | SAP Security Expert</title>
-            </Helmet>
+            <SEO title="Reset Password | SAP Security Expert" />
             <div style={{ maxWidth: "400px", width: "100%", background: "#fff", padding: "40px", borderRadius: "12px", boxShadow: "0 10px 25px rgba(0,0,0,0.05)" }}>
                 <h2 style={{ marginBottom: "16px" }}>Set New Password</h2>
                 <p style={{ color: "#64748b", marginBottom: "32px" }}>Enter a new strong password for your account.</p>
