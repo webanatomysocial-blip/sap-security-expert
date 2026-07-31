@@ -85,7 +85,7 @@ export default function AppWrapper() {
         const fallbackTimer = setTimeout(() => {
           ssrEl.remove();
           delete window.__removeSsrContent;
-        }, 3000);
+        }, 500);
         window.__removeSsrContent = () => {
           clearTimeout(fallbackTimer);
           ssrEl.remove();
