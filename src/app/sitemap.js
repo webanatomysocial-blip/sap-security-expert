@@ -16,7 +16,6 @@ const STATIC_PAGES = [
   { url: '/become-a-contributor',      priority: 0.6, changeFrequency: 'monthly' },
   { url: '/contributors',              priority: 0.6, changeFrequency: 'weekly'  },
   { url: '/leaderboard',               priority: 0.5, changeFrequency: 'weekly'  },
-  { url: '/transactions',              priority: 0.6, changeFrequency: 'monthly' },
   { url: '/downloads',                 priority: 0.7, changeFrequency: 'weekly'  },
   { url: '/sap-licensing',             priority: 0.7, changeFrequency: 'weekly'  },
   { url: '/sitemap',                   priority: 0.4, changeFrequency: 'monthly' },

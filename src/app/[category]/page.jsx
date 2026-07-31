@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import ClientApp from '../[[...slug]]/ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
@@ -195,8 +196,12 @@ export default async function CategoryPage({ params }) {
     );
   }
 
-  if (SKIP_CATEGORIES.has(category) || !CATEGORY_LABELS[category]) {
+  if (SKIP_CATEGORIES.has(category)) {
     return <ClientApp />;
+  }
+
+  if (!CATEGORY_LABELS[category]) {
+    notFound();
   }
 
   const categoryLabel = CATEGORY_LABELS[category] || category;

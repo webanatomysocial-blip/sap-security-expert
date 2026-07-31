@@ -94,8 +94,12 @@ export default async function CatchAll({ params }) {
       } catch (_) {}
     }
 
-    if ((is404 || !article?.id) && (CATEGORY_LABELS[firstSegment] || firstSegment === 'news' || firstSegment === 'downloads')) {
-      notFound();
+    const isKnownSegment = CATEGORY_LABELS[firstSegment] || firstSegment === 'news' || firstSegment === 'downloads';
+    if (is404 || !article?.id) {
+      // Known category with no article → hard 404
+      if (isKnownSegment) notFound();
+      // Unknown category/path → also 404, not a thin 200 page
+      if (slug.length >= 2) notFound();
     }
 
     return (
