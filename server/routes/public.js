@@ -31,6 +31,7 @@ router.get('/trending', controller.trendingTopics);
 
 // GET /api/announcements-public
 router.get('/announcements-public', controller.announcementsPublic);
+router.get('/announcements-public/:slug', controller.announcementPublicBySlug);
 
 // GET /api/admin/authors
 router.get('/admin/authors', controller.authors);

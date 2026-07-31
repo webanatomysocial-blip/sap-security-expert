@@ -202,6 +202,15 @@ async function findPublicAnnouncements(db) {
   return rows;
 }
 
+async function findPublicAnnouncementBySlug(db, slug) {
+  const [rows] = await db.execute(
+    `SELECT id, title, slug, date, link, content, excerpt, image, image_alt, views, comments, created_at
+     FROM announcements WHERE slug = ? AND status IN ('approved','active','published') LIMIT 1`,
+    [slug]
+  );
+  return rows[0] || null;
+}
+
 async function findActiveAuthors(db) {
   const [rows] = await db.execute(
     `SELECT u.id, u.username, u.role,
@@ -399,7 +408,7 @@ module.exports = {
   findCuratedHeroArticles, findFallbackHeroArticles, findRecentBlogs, findHomepageTrending,
   findApprovedContributorsWithCounts, findExpertPicks, findPremiumArticles,
   findTagsSample, findLeaderboardContributors, findPublicMemberById, countApprovedCommentsByMember,
-  countCommunityStats, findDistinctCategories, findTrendingTopics, findPublicAnnouncements, findActiveAuthors,
+  countCommunityStats, findDistinctCategories, findTrendingTopics, findPublicAnnouncements, findPublicAnnouncementBySlug, findActiveAuthors,
   findBlogIdBySlugOrId, findRecentViewByVisitor, insertPostView, incrementViewCount,
   findUserById, findMemberIdByEmail, findActiveContributorIdByEmail, deactivateContributorPath, deactivateMemberPath,
   findBlogForContent, findBlogsForSitemap, findBlogForSeoMeta,
