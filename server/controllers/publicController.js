@@ -160,6 +160,17 @@ const announcementsPublic = async (req, res) => {
   }
 };
 
+const announcementPublicBySlug = async (req, res) => {
+  try {
+    const row = await repo.findPublicAnnouncementBySlug(req.db, req.params.slug);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    return res.json(row);
+  } catch (err) {
+    console.error('[announcements-public/:slug]', err.message);
+    return res.status(500).json({ status: 'error', message: 'Failed to load announcement.' });
+  }
+};
+
 // GET /api/admin/authors
 // Email is intentionally excluded — this endpoint is used by the blog editor
 // dropdown and does not need to expose PII to the frontend.
@@ -648,6 +659,6 @@ const appVersion = async (req, res) => {
 
 module.exports = {
   homepage, popularTags, search, leaderboard, publicMemberProfile, communityStats, categories, trendingTopics,
-  announcementsPublic, authors, recordView, captcha, deleteAccount, content, sitemap, seoMeta, postsSitemap,
+  announcementsPublic, announcementPublicBySlug, authors, recordView, captcha, deleteAccount, content, sitemap, seoMeta, postsSitemap,
   learnings, learningsCounts, news, newsBySlug, sendMail, appVersion,
 };
