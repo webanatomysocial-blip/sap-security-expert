@@ -1,5 +1,6 @@
 'use client';
 
+import "./polyfill";
 import { useEffect } from "react";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";

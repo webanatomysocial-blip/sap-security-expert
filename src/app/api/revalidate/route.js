@@ -18,7 +18,14 @@ export async function POST(req) {
       return NextResponse.json({ error: 'category and slug are required' }, { status: 400 });
     }
 
+    // Bust the article page
     revalidatePath(`/${category}/${slug}`);
+    // Bust the category listing so the new article appears there too
+    revalidatePath(`/${category}`);
+    // Bust the sitemap so Google discovers the new article immediately
+    revalidatePath('/sitemap.xml');
+    // Bust llms.txt so LLM crawlers see the new article
+    revalidatePath('/llms.txt');
 
     return NextResponse.json({ revalidated: true, path: `/${category}/${slug}` });
   } catch (err) {

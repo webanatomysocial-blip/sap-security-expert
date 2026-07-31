@@ -204,6 +204,8 @@ function App() {
           <Route path="sitemap" element={<SitemapPage />} />
         </Route>
 
+        <Route path="/admin-dashboard" element={<Navigate to="/admin" replace />} />
+
         {/* React Admin Dashboard */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<ProtectedRoute><AdminHome /></ProtectedRoute>} />

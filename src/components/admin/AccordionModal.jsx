@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 
 // Lazy-load SimpleRTE to avoid circular import (SimpleRTE → AccordionModal → SimpleRTE).
 // By the time this component renders, SimpleRTE is already fully initialized so the
@@ -6,6 +6,10 @@ import React, { Suspense } from 'react';
 const SimpleRTE = React.lazy(() => import('./SimpleRTE'));
 
 export default function AccordionModal({ modal, setModal, onInsert, onCancel, rteImageUpload }) {
+  useEffect(() => {
+    window.__lenis?.stop();
+    return () => window.__lenis?.start();
+  }, []);
   const answerText = modal.answer.replace(/<[^>]*>/g, '').trim();
   const hasAnswer = answerText.length > 0;
   const hasQuestion = modal.question.trim().length > 0;
