@@ -286,13 +286,20 @@ export default function DynamicBlog() {
     }
   }, [blogId, location.pathname, navigate, isLoggedIn]);
 
-  // Once the article API call settles (success or error), the SPA has real content
-  // to show. Remove the SSR placeholder so there's no duplicate content visible.
+  // Take ownership of the SSR div on mount so AppWrapper's 3s fallback doesn't
+  // fire while the API call is still in flight.
   useEffect(() => {
-    if (!loading) {
+    window.__takeSsrOwnership?.();
+  }, []);
+
+  // Remove SSR placeholder only when the article loads successfully.
+  // On error, leave SSR content visible so Google (and users) always see the
+  // article rather than a 404 if the client-side API call fails.
+  useEffect(() => {
+    if (!loading && blog) {
       window.__removeSsrContent?.();
     }
-  }, [loading]);
+  }, [loading, blog]);
 
   const handleCommentAdded = () => {
     setCommentsCount((prevCount) => prevCount + 1);
@@ -340,6 +347,11 @@ export default function DynamicBlog() {
 
   // RENDER ERROR
   if (error || !blog) {
+    // SSR content is still in the DOM (API failed but SSR has the article) —
+    // return null so the SSR article stays visible rather than showing 404.
+    if (document.getElementById('ssr-blog-content')) {
+      return null;
+    }
     return (
       <div style={{ padding: "100px", textAlign: "center" }}>
         <h1>404 - Blog Not Found</h1>
