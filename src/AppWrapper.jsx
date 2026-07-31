@@ -82,15 +82,7 @@ export default function AppWrapper() {
           delete window.__removeSsrContent;
         };
       } else {
-        const fallbackTimer = setTimeout(() => {
-          ssrEl.remove();
-          delete window.__removeSsrContent;
-        }, 500);
-        window.__removeSsrContent = () => {
-          clearTimeout(fallbackTimer);
-          ssrEl.remove();
-          delete window.__removeSsrContent;
-        };
+        ssrEl.remove();
       }
     }
 
