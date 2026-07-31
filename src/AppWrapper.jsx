@@ -66,14 +66,25 @@ export default function AppWrapper() {
     // or from the loaded SPA — never a bare skeleton loading state.
     const ssrEl = document.getElementById('ssr-blog-content');
     if (ssrEl) {
+      // DynamicBlog (or any article component) calls __takeSsrOwnership() on mount
+      // to cancel this fallback and take full control of when SSR is removed.
+      // The fallback only fires for non-article pages (homepage, category listings).
       const fallbackTimer = setTimeout(() => {
         ssrEl.remove();
         delete window.__removeSsrContent;
+        delete window.__takeSsrOwnership;
       }, 3000);
       window.__removeSsrContent = () => {
         clearTimeout(fallbackTimer);
         ssrEl.remove();
         delete window.__removeSsrContent;
+        delete window.__takeSsrOwnership;
+      };
+      // Article components call this on mount to prevent the 3s fallback from firing.
+      // The component then owns the SSR div and calls __removeSsrContent when ready.
+      window.__takeSsrOwnership = () => {
+        clearTimeout(fallbackTimer);
+        delete window.__takeSsrOwnership;
       };
     }
 
@@ -82,6 +93,7 @@ export default function AppWrapper() {
       window.removeEventListener('error', onChunkError);
       window.removeEventListener('unhandledrejection', onChunkError);
       delete window.__removeSsrContent;
+      delete window.__takeSsrOwnership;
     };
   }, []);
 
