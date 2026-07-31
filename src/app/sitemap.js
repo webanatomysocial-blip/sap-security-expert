@@ -59,7 +59,7 @@ const toDate = (raw, fallback) => {
 
 async function fetchJson(url) {
   try {
-    const res = await fetch(url, { next: { revalidate: 3600 } });
+    const res = await fetch(url, { next: { revalidate: 300 } });
     if (!res.ok) return null;
     return res.json();
   } catch { return null; }
