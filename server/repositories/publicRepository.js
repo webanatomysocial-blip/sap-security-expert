@@ -321,7 +321,7 @@ async function findBlogForContent(db, slug) {
 
 async function findBlogsForSitemap(db) {
   const [rows] = await db.execute(
-    "SELECT slug, category, updated_at, date FROM blogs WHERE status IN ('approved','published') AND (type IS NULL OR type = 'blog') ORDER BY updated_at DESC"
+    "SELECT slug, category, title, meta_description, excerpt, updated_at, date FROM blogs WHERE status IN ('approved','published') AND (type IS NULL OR type = 'blog') ORDER BY updated_at DESC"
   );
   return rows;
 }

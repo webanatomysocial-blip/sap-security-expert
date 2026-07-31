@@ -233,12 +233,14 @@ export default async function BlogPostPage({ params }) {
 
   const blog = await fetchBlog(slug);
 
-  // If not found or wrong category, hand off to the SPA (or return 404 if it's a known blog category)
+  // Unknown category: never a valid public URL, return 404
+  if (!CATEGORY_LABELS[category]) {
+    notFound();
+  }
+
+  // Known category but article missing or draft: return 404
   if (!blog || (blog.status && blog.status === 'draft')) {
-    if (CATEGORY_LABELS[category]) {
-      notFound();
-    }
-    return <ClientApp />;
+    notFound();
   }
 
   const authorName = blog.author_name || 'SAP Security Expert';
