@@ -286,12 +286,6 @@ export default function DynamicBlog() {
     }
   }, [blogId, location.pathname, navigate, isLoggedIn]);
 
-  // Take ownership of the SSR div on mount so AppWrapper's 3s fallback doesn't
-  // fire while the API call is still in flight.
-  useEffect(() => {
-    window.__takeSsrOwnership?.();
-  }, []);
-
   // Remove SSR placeholder only when the article loads successfully.
   // On error, leave SSR content visible so Google (and users) always see the
   // article rather than a 404 if the client-side API call fails.
