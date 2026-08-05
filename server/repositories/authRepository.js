@@ -43,6 +43,13 @@ async function findUserById(db, id) {
   return rows[0] || null;
 }
 
+// Used by requireAuth on every request to catch sessions left stale by an
+// admin action taken elsewhere (e.g. a contributor deleted mid-session).
+async function findCurrentAccessState(db, id) {
+  const [rows] = await db.execute('SELECT role, is_active FROM users WHERE id = ? LIMIT 1', [id]);
+  return rows[0] || null;
+}
+
 async function findContributorByEmail(db, email) {
   const [rows] = await db.execute(
     "SELECT * FROM users WHERE email = ? AND role = 'contributor' AND is_active = 1 LIMIT 1",
@@ -54,4 +61,5 @@ async function findContributorByEmail(db, email) {
 module.exports = {
   findLoginAttempts, clearLoginAttempts, recordFailedAttempt, findUserByUsername,
   findPermissionsByUserId, findPermissionsByUserIdAll, findUserById, findContributorByEmail,
+  findCurrentAccessState,
 };
