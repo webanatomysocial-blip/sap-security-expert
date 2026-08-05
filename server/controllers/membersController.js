@@ -74,7 +74,7 @@ const login = async (req, res) => {
     let adminData = null;
     let permissions = {};
 
-    if (user && user.is_active == 1) {
+    if (user && user.is_active == 1 && user.role === 'contributor') {
       isContributor = true;
       req.session.admin_id = user.id;
       req.session.admin_user = user.username;
