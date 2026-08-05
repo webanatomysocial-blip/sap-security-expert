@@ -1,4 +1,5 @@
 const { timingSafeEqual } = require('crypto');
+const authRepo = require('../repositories/authRepository');
 
 function safeCompare(a, b) {
   try {
@@ -11,7 +12,7 @@ function safeCompare(a, b) {
 function requireAuth(options = {}) {
   const allowPublic = options.allowPublic || false;
 
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const sess = req.session;
 
     // 1. Authentication check
@@ -28,6 +29,22 @@ function requireAuth(options = {}) {
         status: 'error',
         message: 'Account has been deactivated. Contact administrator.',
       });
+    }
+
+    // 2b. Re-validate role/active state against the DB. Session fields are
+    // cached at login and don't change when an admin deletes/deactivates a
+    // contributor mid-session elsewhere — without this, that stale session
+    // keeps dashboard access until it naturally expires.
+    if (sess.admin_logged_in) {
+      const current = await authRepo.findCurrentAccessState(req.db, sess.admin_id);
+      const stillHasDashboardAccess = current && current.is_active == 1 && (current.role === 'admin' || current.role === 'contributor');
+      if (!stillHasDashboardAccess) {
+        req.session.destroy(() => {});
+        return res.status(403).json({
+          status: 'error',
+          message: 'Your access has been revoked. Please log in again.',
+        });
+      }
     }
 
     // 3. CSRF validation for mutating methods (timing-safe comparison)

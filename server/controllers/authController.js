@@ -120,6 +120,12 @@ const verifySession = asyncHandler(async (req, res) => {
   if (sess.admin_logged_in) {
     try {
       const user = await repo.findUserById(db, sess.admin_id);
+      const access = await repo.findCurrentAccessState(db, sess.admin_id);
+      const stillHasDashboardAccess = access && access.is_active == 1 && (access.role === 'admin' || access.role === 'contributor');
+      if (user && !stillHasDashboardAccess) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ status: 'error', authenticated: false, message: 'Not authenticated' });
+      }
       if (user) {
         const p = await repo.findPermissionsByUserIdAll(db, sess.admin_id);
         const permissions = buildPermissions(p);
