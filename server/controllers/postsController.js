@@ -7,7 +7,6 @@ const MailService = require('../services/MailService');
 const CacheService = require('../services/CacheService');
 const { revalidateBlog } = require('../utils/revalidate');
 const repo = require('../repositories/postsRepository');
-const settingsRepo = require('../repositories/admin/settingsRepository');
 
 const cache = new CacheService(1800);
 
@@ -234,10 +233,11 @@ const list = asyncHandler(async (req, res) => {
     const hasAdminAccess = isAdmin || isOwnBlog || isInternalSSR;
 
     // Resolve how many blocks/lines to expose before the paywall:
-    // per-article setting wins; falls back to site default; then hardcoded 3.
-    const siteDefaultRaw = await settingsRepo.getSetting(db, 'paywall_default_preview_paragraphs');
-    const siteDefaultPreview = siteDefaultRaw != null ? parseInt(siteDefaultRaw) : 3;
-    const effectivePreview = blog.preview_paragraphs != null ? parseInt(blog.preview_paragraphs) : siteDefaultPreview;
+    // per-article setting wins; otherwise the site-wide default of 3 (no
+    // longer admin-configurable — was a single-purpose settings row that
+    // added a DB round-trip for a value that's effectively constant).
+    const SITE_DEFAULT_PREVIEW_BLOCKS = 3;
+    const effectivePreview = blog.preview_paragraphs != null ? parseInt(blog.preview_paragraphs) : SITE_DEFAULT_PREVIEW_BLOCKS;
     const effectiveUnit = blog.preview_unit || 'blocks';
 
     // Slice HTML to N block-level elements (counting ALL occurrences, not just

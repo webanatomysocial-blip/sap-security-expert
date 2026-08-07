@@ -41,11 +41,22 @@ const nextConfig = {
 
     // Split mode: proxy to external Express server.
     const apiBase = process.env.EXPRESS_API_URL;
-    if (!apiBase) return []; // dev fallback — Next.js dev proxy not needed either
+    if (apiBase) {
+      return [
+        { source: '/api/:path*',     destination: `${apiBase}/api/:path*`     },
+        { source: '/uploads/:path*', destination: `${apiBase}/uploads/:path*` },
+      ];
+    }
 
+    // Local dev mode: proxy /api/* and /uploads/* from Next.js (port 3000)
+    // to the Express dev server (port 3001). Without this, API calls would
+    // hit Next.js and return HTML instead of JSON.
+    // This branch is only reached when UNIFIED_SERVER and EXPRESS_API_URL are
+    // both unset — never in production.
+    const localApiPort = process.env.EXPRESS_PORT || '3001';
     return [
-      { source: '/api/:path*',     destination: `${apiBase}/api/:path*`     },
-      { source: '/uploads/:path*', destination: `${apiBase}/uploads/:path*` },
+      { source: '/api/:path*',     destination: `http://localhost:${localApiPort}/api/:path*`     },
+      { source: '/uploads/:path*', destination: `http://localhost:${localApiPort}/uploads/:path*` },
     ];
   },
 };

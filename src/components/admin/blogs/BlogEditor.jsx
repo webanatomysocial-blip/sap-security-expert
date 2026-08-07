@@ -53,6 +53,7 @@ const BlogEditor = ({
   const contentAtInsert = React.useRef("");
   const [exclusiveModal, setExclusiveModal] = React.useState(false);
   const [exclusivePreview, setExclusivePreview] = React.useState("");
+  const [exclusivePreviewUnit, setExclusivePreviewUnit] = React.useState("blocks");
   const [dlModal, setDlModal] = React.useState({ open: false });
   const [dlFile, setDlFile] = React.useState(null);
   const [dlCredits, setDlCredits] = React.useState("5");
@@ -457,6 +458,7 @@ const BlogEditor = ({
                     if (val === 1) {
                       // Open modal to ask for preview paragraphs
                       setExclusivePreview(formData.preview_paragraphs ? String(formData.preview_paragraphs) : "");
+                      setExclusivePreviewUnit(formData.preview_unit || "blocks");
                       setExclusiveModal(true);
                     } else {
                       handleInputChange({ target: { name: "is_members_only", value: 0 } });
@@ -551,11 +553,11 @@ const BlogEditor = ({
                 <span style={{ fontSize: "0.8rem", color: "#0369a1" }}>
                   {formData.preview_paragraphs
                     ? `${formData.preview_paragraphs} ${formData.preview_unit === "lines" ? "line(s)" : "block(s)"} shown before paywall`
-                    : "Leave blank to use site default"}
+                    : "Leave blank to use the default (3 blocks)"}
                 </span>
               </div>
               <span style={{ fontSize: "0.75rem", color: "#0369a1", marginTop: "6px", display: "block" }}>
-                <strong>Blocks</strong> = paragraphs, headings, lists, tables. &nbsp;<strong>Lines</strong> = approx. text lines (~80 chars each). Overrides the site-wide default.
+                <strong>Blocks</strong> = paragraphs, headings, lists, tables. &nbsp;<strong>Lines</strong> = approx. text lines (~80 chars each). Overrides the default of 3 blocks.
               </span>
             </div>
           )}
@@ -614,7 +616,7 @@ const BlogEditor = ({
                 {[
                   { key: "badge_expert_reviewed",    icon: "bi-person-check-fill", label: "Expert Reviewed",      color: "#15803d" },
                   { key: "badge_sap_notes_verified", icon: "bi-journal-check",     label: "SAP Notes Verified",   color: "#0369a1" },
-                  { key: "badge_tested_s4hana",      icon: "bi-cpu-fill",          label: "Tested on S/4HANA 2023", color: "#7c3aed" },
+                  { key: "badge_tested_s4hana",      icon: "bi-cpu-fill",          label: "Tested on S/4HANA", color: "#7c3aed" },
                   { key: "badge_field_validated",    icon: "bi-shield-check",      label: "Field Validated",      color: "#b45309" },
                 ].map(({ key, icon, label, color }) => (
                   <label key={key} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", margin: 0 }}>
@@ -1030,30 +1032,42 @@ const BlogEditor = ({
           </div>
           <div className="modal-body">
             <p style={{ color: "var(--slate-600)", fontSize: "0.9rem", marginBottom: 16 }}>
-              How many paragraphs/blocks should be visible before the paywall on this exclusive article?
+              How many paragraphs/blocks should be visible before the paywall on <strong>"{formData.title || "this article"}"</strong>?
             </p>
-            <input
-              type="number"
-              min="1"
-              max="99"
-              value={exclusivePreview}
-              onChange={(e) => setExclusivePreview(e.target.value)}
-              className="form-control"
-              placeholder="Leave blank for site default (3)"
-              style={{ width: "200px", padding: "8px 10px", fontSize: "1rem", border: "1.5px solid #93c5fd", background: "#eff6ff" }}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Escape") setExclusiveModal(false);
-                if (e.key === "Enter") {
-                  handleInputChange({ target: { name: "is_members_only", value: 1 } });
-                  handleInputChange({ target: { name: "is_premium", value: 0 } });
-                  if (exclusivePreview !== "") handleInputChange({ target: { name: "preview_paragraphs", value: parseInt(exclusivePreview) || "" } });
-                  setExclusiveModal(false);
-                }
-              }}
-            />
-            <span style={{ fontSize: "0.78rem", color: "#1e40af", marginTop: 6, display: "block" }}>
-              Leave blank to use the site default. Counts paragraphs, headings, lists, and tables.
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="number"
+                min="1"
+                max="99"
+                value={exclusivePreview}
+                onChange={(e) => setExclusivePreview(e.target.value)}
+                className="form-control"
+                placeholder="3"
+                style={{ width: "90px", padding: "8px 10px", fontSize: "1rem", border: "1.5px solid #93c5fd", background: "#eff6ff" }}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setExclusiveModal(false);
+                  if (e.key === "Enter") {
+                    handleInputChange({ target: { name: "is_members_only", value: 1 } });
+                    handleInputChange({ target: { name: "is_premium", value: 0 } });
+                    handleInputChange({ target: { name: "preview_unit", value: exclusivePreviewUnit } });
+                    if (exclusivePreview !== "") handleInputChange({ target: { name: "preview_paragraphs", value: parseInt(exclusivePreview) || "" } });
+                    setExclusiveModal(false);
+                  }
+                }}
+              />
+              <select
+                value={exclusivePreviewUnit}
+                onChange={(e) => setExclusivePreviewUnit(e.target.value)}
+                className="form-control"
+                style={{ width: "110px", padding: "8px 10px", fontSize: "0.9rem", border: "1.5px solid #93c5fd", background: "#eff6ff" }}
+              >
+                <option value="blocks">Blocks</option>
+                <option value="lines">Lines</option>
+              </select>
+            </div>
+            <span style={{ fontSize: "0.75rem", color: "#1e40af", marginTop: 6, display: "block" }}>
+              Blocks = paragraphs/headings/lists. Leave blank to use the default (3).
             </span>
           </div>
           <div className="modal-footer" style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid var(--slate-100)", padding: "14px 24px" }}>
@@ -1069,6 +1083,7 @@ const BlogEditor = ({
               onClick={() => {
                 handleInputChange({ target: { name: "is_members_only", value: 1 } });
                 handleInputChange({ target: { name: "is_premium", value: 0 } });
+                handleInputChange({ target: { name: "preview_unit", value: exclusivePreviewUnit } });
                 if (exclusivePreview !== "") handleInputChange({ target: { name: "preview_paragraphs", value: parseInt(exclusivePreview) || "" } });
                 setExclusiveModal(false);
               }}
