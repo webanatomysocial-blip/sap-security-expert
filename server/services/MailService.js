@@ -2,6 +2,7 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
+const { poolExec } = require('../db');
 
 const TEMPLATES_DIR = path.join(__dirname, '../templates');
 
@@ -173,9 +174,21 @@ class MailService {
     fs.appendFileSync(this.logFile, `[${new Date().toISOString()}] ${message}\n`);
   }
 
-  async _logDb(db, recipient, subject, status, error) {
+  // Deliberately ignores the `db` argument (kept for call-site compatibility —
+  // send()/sendDirect() still accept it) and always writes via poolExec
+  // instead. This log write commonly runs after the caller's HTTP response
+  // has already finished (fire-and-forget notification calls that aren't
+  // awaited before res.json(...)), at which point dbMiddleware has already
+  // released the caller's connection back to the pool. Writing on that
+  // already-released connection races whatever request the pool hands it to
+  // next — two unrelated queries on one physical connection at once, which
+  // desyncs mysql2's protocol state (surfaces in MySQL as "Aborted
+  // connection ... Got an error reading communication packets"). poolExec
+  // acquires its own short-lived connection per call, independent of
+  // whatever the caller's connection is doing.
+  async _logDb(_db, recipient, subject, status, error) {
     try {
-      await db.execute(
+      await poolExec.execute(
         'INSERT INTO email_logs (recipient, subject, status, error_message, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
         [recipient, subject, status, error]
       );
