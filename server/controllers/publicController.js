@@ -331,7 +331,14 @@ const deleteAccount = async (req, res) => {
     req.session.destroy(() => {});
     return res.json({ status: 'success', message });
   } catch (err) {
-    if (db.inTransaction) await db.rollback().catch(() => {});
+    // Always attempt rollback, not conditioned on `db.inTransaction` — that
+    // property only exists on the dev-mode SQLiteAdapter, not on real mysql2
+    // pool connections, so in production this never rolled back and left an
+    // open transaction (holding row locks on users/members/contributors) on
+    // the connection when it was returned to the pool, eventually wedging
+    // every other request that touched those rows. rollback() on a
+    // connection with no active transaction is a harmless no-op in mysql2.
+    await db.rollback().catch(() => {});
     console.error('[delete_account]', err.message);
     const isOtpError = /invalid|expired|code/i.test(err.message);
     return res.status(isOtpError ? 400 : 500)

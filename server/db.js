@@ -833,6 +833,21 @@ if (isSQLite) {
     keepAliveInitialDelay: 10000,
   });
   console.log('[DB] Using MySQL →', dbHost, '/', process.env.DB_NAME);
+
+  // ── TEMPORARY pool diagnostics ──────────────────────────────────────────────
+  // Logs pool saturation every 10s so an in-progress "Queue limit reached"
+  // incident can be caught live instead of reconstructed after the fact from
+  // timestamps. _allConnections/_freeConnections/_connectionQueue are
+  // undocumented mysql2 internals (no public pool.stats() API exists as of
+  // mysql2 3.x) — safe to read, never write. Remove this block (or gate it
+  // behind an env var) once the current incident is resolved and the fix has
+  // been observed holding under real traffic for a few days.
+  setInterval(() => {
+    const all = pool._allConnections?.length ?? -1;
+    const free = pool._freeConnections?.length ?? -1;
+    const queued = pool._connectionQueue?.length ?? -1;
+    console.log(`[DB Pool] all=${all} free=${free} busy=${all - free} queued=${queued}`);
+  }, 10000).unref();
 }
 
 // ── Auto-publish hook ─────────────────────────────────────────────────────────
@@ -859,6 +874,16 @@ async function runAutoPublish(conn) {
     }
   } catch { /* fail silently */ }
 }
+
+// ── Single-query executor ─────────────────────────────────────────────────────
+// For read-only / single-statement call sites that don't need
+// beginTransaction()/commit()/rollback() and shouldn't hold a connection for
+// longer than one query. In MySQL mode, pool.execute() acquires a connection,
+// runs the query, and releases it internally — no manual getConnection()/
+// release() needed, and the connection is never held across unrelated work
+// (SMTP sends, response serialization, etc.) the way req.db is. In SQLite dev
+// mode there's no real pooling, so this is just the shared adapter.
+const poolExec = isSQLite ? sqliteAdapter : { execute: (sql, params) => pool.execute(sql, params) };
 
 // ── Express middleware ────────────────────────────────────────────────────────
 async function dbMiddleware(req, res, next) {
@@ -892,4 +917,4 @@ async function dbMiddleware(req, res, next) {
   }
 }
 
-module.exports = { pool, dbMiddleware, isSQLite };
+module.exports = { pool, dbMiddleware, isSQLite, poolExec };

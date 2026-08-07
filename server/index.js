@@ -387,38 +387,58 @@ if (!isSQLite && process.env.NODE_ENV === 'production') {
     const cron = require('node-cron');
     const MailService = require('./services/MailService');
     cron.schedule('* * * * *', async () => {
-      let conn;
       try {
-        const { pool } = require('./db');
-        conn = await pool.getConnection();
+        const { poolExec } = require('./db');
         const mailService = MailService.getInstance();
-        // Claim rows atomically — prevents double-send if the HTTP cron endpoint
-        // fires at the same time as this in-process timer.
-        const [claimed] = await conn.execute(
+
+        // ── Phase 1: claim pending rows ─────────────────────────────────────
+        // poolExec.execute() acquires a connection, runs one statement, and
+        // releases it immediately — no connection is held past this call.
+        // Each statement here auto-commits on its own (no beginTransaction()
+        // was ever used in this cron), so claim + read can safely run on two
+        // different pooled connections: by the time the SELECT runs, the
+        // UPDATE has already committed and is visible to any connection.
+        const [claimed] = await poolExec.execute(
           "UPDATE email_queue SET status='sending' WHERE status='pending' ORDER BY id ASC LIMIT 12"
         );
         if (!claimed.affectedRows) return;
-        const [emails] = await conn.execute(
+        const [emails] = await poolExec.execute(
           "SELECT id, recipient, subject, body, attempts FROM email_queue WHERE status='sending' ORDER BY id ASC LIMIT 12"
         );
+
+        // ── Phase 2: send — no DB connection held during any of this ────────
+        // Previously a single pooled connection sat checked-out for this
+        // entire loop, including every SMTP round-trip. A stalled SMTP send
+        // (dead peer, no timeout configured on the transporter) could hold
+        // that connection indefinitely, and since node-cron doesn't skip
+        // overlapping runs, the next minute's tick would grab another
+        // connection and repeat — consuming the pool one stalled connection
+        // at a time. `db` is passed as `null`: MailService._logDb() no
+        // longer uses the caller's connection (it uses poolExec internally),
+        // so nothing here depends on holding a connection open.
+        const results = [];
         let sent = 0;
         for (const email of emails) {
           const attempts = email.attempts + 1;
-          const ok = await mailService.sendDirect(conn, email.recipient, email.subject, email.body);
-          if (ok) {
-            await conn.execute("UPDATE email_queue SET status='sent', sent_at=CURRENT_TIMESTAMP, attempts=? WHERE id=?", [attempts, email.id]);
-            sent++;
-          } else if (attempts >= 3) {
-            await conn.execute("UPDATE email_queue SET status='failed', attempts=?, error_message='Max attempts reached' WHERE id=?", [attempts, email.id]);
+          const ok = await mailService.sendDirect(null, email.recipient, email.subject, email.body);
+          if (ok) sent++;
+          results.push({ id: email.id, ok, attempts });
+        }
+
+        // ── Phase 3: write results — one short-lived connection per update ──
+        for (const r of results) {
+          if (r.ok) {
+            await poolExec.execute("UPDATE email_queue SET status='sent', sent_at=CURRENT_TIMESTAMP, attempts=? WHERE id=?", [r.attempts, r.id]);
+          } else if (r.attempts >= 3) {
+            await poolExec.execute("UPDATE email_queue SET status='failed', attempts=?, error_message='Max attempts reached' WHERE id=?", [r.attempts, r.id]);
           } else {
-            await conn.execute("UPDATE email_queue SET status='pending', attempts=? WHERE id=?", [attempts, email.id]);
+            await poolExec.execute("UPDATE email_queue SET status='pending', attempts=? WHERE id=?", [r.attempts, r.id]);
           }
         }
+
         if (emails.length) console.log(`[cron] Sent ${sent}/${emails.length} emails`);
       } catch (err) {
         console.error('[cron] Error:', err.message);
-      } finally {
-        if (conn) conn.release();
       }
     });
     console.log('[cron] In-process email queue cron started');
