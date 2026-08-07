@@ -770,7 +770,7 @@ const BlogPreviewModal = ({
                     {[
                       { key: "badge_expert_reviewed",    icon: "bi-person-check-fill", label: "Expert Reviewed",        color: "#15803d" },
                       { key: "badge_sap_notes_verified", icon: "bi-journal-check",     label: "SAP Notes Verified",     color: "#0369a1" },
-                      { key: "badge_tested_s4hana",      icon: "bi-cpu-fill",          label: "Tested on S/4HANA 2023", color: "#7c3aed" },
+                      { key: "badge_tested_s4hana",      icon: "bi-cpu-fill",          label: "Tested on S/4HANA",      color: "#7c3aed" },
                       { key: "badge_field_validated",    icon: "bi-shield-check",      label: "Field Validated",        color: "#b45309" },
                     ].map(({ key, icon, label, color }) => (
                       <label key={key} style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", margin: 0 }}>

@@ -519,7 +519,7 @@ const BlogLayout = ({
               )}
               {!!badge_expert_reviewed    && <span className="article-verify-badge article-verify-badge--green"><i className="bi bi-person-check-fill" /> Expert Reviewed</span>}
               {!!badge_sap_notes_verified && <span className="article-verify-badge article-verify-badge--blue"><i className="bi bi-journal-check" /> SAP Notes Verified</span>}
-              {!!badge_tested_s4hana      && <span className="article-verify-badge article-verify-badge--purple"><i className="bi bi-cpu-fill" /> Tested on S/4HANA 2023</span>}
+              {!!badge_tested_s4hana      && <span className="article-verify-badge article-verify-badge--purple"><i className="bi bi-cpu-fill" /> Tested on S/4HANA</span>}
               {!!badge_field_validated    && <span className="article-verify-badge article-verify-badge--amber"><i className="bi bi-shield-check" /> Field Validated</span>}
             </div>
           )}
