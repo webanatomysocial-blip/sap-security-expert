@@ -56,7 +56,7 @@ const sendOtp = async (req, res) => {
 
     const mailService = MailService.getInstance();
     const subjectMap = { reset: 'Password Reset Verification Code', delete_account: 'Account Deletion Verification Code' };
-    const templateMap = { delete_account: 'member/account_deletion_otp' };
+    const templateMap = { reset: 'member/reset_otp', delete_account: 'member/account_deletion_otp' };
     const subject = subjectMap[type] || 'Verification Code';
     const template = templateMap[type] || 'member/otp_verification';
 
@@ -169,19 +169,23 @@ const resetPasswordOtp = async (req, res) => {
   }
 
   try {
-    const otpService = new OTPService(db);
-    // Step 2 already called verifyOTP (marking OTP 'verified'); use isVerified here
-    // so we don't re-query for 'pending' status and fail.
-    const verified = await otpService.isVerified(email, 'reset');
-    if (!verified) throw new Error('Verification code not found or already used.');
+    // Atomically claim the verified OTP row: UPDATE status to 'used' only if
+    // it's currently 'verified' and was created within the last 30 minutes.
+    // This prevents a race where two concurrent requests both pass isVerified()
+    // before either one marks the row as used.
+    const [claimResult] = await db.execute(
+      `UPDATE verification_codes SET status = 'used'
+       WHERE email = ? AND type = 'reset' AND status = 'verified'
+         AND created_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)`,
+      [email]
+    );
+    if (!claimResult.affectedRows) {
+      throw new Error('Verification code not found or already used.');
+    }
 
     const hash = await bcrypt.hash(password, 10);
     await repo.updateMemberPassword(db, email, hash);
     await repo.updateUserPassword(db, email, hash).catch(() => {});
-    await db.execute(
-      "UPDATE verification_codes SET status = 'used' WHERE email = ? AND type = 'reset' AND status = 'verified'",
-      [email]
-    );
 
     return res.json({ status: 'success', message: 'Password reset successfully.' });
   } catch (err) {
