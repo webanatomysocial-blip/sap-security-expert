@@ -178,6 +178,10 @@ const resetPasswordOtp = async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     await repo.updateMemberPassword(db, email, hash);
     await repo.updateUserPassword(db, email, hash).catch(() => {});
+    await db.execute(
+      "UPDATE verification_codes SET status = 'used' WHERE email = ? AND type = 'reset' AND status = 'verified'",
+      [email]
+    );
 
     return res.json({ status: 'success', message: 'Password reset successfully.' });
   } catch (err) {

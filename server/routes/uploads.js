@@ -119,6 +119,7 @@ const downloadUpload = multer({
 router.post(
   '/upload-download-asset',
   requireAuth(),
+  checkPermission('can_manage_blogs'),
   (req, res, next) => {
     downloadUpload.single('file')(req, res, (err) => {
       if (err) return res.json({ status: 'error', message: err.message });

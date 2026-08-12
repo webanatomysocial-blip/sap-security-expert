@@ -1,6 +1,7 @@
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const { deleteImage } = require('../../utils/helpers');
+const { sanitizeBlogHtml } = require('../../utils/sanitize');
 const CacheService = require('../../services/CacheService');
 const repo = require('../../repositories/admin/learningsRepository');
 
@@ -74,7 +75,10 @@ const save = asyncHandler(async (req, res) => {
   }
 
   const targetStatus = requestedStatus || 'approved';
-  const faqsJson = JSON.stringify(Array.isArray(faqs) ? faqs : []);
+  const faqsJson = JSON.stringify((Array.isArray(faqs) ? faqs : []).map(f => ({
+    question: typeof f.question === 'string' ? sanitizeBlogHtml(f.question) : '',
+    answer: typeof f.answer === 'string' ? sanitizeBlogHtml(f.answer) : '',
+  })));
   const coAuthorsJson = JSON.stringify(Array.isArray(co_authors) ? co_authors : []);
   const relatedBlogsJson = typeof related_blogs === 'string' ? related_blogs : JSON.stringify(Array.isArray(related_blogs) ? related_blogs : []);
 
