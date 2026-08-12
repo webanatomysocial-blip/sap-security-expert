@@ -160,9 +160,9 @@ const resetWithToken = async (req, res) => {
 // POST /api/reset-password-otp
 const resetPasswordOtp = async (req, res) => {
   const db = req.db;
-  const { email, code, password } = req.body || {};
-  if (!email || !code || !password) {
-    return res.status(400).json({ status: 'error', message: 'Email, code and password are required.' });
+  const { email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ status: 'error', message: 'Email and password are required.' });
   }
   if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
     return res.status(400).json({ status: 'error', message: 'Password must be 8–128 characters.' });
@@ -170,7 +170,10 @@ const resetPasswordOtp = async (req, res) => {
 
   try {
     const otpService = new OTPService(db);
-    await otpService.verifyOTP(email, code, 'reset');
+    // Step 2 already called verifyOTP (marking OTP 'verified'); use isVerified here
+    // so we don't re-query for 'pending' status and fail.
+    const verified = await otpService.isVerified(email, 'reset');
+    if (!verified) throw new Error('Verification code not found or already used.');
 
     const hash = await bcrypt.hash(password, 10);
     await repo.updateMemberPassword(db, email, hash);
