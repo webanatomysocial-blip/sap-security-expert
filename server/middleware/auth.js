@@ -1,5 +1,6 @@
 const { timingSafeEqual } = require('crypto');
 const authRepo = require('../repositories/authRepository');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 function safeCompare(a, b) {
   try {
@@ -12,7 +13,12 @@ function safeCompare(a, b) {
 function requireAuth(options = {}) {
   const allowPublic = options.allowPublic || false;
 
-  return async (req, res, next) => {
+  // Wrapped with asyncHandler: this is registered directly as Express
+  // middleware (not awaited/caught by Express itself), so an unhandled
+  // rejection from the DB call below (e.g. a transient pool/connection
+  // error) would otherwise become an unhandled promise rejection and crash
+  // the entire Node process for every in-flight request, not just this one.
+  return asyncHandler(async (req, res, next) => {
     const sess = req.session;
 
     // 1. Authentication check
@@ -45,6 +51,11 @@ function requireAuth(options = {}) {
           message: 'Your access has been revoked. Please log in again.',
         });
       }
+      // Keep the cached session role in sync with the DB. Without this, an
+      // admin who gets demoted to contributor mid-session keeps full admin
+      // access (requireAdmin and checkPermission both trust sess.role
+      // directly) until they happen to log out and back in.
+      if (sess.role !== current.role) sess.role = current.role;
     }
 
     // 3. CSRF validation for mutating methods (timing-safe comparison)
@@ -63,7 +74,7 @@ function requireAuth(options = {}) {
     }
 
     next();
-  };
+  });
 }
 
 // Short-hand: require admin-only

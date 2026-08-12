@@ -1,5 +1,6 @@
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
+const { isSQLite } = require('../../db');
 const repo = require('../../repositories/admin/creditsRepository');
 
 // GET /api/admin/bundles
@@ -109,35 +110,64 @@ const grantCredits = asyncHandler(async (req, res) => {
   const member = await repo.findMemberById(db, memberId);
   if (!member) return sendError(res, 'Member not found', 404);
 
-  const existing = await repo.findMemberCredits(db, memberId);
-  if (existing) {
-    await repo.incrementMemberBalance(db, memberId, credits);
-  } else {
-    if (credits < 0) {
+  const txNote = note || (credits > 0 ? `Admin granted ${credits} credits` : `Admin deducted ${Math.abs(credits)} credits`);
+  let newBalance;
+  try {
+    newBalance = await applyCreditAdjustment(db, memberId, credits, txNote);
+  } catch (err) {
+    if (err.message === 'no_balance') {
       return sendError(res, 'Cannot deduct credits from a member with no balance', 400);
     }
-    await repo.createMemberCredits(db, memberId, credits);
+    throw err;
   }
 
-  const txNote = note || (credits > 0 ? `Admin granted ${credits} credits` : `Admin deducted ${Math.abs(credits)} credits`);
-  await repo.insertAdjustmentTransaction(db, memberId, credits, txNote);
-
-  const newBalance = await repo.findMemberBalance(db, memberId);
   return sendSuccess(res, { message: `Credits updated. New balance: ${newBalance}`, new_balance: newBalance });
 });
 
 // Shared by grantCredits and bulkGrantCredits — applies one credit adjustment
 // atomically using INSERT ... ON DUPLICATE KEY UPDATE so concurrent calls for
 // the same member never race on a missing row (TOCTOU → UNIQUE crash).
+//
+// The balance write itself (upsertMemberBalance) is atomic, but the
+// before/after balance reads used to compute actualDelta for the audit log
+// are not, by themselves, atomic with that write. Two concurrent adjustments
+// for the same member could each read a stale "before" balance and each log
+// a credits_delta that double-counts (or misses) the other's change —
+// exactly the kind of drift between credit_transactions and
+// member_credits.balance this function is meant to prevent. Wrapping the
+// whole read-write-read-log sequence in a transaction, with a row lock on
+// MySQL (SQLite has no FOR UPDATE; its single-writer transaction semantics
+// already serialize concurrent writers once the upsert below runs), closes
+// that window.
 async function applyCreditAdjustment(db, memberId, credits, note) {
-  if (credits < 0) {
-    // Deduction path: guard against going negative and ensure the row exists
-    const existing = await repo.findMemberCredits(db, memberId);
-    if (!existing) throw new Error('no_balance');
+  await db.beginTransaction();
+  try {
+    const existing = isSQLite
+      ? await repo.findMemberCredits(db, memberId)
+      : await repo.findMemberCreditsForUpdate(db, memberId);
+    if (credits < 0 && !existing) throw new Error('no_balance');
+    const beforeBalance = existing ? existing.balance : 0;
+
+    await repo.upsertMemberBalance(db, memberId, credits);
+    const newBalance = await repo.findMemberBalance(db, memberId);
+
+    // Log what actually happened to the balance, not the requested delta —
+    // upsertMemberBalance clamps at 0, so a large deduction against a small
+    // balance changes the balance by less than `credits`. Logging the raw
+    // request here would make credit_transactions stop reconciling with
+    // member_credits.balance.
+    const actualDelta = newBalance - beforeBalance;
+    const loggedNote = actualDelta !== credits
+      ? `${note} (requested ${credits}, clamped to ${actualDelta})`
+      : note;
+    await repo.insertAdjustmentTransaction(db, memberId, actualDelta, loggedNote);
+
+    await db.commit();
+    return newBalance;
+  } catch (err) {
+    await db.rollback();
+    throw err;
   }
-  await repo.upsertMemberBalance(db, memberId, credits);
-  await repo.insertAdjustmentTransaction(db, memberId, credits, note);
-  return repo.findMemberBalance(db, memberId);
 }
 
 // POST /api/admin/bulk-grant-credits — grant/deduct credits for many members

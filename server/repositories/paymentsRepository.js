@@ -277,11 +277,27 @@ async function countProductReviews(db, memberId) {
   return rows[0]?.cnt || 0;
 }
 
+// Downloadable-file blocks are embedded in blog content as
+// `<div data-file-url="..." data-credits="N" ...>` (see DownloadBlock.jsx /
+// DynamicBlog.jsx). That markup, once saved, is the only place a file's
+// price is ever recorded — there's no separate pricing table. Narrow the
+// candidate rows with a LIKE on `%file_url%` (fast, uses no index but keeps
+// the result set small); the exact per-tag match happens in JS.
+async function findBlogsReferencingFile(db, fileUrl) {
+  const [rows] = await db.execute(
+    `SELECT content, draft_content FROM blogs
+     WHERE status IN ('approved','published')
+       AND (content LIKE ? OR draft_content LIKE ?)`,
+    [`%${fileUrl}%`, `%${fileUrl}%`]
+  );
+  return rows;
+}
+
 module.exports = {
   isDuplicateKeyError, getMemberBalance, addCredits, reverseRefund,
   findActiveBundles, findMemberUnlocks, findTransactionHistory, findUnlockHistory, findInvoiceData,
   findActiveCouponByCode, findActiveBundleById, findBundleById, insertPaymentOrder,
   findOrderByIdAndMember, findOrderById, markOrderFulfilled, incrementCouponUsage,
   findExistingUnlock, findPremiumBlogBySlug, deductCreditsIfSufficient, insertSpendTransaction, insertBlogUnlock,
-  findApprovedBlogBySlug, findMemberProfileForBonus, countProductReviews,
+  findApprovedBlogBySlug, findMemberProfileForBonus, countProductReviews, findBlogsReferencingFile,
 };

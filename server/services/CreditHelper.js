@@ -27,12 +27,13 @@ async function grantBonus(db, memberId, amount, note) {
   );
   if (dup.length) return false;
 
-  const [rows] = await db.execute('SELECT id FROM member_credits WHERE member_id=? LIMIT 1', [memberId]);
-  if (rows.length) {
-    await db.execute('UPDATE member_credits SET balance=balance+?, updated_at=CURRENT_TIMESTAMP WHERE member_id=?', [amount, memberId]);
-  } else {
-    await db.execute('INSERT INTO member_credits (member_id, balance) VALUES (?,?)', [memberId, amount]);
-  }
+  // Atomic upsert (INSERT ... ON DUPLICATE KEY UPDATE / ON CONFLICT) instead
+  // of a SELECT-then-INSERT/UPDATE — the latter let two concurrent bonus
+  // grants to the same brand-new member (no existing member_credits row yet)
+  // both see "no row" and both attempt INSERT, crashing on the member_id
+  // UNIQUE constraint (callers only `.catch(console.error)` around this, so
+  // the loser's bonus was silently dropped).
+  await repo.upsertMemberBalance(db, memberId, amount);
   await db.execute(
     "INSERT INTO credit_transactions (member_id, type, credits_delta, amount_paise, note) VALUES (?, 'bonus', ?, 0, ?)",
     [memberId, amount, note]

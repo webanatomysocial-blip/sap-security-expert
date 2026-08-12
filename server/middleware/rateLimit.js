@@ -37,11 +37,16 @@ async function withLock(key, fn) {
  */
 function rateLimit(action, limit, windowSeconds) {
   return async (req, res, next) => {
-    // Only skip rate limiting in dev/test when the actual client is loopback
+    // Only skip rate limiting in dev/test when the actual client is loopback.
+    // req.hostname reflects the Host header (attacker-controlled), not the
+    // client's address — checking it here would let anyone bypass rate
+    // limiting on any non-production deployment by sending `Host: localhost`.
+    // req.ip is the actual connecting address (or the trusted proxy's
+    // forwarded address, if `trust proxy` is configured).
     const isProd = process.env.NODE_ENV === 'production';
     if (!isProd) {
-      const host = req.hostname || '';
-      if (host === 'localhost' || host === '127.0.0.1') return next();
+      const clientIp = req.ip || '';
+      if (clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1') return next();
     }
 
     const ip = req.ip || '0.0.0.0';

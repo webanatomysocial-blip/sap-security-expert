@@ -578,7 +578,14 @@ const list = asyncHandler(async (req, res) => {
       b.faqs = null;
     }
 
-    if (!isAdmin && !isContributor) stripInternalFields(b);
+    // Strip internal-only fields (plagiarism_score, rejection_feedback,
+    // draft_* edits, etc.) for anyone who isn't staff on THIS row. Using the
+    // blanket `isContributor` flag here (instead of the per-row
+    // `hasAdminAccess` computed above) would leak every other contributor's
+    // internal fields to any logged-in contributor browsing the general
+    // list, not just their own posts — the single-post endpoint already
+    // gates this correctly on `hasAdminAccess`.
+    if (!hasAdminAccess) stripInternalFields(b);
   });
 
   return res.json(rows);

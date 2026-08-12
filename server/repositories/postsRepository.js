@@ -1,3 +1,21 @@
+// Escapes LIKE wildcard characters (%, _) and the escape character itself
+// so a caller-supplied value used in a LIKE pattern is matched literally.
+//
+// Uses '!' as the escape character rather than backslash: MySQL's default
+// sql_mode treats backslash as a string-literal escape character, so a
+// single literal backslash needs to be written as two backslashes in the
+// SQL text (`ESCAPE '\\'`, i.e. four backslash characters in a JS source
+// string). SQLite has no such rule (backslash is not special inside string
+// literals there), so a naive `ESCAPE '\\'` in JS — one backslash in the
+// actual SQL text — works fine on SQLite but leaves the string literal
+// unterminated on MySQL (the lone backslash escapes the closing quote),
+// breaking every query that uses it in production. '!' needs no such
+// dialect-specific escaping since it isn't special to either engine.
+const LIKE_ESCAPE_CHAR = '!';
+function escapeLikePattern(value) {
+  return String(value).replace(/[!%_]/g, (ch) => `${LIKE_ESCAPE_CHAR}${ch}`);
+}
+
 // Author info SELECT fragment (reused in GET queries)
 const AUTHOR_FIELDS = `
   u.id as author_user_id, u.username as author_username, u.role as author_role,
@@ -142,8 +160,17 @@ async function findList(db, { isContributor, authorOnly, currentUserId, isAdminL
   }
 
   if (filterCategory) {
-    sql += ' AND (b.category = ? OR b.subCategory = ? OR JSON_CONTAINS(b.secondary_categories, JSON_QUOTE(?)))';
-    params.push(filterCategory, filterCategory, filterCategory);
+    // Match `secondary_categories` (a JSON array like ["sap-s4hana-security"])
+    // via LIKE on its serialized text rather than JSON_CONTAINS/JSON_QUOTE —
+    // those are MySQL-only functions with no SQLite equivalent, and this
+    // pattern-match form works identically (and more forgivingly, since it
+    // doesn't error on empty/non-JSON values) on both backends.
+    // filterCategory comes straight from a public query param (?category=),
+    // so LIKE wildcards (% and _) inside it must be escaped — otherwise
+    // `?category=%` matches every blog with a non-empty secondary_categories
+    // array instead of being treated as a literal category slug.
+    sql += ` AND (b.category = ? OR b.subCategory = ? OR b.secondary_categories LIKE ? ESCAPE '${LIKE_ESCAPE_CHAR}')`;
+    params.push(filterCategory, filterCategory, `%"${escapeLikePattern(filterCategory)}"%`);
   }
 
   if (trending) {
