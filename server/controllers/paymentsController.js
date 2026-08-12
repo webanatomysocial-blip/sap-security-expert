@@ -11,6 +11,26 @@ function getRazorpay() {
   });
 }
 
+// Finds the price an admin/contributor actually set for a downloadable file,
+// by reading it back out of the blog content it's embedded in (the only
+// place it's ever recorded — see findBlogsReferencingFile). Returns null if
+// no published blog references this exact file, which downloadFile treats
+// as "not a real download" rather than defaulting to free.
+function findAuthoritativeDownloadCredits(blogRows, fileUrl) {
+  const escapedUrl = fileUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const tagRegex = new RegExp(`<[^>]*data-file-url=["']${escapedUrl}["'][^>]*>`, 'i');
+  for (const row of blogRows) {
+    for (const html of [row.content, row.draft_content]) {
+      if (!html) continue;
+      const tagMatch = html.match(tagRegex);
+      if (!tagMatch) continue;
+      const creditsMatch = tagMatch[0].match(/data-credits=["'](\d+)["']/i);
+      if (creditsMatch) return parseInt(creditsMatch[1], 10);
+    }
+  }
+  return null;
+}
+
 // GET /api/payments/bundles — public
 const bundles = async (req, res) => {
   try {
@@ -419,8 +439,13 @@ const webhook = async (req, res) => {
       if (orderId && refundId) {
         const paymentOrder = await repo.findOrderById(req.db, orderId);
         if (paymentOrder) {
-          const bundle = await repo.findBundleById(req.db, paymentOrder.bundle_id);
-          const creditsToReverse = bundle ? bundle.credits : paymentOrder.bundle_credits;
+          // Use the price-locked snapshot captured at purchase time
+          // (paymentOrder.bundle_credits), not a live lookup of the bundle's
+          // current credits — the bundle may have been edited since the
+          // purchase (e.g. an admin changing its credit amount), and the
+          // whole point of storing bundle_credits on the order (see
+          // createOrder's comment) is to make refunds immune to that.
+          const creditsToReverse = paymentOrder.bundle_credits;
 
           await repo.reverseRefund(req.db, {
             memberId: paymentOrder.member_id,
@@ -512,15 +537,26 @@ const downloadFile = async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Please log in to download files.' });
   }
-  const { file_url, credits_required, file_name } = req.body || {};
+  const { file_url, file_name } = req.body || {};
   const originalName = (file_name && typeof file_name === 'string') ? file_name.trim().slice(0, 500) : null;
   if (!file_url || typeof file_url !== 'string' || !file_url.startsWith('/uploads/downloads/')) {
     return res.status(400).json({ status: 'error', message: 'Invalid file URL.' });
   }
 
-  const creditsNeeded = Math.max(0, parseInt(credits_required) || 0);
   const db = req.db;
   const memberId = req.session.member_id;
+
+  // Price is never trusted from the client — a member could otherwise POST
+  // credits_required: 0 directly and download any paid file for free. The
+  // only authoritative record of a file's price is the data-credits
+  // attribute on the download block embedded in the blog content that
+  // references it (set by the content author, sanitized on save).
+  const referencingBlogs = await repo.findBlogsReferencingFile(db, file_url);
+  const authoritativeCredits = findAuthoritativeDownloadCredits(referencingBlogs, file_url);
+  if (authoritativeCredits === null) {
+    return res.status(400).json({ status: 'error', message: 'This file is not available for download.' });
+  }
+  const creditsNeeded = Math.max(0, authoritativeCredits);
 
   try {
     await db.beginTransaction();

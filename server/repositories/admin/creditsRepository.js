@@ -1,3 +1,5 @@
+const { isSQLite } = require('../../db');
+
 async function findAllBundles(db) {
   const [rows] = await db.execute('SELECT * FROM credit_bundles ORDER BY price_paise ASC');
   return rows;
@@ -61,28 +63,47 @@ async function findMemberCredits(db, memberId) {
   return rows[0] || null;
 }
 
-async function incrementMemberBalance(db, memberId, amount) {
-  await db.execute(
-    'UPDATE member_credits SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP WHERE member_id = ?',
-    [amount, memberId]
-  );
+// Same as findMemberCredits but takes a row-level lock (MySQL only — SQLite
+// has no FOR UPDATE syntax). Must be called inside a transaction. Used by
+// applyCreditAdjustment to prevent two concurrent adjustments for the same
+// member from both reading the same "before" balance and each logging a
+// credits_delta that double-counts (or misses) the other's change.
+async function findMemberCreditsForUpdate(db, memberId) {
+  const [rows] = await db.execute('SELECT id, balance FROM member_credits WHERE member_id = ? LIMIT 1 FOR UPDATE', [memberId]);
+  return rows[0] || null;
 }
 
-// Atomic upsert: creates the row if missing, otherwise increments.
-// GREATEST(..., 0) prevents the balance going negative on deductions.
+// Atomic upsert: creates the row if missing, otherwise increments (clamped
+// at 0 so deductions can't go negative). Must stay atomic — this is called
+// from bulkGrantCredits in a loop across many members, so a SELECT-then-
+// INSERT/UPDATE here would TOCTOU-race a concurrent grant to the same member
+// into a UNIQUE-constraint crash on member_id.
+//
+// GREATEST() and MySQL's "ON DUPLICATE KEY UPDATE ... VALUES(col)" have no
+// SQLite equivalent (the dev-mode SQL translator can't rewrite them without
+// losing the increment semantics), so this branches per-backend rather than
+// relying on the generic translator: MySQL gets its native upsert, SQLite
+// gets its own ON CONFLICT upsert using MAX() instead of GREATEST().
 async function upsertMemberBalance(db, memberId, amount) {
-  await db.execute(
-    `INSERT INTO member_credits (member_id, balance)
-     VALUES (?, GREATEST(0, ?))
-     ON DUPLICATE KEY UPDATE
-       balance = GREATEST(0, balance + ?),
-       updated_at = CURRENT_TIMESTAMP`,
-    [memberId, amount, amount]
-  );
-}
-
-async function createMemberCredits(db, memberId, balance) {
-  await db.execute('INSERT INTO member_credits (member_id, balance) VALUES (?, ?)', [memberId, balance]);
+  if (isSQLite) {
+    await db.execute(
+      `INSERT INTO member_credits (member_id, balance)
+       VALUES (?, MAX(0, ?))
+       ON CONFLICT(member_id) DO UPDATE SET
+         balance = MAX(0, balance + ?),
+         updated_at = CURRENT_TIMESTAMP`,
+      [memberId, amount, amount]
+    );
+  } else {
+    await db.execute(
+      `INSERT INTO member_credits (member_id, balance)
+       VALUES (?, GREATEST(0, ?))
+       ON DUPLICATE KEY UPDATE
+         balance = GREATEST(0, balance + ?),
+         updated_at = CURRENT_TIMESTAMP`,
+      [memberId, amount, amount]
+    );
+  }
 }
 
 async function insertAdjustmentTransaction(db, memberId, credits, note) {
@@ -179,7 +200,7 @@ async function deleteAchievementType(db, id) {
 module.exports = {
   findAllBundles, updateBundle, createBundle, deleteBundle,
   findAllCoupons, updateCoupon, createCoupon, deleteCoupon,
-  findMemberById, findAllApprovedMemberIds, findMemberCredits, incrementMemberBalance, upsertMemberBalance, createMemberCredits, insertAdjustmentTransaction,
+  findMemberById, findAllApprovedMemberIds, findMemberCredits, findMemberCreditsForUpdate, upsertMemberBalance, insertAdjustmentTransaction,
   findAllTransactions, countTransactions, findMemberBalance, getCreditStats,
   findAllActivities, findActivityByKey, upsertActivity, deleteActivity,
   findAllAchievementTypes, upsertAchievementType, deleteAchievementType,

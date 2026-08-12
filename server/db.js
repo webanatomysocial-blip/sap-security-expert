@@ -384,11 +384,11 @@ if (isSQLite) {
   `).run();
   sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_ctx_member ON credit_transactions(member_id)').run();
   // Add razorpay_order_id for replay prevention (ignore if column already exists)
-  try { sqliteDb.prepare('ALTER TABLE credit_transactions ADD COLUMN razorpay_order_id TEXT').run(); } catch {}
-  try { sqliteDb.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_ctx_order ON credit_transactions(razorpay_order_id) WHERE razorpay_order_id IS NOT NULL').run(); } catch {}
+  try { sqliteDb.prepare('ALTER TABLE credit_transactions ADD COLUMN razorpay_order_id TEXT').run(); } catch { /* column already exists */ }
+  try { sqliteDb.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_ctx_order ON credit_transactions(razorpay_order_id) WHERE razorpay_order_id IS NOT NULL').run(); } catch { /* index already exists */ }
   // Add razorpay_refund_id so refund webhooks can be safely retried without double-reversing credits
-  try { sqliteDb.prepare('ALTER TABLE credit_transactions ADD COLUMN razorpay_refund_id TEXT').run(); } catch {}
-  try { sqliteDb.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_ctx_refund ON credit_transactions(razorpay_refund_id) WHERE razorpay_refund_id IS NOT NULL').run(); } catch {}
+  try { sqliteDb.prepare('ALTER TABLE credit_transactions ADD COLUMN razorpay_refund_id TEXT').run(); } catch { /* column already exists */ }
+  try { sqliteDb.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_ctx_refund ON credit_transactions(razorpay_refund_id) WHERE razorpay_refund_id IS NOT NULL').run(); } catch { /* index already exists */ }
 
   sqliteDb.prepare(`
     CREATE TABLE IF NOT EXISTS payment_orders (
@@ -503,8 +503,8 @@ if (isSQLite) {
       sqliteDb.prepare('UPDATE audit_logs SET created_at = [timestamp] WHERE created_at IS NULL AND [timestamp] IS NOT NULL').run();
     }
   }
-  try { sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_al_action ON audit_logs(action)').run(); } catch {}
-  try { sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_al_created_at ON audit_logs(created_at)').run(); } catch {}
+  try { sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_al_action ON audit_logs(action)').run(); } catch { /* index already exists */ }
+  try { sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_al_created_at ON audit_logs(created_at)').run(); } catch { /* index already exists */ }
 
   sqliteDb.prepare(`
     CREATE TABLE IF NOT EXISTS email_logs (
@@ -918,21 +918,50 @@ function dbMiddleware(req, res, next) {
   let conn = null;       // real PoolConnection, acquired on first use
   let released = false;  // guard against double-release
   let acquiring = null;  // single in-flight getConnection() Promise
+  let pendingOps = 0;    // in-flight execute()/beginTransaction() calls
+  let txOpen = false;    // between beginTransaction() and commit()/rollback()
+  let wantRelease = false; // res already finished/closed
 
-  const safeRelease = () => {
-    if (!released && conn) {
+  // Release only once the response has finished AND nothing is still using
+  // the connection (in-flight query or an open transaction). Without this
+  // gating, fire-and-forget background work (e.g. notification/audit calls
+  // left un-awaited by a controller) that outlives the response would keep
+  // calling execute() on `conn` after it was already handed back to the pool
+  // and possibly reassigned to a different request.
+  const maybeRelease = () => {
+    if (!released && conn && wantRelease && pendingOps === 0 && !txOpen) {
       released = true;
-      conn.release();
+      const toRelease = conn;
+      // Clear `conn`/`acquiring` so any further execute()/beginTransaction()
+      // call (e.g. orphaned fire-and-forget work that outlives the response)
+      // re-acquires a fresh connection via getConn() instead of reusing this
+      // one after it's already back in the pool (and possibly handed to a
+      // different request).
+      conn = null;
+      acquiring = null;
+      released = false; // re-armed: the *new* conn (if any) needs its own release
+      toRelease.release();
     }
   };
-  res.on('finish', safeRelease);
-  res.on('close',  safeRelease);
+  const requestFinished = () => { wantRelease = true; maybeRelease(); };
+  res.on('finish', requestFinished);
+  res.on('close',  requestFinished);
 
   // Acquires a real connection (or waits for an already-in-flight acquisition)
   // and caches it on `conn` for reuse within the same request.
   async function getConn() {
     if (conn) return conn;
-    if (!acquiring) acquiring = pool.getConnection();
+    if (!acquiring) {
+      // Clear `acquiring` on rejection so a failed acquisition (transient
+      // pool exhaustion/timeout) doesn't permanently poison the rest of this
+      // request's DB access — without this, every subsequent execute()/
+      // beginTransaction() call would just re-await the same rejected
+      // promise forever instead of retrying pool.getConnection().
+      acquiring = pool.getConnection().catch((err) => {
+        acquiring = null;
+        throw err;
+      });
+    }
     conn = await acquiring;
     return conn;
   }
@@ -941,22 +970,46 @@ function dbMiddleware(req, res, next) {
   // pool.getConnection() until the first actual DB operation.
   req.db = {
     async execute(sql, params) {
-      const c = await getConn();
-      return c.execute(sql, params);
+      pendingOps++;
+      try {
+        const c = await getConn();
+        return await c.execute(sql, params);
+      } finally {
+        pendingOps--;
+        maybeRelease();
+      }
     },
     async beginTransaction() {
-      const c = await getConn();
-      return c.beginTransaction();
+      pendingOps++;
+      try {
+        const c = await getConn();
+        const result = await c.beginTransaction();
+        txOpen = true;
+        return result;
+      } finally {
+        pendingOps--;
+        maybeRelease();
+      }
     },
     async commit() {
       if (!conn) return;  // no transaction was started
-      return conn.commit();
+      try {
+        return await conn.commit();
+      } finally {
+        txOpen = false;
+        maybeRelease();
+      }
     },
     async rollback() {
       if (!conn) return;  // nothing to roll back
-      return conn.rollback().catch(() => {});
+      try {
+        return await conn.rollback().catch(() => {});
+      } finally {
+        txOpen = false;
+        maybeRelease();
+      }
     },
-    release() { safeRelease(); },
+    release() { requestFinished(); },
     // Expose the underlying real connection for code that needs it directly
     // (e.g. PoolConnection-specific APIs). Will return null before the first
     // query — callers should use execute/beginTransaction instead.
