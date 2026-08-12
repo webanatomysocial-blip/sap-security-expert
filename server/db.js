@@ -820,10 +820,12 @@ if (isSQLite) {
     charset: process.env.DB_CHARSET || 'utf8mb4',
     waitForConnections: true,
     // 2 GB RAM server: session store has its own 2-connection pool (separate).
-    // Main pool: 10 connections × ~6 MB each ≈ 60 MB — well within budget.
-    // The dbMiddleware holds one connection per HTTP request for the full request
-    // lifetime, so connectionLimit must exceed peak concurrency. The in-process
-    // cron occupies one connection every minute as well.
+    // Main pool: 20 connections × ~6 MB each ≈ 120 MB — still well within budget.
+    // With lazy connection acquisition (see dbMiddleware below), connections are
+    // only held during actual DB work, not for the full request lifetime.
+    // The previous eager-checkout approach meant every concurrent HTTP request
+    // (including SSR loopback calls, cached responses, static files) consumed
+    // a pool slot; 10 slots was trivially exhausted under moderate traffic.
     // Override with DB_POOL_SIZE env var if you need to tune for your host.
     connectionLimit: parseInt(process.env.DB_POOL_SIZE || '25'),
     queueLimit: 200,
@@ -831,17 +833,14 @@ if (isSQLite) {
     // Reconnect automatically if the Hostinger MySQL server closes idle connections.
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000,
+    // Acquire timeout: fail fast rather than silently queuing forever.
+    // Default in mysql2 is 10000ms; keep it explicit.
+    connectTimeout: 10000,
   });
   console.log('[DB] Using MySQL →', dbHost, '/', process.env.DB_NAME);
 
   // ── TEMPORARY pool diagnostics ──────────────────────────────────────────────
-  // Logs pool saturation every 10s so an in-progress "Queue limit reached"
-  // incident can be caught live instead of reconstructed after the fact from
-  // timestamps. _allConnections/_freeConnections/_connectionQueue are
-  // undocumented mysql2 internals (no public pool.stats() API exists as of
-  // mysql2 3.x) — safe to read, never write. Remove this block (or gate it
-  // behind an env var) once the current incident is resolved and the fix has
-  // been observed holding under real traffic for a few days.
+  // Logs pool saturation every 10s so pool state is visible in server logs.
   setInterval(() => {
     const all = pool._allConnections?.length ?? -1;
     const free = pool._freeConnections?.length ?? -1;
@@ -850,8 +849,20 @@ if (isSQLite) {
   }, 10000).unref();
 }
 
+// ── Single-query executor ─────────────────────────────────────────────────────
+// For read-only / single-statement call sites that don't need
+// beginTransaction()/commit()/rollback() and shouldn't hold a connection for
+// longer than one query. In MySQL mode, pool.execute() acquires a connection,
+// runs the query, and releases it internally — no manual getConnection()/
+// release() needed, and the connection is never held across unrelated work
+// (SMTP sends, response serialization, etc.) the way req.db is. In SQLite dev
+// mode there's no real pooling, so this is just the shared adapter.
+const poolExec = isSQLite ? sqliteAdapter : { execute: (sql, params) => pool.execute(sql, params) };
+
 // ── Auto-publish hook ─────────────────────────────────────────────────────────
 // Runs at most once per 60 s — transitions scheduled items to published/active.
+// Uses its own short-lived connection (pool.execute in MySQL mode, or the
+// shared sqliteAdapter in dev mode) so it never consumes the per-request slot.
 let lastAutoPublish = 0;
 async function runAutoPublish() {
   const now = Date.now();
@@ -871,6 +882,7 @@ async function runAutoPublish() {
       "UPDATE announcements SET status = 'active' WHERE status = 'scheduled' AND publish_date <= ?",
       [nowUtc]
     );
+    // Bust homepage cache whenever a scheduled article goes live
     if (blogResult?.affectedRows > 0) {
       const CacheService = require('./services/CacheService');
       new CacheService().invalidate('homepage_data_public');
@@ -878,46 +890,84 @@ async function runAutoPublish() {
   } catch { /* fail silently */ }
 }
 
-// ── Single-query executor ─────────────────────────────────────────────────────
-// For read-only / single-statement call sites that don't need
-// beginTransaction()/commit()/rollback() and shouldn't hold a connection for
-// longer than one query. In MySQL mode, pool.execute() acquires a connection,
-// runs the query, and releases it internally — no manual getConnection()/
-// release() needed, and the connection is never held across unrelated work
-// (SMTP sends, response serialization, etc.) the way req.db is. In SQLite dev
-// mode there's no real pooling, so this is just the shared adapter.
-const poolExec = isSQLite ? sqliteAdapter : { execute: (sql, params) => pool.execute(sql, params) };
-
-// ── Express middleware ────────────────────────────────────────────────────────
-async function dbMiddleware(req, res, next) {
-  try {
-    let conn;
-    if (isSQLite) {
-      // SQLite: reuse the single shared adapter; release() is a no-op
-      conn = sqliteAdapter;
-    } else {
-      conn = await pool.getConnection();
-      let released = false;
-      const safeRelease = () => {
-        if (!released) {
-          released = true;
-          conn.release();
-        }
-      };
-      res.on('finish', safeRelease);
-      res.on('close', safeRelease);
-    }
-    req.db = conn;
+// ── Lazy-connection proxy ─────────────────────────────────────────────────────
+// Previously dbMiddleware called pool.getConnection() eagerly on every request,
+// holding the connection for the full HTTP request lifetime (until res.finish/
+// close). This consumed a pool slot even for:
+//   • requests whose response came entirely from in-memory cache
+//   • Next.js SSR loopback calls (INTERNAL_API_URL) that hit /api/* routes
+//   • requests that return early (auth failure, 404, etc.) before any DB work
+// With only 10 pool slots, any burst of 10+ concurrent requests (very common
+// with SSR where a single page load triggers multiple parallel /api/* fetches)
+// immediately exhausted the pool, queuing further requests and eventually
+// hitting the "Queue limit reached" error.
+//
+// The lazy proxy below acquires a real connection only on the first actual
+// DB operation (execute, beginTransaction, etc.) and releases it as soon as
+// the response finishes. Routes/controllers that never touch the DB (pure-cache
+// hits, early-exit auth checks) never check out a connection at all.
+function dbMiddleware(req, res, next) {
+  if (isSQLite) {
+    // SQLite: reuse the single shared adapter; release() is a no-op
+    req.db = sqliteAdapter;
     runAutoPublish().catch(() => {});
-    next();
-  } catch (err) {
-    const isHealthCheck = req.path === '/api/health' || req.path === '/health' || req.originalUrl === '/api/health';
-    if (isHealthCheck) {
-      req.dbError = err;
-      return next();
-    }
-    res.status(500).json({ status: 'error', message: 'Database connection failed: ' + err.message });
+    return next();
   }
+
+  // ── MySQL: lazy proxy ────────────────────────────────────────────────────
+  let conn = null;       // real PoolConnection, acquired on first use
+  let released = false;  // guard against double-release
+  let acquiring = null;  // single in-flight getConnection() Promise
+
+  const safeRelease = () => {
+    if (!released && conn) {
+      released = true;
+      conn.release();
+    }
+  };
+  res.on('finish', safeRelease);
+  res.on('close',  safeRelease);
+
+  // Acquires a real connection (or waits for an already-in-flight acquisition)
+  // and caches it on `conn` for reuse within the same request.
+  async function getConn() {
+    if (conn) return conn;
+    if (!acquiring) acquiring = pool.getConnection();
+    conn = await acquiring;
+    return conn;
+  }
+
+  // Proxy object: looks like a PoolConnection to all callers, but defers
+  // pool.getConnection() until the first actual DB operation.
+  req.db = {
+    async execute(sql, params) {
+      const c = await getConn();
+      return c.execute(sql, params);
+    },
+    async beginTransaction() {
+      const c = await getConn();
+      return c.beginTransaction();
+    },
+    async commit() {
+      if (!conn) return;  // no transaction was started
+      return conn.commit();
+    },
+    async rollback() {
+      if (!conn) return;  // nothing to roll back
+      return conn.rollback().catch(() => {});
+    },
+    release() { safeRelease(); },
+    // Expose the underlying real connection for code that needs it directly
+    // (e.g. PoolConnection-specific APIs). Will return null before the first
+    // query — callers should use execute/beginTransaction instead.
+    get _raw() { return conn; },
+  };
+
+  // runAutoPublish no longer needs a connection arg — it uses poolExec internally.
+  // Fire-and-forget; never blocks the response.
+  runAutoPublish().catch(() => {});
+
+  next();
 }
 
 module.exports = { pool, dbMiddleware, isSQLite, poolExec };
