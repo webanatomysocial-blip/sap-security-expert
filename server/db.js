@@ -825,8 +825,8 @@ if (isSQLite) {
     // lifetime, so connectionLimit must exceed peak concurrency. The in-process
     // cron occupies one connection every minute as well.
     // Override with DB_POOL_SIZE env var if you need to tune for your host.
-    connectionLimit: parseInt(process.env.DB_POOL_SIZE || '10'),
-    queueLimit: 50,
+    connectionLimit: parseInt(process.env.DB_POOL_SIZE || '25'),
+    queueLimit: 200,
     timezone: '+00:00',
     // Reconnect automatically if the Hostinger MySQL server closes idle connections.
     enableKeepAlive: true,
@@ -853,21 +853,22 @@ if (isSQLite) {
 // ── Auto-publish hook ─────────────────────────────────────────────────────────
 // Runs at most once per 60 s — transitions scheduled items to published/active.
 let lastAutoPublish = 0;
-async function runAutoPublish(conn) {
+async function runAutoPublish() {
   const now = Date.now();
   if (now - lastAutoPublish < 60000) return;
   lastAutoPublish = now;
   const nowUtc = new Date().toISOString().slice(0, 19).replace('T', ' ');
   try {
-    const [blogResult] = await conn.execute(
+    // Use pool.execute() directly — acquires+releases its own connection so it
+    // doesn't consume the calling request's connection slot.
+    const [blogResult] = await pool.execute(
       "UPDATE blogs SET status = 'published' WHERE status = 'scheduled' AND publish_date <= ?",
       [nowUtc]
     );
-    await conn.execute(
+    await pool.execute(
       "UPDATE announcements SET status = 'active' WHERE status = 'scheduled' AND publish_date <= ?",
       [nowUtc]
     );
-    // Bust homepage cache whenever a scheduled article goes live
     if (blogResult?.affectedRows > 0) {
       const CacheService = require('./services/CacheService');
       new CacheService().invalidate('homepage_data_public');
@@ -905,7 +906,7 @@ async function dbMiddleware(req, res, next) {
       res.on('close', safeRelease);
     }
     req.db = conn;
-    runAutoPublish(conn).catch(() => {});
+    runAutoPublish().catch(() => {});
     next();
   } catch (err) {
     const isHealthCheck = req.path === '/api/health' || req.path === '/health' || req.originalUrl === '/api/health';
