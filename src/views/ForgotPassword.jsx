@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import SEO from "../components/SEO";
 import { Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
-import { sendOTP, resetPasswordOTP } from "../services/api";
+import { sendOTP, verifyOTP, resetPasswordOTP } from "../services/api";
 import "../css/MemberLogin.css";
 
 const STEPS = ["email", "otp", "reset", "success"];
@@ -56,9 +56,17 @@ const ForgotPassword = () => {
     }
   };
 
-  const handleVerifyOTP = (e) => {
+  const handleVerifyOTP = async (e) => {
     e.preventDefault();
-    setStep("reset");
+    setLoading(true);
+    try {
+      await verifyOTP(email, otp, "reset");
+      setStep("reset");
+    } catch (err) {
+      addToast(err.response?.data?.message || "Invalid or expired code.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResetPassword = async (e) => {
@@ -66,7 +74,7 @@ const ForgotPassword = () => {
     if (newPassword !== confirmPassword) { addToast("Passwords do not match.", "error"); return; }
     setLoading(true);
     try {
-      const res = await resetPasswordOTP({ email, code: otp, password: newPassword });
+      const res = await resetPasswordOTP({ email, password: newPassword });
       if (res.data.status === "success") {
         addToast(res.data.message, "success");
         setStep("success");

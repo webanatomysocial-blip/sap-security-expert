@@ -169,9 +169,11 @@ export default function AdminEmailTemplates() {
             {/* Editor or Preview */}
             {preview ? (
               <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
-                <div
-                  style={{ maxWidth: 680, margin: "0 auto", background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", padding: 24, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}
-                  dangerouslySetInnerHTML={{ __html: editContent }}
+                <iframe
+                  srcDoc={editContent}
+                  sandbox=""
+                  title="Email preview"
+                  style={{ maxWidth: 680, width: "100%", minHeight: 480, margin: "0 auto", display: "block", border: "1px solid #e2e8f0", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", background: "#fff" }}
                 />
               </div>
             ) : (

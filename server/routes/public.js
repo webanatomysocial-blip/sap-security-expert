@@ -3,6 +3,7 @@
  */
 const router = require('express').Router();
 const { rateLimit } = require('../middleware/rateLimit');
+const { requireMemberAuth, requireCsrf } = require('../middleware/auth');
 const controller = require('../controllers/publicController');
 
 // GET /api/homepage
@@ -43,7 +44,7 @@ router.post('/views', rateLimit('post_view', 60, 60), controller.recordView);
 router.get('/captcha', controller.captcha);
 
 // POST /api/delete-account
-router.post('/delete-account', controller.deleteAccount);
+router.post('/delete-account', requireMemberAuth, requireCsrf, controller.deleteAccount);
 
 // POST /api/send-mail — Contact Us form
 router.post('/send-mail', rateLimit('contact_form', 5, 3600), controller.sendMail);
