@@ -858,14 +858,16 @@ async function runAutoPublish() {
   if (now - lastAutoPublish < 60000) return;
   lastAutoPublish = now;
   const nowUtc = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  // In MySQL mode use pool.execute() so it acquires+releases its own connection
+  // and doesn't consume the calling request's slot. In SQLite dev mode use the
+  // shared adapter (no pool exists).
+  const exec = isSQLite ? sqliteAdapter : pool;
   try {
-    // Use pool.execute() directly — acquires+releases its own connection so it
-    // doesn't consume the calling request's connection slot.
-    const [blogResult] = await pool.execute(
+    const [blogResult] = await exec.execute(
       "UPDATE blogs SET status = 'published' WHERE status = 'scheduled' AND publish_date <= ?",
       [nowUtc]
     );
-    await pool.execute(
+    await exec.execute(
       "UPDATE announcements SET status = 'active' WHERE status = 'scheduled' AND publish_date <= ?",
       [nowUtc]
     );
