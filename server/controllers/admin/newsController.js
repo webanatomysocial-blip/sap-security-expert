@@ -1,6 +1,7 @@
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const { deleteImage } = require('../../utils/helpers');
+const { sanitizeBlogHtml } = require('../../utils/sanitize');
 const CacheService = require('../../services/CacheService');
 const repo = require('../../repositories/admin/newsRepository');
 
@@ -55,7 +56,10 @@ const save = asyncHandler(async (req, res) => {
   }
 
   const targetStatus = requestedStatus || 'approved';
-  const faqsJson = JSON.stringify(Array.isArray(faqs) ? faqs : []);
+  const faqsJson = JSON.stringify((Array.isArray(faqs) ? faqs : []).map(f => ({
+    question: typeof f.question === 'string' ? sanitizeBlogHtml(f.question) : '',
+    answer: typeof f.answer === 'string' ? sanitizeBlogHtml(f.answer) : '',
+  })));
 
   if (id) {
     const existing = await repo.findNewsById(db, id);
