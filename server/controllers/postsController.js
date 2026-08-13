@@ -741,7 +741,7 @@ const save = asyncHandler(async (req, res) => {
       const { grantArticlePublishedCredits } = require('../services/CreditHelper');
       await grantArticlePublishedCredits(db, id).catch(() => {});
       if (send_notification_email) {
-        mailService.queuePendingBlogNotifications(db).catch(() => {});
+        mailService.queuePendingBlogNotifications().catch(() => {});
       }
     }
 
@@ -780,7 +780,7 @@ const save = asyncHandler(async (req, res) => {
 
     if (!isAdmin) notifier.notifyBlogSubmitted(title, authorName).catch(() => {});
     if (['approved','published'].includes(targetStatus) && send_notification_email) {
-      mailService.queuePendingBlogNotifications(db).catch(() => {});
+      mailService.queuePendingBlogNotifications().catch(() => {});
     }
 
     let msg = 'Blog created';
