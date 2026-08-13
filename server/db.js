@@ -842,10 +842,12 @@ if (isSQLite) {
   // ── TEMPORARY pool diagnostics ──────────────────────────────────────────────
   // Logs pool saturation every 10s so pool state is visible in server logs.
   setInterval(() => {
-    const all = pool._allConnections?.length ?? -1;
-    const free = pool._freeConnections?.length ?? -1;
-    const queued = pool._connectionQueue?.length ?? -1;
-    console.log(`[DB Pool] all=${all} free=${free} busy=${all - free} queued=${queued}`);
+    const inner = pool.pool; // Promise pool wraps the core Pool on `.pool`
+    const all    = inner?._allConnections?.length    ?? '?';
+    const free   = inner?._freeConnections?.length   ?? '?';
+    const queued = inner?._connectionQueue?.length   ?? '?';
+    const busy   = (typeof all === 'number' && typeof free === 'number') ? all - free : '?';
+    console.log(`[DB Pool] all=${all} free=${free} busy=${busy} queued=${queued}`);
   }, 10000).unref();
 }
 
