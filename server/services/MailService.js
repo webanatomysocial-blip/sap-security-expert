@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
-const { poolExec } = require('../db');
+const { poolExec, pool, isSQLite } = require('../db');
 
 const TEMPLATES_DIR = path.join(__dirname, '../templates');
 
@@ -107,9 +107,14 @@ class MailService {
   }
 
   /** Queue new blog notifications for all opted-in members */
-  async queuePendingBlogNotifications(db) {
+  async queuePendingBlogNotifications() {
+    // Gets its own connection from the pool — never uses the caller's req.db.
+    // The caller fires this as .catch(()=>{}) and returns res.json() immediately,
+    // which releases req.db back to the pool. Using req.db here would run queries
+    // on an already-released connection, wedging it and exhausting the pool.
+    const conn = isSQLite ? poolExec : await pool.getConnection();
     try {
-      const [blogs] = await db.execute(
+      const [blogs] = await conn.execute(
         `SELECT id, title, slug, author, category FROM blogs
          WHERE status IN ('approved','published')
            AND send_notification_email = 1
@@ -117,7 +122,7 @@ class MailService {
       );
       if (!blogs.length) return;
 
-      const [members] = await db.execute(
+      const [members] = await conn.execute(
         `SELECT name, email FROM members
          WHERE status = 'approved' AND is_deleted = 0 AND receive_blog_emails = 1`
       );
@@ -143,28 +148,30 @@ class MailService {
           body = `<p>New article: <strong>${blog.title}</strong> by ${authorName}. Read it at <a href="${postUrl}">${postUrl}</a></p>`;
         }
 
-        await db.beginTransaction();
+        await conn.beginTransaction();
         try {
           const blogIdStr = String(blog.id);
           for (const member of members) {
-            await db.execute(
+            await conn.execute(
               `INSERT IGNORE INTO email_queue (recipient, blog_id, subject, body, status, created_at)
                VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
               [member.email, blogIdStr, subject, body]
             );
           }
-          await db.execute(
+          await conn.execute(
             'UPDATE blogs SET is_queued_for_members = 1 WHERE id = ?',
             [blog.id]
           );
-          await db.commit();
+          await conn.commit();
         } catch (err) {
-          await db.rollback();
+          await conn.rollback();
           this._logFile(`Queue transaction failed for blog ${blog.id}: ${err.message}`);
         }
       }
     } catch (err) {
       this._logFile(`queuePendingBlogNotifications error: ${err.message}`);
+    } finally {
+      if (!isSQLite) conn.release();
     }
   }
 
