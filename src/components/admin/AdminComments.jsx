@@ -310,7 +310,7 @@ const AdminComments = () => {
                        )}
                        <div
                          className="wrap-text"
-                         style={{ fontSize: "0.85rem", color: "var(--slate-700)" }}
+                         style={{ fontSize: "0.85rem", color: "var(--slate-700)", whiteSpace: "pre-wrap" }}
                        >
                          {comment.text}
                        </div>
