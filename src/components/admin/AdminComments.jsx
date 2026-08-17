@@ -310,9 +310,12 @@ const AdminComments = () => {
                        )}
                        <div
                          className="wrap-text"
-                         style={{ fontSize: "0.85rem", color: "var(--slate-700)", whiteSpace: "pre-wrap" }}
+                         style={{ fontSize: "0.85rem", color: "var(--slate-700)" }}
+                         title={comment.text}
                        >
-                         {comment.text}
+                         {comment.text?.length > 120
+                           ? comment.text.replace(/\n+/g, ' ').substring(0, 120) + '…'
+                           : comment.text}
                        </div>
                        {comment.edited_at && (
                          <small className="edited-indicator" style={{ fontSize: "0.7rem" }}>
