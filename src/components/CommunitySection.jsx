@@ -560,8 +560,11 @@ export default function CommunitySection() {
 
             {/* New to SAP Security? Box */}
             <div className="widget new-to-sap-box">
-              <div className="nts-icon-wrap">
-                <i className="bi bi-mortarboard-fill"></i>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <div className="nts-icon-wrap" style={{ marginBottom: 0 }}>
+                  <i className="bi bi-mortarboard-fill"></i>
+                </div>
+                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fff0ec", color: "#ee5e42", border: "1px solid #fecdb5", borderRadius: 20, padding: "2px 10px", letterSpacing: 0.5, textTransform: "uppercase" }}>Coming Soon</span>
               </div>
               <h3 className="nts-heading">New to SAP Security?</h3>
               <p className="nts-desc">Start with the basics and build your knowledge.</p>
