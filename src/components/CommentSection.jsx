@@ -24,17 +24,19 @@ function safeCommentHtml(text) {
   if (!text) return '';
   const decoded = decodeEntities(text);
   // If no HTML tags, treat as plain text — wrap newlines in <p>
+  const P = 'style="margin:0 0 12px 0;padding:0"';
   if (!/<[a-z]/i.test(decoded)) {
     return decoded
-      .split(/\n\n+/)
-      .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+      .split(/\n+/)
+      .map(p => `<p ${P}>${p || '<br>'}</p>`)
       .join('') || decoded;
   }
-  // Strip disallowed tags (keep content), remove dangerous attributes
+  // Strip disallowed tags (keep content), inject margin on <p>, remove dangerous attributes
   return decoded
-    .replace(/<(\/?)([a-z][a-z0-9]*)[^>]*>/gi, (_, slash, tag) =>
-      ALLOWED.test(tag) ? `<${slash}${tag.toLowerCase()}>` : ''
-    )
+    .replace(/<(\/?)([a-z][a-z0-9]*)[^>]*>/gi, (_, slash, tag) => {
+      if (!ALLOWED.test(tag)) return '';
+      return tag.toLowerCase() === 'p' && !slash ? `<p ${P}>` : `<${slash}${tag.toLowerCase()}>`;
+    })
     .replace(/\son\w+="[^"]*"/gi, '');
 }
 
