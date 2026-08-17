@@ -11,6 +11,7 @@ import TableScrollContainer from "./TableScrollContainer";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
 import { getComments, updateComment } from "../../services/api";
+import CommentRTE from "./CommentRTE";
 import api from "../../services/api";
 import { downloadCSV } from "../../services/exportUtils";
 
@@ -311,11 +312,12 @@ const AdminComments = () => {
                        <div
                          className="wrap-text"
                          style={{ fontSize: "0.85rem", color: "var(--slate-700)" }}
-                         title={comment.text}
+                         title={comment.text?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
                        >
-                         {comment.text?.length > 120
-                           ? comment.text.replace(/\n+/g, ' ').substring(0, 120) + '…'
-                           : comment.text}
+                         {(() => {
+                           const plain = (comment.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                           return plain.length > 120 ? plain.substring(0, 120) + '…' : plain;
+                         })()}
                        </div>
                        {comment.edited_at && (
                          <small className="edited-indicator" style={{ fontSize: "0.7rem" }}>
@@ -444,13 +446,7 @@ const AdminComments = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Comment Text</label>
-                  <textarea
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    rows="5"
-                    className="form-control"
-                    style={{ whiteSpace: "pre-wrap" }}
-                  />
+                  <CommentRTE value={editText} onChange={setEditText} />
                   {editingComment.slug && (
                     <div style={{ marginTop: "6px", fontSize: "0.75rem", color: "#94a3b8" }}>
                       <a href={`/blogs/${editingComment.slug}`} target="_blank" rel="noopener noreferrer"
