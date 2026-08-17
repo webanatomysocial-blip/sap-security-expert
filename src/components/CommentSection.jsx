@@ -18,6 +18,26 @@ const decodeEntities = (str) => {
     .replace(/&amp;/g, '&');
 };
 
+// Allow only safe formatting tags; strip everything else
+const ALLOWED = /^(p|br|ul|ol|li|strong|em|b|i)$/i;
+function safeCommentHtml(text) {
+  if (!text) return '';
+  const decoded = decodeEntities(text);
+  // If no HTML tags, treat as plain text — wrap newlines in <p>
+  if (!/<[a-z]/i.test(decoded)) {
+    return decoded
+      .split(/\n\n+/)
+      .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+      .join('') || decoded;
+  }
+  // Strip disallowed tags (keep content), remove dangerous attributes
+  return decoded
+    .replace(/<(\/?)([a-z][a-z0-9]*)[^>]*>/gi, (_, slash, tag) =>
+      ALLOWED.test(tag) ? `<${slash}${tag.toLowerCase()}>` : ''
+    )
+    .replace(/\son\w+="[^"]*"/gi, '');
+}
+
 const CommentItem = ({ comment, depth = 0, replyMap, onReply }) => {
   const replies = replyMap[comment.id] || [];
   const [isExpanded, setIsExpanded] = useState(false);
@@ -45,7 +65,10 @@ const CommentItem = ({ comment, depth = 0, replyMap, onReply }) => {
             })}
           </span>
         </div>
-        <p className="comment-text">{decodeEntities(comment.text)}</p>
+        <div
+          className="comment-text"
+          dangerouslySetInnerHTML={{ __html: safeCommentHtml(comment.text) }}
+        />
 
         <div className="comment-footer">
           <button className="btn-reply-link" onClick={() => onReply(comment)}>
