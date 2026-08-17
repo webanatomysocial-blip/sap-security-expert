@@ -446,6 +446,7 @@ const AdminComments = () => {
                     onChange={(e) => setEditText(e.target.value)}
                     rows="5"
                     className="form-control"
+                    style={{ whiteSpace: "pre-wrap" }}
                   />
                   {editingComment.slug && (
                     <div style={{ marginTop: "6px", fontSize: "0.75rem", color: "#94a3b8" }}>
@@ -465,6 +466,7 @@ const AdminComments = () => {
                         padding: "8px",
                         borderRadius: "4px",
                         fontSize: "0.9rem",
+                        whiteSpace: "pre-wrap",
                       }}
                     >
                       {editingComment.original_text}
