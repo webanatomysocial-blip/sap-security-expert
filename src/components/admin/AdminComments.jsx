@@ -61,12 +61,13 @@ const AdminComments = () => {
   });
   const handleColChange = (cols) => { setVisibleCols(cols); try { localStorage.setItem("admin_comments_cols", JSON.stringify([...cols])); } catch {} };
   const show = (key) => visibleCols.has(key);
+  const [viewingComment, setViewingComment] = useState(null);
   const [editText, setEditText] = useState("");
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
   const { fetchBadges } = useOutletContext() || {};
 
-  useScrollLock(!!editingComment);
+  useScrollLock(!!(editingComment || viewingComment));
 
   const fetchCommentsData = useCallback(async () => {
     try {
@@ -334,7 +335,7 @@ const AdminComments = () => {
                        )}
                        <div
                          className="wrap-text"
-                         style={{ fontSize: "0.85rem", color: "var(--slate-700)" }}
+                         style={{ fontSize: "0.85rem", color: "var(--slate-700)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}
                          dangerouslySetInnerHTML={{ __html: toCommentHtml(comment.text) }}
                        />
                        {comment.edited_at && (
@@ -412,9 +413,15 @@ const AdminComments = () => {
 
                         <button
                           className="action-menu-item"
+                          onClick={() => setViewingComment(comment)}
+                        >
+                          <i className="bi bi-eye"></i> View
+                        </button>
+                        <button
+                          className="action-menu-item"
                           onClick={() => handleEdit(comment)}
                         >
-                          <i className="bi bi-pencil-square"></i> View/Edit
+                          <i className="bi bi-pencil-square"></i> Edit
                         </button>
 
                         <div className="action-menu-separator"></div>
@@ -434,6 +441,42 @@ const AdminComments = () => {
           </table>
         </TableScrollContainer>
       </div>
+
+      {/* View Modal */}
+      {viewingComment && createPortal(
+        <div className="modal-overlay" onClick={() => setViewingComment(null)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>View Comment</h3>
+              <button className="modal-close-btn" onClick={() => setViewingComment(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{viewingComment.author}</span>
+                {viewingComment.email && <span style={{ fontSize: "0.8rem", color: "#64748b", marginLeft: 8 }}>{viewingComment.email}</span>}
+              </div>
+              <div
+                style={{ fontSize: "0.88rem", color: "#1e293b", lineHeight: 1.7, background: "#f8fafc", borderRadius: 6, padding: "12px 14px", border: "1px solid #e2e8f0" }}
+                dangerouslySetInnerHTML={{ __html: toCommentHtml(viewingComment.text) }}
+              />
+              {viewingComment.slug && (
+                <div style={{ marginTop: 10, fontSize: "0.75rem", color: "#94a3b8" }}>
+                  <a href={`/blogs/${viewingComment.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8", textDecoration: "underline" }}>
+                    /{viewingComment.slug}
+                  </a>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn-secondary" onClick={() => setViewingComment(null)}>Close</button>
+              <button type="button" className="btn-primary" onClick={() => { setViewingComment(null); handleEdit(viewingComment); }}>
+                <i className="bi bi-pencil-square"></i> Edit
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Edit Modal */}
       {editingComment && createPortal(
