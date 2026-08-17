@@ -89,13 +89,13 @@ const CommentRTE = ({ value, onChange }) => {
 // Plain text (newlines) → editor HTML
 function toEditorHtml(text) {
   if (!text) return "<p><br></p>";
-  // If already HTML (starts with a tag), return as-is
-  if (/^\s*<[a-z]/i.test(text)) return text;
-  // Convert plain text newlines to <p> tags
+  if (/^\s*<[a-z]/i.test(text))
+    return text.replace(/<p(?![^>]*style)[^>]*>/gi, '<p style="margin:0 0 10px 0">'); // already HTML, inject margin
+  // Treat every newline as a paragraph break so editor shows visual gaps
   return text
-    .split(/\n\n+/)
-    .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
-    .join("") || "<p><br></p>";
+    .split(/\n+/)
+    .map((para) => `<p style="margin:0 0 10px 0">${para || "<br>"}</p>`)
+    .join("") || '<p style="margin:0 0 10px 0"><br></p>';
 }
 
 // Editor HTML → stored value: normalize browser divs → p, strip dangerous tags

@@ -15,6 +15,29 @@ import CommentRTE from "./CommentRTE";
 import api from "../../services/api";
 import { downloadCSV } from "../../services/exportUtils";
 
+// Render comment text (plain or HTML) as safe HTML with visible paragraph spacing
+function toCommentHtml(text) {
+  if (!text) return '';
+  const P = 'style="margin:0 0 10px 0;padding:0"';
+  if (!/<[a-z]/i.test(text)) {
+    // Plain text — each \n\n = new paragraph, single \n = <br>
+    return text
+      .split(/\n\n+/)
+      .map(p => `<p ${P}>${p.replace(/\n/g, '<br>')}</p>`)
+      .join('');
+  }
+  // HTML (from RTE edit) — sanitize + inject margins on <p>
+  const ALLOWED = /^(p|br|ul|ol|li|strong|em|b|i)$/i;
+  return text
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+    .replace(/<(\/?)([a-z][a-z0-9]*)[^>]*/gi, (_, slash, tag) => {
+      if (!ALLOWED.test(tag)) return '';
+      return tag.toLowerCase() === 'p' && !slash ? `<p ${P}` : `<${slash}${tag.toLowerCase()}`;
+    });
+}
+
 const AdminComments = () => {
   const [comments, setComments] = useState([]);
   const [filter, setFilter] = useState("pending");
@@ -312,13 +335,8 @@ const AdminComments = () => {
                        <div
                          className="wrap-text"
                          style={{ fontSize: "0.85rem", color: "var(--slate-700)" }}
-                         title={comment.text?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
-                       >
-                         {(() => {
-                           const plain = (comment.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-                           return plain.length > 120 ? plain.substring(0, 120) + '…' : plain;
-                         })()}
-                       </div>
+                         dangerouslySetInnerHTML={{ __html: toCommentHtml(comment.text) }}
+                       />
                        {comment.edited_at && (
                          <small className="edited-indicator" style={{ fontSize: "0.7rem" }}>
                            (Ed)
