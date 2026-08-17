@@ -80,7 +80,6 @@ const CommentRTE = ({ value, onChange }) => {
           lineHeight: 1.6,
           color: "#1e293b",
           outline: "none",
-          whiteSpace: "pre-wrap",
         }}
       />
     </div>
@@ -99,12 +98,15 @@ function toEditorHtml(text) {
     .join("") || "<p><br></p>";
 }
 
-// Editor HTML → stored value (keep HTML, strip only dangerous tags)
+// Editor HTML → stored value: normalize browser divs → p, strip dangerous tags
 function fromEditorHtml(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/\son\w+="[^"]*"/gi, "")
+    // Chrome wraps new lines in <div>; normalize to <p>
+    .replace(/<div>/gi, "<p>")
+    .replace(/<\/div>/gi, "</p>")
     .trim();
 }
 
