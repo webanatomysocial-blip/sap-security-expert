@@ -133,6 +133,7 @@ const login = async (req, res) => {
         ambassador_has_badge: !!(ambassadorBadge && ambassadorBadge.has_badge),
         ambassador_badge_year: ambassadorBadge ? ambassadorBadge.badge_year : null,
         ambassador_badge_country: ambassadorBadge ? ambassadorBadge.country : null,
+        ambassador_badge_years: ambassadorBadge ? ambassadorBadge.badge_years : [],
       },
       subscription,
     });
@@ -254,6 +255,7 @@ const getProfile = asyncHandler(async (req, res) => {
   profile.ambassador_has_badge = !!(ambassadorBadge && ambassadorBadge.has_badge);
   profile.ambassador_badge_year = ambassadorBadge ? ambassadorBadge.badge_year : null;
   profile.ambassador_badge_country = ambassadorBadge ? ambassadorBadge.country : null;
+  profile.ambassador_badge_years = ambassadorBadge ? ambassadorBadge.badge_years : [];
 
   // Self-heal sessions created before CSRF protection was added to member
   // routes — those have no session.csrf_token at all, which would make every

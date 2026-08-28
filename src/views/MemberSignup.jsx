@@ -126,8 +126,8 @@ const MemberSignup = () => {
       desc: "We've sent a 6-digit code to your inbox. This ensures your account is linked to a real email address.",
       features: [
         { icon: "bi-clock-fill", theme: "orange", title: "Code Expires in 10 min", desc: "Request a new one anytime if it expires." },
-        { icon: "bi-shield-check-fill", theme: "blue", title: "Secure Verification", desc: "One-time codes are encrypted and single-use." },
-        { icon: "bi-spam-fill", theme: "green", title: "Check Your Spam", desc: "Didn't see it? Check your spam or junk folder." },
+        { icon: "bi-shield-fill-check", theme: "blue", title: "Secure Verification", desc: "One-time codes are encrypted and single-use." },
+        { icon: "bi-envelope-exclamation-fill", theme: "green", title: "Check Your Spam", desc: "Didn't see it? Check your spam or junk folder." },
       ],
     },
     3: {
@@ -136,7 +136,7 @@ const MemberSignup = () => {
       headline: "Almost There —\nTell Us About You",
       desc: "A complete profile helps us connect you with the right content and community members in your area of expertise.",
       features: [
-        { icon: "bi-graph-up-arrow", theme: "orange", title: "10 Welcome Credits", desc: "Credited instantly once your account is approved." },
+        { icon: "bi-coin", theme: "orange", title: "10 Welcome Credits", desc: "Credited instantly once your account is approved." },
         { icon: "bi-eye-slash-fill", theme: "blue", title: "Privacy First", desc: "Your data is never sold or shared with third parties." },
         { icon: "bi-lightning-charge-fill", theme: "green", title: "Fast Approval", desc: "Most accounts are reviewed and approved within 24 hours." },
       ],
@@ -341,7 +341,7 @@ const MemberSignup = () => {
               {step === 2 && (
                 <>
                   <div className="login-lock-badge" style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#2563eb" }}>
-                    <i className="bi bi-shield-check-fill" style={{ color: "#2563eb", fontSize: "1.3rem" }} />
+                    <i className="bi bi-shield-fill-check" style={{ color: "#2563eb", fontSize: "1.3rem" }} />
                   </div>
                   <h3>Verify Your Email</h3>
                   <p className="login-subtitle">We sent a 6-digit code to <strong style={{ color: "#0f172a" }}>{formData.email}</strong></p>

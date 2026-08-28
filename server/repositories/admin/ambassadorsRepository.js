@@ -71,6 +71,33 @@ async function grantBadge(db, id, year) {
     await db.execute("UPDATE ambassadors SET has_badge=0, badge_year=NULL WHERE country=? AND id<>?", [ambassador.country, id]);
   }
   await db.execute("UPDATE ambassadors SET has_badge=1, badge_year=? WHERE id=?", [year, id]);
+
+  // Log this grant permanently — re-granting the same country+year (e.g. an
+  // admin correcting who it went to) overwrites that year's row rather than
+  // duplicating it, since exactly one ambassador can hold a given
+  // country+year. VALUES(ambassador_id) (not a bound param) keeps the param
+  // count identical after translateSQL() strips this clause for SQLite —
+  // same pattern as settingsRepository.js's upsert.
+  if (ambassador.country) {
+    await db.execute(
+      `INSERT INTO ambassador_badge_history (ambassador_id, country, badge_year, granted_at)
+       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+       ON DUPLICATE KEY UPDATE ambassador_id = VALUES(ambassador_id), granted_at = CURRENT_TIMESTAMP`,
+      [id, ambassador.country, year]
+    );
+  }
+}
+
+async function findBadgeHistoryByCountry(db, country) {
+  const [rows] = await db.execute(
+    `SELECT h.badge_year, h.granted_at, a.id AS ambassador_id, a.full_name
+     FROM ambassador_badge_history h
+     JOIN ambassadors a ON a.id = h.ambassador_id
+     WHERE h.country = ?
+     ORDER BY h.badge_year DESC`,
+    [country]
+  );
+  return rows;
 }
 
 async function revokeBadge(db, id) {
@@ -188,7 +215,7 @@ async function findUserWithAmbassadorNameById(db, userId) {
 
 module.exports = {
   findAllActive, findById, approveAmbassador, updateStatus, deactivateAmbassador, reactivateAmbassador,
-  grantBadge, revokeBadge,
+  grantBadge, revokeBadge, findBadgeHistoryByCountry,
   findUserByEmail, createUser, activateUserForAmbassador,
   findMemberByEmail, findUserPasswordByEmail, createMember, updateMemberPasswordByEmail,
   detachUserFromAmbassador, deleteAmbassador,

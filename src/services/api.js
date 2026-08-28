@@ -103,6 +103,7 @@ export const updateAmbassadorStatus = (data) => api.post('/admin/ambassadors', d
 export const getAmbassadorLogin = (ambassadorId) => api.get(`/admin/ambassador-login?ambassador_id=${ambassadorId}`);
 export const createAmbassadorLogin = (data) => api.post('/admin/create-ambassador-login', data);
 export const updateAmbassadorAccess = (data) => api.post('/admin/update-ambassador-access', data);
+export const getAmbassadorBadgeHistory = (country) => api.get(`/admin/ambassador-badge-history?country=${encodeURIComponent(country)}`);
 
 // ── Members Management (Admin) ───────────────────────────────────────────────
 export const getAdminMembers = (status = 'all') => api.get(`/admin/members?status=${status}`);

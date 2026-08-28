@@ -14,6 +14,14 @@ const list = asyncHandler(async (req, res) => {
   return res.json(rows);
 });
 
+// GET /api/admin/ambassador-badge-history?country=India
+const getBadgeHistory = asyncHandler(async (req, res) => {
+  const country = req.query.country;
+  if (!country) return sendError(res, 'country is required.', 400);
+  const rows = await repo.findBadgeHistoryByCountry(req.db, country);
+  return sendSuccess(res, { history: rows });
+});
+
 // POST /api/admin/ambassadors — approve / reject / deactivate / reactivate / delete
 const performAction = asyncHandler(async (req, res) => {
   const db = req.db;
@@ -215,4 +223,5 @@ const resetAmbassadorPassword = asyncHandler(async (req, res) => {
 
 module.exports = {
   list, performAction, getAmbassadorLogin, createAmbassadorLogin, updateAmbassadorAccess, resetAmbassadorPassword,
+  getBadgeHistory,
 };

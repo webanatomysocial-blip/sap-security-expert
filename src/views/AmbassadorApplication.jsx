@@ -58,52 +58,6 @@ const AmbassadorApplication = () => {
   const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
   const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
 
-  // Country Ambassador applies for their OWN country — verified via the
-  // browser's location permission rather than trusting the typed country
-  // field alone. status: idle | checking | verified | mismatch | denied | error
-  const [location, setLocation] = useState({ status: "idle", detectedCountry: "" });
-
-  const handleVerifyLocation = () => {
-    if (!formData.country) {
-      addToast("Select your country first.", "error");
-      return;
-    }
-    if (!navigator.geolocation) {
-      setLocation({ status: "error", detectedCountry: "" });
-      return;
-    }
-    setLocation({ status: "checking", detectedCountry: "" });
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-          );
-          const data = await res.json();
-          const detected = data?.countryName || "";
-          if (!detected) {
-            setLocation({ status: "error", detectedCountry: "" });
-            return;
-          }
-          const matches = detected.trim().toLowerCase() === formData.country.trim().toLowerCase();
-          setLocation({ status: matches ? "verified" : "mismatch", detectedCountry: detected });
-        } catch {
-          setLocation({ status: "error", detectedCountry: "" });
-        }
-      },
-      () => setLocation({ status: "denied", detectedCountry: "" }),
-      { enableHighAccuracy: false, timeout: 10000 }
-    );
-  };
-
-  // Re-verification is required whenever the selected country changes —
-  // a stale "verified" flag against a since-changed country would defeat
-  // the whole point of the check.
-  useEffect(() => {
-    setLocation({ status: "idle", detectedCountry: "" });
-  }, [formData.country]);
-
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
     if (type === "number" && value < 0) return;
@@ -152,7 +106,6 @@ const AmbassadorApplication = () => {
       }
     });
     payload.append("captchaAns", captchaAnsInput);
-    payload.append("detectedCountry", location.detectedCountry || "");
 
     try {
       const res = await applyAmbassador(payload);
@@ -230,38 +183,6 @@ const AmbassadorApplication = () => {
                     />
                   </div>
                 </div>
-
-                {formData.country && (
-                  <div className="form-row">
-                    <div className="form-group full">
-                      <div style={{
-                        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-                        padding: "12px 16px", borderRadius: 10,
-                        background: location.status === "verified" ? "#f0fdf4" : location.status === "idle" || location.status === "checking" ? "#f8fafc" : "#fef2f2",
-                        border: `1px solid ${location.status === "verified" ? "#bbf7d0" : location.status === "idle" || location.status === "checking" ? "#e2e8f0" : "#fecaca"}`,
-                      }}>
-                        <button
-                          type="button"
-                          onClick={handleVerifyLocation}
-                          disabled={location.status === "checking"}
-                          className="btn-secondary"
-                          style={{ whiteSpace: "nowrap" }}
-                        >
-                          <i className={`bi ${location.status === "checking" ? "bi-hourglass-split" : "bi-geo-alt-fill"}`} />{" "}
-                          {location.status === "checking" ? "Checking…" : location.status === "verified" ? "Location Verified" : "Verify My Location"}
-                        </button>
-                        <span style={{ fontSize: "0.85rem", color: "#475569" }}>
-                          {location.status === "idle" && "Country Ambassador applications must be submitted from your own country — we verify this using your browser's location."}
-                          {location.status === "checking" && "Requesting your location…"}
-                          {location.status === "verified" && `Confirmed: you're applying from ${location.detectedCountry}.`}
-                          {location.status === "mismatch" && `Your detected location (${location.detectedCountry}) doesn't match ${formData.country}. You can only apply as an Ambassador for the country you're actually in.`}
-                          {location.status === "denied" && "Location access was denied. Please allow location access in your browser to continue — it's required to verify your application."}
-                          {location.status === "error" && "We couldn't determine your location. Please try again."}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 <div className="form-row">
                   <div className="form-group half">
@@ -435,14 +356,9 @@ const AmbassadorApplication = () => {
               </div>
 
               <div className="form-footer">
-                <button type="submit" className="btn-primary" disabled={isSubmitting || !captchaAnsInput || location.status !== "verified"}>
+                <button type="submit" className="btn-primary" disabled={isSubmitting || !captchaAnsInput}>
                   Summary & Terms <i className="bi bi-arrow-right"></i>
                 </button>
-                {location.status !== "verified" && (
-                  <p style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: 8 }}>
-                    Verify your location above to continue.
-                  </p>
-                )}
               </div>
             </form>
           )}

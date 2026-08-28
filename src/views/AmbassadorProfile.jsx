@@ -127,6 +127,19 @@ const AmbassadorProfile = () => {
             </div>
           )}
 
+          {ambassador.badge_years?.length > 1 && (
+            <div style={{ marginBottom: 24 }}>
+              <h3 style={{ fontSize: "0.85rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+                Badges — {ambassador.badge_years.length} Years as Country Ambassador
+              </h3>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+                {ambassador.badge_years.map((y) => (
+                  <AmbassadorBadge key={y} country={ambassador.country} year={y} size={110} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {expertiseEntries.length > 0 && (
             <div style={{ marginBottom: 24 }}>
               <h3 style={{ fontSize: "0.85rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Areas of Expertise</h3>

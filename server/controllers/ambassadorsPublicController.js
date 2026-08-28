@@ -4,21 +4,6 @@ const { deleteImage } = require('../utils/helpers');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const repo = require('../repositories/ambassadorsPublicRepository');
-const geoip = require('geoip-lite');
-const { Country } = require('country-state-city');
-
-const isoToCountryName = new Map(Country.getAllCountries().map((c) => [c.isoCode, c.name]));
-
-// Client-reported detectedCountry (from browser geolocation) is trivially
-// spoofable — it's just a request-body field. The IP→country lookup can't be
-// edited by the client the same way, so it's the actual security check;
-// detectedCountry is kept only as a UX nicety (catches honest VPN/travel
-// mismatches with a clearer message than a raw IP lookup could).
-function countryFromIp(ip) {
-  const geo = geoip.lookup(ip);
-  if (!geo?.country) return '';
-  return isoToCountryName.get(geo.country) || '';
-}
 
 // POST /api/ambassadors/apply
 const apply = async (req, res) => {
@@ -40,26 +25,6 @@ const apply = async (req, res) => {
   let expertise = input.expertise || '{}';
   if (Array.isArray(expertise) || typeof expertise === 'object') expertise = JSON.stringify(expertise);
 
-  // Country Ambassador applies for THEIR OWN country. The actual check is
-  // IP-based (can't be spoofed by editing the request body, unlike the
-  // client-reported detectedCountry below); the browser-geolocation value is
-  // only used to give a clearer error message when it's available.
-  const claimedCountry = (input.country || '').trim();
-  const detectedCountry = (input.detectedCountry || '').trim();
-  const ipCountry = countryFromIp(req.ip);
-  const locationVerified = !!ipCountry && ipCountry.toLowerCase() === claimedCountry.toLowerCase();
-  if (!locationVerified) {
-    if (imagePath) deleteImage(imagePath);
-    return res.status(400).json({
-      status: 'error',
-      message: ipCountry
-        ? `Your detected location (${ipCountry}) doesn't match the country you're applying for (${claimedCountry}). Country Ambassador applications must be submitted from your own country.`
-        : detectedCountry && detectedCountry.toLowerCase() !== claimedCountry.toLowerCase()
-          ? `Your detected location (${detectedCountry}) doesn't match the country you're applying for (${claimedCountry}). Country Ambassador applications must be submitted from your own country.`
-          : 'We could not verify your location. Please try again or contact support if this keeps happening.',
-    });
-  }
-
   const fields = {
     fullName: input.fullName || '', email, linkedin: input.linkedin || '',
     country: input.country || '', state: input.state || '', city: input.city || '',
@@ -67,7 +32,6 @@ const apply = async (req, res) => {
     yearsExperience: input.yearsExperience || '', expertise, otherExpertiseText: input.otherExpertiseText || '',
     motivation: input.motivation || '', contributionExamples: input.contributionExamples || '',
     nominationType: input.nominationType || 'self', imagePath,
-    detectedCountry, locationVerified,
   };
 
   try {
@@ -113,10 +77,17 @@ const getProfile = asyncHandler(async (req, res) => {
   const row = await repo.findApprovedProfileById(db, id);
   if (!row) return sendError(res, 'Ambassador not found or not approved.', 404);
 
+  // Same rule as contributors — an approved application alone doesn't earn
+  // a public page; they need to have actually published something.
+  const userId = await repo.findUserIdByAmbassadorId(db, row.id);
+  const blogs = userId ? await repo.findPublishedBlogsByAuthorId(db, userId) : [];
+  if (blogs.length === 0) return sendError(res, 'Ambassador not found or not approved.', 404);
+
   const ambassador = { ...row };
   if (ambassador.expertise && typeof ambassador.expertise === 'string') {
     try { ambassador.expertise = JSON.parse(ambassador.expertise); } catch { ambassador.expertise = {}; }
   }
+  ambassador.badge_years = await repo.findBadgeYearsByAmbassadorId(db, ambassador.id);
 
   return sendSuccess(res, { ambassador });
 });
