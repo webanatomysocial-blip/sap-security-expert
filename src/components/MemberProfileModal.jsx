@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,6 +18,9 @@ import { updateMemberProfile, getMemberAchievements, memberChangePassword } from
 import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import ProfilePictureCropModal from "./ProfilePictureCropModal";
+import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
+import SearchableSelect from "./SearchableSelect";
+import AmbassadorBadge from "./AmbassadorBadge";
 
 const REPUTATION_CONFIG = {
   Contributor: {
@@ -35,6 +38,14 @@ const REPUTATION_CONFIG = {
     bg: "#eff6ff",
     border: "#bfdbfe",
     desc: "Active member of the SAP Security Expert community",
+  },
+  CountryAmbassador: {
+    label: "Country Ambassador",
+    icon: "bi-award-fill",
+    color: "#d97706",
+    bg: "#fef3c7",
+    border: "#fde68a",
+    desc: "Official SAP Security Expert representative for their country",
   },
 };
 
@@ -71,10 +82,14 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
     name: "",
     phone: "",
     location: "",
+    country: "",
+    state: "",
     company_name: "",
     job_role: "",
     receive_blog_emails: true,
   });
+  const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
+  const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
   const [preview, setPreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [cropSrc, setCropSrc] = useState(null);
@@ -83,6 +98,8 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
     show_picture: true,
     show_company: false,
     show_email: false,
+    show_country: true,
+    show_in_directory: true,
     show_stats: true,
     show_badges: true,
   });
@@ -115,6 +132,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
           name: member.name || "",
           phone: member.phone || "",
           location: member.location || "",
+          country: member.country || "",
           company_name: member.company_name || "",
           job_role: member.job_role || "",
           receive_blog_emails: member.receive_blog_emails !== undefined ? (member.receive_blog_emails == 1) : false,
@@ -122,7 +140,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
         setPreview(member.profile_image || null);
         setError("");
         setImageFile(null);
-        const defaultVis = { show_name: true, show_picture: true, show_company: false, show_email: false, show_stats: true, show_badges: true };
+        const defaultVis = { show_name: true, show_picture: true, show_company: false, show_email: false, show_country: true, show_in_directory: true, show_stats: true, show_badges: true };
         try {
           const parsed = member.profile_visibility ? JSON.parse(member.profile_visibility) : {};
           setVisibility({ ...defaultVis, ...parsed });
@@ -168,6 +186,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
     data.append("name", formData.name);
     data.append("phone", formData.phone);
     data.append("location", formData.location);
+    data.append("country", formData.country);
     data.append("company_name", formData.company_name);
     data.append("job_role", formData.job_role);
     data.append("receive_blog_emails", formData.receive_blog_emails);
@@ -369,6 +388,8 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
                   { key: 'show_picture', label: 'Display my profile picture' },
                   { key: 'show_company', label: 'Display company' },
                   { key: 'show_email',   label: 'Display email' },
+                  { key: 'show_country', label: 'Show my country on my public profile' },
+                  { key: 'show_in_directory', label: 'Show my profile in the public community directory' },
                 ].map(({ key, label }) => (
                   <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
                     <input
@@ -425,7 +446,13 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
                 <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>Recommended: Square JPG, PNG or WebP</p>
 
                 {/* Reputation badge */}
-                <ReputationBadge level={member?.reputation_level} />
+                <ReputationBadge level={member?.ambassador_has_badge ? "CountryAmbassador" : member?.reputation_level} />
+
+                {member?.ambassador_has_badge && (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "14px", width: "100%" }}>
+                    <AmbassadorBadge country={member.ambassador_badge_country} year={member.ambassador_badge_year} size={180} />
+                  </div>
+                )}
               </div>
 
               <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -446,10 +473,42 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Location</label>
+                  <label className="form-label">Country *</label>
+                  <SearchableSelect
+                    className="form-control"
+                    value={formData.country}
+                    onChange={(v) => setFormData({ ...formData, country: v, state: "", location: "" })}
+                    options={COUNTRIES}
+                    placeholder="Type to search your country"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">State / Province</label>
+                  <SearchableSelect
+                    className="form-control"
+                    value={formData.state}
+                    onChange={(v) => setFormData({ ...formData, state: v, location: "" })}
+                    options={stateOptions}
+                    placeholder={formData.country ? "Type to search" : "Select a country first"}
+                    disabled={!formData.country || stateOptions.length === 0}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">City</label>
                   <div style={{ position: "relative" }}>
-                    <LuMapPin style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-                    <input type="text" className="form-control" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="City, Country" style={{ paddingLeft: "40px" }} />
+                    <LuMapPin style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8", zIndex: 2 }} />
+                    <SearchableSelect
+                      className="form-control"
+                      style={{ paddingLeft: "40px" }}
+                      value={formData.location}
+                      onChange={(v) => setFormData({ ...formData, location: v })}
+                      options={cityOptions}
+                      placeholder={formData.country ? "Type to search" : "Select a country first"}
+                      disabled={!formData.country}
+                    />
                   </div>
                 </div>
 

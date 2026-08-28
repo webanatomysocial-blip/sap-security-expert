@@ -97,17 +97,18 @@ async function findApprovedMemberByReferralCode(db, code) {
 
 async function insertMember(db, f) {
   await db.execute(
-    `INSERT INTO members (name, phone, email, username, location, company_name, job_role, password_hash, status, created_at, receive_blog_emails, referral_code, referred_by_code)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, ?, ?, ?)`,
-    [f.name, f.phone || null, f.email, f.username, f.location || null, f.company_name || null, f.job_role || null,
-     f.hash, parseInt(f.receive_blog_emails) || 1, f.newRefCode, f.referredByCode]
+    `INSERT INTO members (name, phone, email, username, location, country, company_name, job_role, password_hash, status, created_at, receive_blog_emails, referral_code, referred_by_code, goals, current_role, research_opt_in)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)`,
+    [f.name, f.phone || null, f.email, f.username, f.location || null, f.country, f.company_name || null, f.job_role || null,
+     f.hash, parseInt(f.receive_blog_emails) || 1, f.newRefCode, f.referredByCode,
+     f.goals ? JSON.stringify(f.goals) : null, f.currentRole || null, f.researchOptIn === 'yes' ? 1 : (f.researchOptIn === 'no' ? 0 : null)]
   );
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────
 async function findMemberProfileById(db, memberId) {
   const [rows] = await db.execute(
-    'SELECT id, name, email, username, phone, location, company_name, job_role, profile_image, receive_blog_emails, profile_visibility, status FROM members WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, username, phone, location, country, company_name, job_role, profile_image, receive_blog_emails, profile_visibility, status FROM members WHERE id = ? LIMIT 1',
     [memberId]
   );
   return rows[0] || null;
@@ -125,6 +126,11 @@ async function updateMemberProfile(db, memberId, fields) {
   const updates = ['name=?', 'phone=?', 'location=?', 'company_name=?', 'job_role=?', 'receive_blog_emails=?', 'updated_at=CURRENT_TIMESTAMP'];
   const params = [fields.name, fields.phone || null, fields.location || null, fields.company_name || null, fields.job_role || null,
     fields.receive_blog_emails != null ? (['true','1',1,true].includes(fields.receive_blog_emails) ? 1 : 0) : 1];
+
+  if (fields.country) {
+    updates.push('country=?');
+    params.push(fields.country);
+  }
 
   if (fields.profile_visibility) {
     updates.push('profile_visibility=?');
@@ -326,6 +332,35 @@ async function syncPasswordToUser(db, email, hash) {
     .catch(err => console.error('[change-password] users sync failed:', err.message));
 }
 
+async function recordMemberLogin(db, memberId) {
+  await db.execute(
+    'UPDATE members SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?',
+    [memberId]
+  );
+}
+
+// Contributors/ambassadors log in through this same member-login flow — bump
+// their linked users row too, so admin can see their dashboard activity.
+async function recordUserLogin(db, userId) {
+  await db.execute(
+    'UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?',
+    [userId]
+  );
+}
+
+// Country Ambassador badge, resolved via the linked users row (members and
+// users aren't directly linked by FK — email is the shared key everywhere
+// else in this login flow, so it's used here too).
+async function findAmbassadorBadgeByEmail(db, email) {
+  const [rows] = await db.execute(
+    `SELECT a.has_badge, a.badge_year, a.country
+     FROM users u JOIN ambassadors a ON a.id = u.ambassador_id
+     WHERE LOWER(u.email) = LOWER(?) LIMIT 1`,
+    [email]
+  ).catch(() => [[]]);
+  return rows[0] || null;
+}
+
 module.exports = {
   findMemberByEmailOrUsername, findUserByEmailOrUsername, findContributorByEmail, findContributorById,
   findMemberByEmailExact, createMemberLazy, findMemberByEmailExactRaw, findPermissionsByUserId, findActiveSubscription,
@@ -335,5 +370,5 @@ module.exports = {
   findReferralCodeById, updateReferralCode, countApprovedReferrals,
   ensureAchievementTables, findAchievementRecord, insertAchievement, findAchievementType, markAchievementEmailSent,
   findAllAchievementTypes, findEarnedAchievements, findMemberEmailAndName, countApprovedComments, hasCreditTransactionNote,
-  findMemberAuthById, updateMemberPassword, syncPasswordToUser,
+  findMemberAuthById, updateMemberPassword, syncPasswordToUser, recordMemberLogin, recordUserLogin, findAmbassadorBadgeByEmail,
 };

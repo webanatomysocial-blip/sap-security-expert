@@ -7,12 +7,27 @@ async function findAllActive(db) {
             u.username,
             u.is_active,
             u.email     AS user_email,
+            u.last_login,
+            u.login_count,
             COALESCE((
               SELECT COUNT(*)
               FROM blogs b
               WHERE b.author_id = u.id
                 AND b.status IN ('approved','published')
-            ), 0) AS blog_count
+            ), 0) AS blog_count,
+            (
+              SELECT MAX(b.date)
+              FROM blogs b
+              WHERE b.author_id = u.id
+                AND b.status IN ('approved','published')
+            ) AS last_contribution,
+            COALESCE((
+              SELECT COUNT(*)
+              FROM blogs b
+              WHERE b.author_id = u.id
+                AND b.status IN ('approved','published')
+                AND b.category = 'expert-papers'
+            ), 0) AS expert_papers_count
      FROM contributors c
      LEFT JOIN users u ON u.contributor_id = c.id
      WHERE c.is_deleted = 0 OR c.is_deleted IS NULL
@@ -28,6 +43,42 @@ async function findById(db, id) {
 
 async function updateStatus(db, id, status) {
   await db.execute('UPDATE contributors SET status=? WHERE id=?', [status, id]);
+}
+
+async function approveContributor(db, id) {
+  await db.execute("UPDATE contributors SET status='approved', approved_at=CURRENT_TIMESTAMP WHERE id=?", [id]);
+}
+
+// Deactivating only revokes the contributor dashboard session (users.is_active
+// gates that in membersController.login) and leaves the `members` row
+// untouched, so the person can still sign in as a regular member — just
+// without the contributor role/permissions being attached to that session.
+async function deactivateContributor(db, id) {
+  await db.execute("UPDATE contributors SET status='deactivated' WHERE id=?", [id]);
+  await db.execute("UPDATE users SET is_active=0 WHERE contributor_id=?", [id]).catch(() => {});
+}
+
+// Reactivating resets approved_at, giving the contributor a fresh 3-month window.
+async function reactivateContributor(db, id) {
+  await db.execute("UPDATE contributors SET status='approved', approved_at=CURRENT_TIMESTAMP WHERE id=?", [id]);
+  await db.execute("UPDATE users SET is_active=1 WHERE contributor_id=?", [id]).catch(() => {});
+}
+
+// Approved contributors with a linked user account, approved 3+ months ago,
+// with zero approved/published articles — candidates for auto-deactivation.
+async function findInactiveContributorsForDeactivation(db) {
+  const [rows] = await db.execute(
+    `SELECT c.id, c.full_name, c.email, u.id AS user_id
+     FROM contributors c
+     LEFT JOIN users u ON u.contributor_id = c.id
+     WHERE c.status = 'approved'
+       AND (c.is_deleted = 0 OR c.is_deleted IS NULL)
+       AND c.approved_at IS NOT NULL
+       AND c.approved_at <= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+       AND u.id IS NOT NULL
+       AND (SELECT COUNT(*) FROM blogs b WHERE b.author_id = u.id AND b.status IN ('approved','published')) = 0`
+  );
+  return rows;
 }
 
 async function findUserByEmail(db, email) {
@@ -140,7 +191,9 @@ async function findByIdWithContactEmail(db, id) {
 }
 
 module.exports = {
-  findAllActive, findById, updateStatus, findUserByEmail, createUser, activateUserForContributor,
+  findAllActive, findById, updateStatus, approveContributor, deactivateContributor, reactivateContributor,
+  findInactiveContributorsForDeactivation,
+  findUserByEmail, createUser, activateUserForContributor,
   findMemberByEmail, findUserPasswordByEmail, createMember, updateMemberPasswordByEmail,
   detachUserFromContributor, deleteContributor, findUserByContributorId, findPermissionsByUserId,
   upsertPermissions, updateUserPasswordAndContributor, updateUserActive, updateUserPassword,

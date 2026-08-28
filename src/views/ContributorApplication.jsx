@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 // next-disabled: import "../css/BecomeContributor.css";
 import { applyContributor } from "../services/api";
 import { useToast } from "../context/ToastContext";
+import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
+import SearchableSelect from "../components/SearchableSelect";
 
 import useScrollLock from "../hooks/useScrollLock";
 
@@ -31,6 +33,8 @@ const ContributorApplication = () => {
     email: "",
     linkedin: "",
     country: "",
+    state: "",
+    city: "",
     organization: "",
     role: location.state?.role || "", // Pre-fill from previous page if available
     designation: "", // Separated from role (which is the contributor role)
@@ -86,6 +90,9 @@ const ContributorApplication = () => {
     personalWebsite: "",
     twitterHandle: "",
   });
+
+  const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
+  const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
@@ -268,14 +275,38 @@ const ContributorApplication = () => {
                     />
                   </div>
                   <div className="form-group half">
-                    <label className="form-label">Country / Region *</label>
-                    <input
-                      type="text"
+                    <label className="form-label">Country *</label>
+                    <SearchableSelect
                       className="form-control"
-                      name="country"
                       value={formData.country}
-                      onChange={handleInputChange}
+                      onChange={(v) => setFormData((f) => ({ ...f, country: v, state: "", city: "" }))}
+                      options={COUNTRIES}
+                      placeholder="Type to search your country"
                       required
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group half">
+                    <label className="form-label">State / Province</label>
+                    <SearchableSelect
+                      className="form-control"
+                      value={formData.state}
+                      onChange={(v) => setFormData((f) => ({ ...f, state: v, city: "" }))}
+                      options={stateOptions}
+                      placeholder={formData.country ? "Type to search" : "Select a country first"}
+                      disabled={!formData.country || stateOptions.length === 0}
+                    />
+                  </div>
+                  <div className="form-group half">
+                    <label className="form-label">City / Region</label>
+                    <SearchableSelect
+                      className="form-control"
+                      value={formData.city}
+                      onChange={(v) => setFormData((f) => ({ ...f, city: v }))}
+                      options={cityOptions}
+                      placeholder={formData.country ? "Type to search" : "Select a country first"}
+                      disabled={!formData.country}
                     />
                   </div>
                 </div>

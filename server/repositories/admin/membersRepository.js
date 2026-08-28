@@ -1,17 +1,26 @@
 async function findByStatus(db, status) {
-  let sql = 'SELECT id, name, email, username, phone, location, company_name, job_role, status, profile_image, created_at, is_deleted FROM members';
+  let sql = `SELECT m.id, m.name, m.email, m.username, m.phone, m.location, m.country, m.company_name, m.job_role,
+    m.status, m.profile_image, m.created_at, m.is_deleted, m.last_login, m.login_count,
+    (SELECT COUNT(*) FROM blogs b JOIN users u ON u.id = b.author_id WHERE LOWER(u.email) = LOWER(m.email)) AS articles_published,
+    (SELECT MAX(b.date) FROM blogs b JOIN users u ON u.id = b.author_id WHERE LOWER(u.email) = LOWER(m.email)) AS last_contribution,
+    (SELECT COUNT(*) FROM blogs b JOIN users u ON u.id = b.author_id WHERE LOWER(u.email) = LOWER(m.email) AND b.category = 'expert-papers') AS expert_papers_count,
+    (SELECT COALESCE(SUM(credits_delta), 0) FROM credit_transactions WHERE member_id = m.id AND credits_delta > 0) AS credits_earned,
+    (SELECT COUNT(*) FROM members r WHERE r.referred_by_code = m.referral_code AND m.referral_code IS NOT NULL) AS referrals,
+    (SELECT c.status FROM contributors c WHERE LOWER(c.email) = LOWER(m.email) AND (c.is_deleted = 0 OR c.is_deleted IS NULL) ORDER BY c.created_at DESC LIMIT 1) AS contributor_status,
+    (SELECT a.status FROM ambassadors a WHERE LOWER(a.email) = LOWER(m.email) AND (a.is_deleted = 0 OR a.is_deleted IS NULL) ORDER BY a.created_at DESC LIMIT 1) AS ambassador_status
+    FROM members m`;
   const params = [];
   if (status === 'deleted') {
     // 'deleted' tab shows deactivated/soft-deleted accounts
-    sql += ' WHERE (status = ? OR status = ? OR is_deleted = 1)';
+    sql += ' WHERE (m.status = ? OR m.status = ? OR m.is_deleted = 1)';
     params.push('deactivated', 'deleted');
   } else if (status !== 'all') {
     // for pending/approved/rejected/suspended — exact match, exclude soft-deleted
-    sql += ' WHERE status = ? AND (is_deleted = 0 OR is_deleted IS NULL)';
+    sql += ' WHERE m.status = ? AND (m.is_deleted = 0 OR m.is_deleted IS NULL)';
     params.push(status);
   }
   // 'all' returns everything — client-side filter removes deactivated from default view
-  sql += ' ORDER BY created_at DESC';
+  sql += ' ORDER BY m.created_at DESC';
   const [rows] = await db.execute(sql, params);
   return rows;
 }

@@ -8,8 +8,9 @@ import { useToast } from "../context/ToastContext";
 import "../css/ContactForm.css";
 import "../css/MemberLogin.css";
 
-// Modal shown to contributors asking which area to enter
-const ContributorChoiceModal = ({ username, onDashboard, onMember }) => createPortal(
+// Modal shown to contributors (and Country Ambassadors, who log in the same
+// way) asking which area to enter
+const ContributorChoiceModal = ({ username, isAmbassador, onDashboard, onMember }) => createPortal(
   <div style={{
     position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
     backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
@@ -26,7 +27,9 @@ const ContributorChoiceModal = ({ username, onDashboard, onMember }) => createPo
         Welcome back, {username}!
       </h3>
       <p style={{ margin: "0 0 28px", color: "#64748b", fontSize: "0.9rem", lineHeight: 1.6 }}>
-        You have a contributor account. Where would you like to go?
+        {isAmbassador
+          ? "You have a Country Ambassador account. Where would you like to go?"
+          : "You have a contributor account. Where would you like to go?"}
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <button
@@ -38,7 +41,7 @@ const ContributorChoiceModal = ({ username, onDashboard, onMember }) => createPo
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}
         >
-          ✍️ Go to Contributor Dashboard
+          {isAmbassador ? <>🌍 Go to Ambassador Dashboard</> : <>✍️ Go to Contributor Dashboard</>}
         </button>
         <button
           onClick={onMember}
@@ -101,6 +104,10 @@ const MemberLogin = () => {
         addToast("Welcome back!", "success");
         const returnTo = location.state?.fromAuth ? "/" : (location.state?.from || "/");
         navigate(returnTo, { replace: true });
+
+        if (!res.data.member.country) {
+          setTimeout(() => addToast("Please add your country in Profile Settings — it's now required.", "info"), 1200);
+        }
       } else {
         addToast(res.data.message || "Invalid email or password", "error");
       }
@@ -136,6 +143,7 @@ const MemberLogin = () => {
     {contributorChoice && (
       <ContributorChoiceModal
         username={contributorChoice.member?.full_name || contributorChoice.member?.username}
+        isAmbassador={!!contributorChoice.is_ambassador}
         onDashboard={goToDashboard}
         onMember={goToMember}
       />

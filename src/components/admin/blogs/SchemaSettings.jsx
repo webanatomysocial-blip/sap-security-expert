@@ -44,8 +44,9 @@ const LABEL_MAP = {
   "sap-cybersecurity": "Cybersecurity",
   "product-reviews": "Product Reviews",
   "podcasts": "Expert Voices & Podcasts",
-  "videos": "Videos",
+  "videos": "Global Voices in SAP Security",
   "expert-recommendations": "Expert Articles",
+  "expert-papers": "Expert Papers",
 };
 
 function stripHtml(html) {

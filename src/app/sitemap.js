@@ -12,6 +12,7 @@ const STATIC_PAGES = [
   { url: '/videos',                    priority: 0.7, changeFrequency: 'weekly'  },
   { url: '/product-reviews',           priority: 0.7, changeFrequency: 'weekly'  },
   { url: '/expert-recommendations',    priority: 0.7, changeFrequency: 'weekly'  },
+  { url: '/expert-papers',             priority: 0.7, changeFrequency: 'weekly'  },
   { url: '/learning-hub',              priority: 0.8, changeFrequency: 'weekly'  },
   { url: '/become-a-contributor',      priority: 0.6, changeFrequency: 'monthly' },
   { url: '/contributors',              priority: 0.6, changeFrequency: 'weekly'  },

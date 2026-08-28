@@ -72,17 +72,46 @@ const Footer = () => {
                 <Link to="/sap-security">SAP Security</Link>
               </li>
               <li>
+                <Link to="/sap-s4hana-security">SAP S/4HANA Security</Link>
+              </li>
+              <li>
+                <Link to="/sap-fiori-security">SAP Fiori Security</Link>
+              </li>
+              <li>
+                <Link to="/sap-btp-security">SAP BTP Security</Link>
+              </li>
+              <li>
+                <Link to="/sap-public-cloud">SAP Public Cloud</Link>
+              </li>
+              <li>
                 <Link to="/sap-grc">SAP GRC</Link>
+              </li>
+              <li>
+                <Link to="/sap-access-control">SAP Access Control</Link>
+              </li>
+              <li>
+                <Link to="/sap-process-control">SAP Process Control</Link>
               </li>
               <li>
                 <Link to="/sap-iag">SAP IAG</Link>
               </li>
               <li>
-                <Link to="/sap-btp-security">BTP Security</Link>
-              </li>
-
-              <li>
                 <Link to="/sap-cybersecurity">SAP Cybersecurity</Link>
+              </li>
+              <li>
+                <Link to="/sap-sac-security">SAP SAC Security</Link>
+              </li>
+              <li>
+                <Link to="/sap-successfactors-security">SAP SuccessFactors Security</Link>
+              </li>
+              <li>
+                <Link to="/sap-cis">SAP CIS</Link>
+              </li>
+              <li>
+                <Link to="/sap-licensing">SAP Licensing</Link>
+              </li>
+              <li>
+                <Link to="/sap-security-other">Other SAP Security</Link>
               </li>
             </ul>
           </div>
@@ -94,13 +123,58 @@ const Footer = () => {
                 <Link to="/podcasts">Expert Voices/Podcasts</Link>
               </li>
               <li>
+                <Link to="/videos">Global Voices in SAP Security</Link>
+              </li>
+              <li>
                 <Link to="/product-reviews">Product Reviews</Link>
               </li>
               <li>
                 <Link to="/expert-recommendations">Expert Articles</Link>
               </li>
               <li>
+                <Link to="/expert-papers">Expert Papers</Link>
+              </li>
+              <li>
+                <Link to="/downloads">Downloads</Link>
+              </li>
+              <li>
+                <Link to="/learning-hub">Learning Hub</Link>
+              </li>
+              <li>
+                <Link to="/news">News & Updates</Link>
+              </li>
+              <li>
+                <Link to="/announcements">Announcements</Link>
+              </li>
+            </ul>
+          </div>
+
+          <div className="footer-column">
+            <h4>Community</h4>
+            <ul>
+              <li>
+                <Link to="/community">Meet the Community</Link>
+              </li>
+              <li>
+                <Link to="/leaderboard">Contributors Leaderboard</Link>
+              </li>
+              <li>
                 <Link to="/become-a-contributor">Become a Contributor</Link>
+              </li>
+              <li>
+                <Link to="/ambassadors">Country Ambassadors</Link>
+              </li>
+              <li>
+                <Link to="/become-a-country-ambassador">Become a Country Ambassador</Link>
+              </li>
+              <li>
+                <Link to="/member/signup">Join as a Member</Link>
+              </li>
+              <li>
+                <Link to="/member/login">Member Login</Link>
+              </li>
+              <li>
+                <Link to="/about">About Us</Link>
               </li>
             </ul>
           </div>

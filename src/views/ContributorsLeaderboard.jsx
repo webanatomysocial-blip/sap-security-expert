@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Image from "next/image";
 import { getContributorsLeaderboard } from "../services/api";
+import { countryFlag } from "../constants/countries";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -66,6 +67,7 @@ const ContributorsLeaderboard = () => {
                     </div>
                     <div className="podium-name">{c.name || c.full_name}</div>
                     {c.role && <div className="podium-role">{c.role}</div>}
+                    {c.country && <div className="podium-role">{countryFlag(c.country)} {c.country}</div>}
                     <div className="podium-count">{c.contributions_count || 0} <span>articles</span></div>
                   </Link>
                 ))}
@@ -82,6 +84,7 @@ const ContributorsLeaderboard = () => {
                 <div className="lb-info">
                   <div className="lb-name">{c.name || c.full_name}</div>
                   {c.role && <div className="lb-role">{c.role}</div>}
+                  {c.country && <div className="lb-role">{countryFlag(c.country)} {c.country}</div>}
                 </div>
                 <div className="lb-count">
                   <strong>{c.contributions_count || 0}</strong>

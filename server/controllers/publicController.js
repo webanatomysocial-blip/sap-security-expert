@@ -107,10 +107,14 @@ const publicMemberProfile = asyncHandler(async (req, res) => {
   const m = await repo.findPublicMemberById(db, req.params.id);
   if (!m) return res.status(404).json({ status: 'error', message: 'Member not found' });
 
+  const membersRepo = require('../repositories/membersRepository');
+  const isContributor = await membersRepo.findContributorByEmail(db, m.email);
+  const ambassadorBadge = await membersRepo.findAmbassadorBadgeByEmail(db, m.email);
+
   const vis = (() => {
     try { return m.profile_visibility ? JSON.parse(m.profile_visibility) : {}; } catch { return {}; }
   })();
-  const defaults = { show_name: true, show_picture: true, show_company: false, show_email: false, show_stats: true, show_badges: true };
+  const defaults = { show_name: true, show_picture: true, show_company: false, show_email: false, show_country: true, show_in_directory: true, show_stats: true, show_badges: true };
   const v = { ...defaults, ...vis };
   const comment_count = await repo.countApprovedCommentsByMember(db, m.id);
 
@@ -121,8 +125,51 @@ const publicMemberProfile = asyncHandler(async (req, res) => {
     job_role: m.job_role || null,
     company_name: v.show_company ? m.company_name : null,
     location: m.location || null,
+    country: v.show_country ? m.country : null,
     joined: m.created_at,
     comment_count: v.show_stats ? comment_count : null,
+    reputation_level: isContributor ? 'Contributor' : 'Explorer',
+    ambassador_has_badge: ambassadorBadge && ambassadorBadge.has_badge ? 1 : 0,
+    ambassador_badge_country: ambassadorBadge ? ambassadorBadge.country : null,
+    ambassador_badge_year: ambassadorBadge ? ambassadorBadge.badge_year : null,
+  });
+});
+
+// GET /api/members/directory — public community directory
+const memberDirectory = asyncHandler(async (req, res) => {
+  const db = req.db;
+  const candidates = await repo.findDirectoryCandidates(db);
+  const defaults = { show_name: true, show_picture: true, show_company: false, show_country: true, show_in_directory: true };
+
+  const results = candidates
+    .map((m) => {
+      let vis = {};
+      try { vis = m.profile_visibility ? JSON.parse(m.profile_visibility) : {}; } catch { vis = {}; }
+      return { m, v: { ...defaults, ...vis } };
+    })
+    .filter(({ v }) => v.show_in_directory)
+    .map(({ m, v }) => ({
+      id: m.id,
+      name: v.show_name ? m.name : 'Community Member',
+      profile_image: v.show_picture ? m.profile_image : null,
+      job_role: m.job_role || null,
+      company_name: v.show_company ? m.company_name : null,
+      country: v.show_country ? m.country : null,
+    }));
+
+  return res.json({ status: 'success', members: results });
+});
+
+// GET /api/community/countries — member counts per country, for the "Meet the Community" page
+const communityCountries = asyncHandler(async (req, res) => {
+  const db = req.db;
+  const rows = await repo.countMembersByCountry(db);
+  const totalMembers = rows.reduce((sum, r) => sum + r.count, 0);
+  return res.json({
+    status: 'success',
+    total_members: totalMembers,
+    total_countries: rows.length,
+    countries: rows.map((r) => ({ country: r.country, count: r.count })),
   });
 });
 
@@ -387,6 +434,7 @@ const sitemap = async (req, res) => {
       { loc: '/videos',                       priority: '0.7', changefreq: 'weekly'  },
       { loc: '/product-reviews',              priority: '0.7', changefreq: 'weekly'  },
       { loc: '/expert-recommendations',       priority: '0.7', changefreq: 'weekly'  },
+      { loc: '/expert-papers',                priority: '0.7', changefreq: 'weekly'  },
       { loc: '/downloads',                    priority: '0.7', changefreq: 'weekly'  },
       { loc: '/become-a-contributor',         priority: '0.6', changefreq: 'monthly' },
       { loc: '/authors/raghu-boddu',          priority: '0.8', changefreq: 'monthly' },
@@ -456,11 +504,12 @@ const SEO_STATIC = {
   '/podcasts': { title: 'SAP Security Podcasts & Expert Insights | SAP Security Expert', description: 'Listen to SAP security podcasts for expert insights, industry trends, and strategies.' },
   '/reviews': { title: 'Product Reviews | SAP Security Expert', description: 'Unbiased reviews of the latest SAP Security and GRC compliance tools and automation platforms.' },
   '/expert-recommendations': { title: 'SAP Security Recommendations & Resources | SAP Security Expert', description: 'SAP security expert recommendations, utilities, and resources to improve protection and simplify GRC workflows.' },
+  '/expert-papers': { title: 'Expert Papers | SAP Security Expert', description: 'In-depth papers authored by SAP Security experts covering GRC, access risk, and enterprise security strategy.' },
   '/news': { title: 'News & Updates | SAP Security Expert', description: 'The latest announcements, feature releases, and platform news from SAP Security Expert — straight from the team.' },
   '/learning-hub': { title: 'SAP Security Learning Hub — Free Courses & Tutorials | SAP Security Expert', description: 'Learn SAP Security from scratch with structured modules covering fundamentals, user management, role design, GRC, and more. Free hands-on tutorials for all levels.' },
   '/become-a-contributor': { title: 'Write for SAP Security Expert | Become a Contributor', description: 'Share your SAP Security expertise. Join our contributor programme and publish guides, tutorials, and best practices to the SAP security community.' },
   '/authors/raghu-boddu': { title: 'Raghu Boddu - SAP Security & GRC Expert | SAP Security Expert', description: 'Read expert insights and research from Raghu Boddu, founder of SAP Security Expert.' },
-  '/videos': { title: 'SAP Security Videos & Tutorials | SAP Security Expert', description: 'Watch step-by-step SAP security video tutorials, webinars, and live demos on GRC, role design, BTP security, and cybersecurity hardening.' },
+  '/videos': { title: 'Global Voices in SAP Security | SAP Security Expert', description: 'Two-minute perspectives from SAP Security professionals around the world.' },
   '/product-reviews': { title: 'SAP Security Product Reviews | SAP Security Expert', description: 'Unbiased technical reviews of SAP security products, GRC tools, and third-party add-ons to help you make informed software selection decisions.' },
   '/contributors': { title: 'SAP Security Expert Contributors | SAP Security Expert', description: 'Meet the SAP Security Expert contributors — experienced practitioners sharing their expertise in SAP Security, GRC, BTP, and identity management.' },
   '/leaderboard': { title: 'Top SAP Security Contributors Leaderboard | SAP Security Expert', description: 'Discover the top contributors in the SAP Security Expert community — ranked by published articles, expertise, and community impact.' },
@@ -665,7 +714,7 @@ const appVersion = async (req, res) => {
 };
 
 module.exports = {
-  homepage, popularTags, search, leaderboard, publicMemberProfile, communityStats, categories, trendingTopics,
+  homepage, popularTags, search, leaderboard, publicMemberProfile, memberDirectory, communityCountries, communityStats, categories, trendingTopics,
   announcementsPublic, announcementPublicBySlug, authors, recordView, captcha, deleteAccount, content, sitemap, seoMeta, postsSitemap,
   learnings, learningsCounts, news, newsBySlug, sendMail, appVersion,
 };

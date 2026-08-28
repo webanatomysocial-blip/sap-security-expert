@@ -456,6 +456,7 @@ const AdminBlogs = () => {
             <option value="sap-btp-security">Cybersecurity</option>
             <option value="podcasts">Expert Voices/Podcasts</option>
             <option value="expert-recommendations">Expert Articles</option>
+            <option value="expert-papers">Expert Papers</option>
           </select>
         </div>
       )}

@@ -135,6 +135,7 @@ if (isSQLite) {
     { name: 'difficulty_level',            def: "TEXT DEFAULT NULL" },
     { name: 'content_version',             def: "TEXT NOT NULL DEFAULT '1.0'" },
     { name: 'preview_paragraphs',          def: "INTEGER DEFAULT NULL" },
+    { name: 'video_url',                   def: "TEXT DEFAULT NULL" },
   ];
   const existing = sqliteDb.prepare("PRAGMA table_info(blogs)").all().map(r => r.name);
   for (const col of blogsColumns) {
@@ -164,6 +165,52 @@ if (isSQLite) {
       "INSERT INTO membership_plans (name, price_paise, duration_days, description) VALUES (?, ?, ?, ?)"
     ).run('Monthly Premium', 100, 30, 'Full access to all premium SAP Security articles for 30 days');
     console.log('[DB] Seeded default membership plan (₹1/month)');
+  }
+
+  // ambassadors table — Country Ambassador applications, mirrors contributors
+  sqliteDb.prepare(`
+    CREATE TABLE IF NOT EXISTS ambassadors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      full_name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      linkedin TEXT DEFAULT NULL,
+      country TEXT DEFAULT NULL,
+      state TEXT DEFAULT NULL,
+      city TEXT DEFAULT NULL,
+      organization TEXT DEFAULT NULL,
+      current_role TEXT DEFAULT NULL,
+      years_experience TEXT DEFAULT NULL,
+      expertise TEXT DEFAULT NULL,
+      other_expertise TEXT DEFAULT NULL,
+      motivation TEXT DEFAULT NULL,
+      contribution_examples TEXT DEFAULT NULL,
+      nomination_type TEXT DEFAULT 'self',
+      status TEXT DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      approved_at DATETIME DEFAULT NULL,
+      image TEXT DEFAULT NULL,
+      rejection_reason TEXT DEFAULT NULL,
+      is_deleted INTEGER DEFAULT 0,
+      deleted_at DATETIME DEFAULT NULL,
+      deletion_method TEXT DEFAULT NULL,
+      deletion_ip TEXT DEFAULT NULL,
+      deletion_confirmation_method TEXT DEFAULT NULL
+    )
+  `).run();
+
+  // ambassadors table — badge columns added after initial creation
+  const ambassadorColumns = [
+    { name: 'has_badge',        def: "INTEGER NOT NULL DEFAULT 0" },
+    { name: 'badge_year',       def: "INTEGER DEFAULT NULL" },
+    { name: 'detected_country', def: "TEXT DEFAULT NULL" },
+    { name: 'location_verified',def: "INTEGER NOT NULL DEFAULT 0" },
+  ];
+  const ambassadorsExisting = sqliteDb.prepare("PRAGMA table_info(ambassadors)").all().map(r => r.name);
+  for (const col of ambassadorColumns) {
+    if (!ambassadorsExisting.includes(col.name)) {
+      sqliteDb.prepare(`ALTER TABLE ambassadors ADD COLUMN ${col.name} ${col.def}`).run();
+      console.log(`[DB] Migration: added ambassadors.${col.name}`);
+    }
   }
 
   // member_subscriptions table
@@ -251,6 +298,7 @@ if (isSQLite) {
     { name: 'peer_rating',                  def: "REAL DEFAULT NULL" },
     { name: 'peer_rating_count',            def: "INTEGER DEFAULT 0" },
     { name: 'experience_years',             def: "INTEGER DEFAULT NULL" },
+    { name: 'approved_at',                  def: "DATETIME DEFAULT NULL" },
   ];
   const contribExisting = sqliteDb.prepare("PRAGMA table_info(contributors)").all().map(r => r.name);
   for (const col of contribColumns) {
@@ -290,6 +338,23 @@ if (isSQLite) {
     }
   }
 
+  // members table — login tracking + country
+  const membersColumns4 = [
+    { name: 'last_login',      def: "DATETIME DEFAULT NULL" },
+    { name: 'login_count',     def: "INTEGER NOT NULL DEFAULT 0" },
+    { name: 'country',         def: "TEXT DEFAULT NULL" },
+    { name: 'goals',           def: "TEXT DEFAULT NULL" },
+    { name: 'current_role',    def: "TEXT DEFAULT NULL" },
+    { name: 'research_opt_in', def: "INTEGER DEFAULT NULL" },
+  ];
+  const membersExisting4 = sqliteDb.prepare("PRAGMA table_info(members)").all().map(r => r.name);
+  for (const col of membersColumns4) {
+    if (!membersExisting4.includes(col.name)) {
+      sqliteDb.prepare(`ALTER TABLE members ADD COLUMN ${col.name} ${col.def}`).run();
+      console.log(`[DB] Migration: added members.${col.name}`);
+    }
+  }
+
   // users table — soft-delete columns
   const usersColumns = [
     { name: 'full_name',                    def: "TEXT DEFAULT NULL" },
@@ -305,6 +370,9 @@ if (isSQLite) {
     { name: 'deletion_ip',                  def: "TEXT DEFAULT NULL" },
     { name: 'deletion_method',              def: "TEXT DEFAULT NULL" },
     { name: 'deletion_confirmation_method', def: "TEXT DEFAULT NULL" },
+    { name: 'ambassador_id',                def: "INTEGER DEFAULT NULL" },
+    { name: 'last_login',                   def: "DATETIME DEFAULT NULL" },
+    { name: 'login_count',                  def: "INTEGER NOT NULL DEFAULT 0" },
   ];
   const usersExisting = sqliteDb.prepare("PRAGMA table_info(users)").all().map(r => r.name);
   for (const col of usersColumns) {
@@ -604,6 +672,37 @@ if (isSQLite) {
       }
 
       await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ambassadors (
+          id                            INT           NOT NULL AUTO_INCREMENT,
+          full_name                     VARCHAR(255)  NOT NULL,
+          email                         VARCHAR(255)  NOT NULL,
+          linkedin                      VARCHAR(500)  DEFAULT NULL,
+          country                       VARCHAR(100)  DEFAULT NULL,
+          state                         VARCHAR(100)  DEFAULT NULL,
+          city                          VARCHAR(100)  DEFAULT NULL,
+          organization                  VARCHAR(255)  DEFAULT NULL,
+          current_role                  VARCHAR(255)  DEFAULT NULL,
+          years_experience              VARCHAR(50)   DEFAULT NULL,
+          expertise                     TEXT          DEFAULT NULL,
+          other_expertise               TEXT          DEFAULT NULL,
+          motivation                    TEXT          DEFAULT NULL,
+          contribution_examples         TEXT          DEFAULT NULL,
+          nomination_type               VARCHAR(50)   DEFAULT 'self',
+          status                        VARCHAR(50)   DEFAULT 'pending',
+          created_at                    DATETIME      DEFAULT CURRENT_TIMESTAMP,
+          approved_at                   DATETIME      DEFAULT NULL,
+          image                         VARCHAR(255)  DEFAULT NULL,
+          rejection_reason              TEXT          DEFAULT NULL,
+          is_deleted                    TINYINT(1)    DEFAULT 0,
+          deleted_at                    DATETIME      DEFAULT NULL,
+          deletion_method               VARCHAR(50)   DEFAULT NULL,
+          deletion_ip                   VARCHAR(45)   DEFAULT NULL,
+          deletion_confirmation_method  VARCHAR(50)   DEFAULT NULL,
+          PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      await conn.execute(`
         CREATE TABLE IF NOT EXISTS site_settings (
           \`key\`      VARCHAR(100) NOT NULL,
           value        TEXT         NOT NULL,
@@ -715,6 +814,12 @@ if (isSQLite) {
       if (!memberCols.includes('deletion_method'))     await addCol('members', 'deletion_method',    "VARCHAR(50) DEFAULT NULL");
       if (!memberCols.includes('deletion_ip'))         await addCol('members', 'deletion_ip',        "VARCHAR(45) DEFAULT NULL");
       if (!memberCols.includes('deletion_confirmation_method')) await addCol('members', 'deletion_confirmation_method', "VARCHAR(50) DEFAULT NULL");
+      if (!memberCols.includes('last_login'))          await addCol('members', 'last_login',         "DATETIME DEFAULT NULL");
+      if (!memberCols.includes('login_count'))         await addCol('members', 'login_count',        "INT NOT NULL DEFAULT 0");
+      if (!memberCols.includes('country'))             await addCol('members', 'country',            "VARCHAR(100) DEFAULT NULL");
+      if (!memberCols.includes('goals'))               await addCol('members', 'goals',              "TEXT DEFAULT NULL");
+      if (!memberCols.includes('current_role'))        await addCol('members', 'current_role',       "VARCHAR(100) DEFAULT NULL");
+      if (!memberCols.includes('research_opt_in'))     await addCol('members', 'research_opt_in',    "TINYINT(1) DEFAULT NULL");
 
       // ── blogs: all columns added after original schema ─────────────────────────
       const blogCols = await getColumns('blogs');
@@ -742,6 +847,7 @@ if (isSQLite) {
       if (!blogCols.includes('badge_field_validated'))      await addCol('blogs', 'badge_field_validated',      "TINYINT(1) NOT NULL DEFAULT 0");
       if (!blogCols.includes('difficulty_level'))           await addCol('blogs', 'difficulty_level',           "VARCHAR(50) DEFAULT NULL");
       if (!blogCols.includes('content_version'))            await addCol('blogs', 'content_version',            "VARCHAR(20) NOT NULL DEFAULT '1.0'");
+      if (!blogCols.includes('video_url'))                  await addCol('blogs', 'video_url',                  "VARCHAR(500) DEFAULT NULL");
 
       // ── contributors: columns added after original schema ─────────────────────
       const contCols = await getColumns('contributors');
@@ -756,6 +862,14 @@ if (isSQLite) {
       if (!contCols.includes('peer_rating'))                  await addCol('contributors', 'peer_rating',                  "DECIMAL(3,2) DEFAULT 0.00");
       if (!contCols.includes('peer_rating_count'))            await addCol('contributors', 'peer_rating_count',            "INT DEFAULT 0");
       if (!contCols.includes('experience_years'))             await addCol('contributors', 'experience_years',             "INT DEFAULT 0");
+      if (!contCols.includes('approved_at'))                  await addCol('contributors', 'approved_at',                  "DATETIME DEFAULT NULL");
+
+      // ── ambassadors: Country Ambassador badge columns ──────────────────────────
+      const ambCols = await getColumns('ambassadors');
+      if (!ambCols.includes('has_badge'))                     await addCol('ambassadors', 'has_badge',                     "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!ambCols.includes('badge_year'))                    await addCol('ambassadors', 'badge_year',                    "INT DEFAULT NULL");
+      if (!ambCols.includes('detected_country'))              await addCol('ambassadors', 'detected_country',              "VARCHAR(100) DEFAULT NULL");
+      if (!ambCols.includes('location_verified'))             await addCol('ambassadors', 'location_verified',             "TINYINT(1) NOT NULL DEFAULT 0");
 
       // ── users: columns added after original schema ────────────────────────────
       const userCols = await getColumns('users');
@@ -772,6 +886,9 @@ if (isSQLite) {
       if (!userCols.includes('deletion_ip'))                  await addCol('users', 'deletion_ip',                  "VARCHAR(45) DEFAULT NULL");
       if (!userCols.includes('deletion_method'))              await addCol('users', 'deletion_method',              "VARCHAR(50) DEFAULT NULL");
       if (!userCols.includes('deletion_confirmation_method')) await addCol('users', 'deletion_confirmation_method', "VARCHAR(50) DEFAULT NULL");
+      if (!userCols.includes('ambassador_id'))                await addCol('users', 'ambassador_id',                "INT DEFAULT NULL");
+      if (!userCols.includes('last_login'))                   await addCol('users', 'last_login',                   "DATETIME DEFAULT NULL");
+      if (!userCols.includes('login_count'))                  await addCol('users', 'login_count',                  "INT NOT NULL DEFAULT 0");
 
       // ── user_permissions: premium article access ──────────────────────────────
       const upCols = await getColumns('user_permissions');
@@ -860,6 +977,65 @@ if (isSQLite) {
 // (SMTP sends, response serialization, etc.) the way req.db is. In SQLite dev
 // mode there's no real pooling, so this is just the shared adapter.
 const poolExec = isSQLite ? sqliteAdapter : { execute: (sql, params) => pool.execute(sql, params) };
+
+// ── Founder contributor record ────────────────────────────────────────────────
+// The site founder (Raghu Boddu) publishes as the admin user, not through the
+// contributor application flow, so he has no `contributors` row. The public
+// leaderboard / "Top Contributors" widget only reads from `contributors`
+// (see findLeaderboardContributors), so without this he never appears there
+// despite authoring approved articles. Idempotent — safe to run on every startup.
+async function ensureFounderContributor() {
+  try {
+    const [[admin]] = await poolExec.execute(
+      "SELECT id, email, full_name, profile_image, bio, designation FROM users WHERE role = 'admin' AND full_name = 'Raghu Boddu' AND (contributor_id IS NULL OR contributor_id = 0) LIMIT 1"
+    );
+    if (!admin) return;
+
+    const [[existing]] = await poolExec.execute(
+      "SELECT id FROM contributors WHERE full_name = 'Raghu Boddu' LIMIT 1"
+    );
+
+    let contributorId = existing?.id;
+    if (!contributorId) {
+      const [result] = await poolExec.execute(
+        `INSERT INTO contributors (full_name, email, role, image, short_bio, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'approved', CURRENT_TIMESTAMP)`,
+        [admin.full_name, admin.email, admin.designation || null, admin.profile_image || null, admin.bio || null]
+      );
+      contributorId = result.insertId;
+    } else {
+      await poolExec.execute("UPDATE contributors SET status = 'approved' WHERE id = ?", [contributorId]);
+    }
+
+    await poolExec.execute("UPDATE users SET contributor_id = ? WHERE id = ?", [contributorId, admin.id]);
+    console.log(`[DB] Linked founder contributor record for Raghu Boddu (contributor id ${contributorId})`);
+  } catch (err) {
+    console.error('[DB] ensureFounderContributor error (non-fatal):', err.message);
+  }
+}
+setTimeout(ensureFounderContributor, 4000);
+
+// ── Backfill approved_at for pre-existing contributors ──────────────────────────
+// The inactivity sweep needs `approved_at` to measure the 3-month window, but
+// contributors approved before this feature shipped have no value for it (the
+// column defaults to NULL). Rather than backdating them — which would let the
+// sweep deactivate long-time contributors immediately on deploy — this starts
+// their 3-month clock from today, the moment this migration first runs. Only
+// touches rows that still have NULL, so it's a one-time backfill per contributor,
+// safe to run on every startup.
+async function backfillContributorApprovedAt() {
+  try {
+    const [result] = await poolExec.execute(
+      "UPDATE contributors SET approved_at = CURRENT_TIMESTAMP WHERE status = 'approved' AND approved_at IS NULL"
+    );
+    if (result.affectedRows) {
+      console.log(`[DB] Backfilled approved_at for ${result.affectedRows} existing contributor(s) — 3-month inactivity window starts today`);
+    }
+  } catch (err) {
+    console.error('[DB] backfillContributorApprovedAt error (non-fatal):', err.message);
+  }
+}
+setTimeout(backfillContributorApprovedAt, 4500);
 
 // ── Auto-publish hook ─────────────────────────────────────────────────────────
 // Runs at most once per 60 s — transitions scheduled items to published/active.

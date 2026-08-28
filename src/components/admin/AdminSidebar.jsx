@@ -38,6 +38,12 @@ const AdminSidebar = ({
       badge: badges.pendingContributors,
     },
     {
+      label: "Manage Ambassadors",
+      path: "/admin/ambassadors",
+      icon: "bi-globe-americas",
+      badge: badges.pendingAmbassadors,
+    },
+    {
       label: "Manage Admins",
       path: "/admin/team",
       icon: "bi-person-badge-fill",

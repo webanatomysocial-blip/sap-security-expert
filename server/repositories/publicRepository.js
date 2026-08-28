@@ -1,3 +1,5 @@
+const { applyContributorCountryVisibility } = require('../utils/contributorVisibility');
+
 const AUTHOR_FIELDS = `
   CASE WHEN u.role = 'admin' OR b.author_id IS NULL OR b.author_id = 1 THEN 'Raghu Boddu'
        ELSE COALESCE(c.full_name, b.author) END AS author_name,
@@ -84,14 +86,21 @@ async function findHomepageTrending(db, nowUtc) {
   return rows;
 }
 
+// Only contributors with at least one published article are shown publicly —
+// an approved application alone doesn't earn a public profile.
 async function findApprovedContributorsWithCounts(db) {
   const [rows] = await db.execute(
-    `SELECT id, full_name, role, image AS profile_image, created_at,
-       (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
-        WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count
-     FROM contributors WHERE status = 'approved' ORDER BY contributions_count DESC, created_at ASC`
+    `SELECT * FROM (
+       SELECT id, full_name, role, image AS profile_image, created_at,
+         (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
+          WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count,
+         (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS country,
+         (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS profile_visibility
+       FROM contributors WHERE status = 'approved'
+     ) t WHERE contributions_count > 0
+     ORDER BY contributions_count DESC, created_at ASC`
   );
-  return rows;
+  return rows.map(applyContributorCountryVisibility);
 }
 
 async function findExpertPicks(db, nowUtc) {
@@ -144,23 +153,37 @@ async function findTagsSample(db) {
   return rows;
 }
 
+// Only contributors with at least one published article are shown publicly.
 async function findLeaderboardContributors(db) {
   const [rows] = await db.execute(
-    `SELECT c.id, c.full_name AS name, c.role, c.image AS profile_image, c.short_bio, c.created_at,
-       (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
-        WHERE u.contributor_id = c.id AND b.status IN ('approved','published')) AS contributions_count
-     FROM contributors c WHERE c.status = 'approved'
-     ORDER BY contributions_count DESC, c.created_at ASC`
+    `SELECT * FROM (
+       SELECT c.id, c.full_name AS name, c.role, c.image AS profile_image, c.short_bio, c.created_at,
+         (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
+          WHERE u.contributor_id = c.id AND b.status IN ('approved','published')) AS contributions_count,
+         (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS country,
+         (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS profile_visibility
+       FROM contributors c WHERE c.status = 'approved'
+     ) t WHERE contributions_count > 0
+     ORDER BY contributions_count DESC, created_at ASC`
   );
-  return rows;
+  return rows.map(applyContributorCountryVisibility);
 }
 
 async function findPublicMemberById(db, id) {
   const [rows] = await db.execute(
-    `SELECT id, name, profile_image, job_role, company_name, location, profile_visibility, created_at FROM members WHERE id = ? AND status = 'approved' LIMIT 1`,
+    `SELECT id, name, email, profile_image, job_role, company_name, location, country, profile_visibility, created_at
+     FROM members WHERE id = ? AND status = 'approved' LIMIT 1`,
     [id]
   );
   return rows[0] || null;
+}
+
+async function findDirectoryCandidates(db) {
+  const [rows] = await db.execute(
+    `SELECT id, name, profile_image, job_role, company_name, country, profile_visibility, created_at
+     FROM members WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL)`
+  );
+  return rows;
 }
 
 async function countApprovedCommentsByMember(db, memberId) {
@@ -171,8 +194,22 @@ async function countApprovedCommentsByMember(db, memberId) {
   return rows[0].comment_count;
 }
 
+async function countMembersByCountry(db) {
+  const [rows] = await db.execute(
+    `SELECT country, COUNT(*) AS count FROM members
+     WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL) AND country IS NOT NULL AND country != ''
+     GROUP BY country ORDER BY count DESC`
+  );
+  return rows;
+}
+
 async function countCommunityStats(db) {
-  const [[c]] = await db.execute("SELECT COUNT(*) as c FROM contributors WHERE status = 'approved'");
+  const [[c]] = await db.execute(
+    `SELECT COUNT(*) as c FROM contributors ct
+     WHERE ct.status = 'approved'
+       AND EXISTS (SELECT 1 FROM blogs b JOIN users u ON b.author_id = u.id
+                   WHERE u.contributor_id = ct.id AND b.status IN ('approved','published'))`
+  );
   const [[m]] = await db.execute("SELECT COUNT(*) as c FROM members WHERE status = 'approved'");
   const [[a]] = await db.execute("SELECT COUNT(*) as c FROM blogs WHERE status IN ('approved','published')");
   const [[cm]] = await db.execute("SELECT COUNT(*) as c FROM comments WHERE status = 'approved'");
@@ -407,7 +444,8 @@ module.exports = {
   searchBlogs,
   findCuratedHeroArticles, findFallbackHeroArticles, findRecentBlogs, findHomepageTrending,
   findApprovedContributorsWithCounts, findExpertPicks, findPremiumArticles,
-  findTagsSample, findLeaderboardContributors, findPublicMemberById, countApprovedCommentsByMember,
+  findTagsSample, findLeaderboardContributors, findPublicMemberById, findDirectoryCandidates, countApprovedCommentsByMember,
+  countMembersByCountry,
   countCommunityStats, findDistinctCategories, findTrendingTopics, findPublicAnnouncements, findPublicAnnouncementBySlug, findActiveAuthors,
   findBlogIdBySlugOrId, findRecentViewByVisitor, insertPostView, incrementViewCount,
   findUserById, findMemberIdByEmail, findActiveContributorIdByEmail, deactivateContributorPath, deactivateMemberPath,

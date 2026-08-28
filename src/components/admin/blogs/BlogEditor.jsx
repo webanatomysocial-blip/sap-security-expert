@@ -20,8 +20,9 @@ const ALL_CATEGORIES = [
   { value: "sap-cybersecurity", label: "Cybersecurity" },
   { value: "product-reviews", label: "Product Reviews" },
   { value: "podcasts", label: "Expert Voices/Podcasts" },
-  { value: "videos", label: "Videos" },
+  { value: "videos", label: "Global Voices in SAP Security" },
   { value: "expert-recommendations", label: "Expert Articles" },
+  { value: "expert-papers", label: "Expert Papers" },
   { value: "downloads", label: "Downloads" },
 ];
 

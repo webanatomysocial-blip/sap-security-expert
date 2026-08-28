@@ -17,6 +17,7 @@ import { Link, useNavigate } from "react-router-dom";
 // next-disabled: import "../../css/AdminDashboard.css";
 import { getContributorStats } from "../../services/api";
 import ResetPasswordModal from "./ResetPasswordModal";
+import AmbassadorBadge from "../AmbassadorBadge";
 
 /**
  * ContributorDashboard
@@ -40,6 +41,10 @@ const ContributorDashboard = () => {
     pending_comments: 0,
     rejected_comments: 0,
     total_announcements: 0,
+    is_ambassador: false,
+    ambassador_has_badge: false,
+    ambassador_badge_year: null,
+    ambassador_country: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -57,18 +62,9 @@ const ContributorDashboard = () => {
         setLoading(false);
       }
     };
-    const canSeeStats =
-      permissions.can_manage_blogs ||
-      permissions.can_manage_ads ||
-      permissions.can_manage_comments ||
-      permissions.can_manage_announcements ||
-      permissions.can_review_blogs;
-
-    if (canSeeStats) {
-      fetchStatsData();
-    } else {
-      setLoading(false);
-    }
+    // Always fetch — the stats call also carries this user's own Country
+    // Ambassador badge status, which isn't gated by content permissions.
+    fetchStatsData();
   }, [permissions]);
 
   const hasAnyPermission = Object.values(permissions).some(Boolean);
@@ -90,6 +86,11 @@ const ContributorDashboard = () => {
             Your contributor dashboard
           </p>
         </div>
+        {stats.ambassador_has_badge && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <AmbassadorBadge country={stats.ambassador_country} year={stats.ambassador_badge_year} size={180} />
+          </div>
+        )}
       </div>
 
       {!hasAnyPermission ? (

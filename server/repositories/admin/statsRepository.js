@@ -1,6 +1,7 @@
 async function getAdminStats(db) {
   const [[contributors]] = await db.execute("SELECT COUNT(*) AS c FROM contributors WHERE status = 'approved'");
   const [[pending_contributors]] = await db.execute("SELECT COUNT(*) AS c FROM contributors WHERE status = 'pending'");
+  const [[pending_ambassadors]] = await db.execute("SELECT COUNT(*) AS c FROM ambassadors WHERE status = 'pending'").catch(() => [[{ c: 0 }]]);
   const [[pending_reviews]] = await db.execute("SELECT COUNT(*) AS c FROM blogs WHERE submission_status IN ('submitted','edited')");
   const [[pending_comments]] = await db.execute("SELECT COUNT(*) AS c FROM comments WHERE status = 'pending'");
   const [[total_blogs]] = await db.execute("SELECT COUNT(*) AS c FROM blogs");
@@ -11,6 +12,7 @@ async function getAdminStats(db) {
   return {
     contributors: contributors.c,
     pending_contributors: pending_contributors.c,
+    pending_ambassadors: pending_ambassadors.c,
     pending_reviews: pending_reviews.c,
     pending_comments: pending_comments.c,
     blogs: total_blogs.c,
@@ -36,6 +38,14 @@ async function getContributorStats(db, userId) {
   const [[total_ads]] = await db.execute('SELECT COUNT(*) AS c FROM ads');
   const [[total_announcements]] = await db.execute('SELECT COUNT(*) AS c FROM announcements');
 
+  // Country Ambassador badge — only present for users linked to an ambassadors row.
+  const [[ambassador]] = await db.execute(
+    `SELECT a.country, a.has_badge, a.badge_year, a.status
+     FROM users u JOIN ambassadors a ON a.id = u.ambassador_id
+     WHERE u.id = ? LIMIT 1`,
+    [userId]
+  ).catch(() => [[null]]);
+
   return {
     total: total.c,
     drafts: drafts.c,
@@ -49,6 +59,10 @@ async function getContributorStats(db, userId) {
     rejected_comments: rejected_comments.c,
     total_ads: total_ads.c,
     total_announcements: total_announcements.c,
+    is_ambassador: !!ambassador,
+    ambassador_has_badge: !!(ambassador && ambassador.has_badge),
+    ambassador_badge_year: ambassador ? ambassador.badge_year : null,
+    ambassador_country: ambassador ? ambassador.country : null,
   };
 }
 

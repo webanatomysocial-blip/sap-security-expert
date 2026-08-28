@@ -1,19 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import SEO from "../components/SEO";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
+import SearchableSelect from "../components/SearchableSelect";
 
 import "../css/MemberLogin.css";
+
+const GOALS = [
+  "Learn",
+  "Share expertise",
+  "Network with SAP Security professionals",
+  "Find career opportunities",
+  "Attend expert sessions",
+  "Contribute articles",
+  "Access research & tools",
+];
+
+const ROLES = [
+  "SAP Security Consultant",
+  "SAP GRC / Access Governance Consultant",
+  "SAP Security Architect",
+  "SAP Security Manager",
+  "SAP Cybersecurity Professional",
+  "SAP Auditor / Internal Auditor",
+  "SAP Basis / Technology",
+  "IAM / Identity Professional",
+  "Risk & Compliance",
+  "CISO / Security Leadership",
+  "SAP Customer / Business User",
+  "SAP Partner / Consulting",
+  "Student / Early Career",
+  "Other",
+];
 
 const MemberSignup = () => {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Form
   const [showReactivateModal, setShowReactivateModal] = useState(false);
   const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
-    name: "", email: "", username: "", phone: "", location: "",
+    name: "", email: "", username: "", phone: "", location: "", country: "", state: "",
     company_name: "", job_role: "", password: "", confirmPassword: "",
     otp: "", receive_blog_emails: true,
+    goals: [], currentRole: "", researchOptIn: "",
     ref_code: searchParams.get("ref") || "",
   });
   const [showPass, setShowPass] = useState(false);
@@ -25,6 +55,8 @@ const MemberSignup = () => {
   const { addToast } = useToast();
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
+  const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
@@ -79,7 +111,7 @@ const MemberSignup = () => {
     1: {
       icon: "bi-people-fill",
       badge: "Join the Community",
-      headline: "Your SAP Security\nJourney Starts Here",
+      headline: "Join the SAP Security\nCommunity",
       desc: "Join thousands of SAP Security, GRC, and BTP professionals sharing insights, resources, and expertise.",
       features: [
         { icon: "bi-book-half", theme: "blue", title: "Exclusive Content", desc: "Access member-only articles, guides, and expert insights." },
@@ -259,7 +291,7 @@ const MemberSignup = () => {
 
           {/* ── RIGHT FORM CARD ── */}
           <div className="login-form-side">
-            <div className="login-card-form" style={{ maxWidth: step === 3 ? 520 : 460 }}>
+            <div className="login-card-form" style={{ maxWidth: step === 3 ? 640 : 460 }}>
 
               {/* Step indicator */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: 28 }}>
@@ -395,11 +427,102 @@ const MemberSignup = () => {
                         </div>
                       </div>
                       <div className="login-form-group">
-                        <label className="login-label">Location *</label>
+                        <label className="login-label">Country *</label>
+                        <div className="login-input-wrapper">
+                          <i className="bi bi-flag login-input-icon" />
+                          <SearchableSelect
+                            className="login-input"
+                            value={formData.country}
+                            onChange={(v) => setFormData((f) => ({ ...f, country: v, state: "", location: "" }))}
+                            options={COUNTRIES}
+                            placeholder="Type to search your country"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                      <div className="login-form-group">
+                        <label className="login-label">State / Province</label>
+                        <div className="login-input-wrapper">
+                          <i className="bi bi-map login-input-icon" />
+                          <SearchableSelect
+                            className="login-input"
+                            value={formData.state}
+                            onChange={(v) => setFormData((f) => ({ ...f, state: v, location: "" }))}
+                            options={stateOptions}
+                            placeholder={formData.country ? "Type to search" : "Select a country first"}
+                            disabled={!formData.country || stateOptions.length === 0}
+                          />
+                        </div>
+                      </div>
+                      <div className="login-form-group">
+                        <label className="login-label">City</label>
                         <div className="login-input-wrapper">
                           <i className="bi bi-geo-alt login-input-icon" />
-                          <input type="text" name="location" className="login-input" value={formData.location} onChange={handleChange} required placeholder="City, Country" />
+                          <SearchableSelect
+                            className="login-input"
+                            value={formData.location}
+                            onChange={(v) => setFormData((f) => ({ ...f, location: v }))}
+                            options={cityOptions}
+                            placeholder={formData.country ? "Type to search" : "Select a country first"}
+                            disabled={!formData.country}
+                          />
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="login-form-group">
+                      <label className="login-label">What would you like to do in the SAP Security community?</label>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 16px", marginTop: 8 }}>
+                        {GOALS.map((goal) => (
+                          <label key={goal} style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontSize: "0.85rem", color: "#475569", lineHeight: 1.4 }}>
+                            <input
+                              type="checkbox"
+                              checked={formData.goals.includes(goal)}
+                              onChange={(e) => setFormData((f) => ({
+                                ...f,
+                                goals: e.target.checked ? [...f.goals, goal] : f.goals.filter((g) => g !== goal),
+                              }))}
+                              style={{ marginTop: 2, width: 16, height: 16, accentColor: "#ee5e42", flexShrink: 0, cursor: "pointer" }}
+                            />
+                            {goal}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="login-form-group">
+                      <label className="login-label">What best describes your current role?</label>
+                      <SearchableSelect
+                        className="login-input"
+                        style={{ paddingLeft: 16 }}
+                        value={formData.currentRole}
+                        onChange={(v) => setFormData((f) => ({ ...f, currentRole: v }))}
+                        options={ROLES}
+                        placeholder="Type to search your role"
+                      />
+                    </div>
+
+                    <div className="login-form-group">
+                      <label className="login-label">Would you like to participate in SAP Security research and surveys?</label>
+                      <p style={{ fontSize: "0.8rem", color: "#64748b", margin: "0 0 10px", lineHeight: 1.5 }}>
+                        From time to time, SAP Security Expert conducts research and surveys on SAP Security, GRC, cybersecurity, technology adoption and industry trends. Would you like us to contact you for participation?
+                      </p>
+                      <div style={{ display: "flex", gap: 20 }}>
+                        {[{ v: "yes", label: "Yes, I am interested" }, { v: "no", label: "Not now" }].map((opt) => (
+                          <label key={opt.v} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.85rem", color: "#475569" }}>
+                            <input
+                              type="radio"
+                              name="researchOptIn"
+                              checked={formData.researchOptIn === opt.v}
+                              onChange={() => setFormData((f) => ({ ...f, researchOptIn: opt.v }))}
+                              style={{ width: 16, height: 16, accentColor: "#ee5e42", cursor: "pointer" }}
+                            />
+                            {opt.label}
+                          </label>
+                        ))}
                       </div>
                     </div>
 
