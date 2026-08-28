@@ -98,7 +98,7 @@ const MeetTheCommunity = () => {
             An earned recognition for outstanding SAP Security professionals who strengthen their local and global community.
           </p>
         </div>
-        <Link to="/contact-us" style={{ color: "#ea580c", fontWeight: 700, fontSize: "0.9rem", textDecoration: "none", whiteSpace: "nowrap" }}>
+        <Link to="/become-a-country-ambassador" style={{ color: "#ea580c", fontWeight: 700, fontSize: "0.9rem", textDecoration: "none", whiteSpace: "nowrap" }}>
           Know more →
         </Link>
       </div>

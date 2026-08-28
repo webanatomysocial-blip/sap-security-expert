@@ -21,7 +21,6 @@
     "express-rate-limit": "^7.1.5",
     "express-session": "^1.17.3",
     "file-type": "^16.5.4",
-    "geoip-lite": "^2.0.3",
     "multer": "^2.2.0",
     "mysql2": "^3.6.5",
     "node-cron": "^3.0.3",

@@ -353,12 +353,22 @@ async function recordUserLogin(db, userId) {
 // else in this login flow, so it's used here too).
 async function findAmbassadorBadgeByEmail(db, email) {
   const [rows] = await db.execute(
-    `SELECT a.has_badge, a.badge_year, a.country
+    `SELECT a.id, a.has_badge, a.badge_year, a.country
      FROM users u JOIN ambassadors a ON a.id = u.ambassador_id
      WHERE LOWER(u.email) = LOWER(?) LIMIT 1`,
     [email]
   ).catch(() => [[]]);
-  return rows[0] || null;
+  const badge = rows[0];
+  if (!badge) return null;
+  // All years this ambassador has ever held the badge, not just the current
+  // one — someone who won it several years running should see every year,
+  // and this is also how "more than one badge" gets detected for the UI.
+  const [yearRows] = await db.execute(
+    'SELECT badge_year FROM ambassador_badge_history WHERE ambassador_id = ? ORDER BY badge_year DESC',
+    [badge.id]
+  ).catch(() => [[]]);
+  badge.badge_years = yearRows.map((r) => r.badge_year);
+  return badge;
 }
 
 module.exports = {

@@ -11,7 +11,7 @@ import ManageAmbassadorModal from "./ManageAmbassadorModal";
 import useScrollLock from "../../hooks/useScrollLock";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
-import { getAmbassadors, updateAmbassadorStatus } from "../../services/api";
+import { getAmbassadors, updateAmbassadorStatus, getAmbassadorBadgeHistory } from "../../services/api";
 import { downloadCSV } from "../../services/exportUtils";
 
 const AdminAmbassadors = () => {
@@ -20,6 +20,7 @@ const AdminAmbassadors = () => {
   const [filterStatus, setFilterStatus] = useState("approved");
   const [filterCountry, setFilterCountry] = useState("all");
   const [selectedApp, setSelectedApp] = useState(null);
+  const [badgeHistory, setBadgeHistory] = useState(null);
   const [managingAmbassador, setManagingAmbassador] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -70,6 +71,14 @@ const AdminAmbassadors = () => {
     fetchApplications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!selectedApp?.country) { setBadgeHistory(null); return; }
+    setBadgeHistory(null);
+    getAmbassadorBadgeHistory(selectedApp.country)
+      .then((res) => setBadgeHistory(res.data?.history || []))
+      .catch(() => setBadgeHistory([]));
+  }, [selectedApp]);
 
   const performAction = async (id, action, reason = null) => {
     // Captured before the API call — fetchApplications() below refetches
@@ -402,18 +411,39 @@ const AdminAmbassadors = () => {
                 <div><strong>Years Experience:</strong><div style={{ color: "#475569" }}>{selectedApp.years_experience || "N/A"}</div></div>
                 <div><strong>Nomination Type:</strong><div style={{ color: "#475569" }}>{selectedApp.nomination_type || "self"}</div></div>
                 <div>
-                  <strong>Location Verified:</strong>
-                  <div style={{ color: selectedApp.location_verified ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
-                    {selectedApp.location_verified
-                      ? `Yes — detected in ${selectedApp.detected_country || selectedApp.country}`
-                      : "No — could not be verified at application time"}
-                  </div>
-                </div>
-                <div>
                   <strong>Joined:</strong>
                   <div style={{ color: "#475569" }}>{new Date(selectedApp.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</div>
                 </div>
               </div>
+
+              {selectedApp.country && (
+                <div style={{ marginBottom: 16 }}>
+                  <strong>Badge History for {selectedApp.country}:</strong>
+                  {badgeHistory === null ? (
+                    <p style={{ color: "#94a3b8", fontSize: "0.85rem", margin: "6px 0 0" }}>Loading…</p>
+                  ) : badgeHistory.length === 0 ? (
+                    <p style={{ color: "#94a3b8", fontSize: "0.85rem", margin: "6px 0 0" }}>No badge has ever been granted for this country.</p>
+                  ) : (
+                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                      {badgeHistory.map((h) => (
+                        <div
+                          key={h.badge_year}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "8px 12px", borderRadius: 8,
+                            background: h.ambassador_id === selectedApp.id ? "#fff7ed" : "#f8fafc",
+                            border: `1px solid ${h.ambassador_id === selectedApp.id ? "#fed7aa" : "#e2e8f0"}`,
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          <span style={{ fontWeight: 700, color: "#0f172a" }}>{h.badge_year}</span>
+                          <span style={{ color: "#475569" }}>{h.full_name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {selectedApp.motivation && (
                 <div style={{ marginBottom: 16 }}>

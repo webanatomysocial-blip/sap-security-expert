@@ -132,6 +132,7 @@ const publicMemberProfile = asyncHandler(async (req, res) => {
     ambassador_has_badge: ambassadorBadge && ambassadorBadge.has_badge ? 1 : 0,
     ambassador_badge_country: ambassadorBadge ? ambassadorBadge.country : null,
     ambassador_badge_year: ambassadorBadge ? ambassadorBadge.badge_year : null,
+    ambassador_badge_years: ambassadorBadge ? ambassadorBadge.badge_years : [],
   });
 });
 
@@ -163,8 +164,10 @@ const memberDirectory = asyncHandler(async (req, res) => {
 // GET /api/community/countries — member counts per country, for the "Meet the Community" page
 const communityCountries = asyncHandler(async (req, res) => {
   const db = req.db;
-  const rows = await repo.countMembersByCountry(db);
-  const totalMembers = rows.reduce((sum, r) => sum + r.count, 0);
+  const [rows, totalMembers] = await Promise.all([
+    repo.countMembersByCountry(db),
+    repo.countApprovedMembers(db),
+  ]);
   return res.json({
     status: 'success',
     total_members: totalMembers,

@@ -7,6 +7,7 @@ const controller = require('../../controllers/admin/ambassadorsController');
 router.get('/ambassadors', requireAdmin, controller.list);
 router.post('/ambassadors', requireAdmin, controller.performAction);
 router.get('/ambassador-login', requireAdmin, controller.getAmbassadorLogin);
+router.get('/ambassador-badge-history', requireAdmin, controller.getBadgeHistory);
 router.post('/create-ambassador-login', requireAdmin, controller.createAmbassadorLogin);
 router.post('/update-ambassador-access', requireAdmin, controller.updateAmbassadorAccess);
 router.post('/reset-ambassador-password', requireAdmin, controller.resetAmbassadorPassword);

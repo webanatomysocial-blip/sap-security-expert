@@ -213,6 +213,22 @@ if (isSQLite) {
     }
   }
 
+  // Append-only log of every badge grant, one row per (country, year) — a
+  // country's badge can pass to a different ambassador in a later year, or
+  // stay with the same one across consecutive years; either way each grant
+  // gets its own row so admin can see the full history, not just who
+  // currently holds it (which is all `ambassadors.has_badge` tracks).
+  sqliteDb.prepare(`
+    CREATE TABLE IF NOT EXISTS ambassador_badge_history (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      ambassador_id INTEGER NOT NULL,
+      country       TEXT NOT NULL,
+      badge_year    INTEGER NOT NULL,
+      granted_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (country, badge_year)
+    )
+  `).run();
+
   // member_subscriptions table
   sqliteDb.prepare(`
     CREATE TABLE IF NOT EXISTS member_subscriptions (
@@ -699,6 +715,22 @@ if (isSQLite) {
           deletion_ip                   VARCHAR(45)   DEFAULT NULL,
           deletion_confirmation_method  VARCHAR(50)   DEFAULT NULL,
           PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `);
+
+      // Append-only log of every badge grant, one row per (country, year) —
+      // see the matching SQLite table above for why this exists alongside
+      // ambassadors.has_badge (which only tracks the current holder).
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS ambassador_badge_history (
+          id            INT      NOT NULL AUTO_INCREMENT,
+          ambassador_id INT      NOT NULL,
+          country       VARCHAR(100) NOT NULL,
+          badge_year    INT      NOT NULL,
+          granted_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uq_abh_country_year (country, badge_year),
+          KEY idx_abh_ambassador (ambassador_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
 

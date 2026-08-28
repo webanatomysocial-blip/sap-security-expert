@@ -11,7 +11,22 @@ const AmbassadorBadge = ({ country = "USA", year = "2026", size = 280, style, is
   const displayYear = String(year || "2026").trim();
   const numSize = Number(size) || 280;
   const isSmall = numSize < 200;
-  const fontSize = isSmall ? 7.5 : Math.max(8, Math.round(numSize * 0.043));
+  // Below this, the globe icon + separator eat too much of the pill's width
+  // for "COUNTRY - YEAR" to fit — drop them and let text use the full pill
+  // instead of truncating to an ellipsis.
+  const hideDecorations = numSize < 150;
+  const fullText = `${displayCountry} - ${displayYear}`;
+  // Fixed multipliers only fit whichever country name they were eyeballed
+  // against ("INDIA" fits at 120px, "UNITED ARAB EMIRATES" won't) — derive
+  // the font size from the actual pill width and text length instead, so
+  // any country/year combination fits at any badge size without an
+  // ellipsis. Ratios are empirical for this bold condensed uppercase font;
+  // click-to-enlarge (the lightbox) is still the fallback for extremes.
+  const pillTextWidthRatio = hideDecorations ? 0.46 : 0.30;
+  const charWidthFactor = 0.58;
+  const fontSize = isSmall
+    ? Math.max(4, Math.floor((pillTextWidthRatio * numSize) / (charWidthFactor * fullText.length)))
+    : Math.max(8, Math.round(numSize * 0.043));
 
   const handleClick = (e) => {
     if (onClick) {
@@ -94,36 +109,42 @@ const AmbassadorBadge = ({ country = "USA", year = "2026", size = 280, style, is
           display: "flex",
           alignItems: "center",
           boxSizing: "border-box",
-          padding: isSmall ? "0 2% 0 3%" : "0 2% 0 4%",
+          padding: hideDecorations ? "0 4%" : isSmall ? "0 2% 0 3%" : "0 2% 0 4%",
+          justifyContent: hideDecorations ? "center" : "flex-start",
           boxShadow: "inset 0 1px 3px rgba(0,0,0,0.8), 0 1px 2px rgba(255,255,255,0.1)",
         }}
       >
-        {/* Globe icon on the left (matches original design) */}
-        <svg
-          viewBox="0 0 24 24"
-          style={{
-            height: "60%",
-            width: "auto",
-            marginRight: isSmall ? "3%" : "4%",
-            flexShrink: 0,
-          }}
-        >
-          <circle cx="12" cy="12" r="10" fill="none" stroke="#f6d365" strokeWidth="1.5" />
-          <line x1="2" y1="12" x2="22" y2="12" stroke="#f6d365" strokeWidth="1.2" />
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" fill="none" stroke="#f6d365" strokeWidth="1.2" />
-          <path d="M3.6 9h16.8M3.6 15h16.8" fill="none" stroke="#f6d365" strokeWidth="1.2" />
-        </svg>
+        {/* Globe icon on the left (matches original design) — dropped below
+            150px, where there isn't room for it alongside the text. */}
+        {!hideDecorations && (
+          <svg
+            viewBox="0 0 24 24"
+            style={{
+              height: "60%",
+              width: "auto",
+              marginRight: isSmall ? "3%" : "4%",
+              flexShrink: 0,
+            }}
+          >
+            <circle cx="12" cy="12" r="10" fill="none" stroke="#f6d365" strokeWidth="1.5" />
+            <line x1="2" y1="12" x2="22" y2="12" stroke="#f6d365" strokeWidth="1.2" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" fill="none" stroke="#f6d365" strokeWidth="1.2" />
+            <path d="M3.6 9h16.8M3.6 15h16.8" fill="none" stroke="#f6d365" strokeWidth="1.2" />
+          </svg>
+        )}
 
         {/* Separator line */}
-        <div
-          style={{
-            height: "50%",
-            width: "1.5px",
-            background: "linear-gradient(to bottom, #f6d365, #b8860b)",
-            marginRight: isSmall ? "4%" : "6%",
-            flexShrink: 0,
-          }}
-        />
+        {!hideDecorations && (
+          <div
+            style={{
+              height: "50%",
+              width: "1.5px",
+              background: "linear-gradient(to bottom, #f6d365, #b8860b)",
+              marginRight: isSmall ? "4%" : "6%",
+              flexShrink: 0,
+            }}
+          />
+        )}
 
         {/* Country & Year text */}
         <span
@@ -132,7 +153,7 @@ const AmbassadorBadge = ({ country = "USA", year = "2026", size = 280, style, is
             background: "linear-gradient(to bottom, #fff, #ffd875)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-            fontSize: isSmall ? "7.2px" : `clamp(8px, 4.3cqw, ${fontSize}px)`,
+            fontSize: isSmall ? `${fontSize}px` : `clamp(8px, 4.3cqw, ${fontSize}px)`,
             fontWeight: "900",
             fontFamily: "system-ui, -apple-system, sans-serif",
             letterSpacing: isSmall ? "0.01em" : "0.06em",

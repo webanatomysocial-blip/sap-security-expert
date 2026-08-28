@@ -1,4 +1,10 @@
 const { applyContributorCountryVisibility } = require('../utils/contributorVisibility');
+const { Country } = require('country-state-city');
+
+// Same country list the signup/profile dropdowns use — anything else is
+// free text from before that dropdown existed ("testing", "Test Country",
+// "India/Delhi/Hyderabad") and shouldn't be counted as a real country.
+const VALID_COUNTRY_NAMES = new Set(Country.getAllCountries().map((c) => c.name));
 
 const AUTHOR_FIELDS = `
   CASE WHEN u.role = 'admin' OR b.author_id IS NULL OR b.author_id = 1 THEN 'Raghu Boddu'
@@ -195,12 +201,39 @@ async function countApprovedCommentsByMember(db, memberId) {
 }
 
 async function countMembersByCountry(db) {
+  // A member's own profile country is usually blank (most members predate the
+  // field), but approved contributors/ambassadors already gave us a country
+  // on their application — fall back to that so they still count here rather
+  // than being silently dropped for a field they were never asked to re-fill.
   const [rows] = await db.execute(
-    `SELECT country, COUNT(*) AS count FROM members
-     WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL) AND country IS NOT NULL AND country != ''
-     GROUP BY country ORDER BY count DESC`
+    `SELECT
+       COALESCE(
+         NULLIF(m.country, ''),
+         NULLIF((SELECT c.country FROM contributors c WHERE LOWER(c.email) = LOWER(m.email) AND c.status = 'approved' ORDER BY c.created_at DESC LIMIT 1), ''),
+         NULLIF((SELECT a.country FROM ambassadors a WHERE LOWER(a.email) = LOWER(m.email) AND a.status = 'approved' ORDER BY a.created_at DESC LIMIT 1), '')
+       ) AS country
+     FROM members m
+     WHERE m.status = 'approved' AND (m.is_deleted = 0 OR m.is_deleted IS NULL)`
   );
-  return rows;
+  const counts = new Map();
+  for (const row of rows) {
+    if (!row.country || !VALID_COUNTRY_NAMES.has(row.country)) continue;
+    counts.set(row.country, (counts.get(row.country) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([country, count]) => ({ country, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+// Total community size — kept separate from countMembersByCountry, since most
+// members predate the country field and would otherwise be undercounted:
+// "X+ professionals" on the community page should reflect everyone approved,
+// not just the subset who happen to have a country on file.
+async function countApprovedMembers(db) {
+  const [[row]] = await db.execute(
+    `SELECT COUNT(*) AS count FROM members WHERE status = 'approved' AND (is_deleted = 0 OR is_deleted IS NULL)`
+  );
+  return row.count;
 }
 
 async function countCommunityStats(db) {
@@ -445,7 +478,7 @@ module.exports = {
   findCuratedHeroArticles, findFallbackHeroArticles, findRecentBlogs, findHomepageTrending,
   findApprovedContributorsWithCounts, findExpertPicks, findPremiumArticles,
   findTagsSample, findLeaderboardContributors, findPublicMemberById, findDirectoryCandidates, countApprovedCommentsByMember,
-  countMembersByCountry,
+  countMembersByCountry, countApprovedMembers,
   countCommunityStats, findDistinctCategories, findTrendingTopics, findPublicAnnouncements, findPublicAnnouncementBySlug, findActiveAuthors,
   findBlogIdBySlugOrId, findRecentViewByVisitor, insertPostView, incrementViewCount,
   findUserById, findMemberIdByEmail, findActiveContributorIdByEmail, deactivateContributorPath, deactivateMemberPath,
