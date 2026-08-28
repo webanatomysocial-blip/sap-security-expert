@@ -122,6 +122,19 @@ async function findContributorApprovedByEmail(db, email) {
   return rows.length > 0;
 }
 
+// Contributors/ambassadors only go public once they've published something
+// (see contributorsPublicController.js / ambassadorsPublicController.js) —
+// this lets the member's own Profile Settings explain *why* their photo
+// isn't showing publicly yet, rather than leaving it silently invisible.
+async function countPublishedArticlesByEmail(db, email) {
+  const [[row]] = await db.execute(
+    `SELECT COUNT(*) AS count FROM blogs b JOIN users u ON b.author_id = u.id
+     WHERE LOWER(u.email) = LOWER(?) AND b.status IN ('approved','published')`,
+    [email]
+  ).catch(() => [[{ count: 0 }]]);
+  return row.count;
+}
+
 async function updateMemberProfile(db, memberId, fields) {
   const updates = ['name=?', 'phone=?', 'location=?', 'company_name=?', 'job_role=?', 'receive_blog_emails=?', 'updated_at=CURRENT_TIMESTAMP'];
   const params = [fields.name, fields.phone || null, fields.location || null, fields.company_name || null, fields.job_role || null,
@@ -381,4 +394,5 @@ module.exports = {
   ensureAchievementTables, findAchievementRecord, insertAchievement, findAchievementType, markAchievementEmailSent,
   findAllAchievementTypes, findEarnedAchievements, findMemberEmailAndName, countApprovedComments, hasCreditTransactionNote,
   findMemberAuthById, updateMemberPassword, syncPasswordToUser, recordMemberLogin, recordUserLogin, findAmbassadorBadgeByEmail,
+  countPublishedArticlesByEmail,
 };

@@ -343,6 +343,18 @@ export default function ProfileSettings() {
                   </div>
                   <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>Recommended: Square JPG, PNG or WebP</p>
 
+                  {member?.is_public_profile_pending && (
+                    <div style={{
+                      display: "flex", alignItems: "flex-start", gap: 8, marginTop: 12, width: "100%",
+                      background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 12px",
+                    }}>
+                      <i className="bi bi-info-circle-fill" style={{ color: "#d97706", fontSize: "0.95rem", marginTop: 1 }} />
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#92400e", lineHeight: 1.5 }}>
+                        Your profile photo and public profile aren't visible to others yet — they'll appear once you publish your first article.
+                      </p>
+                    </div>
+                  )}
+
                   <ReputationBadge level={member?.ambassador_has_badge ? "CountryAmbassador" : member?.reputation_level} />
 
                   {member?.ambassador_has_badge && (
