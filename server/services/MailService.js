@@ -6,6 +6,11 @@ const { poolExec, pool, isSQLite } = require('../db');
 
 const TEMPLATES_DIR = path.join(__dirname, '../templates');
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
+}
+
 let _instance = null;
 
 class MailService {
@@ -45,7 +50,10 @@ class MailService {
 
       let body = fs.readFileSync(fullPath, 'utf8');
       for (const [key, val] of Object.entries(data)) {
-        body = body.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), String(val ?? ''));
+        // Escape before interpolation — several templates substitute
+        // user-submitted fields (name, reason, etc.) straight from public
+        // forms, and this is HTML, not React, so nothing escapes it for us.
+        body = body.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), escapeHtml(String(val ?? '')));
       }
 
       await this.transporter.sendMail({

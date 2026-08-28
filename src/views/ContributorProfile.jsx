@@ -35,6 +35,7 @@ export default function ContributorProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imgError, setImgError] = useState(false);
+  const [showAllArticles, setShowAllArticles] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -83,7 +84,7 @@ export default function ContributorProfile() {
             This profile is no longer available. The contributor may have left the platform or their account may have been deactivated.
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link to="/contributors" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#ee5e42", color: "#fff", padding: "10px 22px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: "0.88rem" }}>
+            <Link to="/leaderboard" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#ee5e42", color: "#fff", padding: "10px 22px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: "0.88rem" }}>
               <i className="bi bi-people-fill" /> View All Contributors
             </Link>
             <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f1f5f9", color: "#475569", padding: "10px 22px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: "0.88rem" }}>
@@ -117,7 +118,7 @@ export default function ContributorProfile() {
         {/* decorative dots */}
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
         <div style={{ maxWidth: 860, margin: "0 auto", padding: "48px 24px 100px", position: "relative" }}>
-          <Link to="/contributors" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.55)", fontSize: "0.8rem", textDecoration: "none", marginBottom: 28, fontWeight: 500 }}>
+          <Link to="/leaderboard" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.55)", fontSize: "0.8rem", textDecoration: "none", marginBottom: 28, fontWeight: 500 }}>
             <i className="bi bi-arrow-left" /> All Contributors
           </Link>
           <div className="cp-hero-flex" style={{ display: "flex", alignItems: "flex-end", gap: 28, flexWrap: "wrap" }}>
@@ -317,7 +318,7 @@ export default function ContributorProfile() {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {contributor.blogs.map((blog) => (
+                  {(showAllArticles ? contributor.blogs : contributor.blogs.slice(0, 5)).map((blog) => (
                     <Link key={blog.id} to={`/${blog.category}/${blog.slug}`} style={{ textDecoration: "none" }}>
                       <div style={{
                         display: "flex", gap: 14, alignItems: "flex-start",
@@ -348,6 +349,17 @@ export default function ContributorProfile() {
                       </div>
                     </Link>
                   ))}
+                  {contributor.blogs.length > 5 && (
+                    <button
+                      onClick={() => setShowAllArticles((v) => !v)}
+                      style={{
+                        marginTop: 4, padding: "10px", background: "none", border: "1px solid #e2e8f0",
+                        borderRadius: 10, color: "#ee5e42", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer",
+                      }}
+                    >
+                      {showAllArticles ? "Show Less" : `View All (${contributor.blogs.length})`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

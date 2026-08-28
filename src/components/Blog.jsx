@@ -21,7 +21,7 @@ const CATEGORY_LABELS = {
   "sap-cybersecurity": "Cybersecurity",
   "product-reviews": "Product Reviews",
   "podcasts": "Podcasts",
-  "videos": "Videos",
+  "videos": "Global Voices in SAP Security",
   "expert-recommendations": "Expert Articles",
 };
 

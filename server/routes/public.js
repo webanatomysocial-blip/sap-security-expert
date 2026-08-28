@@ -21,6 +21,12 @@ router.get('/contributors/leaderboard', controller.leaderboard);
 // GET /api/members/:id/public — public member profile
 router.get('/members/:id/public', controller.publicMemberProfile);
 
+// GET /api/members/directory — public community directory
+router.get('/members/directory', controller.memberDirectory);
+
+// GET /api/community/countries — member counts per country
+router.get('/community/countries', controller.communityCountries);
+
 // GET /api/stats/community
 router.get('/stats/community', controller.communityStats);
 

@@ -1,3 +1,5 @@
+const { applyContributorCountryVisibility } = require('../utils/contributorVisibility');
+
 async function findByEmail(db, email) {
   const [rows] = await db.execute('SELECT id, status, image FROM contributors WHERE email = ?', [email]);
   return rows[0] || null;
@@ -51,14 +53,27 @@ async function createApplication(db, fields) {
   return result.insertId;
 }
 
+// Contributors get their own `members` row (created on approval) — that's
+// where the show_country privacy toggle lives, so their public country
+// (whether from the contributor application or their member profile) is
+// gated by the same member-level setting rather than always shown.
+// (applyContributorCountryVisibility now lives in utils/contributorVisibility.js,
+// shared with publicRepository.js.)
+
+// Only contributors with at least one published article are shown publicly.
 async function findApprovedContributors(db) {
   const [rows] = await db.execute(
-    `SELECT id, full_name, role, organization, designation, short_bio, expertise, image AS profile_image, created_at,
-       (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
-        WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count
-     FROM contributors WHERE status = 'approved' ORDER BY created_at DESC`
+    `SELECT * FROM (
+       SELECT id, full_name, role, organization, designation, short_bio, expertise, image AS profile_image, created_at,
+         (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
+          WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count,
+         (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS member_country,
+         (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS profile_visibility
+       FROM contributors WHERE status = 'approved'
+     ) t WHERE contributions_count > 0
+     ORDER BY created_at DESC`
   );
-  return rows;
+  return rows.map((r) => applyContributorCountryVisibility({ ...r, country: r.member_country || r.country }));
 }
 
 async function findApprovedProfileById(db, id) {
@@ -68,13 +83,16 @@ async function findApprovedProfileById(db, id) {
             c.personal_website, c.created_at, c.country,
             c.sap_certifications, c.sap_press_books, c.implementations_count,
             c.peer_rating, c.peer_rating_count, c.experience_years,
-            u.id AS user_id, u.username
+            u.id AS user_id, u.username,
+            (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS member_country,
+            (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS profile_visibility
      FROM contributors c
      LEFT JOIN users u ON u.contributor_id = c.id
      WHERE c.id = ? AND c.status = 'approved' LIMIT 1`,
     [id]
   );
-  return rows[0] || null;
+  if (!rows[0]) return null;
+  return applyContributorCountryVisibility({ ...rows[0], country: rows[0].member_country || rows[0].country });
 }
 
 async function findPublishedBlogsByAuthorId(db, authorId) {

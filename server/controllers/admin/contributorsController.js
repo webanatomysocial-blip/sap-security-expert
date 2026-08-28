@@ -21,7 +21,10 @@ const performAction = asyncHandler(async (req, res) => {
   const id = body.id;
   const reason = body.reason || body.rejection_reason || '';
   const raw = (body.action || body.status || '').toLowerCase();
-  const ACTION = { approved: 'approve', approve: 'approve', rejected: 'reject', reject: 'reject', deleted: 'delete', delete: 'delete' };
+  const ACTION = {
+    approved: 'approve', approve: 'approve', rejected: 'reject', reject: 'reject', deleted: 'delete', delete: 'delete',
+    deactivated: 'deactivate', deactivate: 'deactivate', reactivate: 'reactivate',
+  };
   const normalised = ACTION[raw];
 
   if (!id || !normalised) return sendError(res, 'id and action are required', 400);
@@ -33,7 +36,7 @@ const performAction = asyncHandler(async (req, res) => {
   const notifier = new NotificationService(mailService);
 
   if (normalised === 'approve') {
-    await repo.updateStatus(db, id, 'approved');
+    await repo.approveContributor(db, id);
 
     const existingUser = await repo.findUserByEmail(db, contributor.email);
     let password = null;
@@ -73,6 +76,18 @@ const performAction = asyncHandler(async (req, res) => {
     const audit = AuditService.fromRequest(db, req);
     audit.logReq('contributor_rejected', 'contributor', id, `Rejected contributor: ${contributor.full_name} (${contributor.email}). Reason: ${reason || 'none'}`).catch(() => {});
     return sendSuccess(res, { message: 'Contributor rejected.' });
+  } else if (normalised === 'deactivate') {
+    await repo.deactivateContributor(db, id);
+    notifier.notifyContributorDeactivated(contributor.email, contributor.full_name, reason || 'Inactive for an extended period.').catch(() => {});
+    const audit = AuditService.fromRequest(db, req);
+    audit.logReq('contributor_deactivated', 'contributor', id, `Deactivated contributor: ${contributor.full_name} (${contributor.email})`).catch(() => {});
+    return sendSuccess(res, { message: 'Contributor deactivated.' });
+  } else if (normalised === 'reactivate') {
+    await repo.reactivateContributor(db, id);
+    notifier.notifyContributorReactivated(contributor.email, contributor.full_name).catch(() => {});
+    const audit = AuditService.fromRequest(db, req);
+    audit.logReq('contributor_reactivated', 'contributor', id, `Reactivated contributor: ${contributor.full_name} (${contributor.email})`).catch(() => {});
+    return sendSuccess(res, { message: 'Contributor reactivated.' });
   } else if (normalised === 'delete') {
     if (contributor.image) deleteImage(contributor.image);
     // Detach user account from contributor profile — user keeps their account as a regular member

@@ -67,7 +67,14 @@ export const getApprovedContributors = () => api.get('/contributors/approved');
 export const getContributorProfile = (id) => api.get(`/contributors/profile/${id}`);
 export const updateContributorReputation = (id, data) => api.put(`/contributors/${id}/reputation`, data);
 export const getContributorsLeaderboard = () => api.get('/contributors/leaderboard');
+export const applyAmbassador = (data) => api.post('/ambassadors/apply', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+});
+export const getApprovedAmbassadors = () => api.get('/ambassadors/approved');
+export const getAmbassadorProfile = (id) => api.get(`/ambassadors/profile/${id}`);
 export const getMemberPublicProfile = (id) => api.get(`/members/${id}/public`);
+export const getMemberDirectory = () => api.get(`/members/directory`);
+export const getCommunityCountries = () => api.get(`/community/countries`);
 export const getHomepageData = () => api.get('/homepage');
 export const getCategories = () => api.get('/categories');
 
@@ -91,6 +98,11 @@ export const saveFeaturedInsights = (items) => api.post('/admin/featured-insight
 export const getContributors = () => api.get('/admin/contributors');
 export const updateContributorStatus = (data) => api.post('/admin/contributors', data);
 export const deleteContributor = (id, otp) => api.post('/admin/delete-contributor', { id, ...(otp ? { otp } : {}) });
+export const getAmbassadors = () => api.get('/admin/ambassadors');
+export const updateAmbassadorStatus = (data) => api.post('/admin/ambassadors', data);
+export const getAmbassadorLogin = (ambassadorId) => api.get(`/admin/ambassador-login?ambassador_id=${ambassadorId}`);
+export const createAmbassadorLogin = (data) => api.post('/admin/create-ambassador-login', data);
+export const updateAmbassadorAccess = (data) => api.post('/admin/update-ambassador-access', data);
 
 // ── Members Management (Admin) ───────────────────────────────────────────────
 export const getAdminMembers = (status = 'all') => api.get(`/admin/members?status=${status}`);

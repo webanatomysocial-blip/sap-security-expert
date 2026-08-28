@@ -987,3 +987,15 @@ body.modal-open {
     align-self: flex-start !important;
   }
 }
+
+/* Account Settings (ProfileSettings) — sidebar + content two-column grid
+   was fixed-width (260px) and never collapsed on mobile, pushing the right
+   column off-screen. Stack to a single column below tablet width. */
+@media (max-width: 768px) {
+  .profile-settings-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

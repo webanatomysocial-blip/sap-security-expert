@@ -29,8 +29,18 @@ const AdminManageUsers = () => {
     { key: "phone",    label: "Phone", optional: true },
     { key: "company",  label: "Company / Role", optional: true },
     { key: "location", label: "Location", optional: true },
+    { key: "country",  label: "Country", optional: true },
     { key: "status",   label: "Status" },
     { key: "regdate", label: "Reg. Date", optional: true },
+    { key: "lastlogin", label: "Last Login", optional: true },
+    { key: "logins", label: "Total Logins", optional: true },
+    { key: "articles", label: "Articles Published", optional: true },
+    { key: "lastcontrib", label: "Last Contribution", optional: true },
+    { key: "expertpapers", label: "Expert Papers", optional: true },
+    { key: "credits", label: "Credits Earned", optional: true },
+    { key: "referrals", label: "Referrals", optional: true },
+    { key: "contributor", label: "Contributor Status", optional: true },
+    { key: "ambassador", label: "Ambassador Status", optional: true },
     { key: "actions", label: "Actions" },
   ];
   const STORAGE_KEY = "admin_users_visible_cols";
@@ -248,6 +258,15 @@ const AdminManageUsers = () => {
       { label: "Location", key: "location" },
       { label: "Status", key: "status" },
       { label: "Reg. Date", key: "created_at" },
+      { label: "Last Login", key: "last_login" },
+      { label: "Total Logins", key: "login_count" },
+      { label: "Articles Published", key: "articles_published" },
+      { label: "Last Contribution", key: "last_contribution" },
+      { label: "Expert Papers", key: "expert_papers_count" },
+      { label: "Credits Earned", key: "credits_earned" },
+      { label: "Referrals", key: "referrals" },
+      { label: "Contributor Status", key: "contributor_status" },
+      { label: "Ambassador Status", key: "ambassador_status" },
     ];
     downloadCSV(filteredMembers, headers, "members_list");
   };
@@ -318,10 +337,20 @@ const AdminManageUsers = () => {
                       {show("phone") && <th className="col-md text-left">Phone</th>}
                       {show("company") && <th className="col-lg text-left">Company / Role</th>}
                       {show("location") && <th className="col-md text-left">Location</th>}
+                      {show("country") && <th className="col-md text-left">Country</th>}
                     </>
                   )}
                   <th className="col-sm text-center">Status</th>
                   {show("regdate") && <th className="col-md text-left">Reg. Date</th>}
+                  {show("lastlogin") && <th className="col-md text-left">Last Login</th>}
+                  {show("logins") && <th className="col-sm text-center">Total Logins</th>}
+                  {show("articles") && <th className="col-sm text-center">Articles</th>}
+                  {show("lastcontrib") && <th className="col-md text-left">Last Contribution</th>}
+                  {show("expertpapers") && <th className="col-sm text-center">Expert Papers</th>}
+                  {show("credits") && <th className="col-sm text-center">Credits Earned</th>}
+                  {show("referrals") && <th className="col-sm text-center">Referrals</th>}
+                  {show("contributor") && <th className="col-sm text-center">Contributor</th>}
+                  {show("ambassador") && <th className="col-sm text-center">Ambassador</th>}
                   <th className="col-actions text-center">Actions</th>
                 </tr>
               </thead>
@@ -356,6 +385,7 @@ const AdminManageUsers = () => {
                             </td>
                           )}
                           {show("location") && <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.location || <span style={{ color: "#cbd5e1" }}>—</span>}</td>}
+                          {show("country") && <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.country || <span style={{ color: "#cbd5e1" }}>—</span>}</td>}
                         </>
                       )}
                       <td className="col-sm text-center">
@@ -366,6 +396,35 @@ const AdminManageUsers = () => {
                       {show("regdate") && (
                         <td className="col-md text-left" style={{ fontSize: "0.80rem", color: "var(--slate-500)", fontWeight: 500 }}>
                           {new Date(m.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
+                        </td>
+                      )}
+                      {show("lastlogin") && (
+                        <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                          {m.last_login ? new Date(m.last_login).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : <span style={{ color: "#cbd5e1" }}>Never</span>}
+                        </td>
+                      )}
+                      {show("logins") && <td className="col-sm text-center" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.login_count || 0}</td>}
+                      {show("articles") && <td className="col-sm text-center" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.articles_published || 0}</td>}
+                      {show("lastcontrib") && (
+                        <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                          {m.last_contribution ? new Date(m.last_contribution).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : <span style={{ color: "#cbd5e1" }}>—</span>}
+                        </td>
+                      )}
+                      {show("expertpapers") && <td className="col-sm text-center" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.expert_papers_count || 0}</td>}
+                      {show("credits") && <td className="col-sm text-center" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.credits_earned || 0}</td>}
+                      {show("referrals") && <td className="col-sm text-center" style={{ fontSize: "0.8rem", color: "#64748b" }}>{m.referrals || 0}</td>}
+                      {show("contributor") && (
+                        <td className="col-sm text-center">
+                          {m.contributor_status
+                            ? <span className={`status-badge status-${m.contributor_status}`} style={{ fontSize: "0.7rem", padding: "2px 8px" }}>{m.contributor_status}</span>
+                            : <span style={{ color: "#cbd5e1", fontSize: "0.8rem" }}>—</span>}
+                        </td>
+                      )}
+                      {show("ambassador") && (
+                        <td className="col-sm text-center">
+                          {m.ambassador_status
+                            ? <span className={`status-badge status-${m.ambassador_status}`} style={{ fontSize: "0.7rem", padding: "2px 8px" }}>{m.ambassador_status}</span>
+                            : <span style={{ color: "#cbd5e1", fontSize: "0.8rem" }}>—</span>}
                         </td>
                       )}
                       <td className="col-actions text-center">
@@ -625,6 +684,58 @@ const AdminManageUsers = () => {
                         minute: "2-digit",
                       },
                     )}
+                  </div>
+                </div>
+                <div className="detail-item">
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.75rem",
+                      fontWeight: "700",
+                      color: "var(--slate-500)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Last Login
+                  </label>
+                  <div
+                    style={{
+                      fontSize: "1rem",
+                      fontWeight: "600",
+                      color: "var(--slate-900)",
+                    }}
+                  >
+                    {selectedMember.last_login ? new Date(selectedMember.last_login).toLocaleString() : "Never"}
+                    {" "}
+                    <span style={{ color: "var(--slate-500)", fontWeight: 500 }}>
+                      ({selectedMember.login_count || 0} total logins)
+                    </span>
+                  </div>
+                </div>
+                <div className="detail-item">
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.75rem",
+                      fontWeight: "700",
+                      color: "var(--slate-500)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Contributions
+                  </label>
+                  <div
+                    style={{
+                      fontSize: "1rem",
+                      fontWeight: "600",
+                      color: "var(--slate-900)",
+                    }}
+                  >
+                    {selectedMember.articles_published || 0} articles · {selectedMember.credits_earned || 0} credits earned · {selectedMember.referrals || 0} referrals
                   </div>
                 </div>
                 <div className="detail-item">

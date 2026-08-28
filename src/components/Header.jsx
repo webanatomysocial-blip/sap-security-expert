@@ -171,8 +171,9 @@ const Header = () => {
             <div className="dropdown-menu">
               <Link to="/product-reviews">Product Reviews</Link>
               <Link to="/podcasts">Podcasts</Link>
-              <Link to="/videos">Videos</Link>
+              <Link to="/videos">Global Voices in SAP Security</Link>
               <Link to="/expert-recommendations">Expert Articles</Link>
+              <Link to="/expert-papers">Expert Papers</Link>
               <Link to="/downloads">Downloads</Link>
             </div>
           </div>
@@ -186,6 +187,8 @@ const Header = () => {
             <div className="dropdown-menu">
               <Link to="/news">News &amp; Updates</Link>
               <Link to="/announcements">Announcements</Link>
+              <Link to="/ambassadors">Country Ambassadors</Link>
+              <Link to="/become-a-country-ambassador">Become a Country Ambassador</Link>
               <Link to="/contact-us">Contact Us</Link>
             </div>
           </div>
@@ -555,10 +558,13 @@ const Header = () => {
                   Podcasts
                 </Link>
                 <Link to="/videos" onClick={closeMenu}>
-                  Videos
+                  Global Voices in SAP Security
                 </Link>
                 <Link to="/expert-recommendations" onClick={closeMenu}>
                   Expert Articles
+                </Link>
+                <Link to="/expert-papers" onClick={closeMenu}>
+                  Expert Papers
                 </Link>
                 <Link to="/downloads" onClick={closeMenu}>
                   Downloads
@@ -588,6 +594,12 @@ const Header = () => {
                 </Link>
                 <Link to="/announcements" onClick={closeMenu}>
                   Announcements
+                </Link>
+                <Link to="/ambassadors" onClick={closeMenu}>
+                  Country Ambassadors
+                </Link>
+                <Link to="/become-a-country-ambassador" onClick={closeMenu}>
+                  Become a Country Ambassador
                 </Link>
                 <Link to="/contact-us" onClick={closeMenu}>
                   Contact Us

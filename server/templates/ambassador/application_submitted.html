@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eef2f6; border-radius: 8px; }
+        .header { text-align: center; border-bottom: 2px solid #ee5e42; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h2 { color: #ee5e42; margin: 0; }
+        .footer { font-size: 12px; color: #94a3b8; margin-top: 30px; text-align: center; border-top: 1px solid #eef2f6; padding-top: 15px; }
+        .btn { display: inline-block; background: #ee5e42; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 600; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Country Ambassador Application Received</h2>
+        </div>
+        <p>Hello <strong>{{name}}</strong>,</p>
+        <p>Thank you for your interest in the <strong>SAP Security Expert — Country Ambassador</strong> recognition. We've received your application and our team will review it against our qualification criteria.</p>
+        <p>Country Ambassador is an earned community recognition, not a recruited role — reviews may take some time as we consider expertise, credibility, and community contribution. We'll notify you by email once a decision has been made.</p>
+
+        <div style="text-align: center;">
+            <a href="{{site_url}}" class="btn">Explore Community</a>
+        </div>
+
+        <div class="footer">
+            &copy; 2026 SAP Security Expert. The leading community for SAP Security Professionals.<br>
+            <a href="{{site_url}}" style="color: #94a3b8;">{{site_domain}}</a>
+        </div>
+    </div>
+</body>
+</html>

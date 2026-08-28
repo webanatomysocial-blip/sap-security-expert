@@ -79,6 +79,73 @@ class NotificationService {
     await this.mail.send(this.db, email, 'Contributor Application Rejected', 'contributor/contributor_rejected', { name, reason });
   }
 
+  async notifyContributorDeactivated(email, name, reason) {
+    await this.mail.send(this.db, email, 'Your Contributor Profile Has Been Deactivated', 'contributor/contributor_deactivated', {
+      name, reason, login_url: this._loginUrl(), year: new Date().getFullYear(),
+    });
+  }
+
+  async notifyAdminContributorDeactivated(name, email, reason) {
+    await this.mail.send(this.db, this.adminEmail, 'Contributor Auto-Deactivated for Inactivity', 'admin/admin_contributor_deactivated', {
+      name, email, reason,
+    });
+  }
+
+  async notifyContributorReactivated(email, name) {
+    await this.mail.send(this.db, email, 'Your Contributor Profile Has Been Reactivated', 'contributor/contributor_reactivated', {
+      name, login_url: this._loginUrl(), year: new Date().getFullYear(),
+    });
+  }
+
+  // ── Country Ambassador Notifications ──────────────────────────────────────
+
+  async notifyAmbassadorApplicationSubmitted(email, data) {
+    await this.mail.send(this.db, email, 'Country Ambassador Application Submitted', 'ambassador/application_submitted', { name: data.name });
+    await this.mail.send(this.db, this.adminEmail, 'New Country Ambassador Application', 'ambassador/admin_new_application', {
+      name: data.name, email, country: data.country || 'N/A',
+    });
+  }
+
+  async notifyAmbassadorApproved(email, name, credentials = {}) {
+    const siteUrl = getSiteUrl();
+    await this.mail.send(this.db, email, 'Welcome, Country Ambassador!', 'ambassador/ambassador_approved', {
+      name,
+      login_url: this._loginUrl(),
+      username: email,
+      password: credentials.password || 'Your existing password',
+      site_url: siteUrl,
+      site_domain: new URL(siteUrl).hostname,
+    });
+  }
+
+  async notifyAmbassadorRejected(email, name, reason) {
+    await this.mail.send(this.db, email, 'Country Ambassador Application Update', 'ambassador/ambassador_rejected', { name, reason });
+  }
+
+  async notifyAmbassadorDeactivated(email, name, reason) {
+    await this.mail.send(this.db, email, 'Your Country Ambassador Status Has Been Deactivated', 'ambassador/ambassador_deactivated', {
+      name, reason, login_url: this._loginUrl(), year: new Date().getFullYear(),
+    });
+  }
+
+  async notifyAmbassadorReactivated(email, name) {
+    await this.mail.send(this.db, email, 'Your Country Ambassador Status Has Been Reactivated', 'ambassador/ambassador_reactivated', {
+      name, login_url: this._loginUrl(), year: new Date().getFullYear(),
+    });
+  }
+
+  // Sent whenever an admin resets an ambassador's password — without this,
+  // the credentials in the original approval email go stale the moment a
+  // reset happens, and the admin has no built-in way to hand the applicant
+  // their new password unless they manually copy it out of the admin UI.
+  async notifyAmbassadorPasswordReset(email, name, password) {
+    const siteUrl = getSiteUrl();
+    await this.mail.send(this.db, email, 'Your Country Ambassador Password Has Been Reset', 'ambassador/password_reset', {
+      name, username: email, password, login_url: this._loginUrl(),
+      site_url: siteUrl, site_domain: new URL(siteUrl).hostname,
+    });
+  }
+
   // ── Blog Notifications ────────────────────────────────────────────────────
 
   async notifyBlogSubmitted(blogTitle, authorName) {

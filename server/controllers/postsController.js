@@ -617,7 +617,7 @@ const save = asyncHandler(async (req, res) => {
           is_members_only: rawIsMembersOnly = 0, send_notification_email = 0, status: requestedStatus, related_blogs,
           schema_type = 'BlogPosting', article_section = null, co_authors = [],
           difficulty_level: rawDifficultyLevel = null, preview_paragraphs: rawPreviewParagraphs = null,
-          preview_unit: rawPreviewUnit = 'blocks' } = data;
+          preview_unit: rawPreviewUnit = 'blocks', video_url = null } = data;
 
   // Badges, is_premium, and credits_required are admin-only fields — contributors
   // submitting these in the request body must be silently ignored so they cannot
@@ -731,7 +731,7 @@ const save = asyncHandler(async (req, res) => {
       targetStatus, subStatus, author_id, authorName, seoScore, finalPlag,
       is_members_only, is_premium, credits_required, relatedBlogsJson, coAuthorsJson, send_notification_email,
       badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level, newContentVersion,
-      preview_paragraphs, preview_unit,
+      preview_paragraphs, preview_unit, video_url,
       setPublishDate,
     });
     cache.invalidate('homepage_data_public');
@@ -768,7 +768,7 @@ const save = asyncHandler(async (req, res) => {
       seoScore, finalPlag, is_members_only, is_premium, credits_required, relatedBlogsJson, coAuthorsJson,
       send_notification_email,
       badge_expert_reviewed, badge_sap_notes_verified, badge_tested_s4hana, badge_field_validated, difficulty_level,
-      preview_paragraphs, preview_unit,
+      preview_paragraphs, preview_unit, video_url,
       publishDateVal,
     });
     cache.invalidate('homepage_data_public');

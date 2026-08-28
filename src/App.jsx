@@ -27,6 +27,7 @@ const SapCybersecurity         = lazy(() => import("./views/categories/SapCybers
 const SapLicensing             = lazy(() => import("./views/categories/SapLicensing"));
 const ProductReviews           = lazy(() => import("./views/categories/ProductReviews"));
 const Podcasts                 = lazy(() => import("./views/categories/Podcasts"));
+const ExpertPapers             = lazy(() => import("./views/categories/ExpertPapers"));
 const Videos                   = lazy(() => import("./views/categories/Videos"));
 const ExpertRecommendations    = lazy(() => import("./views/categories/ExpertRecommendations"));
 const Downloads                = lazy(() => import("./views/categories/Downloads"));
@@ -41,9 +42,15 @@ const About                    = lazy(() => import("./views/About"));
 const ContactUs                = lazy(() => import("./views/ContactUs"));
 const BecomeContributor        = lazy(() => import("./components/BecomeContributor"));
 const ContributorApplication   = lazy(() => import("./views/ContributorApplication"));
+const BecomeCountryAmbassador  = lazy(() => import("./views/BecomeCountryAmbassador"));
+const AmbassadorApplication    = lazy(() => import("./views/AmbassadorApplication"));
+const AmbassadorsDirectory     = lazy(() => import("./views/AmbassadorsDirectory"));
+const AmbassadorProfile        = lazy(() => import("./views/AmbassadorProfile"));
 const ContributorProfile       = lazy(() => import("./views/ContributorProfile"));
 const ContributorsLeaderboard  = lazy(() => import("./views/ContributorsLeaderboard"));
 const MemberPublicProfile      = lazy(() => import("./views/MemberPublicProfile"));
+const MeetTheCommunity         = lazy(() => import("./views/MeetTheCommunity"));
+const MemberDirectory          = lazy(() => import("./views/MemberDirectory"));
 const MemberLogin              = lazy(() => import("./views/MemberLogin"));
 const MemberSignup             = lazy(() => import("./views/MemberSignup"));
 const MemberCredits            = lazy(() => import("./views/MemberCredits"));
@@ -68,6 +75,7 @@ const SitemapPage              = lazy(() => import("./views/SitemapPage"));
 const AdminLayout              = lazy(() => import("./components/admin/AdminLayout.jsx"));
 const AdminHome                = lazy(() => import("./components/admin/AdminHome"));
 const AdminContributors        = lazy(() => import("./components/admin/AdminContributors"));
+const AdminAmbassadors         = lazy(() => import("./components/admin/AdminAmbassadors"));
 const AdminTeam                = lazy(() => import("./components/admin/AdminTeam"));
 const AdminAnnouncements       = lazy(() => import("./components/admin/AdminAnnouncements"));
 const AdminComments            = lazy(() => import("./components/admin/AdminComments"));
@@ -151,6 +159,9 @@ function App() {
           <Route path="podcasts" element={<Podcasts />} />
           <Route path="podcasts/:blogId" element={<DynamicBlog />} />
 
+          <Route path="expert-papers" element={<ExpertPapers />} />
+          <Route path="expert-papers/:blogId" element={<DynamicBlog />} />
+
           <Route path="videos" element={<Videos />} />
           <Route path="videos/:blogId" element={<DynamicBlog />} />
 
@@ -175,10 +186,15 @@ function App() {
 
           <Route path="become-a-contributor" element={<BecomeContributor />} />
           <Route path="apply-contributor" element={<ContributorApplication />} />
+          <Route path="become-a-country-ambassador" element={<BecomeCountryAmbassador />} />
+          <Route path="apply-ambassador" element={<AmbassadorApplication />} />
+          <Route path="ambassadors" element={<AmbassadorsDirectory />} />
+          <Route path="ambassador/:id" element={<AmbassadorProfile />} />
           <Route path="contributor/:id" element={<ContributorProfile />} />
           <Route path="leaderboard" element={<ContributorsLeaderboard />} />
           <Route path="about" element={<About />} />
           <Route path="contact-us" element={<ContactUs />} />
+          <Route path="community" element={<MeetTheCommunity />} />
 
           {/* Members Only Auth Pages — must come before member/:id */}
           <Route path="member/login" element={<MemberLogin />} />
@@ -188,6 +204,7 @@ function App() {
           <Route path="member/achievements" element={<MemberAchievements />} />
           <Route path="member/invoice/:txId" element={<MemberInvoice />} />
           <Route path="member/settings" element={<ProfileSettings />} />
+          <Route path="member/directory" element={<MemberDirectory />} />
           <Route path="member/:id" element={<MemberPublicProfile />} />
           <Route path="paid-articles" element={<PaidArticles />} />
           <Route path="membership" element={<MembershipPage />} />
@@ -214,6 +231,7 @@ function App() {
           <Route path="blogs/pending" element={<ProtectedRoute><AdminBlogReview /></ProtectedRoute>} />
           <Route path="blog-review" element={<ProtectedRoute><AdminBlogReview /></ProtectedRoute>} />
           <Route path="contributors" element={<ProtectedRoute><AdminContributors /></ProtectedRoute>} />
+          <Route path="ambassadors" element={<ProtectedRoute><AdminAmbassadors /></ProtectedRoute>} />
           <Route path="team" element={<ProtectedRoute adminOnly><AdminTeam /></ProtectedRoute>} />
           <Route path="announcements" element={<ProtectedRoute><AdminAnnouncements /></ProtectedRoute>} />
           <Route path="comments" element={<ProtectedRoute><AdminComments /></ProtectedRoute>} />

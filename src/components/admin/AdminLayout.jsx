@@ -33,6 +33,7 @@ const AdminLayout = () => {
   });
   const [badges, setBadges] = useState({
     pendingContributors: 0,
+    pendingAmbassadors: 0,
     pendingReviews: 0,
     pendingComments: 0,
     pendingMembers: 0,
@@ -89,6 +90,7 @@ const AdminLayout = () => {
         if (isMounted.current) {
           setBadges({
             pendingContributors: res.data.pending_contributors || 0,
+            pendingAmbassadors: res.data.pending_ambassadors || 0,
             pendingReviews: res.data.pending_reviews || 0,
             pendingComments: res.data.pending_comments || 0,
             pendingMembers: res.data.pending_members || 0,
@@ -176,6 +178,7 @@ const AdminLayout = () => {
     if (path.includes("blog-review")) return "Blog Review";
     if (path.includes("blogs")) return "Manage Blogs";
     if (path.includes("contributors")) return "Manage Contributors";
+    if (path.includes("ambassadors")) return "Manage Ambassadors";
     if (path.includes("comments")) return "Manage Comments";
     if (path.includes("announcements")) return "Manage Announcements";
     if (path.includes("ads")) return "Manage Ads & Promos";

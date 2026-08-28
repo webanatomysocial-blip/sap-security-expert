@@ -97,6 +97,9 @@ const login = async (req, res) => {
       adminData = { id: user.id, username: user.username, role: user.role };
     }
 
+    await repo.recordMemberLogin(db, member.id).catch(() => {});
+    if (isContributor) await repo.recordUserLogin(db, user.id).catch(() => {});
+
     // Fetch active subscription (if any)
     const subscription = await repo.findActiveSubscription(db, member.id);
     if (subscription) {
@@ -104,9 +107,12 @@ const login = async (req, res) => {
       req.session.premium_expires_at = subscription.expires_at;
     }
 
+    const ambassadorBadge = await repo.findAmbassadorBadgeByEmail(db, member.email);
+
     return res.json({
       status: 'success',
       is_contributor: isContributor,
+      is_ambassador: !!ambassadorBadge,
       csrf_token: req.session.csrf_token || null,
       admin_user: adminData,
       permissions,
@@ -117,12 +123,16 @@ const login = async (req, res) => {
         username: member.username || null,
         phone: member.phone || null,
         location: member.location || null,
+        country: member.country || null,
         company_name: member.company_name || null,
         job_role: member.job_role || null,
         profile_image: member.profile_image || null,
         profile_visibility: member.profile_visibility || null,
         receive_blog_emails: member.receive_blog_emails ?? 1,
         status: member.status,
+        ambassador_has_badge: !!(ambassadorBadge && ambassadorBadge.has_badge),
+        ambassador_badge_year: ambassadorBadge ? ambassadorBadge.badge_year : null,
+        ambassador_badge_country: ambassadorBadge ? ambassadorBadge.country : null,
       },
       subscription,
     });
@@ -136,12 +146,15 @@ const login = async (req, res) => {
 const signup = async (req, res) => {
   const db = req.db;
   const {
-    name, phone, email, location, company_name, job_role, username: rawUsername,
-    password, receive_blog_emails = 1, ref_code,
+    name, phone, email, location, country, company_name, job_role, username: rawUsername,
+    password, receive_blog_emails = 1, ref_code, goals, currentRole, researchOptIn,
   } = req.body || {};
 
   if (!name || !email || !password) {
     return res.status(400).json({ status: 'error', message: 'Name, email and password are required.' });
+  }
+  if (!country || !country.trim()) {
+    return res.status(400).json({ status: 'error', message: 'Country is required.' });
   }
 
   // Validate format before any DB calls
@@ -204,8 +217,8 @@ const signup = async (req, res) => {
     }
 
     await repo.insertMember(db, {
-      name, phone, email, username, location, company_name, job_role, hash,
-      receive_blog_emails, newRefCode, referredByCode,
+      name, phone, email, username, location, country, company_name, job_role, hash,
+      receive_blog_emails, newRefCode, referredByCode, goals, currentRole, researchOptIn,
     });
 
     const mailService = MailService.getInstance();
@@ -237,6 +250,11 @@ const getProfile = asyncHandler(async (req, res) => {
   const isContributor = await repo.findContributorApprovedByEmail(db, profile.email);
   const reputation_level = isContributor ? 'Contributor' : 'Explorer';
 
+  const ambassadorBadge = await repo.findAmbassadorBadgeByEmail(db, profile.email);
+  profile.ambassador_has_badge = !!(ambassadorBadge && ambassadorBadge.has_badge);
+  profile.ambassador_badge_year = ambassadorBadge ? ambassadorBadge.badge_year : null;
+  profile.ambassador_badge_country = ambassadorBadge ? ambassadorBadge.country : null;
+
   // Self-heal sessions created before CSRF protection was added to member
   // routes — those have no session.csrf_token at all, which would make every
   // change-password/profile-update/payment request 403 until the member
@@ -260,7 +278,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   }
-  const { name, phone, location, company_name, job_role, receive_blog_emails, profile_visibility } = req.body || {};
+  const { name, phone, location, country, company_name, job_role, receive_blog_emails, profile_visibility } = req.body || {};
 
   let profileImage = null;
   if (req.file) {
@@ -268,7 +286,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   }
 
   await repo.updateMemberProfile(db, req.session.member_id, {
-    name, phone, location, company_name, job_role, receive_blog_emails, profile_visibility, profileImage,
+    name, phone, location, country, company_name, job_role, receive_blog_emails, profile_visibility, profileImage,
   });
 
   // Sync profile image to contributor/user account (same email) so both portals show the same photo

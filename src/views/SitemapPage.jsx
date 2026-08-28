@@ -41,9 +41,10 @@ const sections = [
     heading: "Content & Resources",
     links: [
       { label: "Expert Voices & Podcasts", to: "/podcasts" },
-      { label: "Videos", to: "/videos" },
+      { label: "Global Voices in SAP Security", to: "/videos" },
       { label: "Product Reviews", to: "/product-reviews" },
       { label: "Expert Recommendations", to: "/expert-recommendations" },
+      { label: "Expert Papers", to: "/expert-papers" },
       { label: "Downloads", to: "/downloads" },
       { label: "SAP Licensing", to: "/sap-licensing" },
       { label: "News & Updates", to: "/news" },

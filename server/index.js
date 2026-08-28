@@ -203,6 +203,9 @@ app.use('/api/downloads', require('./routes/downloads'));
 // Contributors (public)
 app.use('/api/contributors', require('./routes/contributors'));
 
+// Country Ambassadors (public)
+app.use('/api/ambassadors', require('./routes/ambassadors'));
+
 // Comments
 app.use('/api', require('./routes/comments'));
 
@@ -248,6 +251,9 @@ app.use('/api/admin/team', require('./routes/admin/team'));
 
 // Admin — contributors management (all routes in one router, mounted at /api/admin)
 app.use('/api/admin', require('./routes/admin/contributors'));
+
+// Admin — country ambassadors management (mounted at /api/admin)
+app.use('/api/admin', require('./routes/admin/ambassadors'));
 
 // Admin — credit bundles & coupons
 app.use('/api/admin', require('./routes/admin/credits'));
@@ -442,6 +448,44 @@ if (!isSQLite && process.env.NODE_ENV === 'production') {
       }
     });
     console.log('[cron] In-process email queue cron started');
+  } catch (err) {
+    console.warn('[cron] node-cron not available:', err.message);
+  }
+}
+
+// ── Daily contributor inactivity sweep ──────────────────────────────────────
+// Deactivates approved contributors who published 0 approved/published
+// articles within 3 months of approval, and emails both the contributor and
+// the admin. Also enabled in SQLite/dev (unlike the email cron above) so it
+// can be tested locally — translateSQL() in db.js already converts the
+// MySQL DATE_SUB/NOW() syntax in the query to SQLite's datetime('now', ...).
+if (isSQLite || process.env.NODE_ENV === 'production') {
+  try {
+    const cron = require('node-cron');
+    const MailService = require('./services/MailService');
+    cron.schedule('0 4 * * *', async () => {
+      try {
+        const { poolExec } = require('./db');
+        const contributorsRepo = require('./repositories/admin/contributorsRepository');
+        const NotificationService = require('./services/NotificationService');
+        const mailService = MailService.getInstance();
+        const notifier = new NotificationService(mailService, poolExec);
+
+        const inactive = await contributorsRepo.findInactiveContributorsForDeactivation(poolExec);
+        const reason = 'No articles published within 3 months of approval.';
+
+        for (const c of inactive) {
+          await contributorsRepo.deactivateContributor(poolExec, c.id);
+          await notifier.notifyContributorDeactivated(c.email, c.full_name, reason).catch(() => {});
+          await notifier.notifyAdminContributorDeactivated(c.full_name, c.email, reason).catch(() => {});
+        }
+
+        if (inactive.length) console.log(`[cron] Auto-deactivated ${inactive.length} inactive contributor(s)`);
+      } catch (err) {
+        console.error('[cron] Contributor inactivity sweep error:', err.message);
+      }
+    });
+    console.log('[cron] Contributor inactivity sweep cron started');
   } catch (err) {
     console.warn('[cron] node-cron not available:', err.message);
   }

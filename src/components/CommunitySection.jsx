@@ -680,6 +680,9 @@ export default function CommunitySection() {
                   <div className="cag-label">Contributors</div>
                 </div>
               </div>
+              <Link to="/community" className="widget-leaderboard-link" style={{ marginTop: 12 }}>
+                Meet the Community →
+              </Link>
             </div>
 
             {/* Join Our Community */}

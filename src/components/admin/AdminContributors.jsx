@@ -29,6 +29,10 @@ const AdminContributors = () => {
     { key: "role",   label: "Role", optional: true },
     { key: "status", label: "Status" },
     { key: "date",   label: "Date", optional: true },
+    { key: "lastlogin", label: "Last Login", optional: true },
+    { key: "logins", label: "Total Logins", optional: true },
+    { key: "lastcontrib", label: "Last Contribution", optional: true },
+    { key: "expertpapers", label: "Expert Papers", optional: true },
     { key: "actions",label: "Actions" },
   ];
   const [visibleCols, setVisibleCols] = useState(() => {
@@ -144,6 +148,49 @@ const AdminContributors = () => {
     });
   };
 
+  const handleDeactivate = (id) => {
+    openConfirm({
+      title: "Deactivate Contributor?",
+      message: "Their public contributor profile will be hidden and login disabled. Published blogs stay live. They'll be notified by email.",
+      confirmText: "Deactivate",
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          const res = await updateContributorStatus({ id, action: "deactivate" });
+          if (res.data?.status === "success") {
+            setApplications((prev) => prev.map((app) => (app.id === id ? { ...app, status: "deactivated" } : app)));
+            addToast("Contributor deactivated.", "success");
+          } else {
+            addToast(res.data?.message || "Failed to deactivate contributor.", "error");
+          }
+        } catch (error) {
+          addToast(error.response?.data?.message || "Connection error. Please try again.", "error");
+        }
+      },
+    });
+  };
+
+  const handleReactivate = (id) => {
+    openConfirm({
+      title: "Reactivate Contributor?",
+      message: "Their public contributor profile and login will be restored.",
+      confirmText: "Reactivate",
+      onConfirm: async () => {
+        try {
+          const res = await updateContributorStatus({ id, action: "reactivate" });
+          if (res.data?.status === "success") {
+            setApplications((prev) => prev.map((app) => (app.id === id ? { ...app, status: "approved" } : app)));
+            addToast("Contributor reactivated.", "success");
+          } else {
+            addToast(res.data?.message || "Failed to reactivate contributor.", "error");
+          }
+        } catch (error) {
+          addToast(error.response?.data?.message || "Connection error. Please try again.", "error");
+        }
+      },
+    });
+  };
+
   const handleApprove = (id) => {
     openConfirm({
       title: "Approve Applicant",
@@ -211,6 +258,12 @@ const AdminContributors = () => {
             Rejected
           </button>
           <button
+            className={filterStatus === "deactivated" ? "active" : ""}
+            onClick={() => setFilterStatus("deactivated")}
+          >
+            Deactivated
+          </button>
+          <button
             className={filterStatus === "all" ? "active" : ""}
             onClick={() => setFilterStatus("all")}
           >
@@ -268,6 +321,10 @@ const AdminContributors = () => {
                   <th className="col-sm text-center">Contribs</th>
                   <th className="col-sm text-center">Status</th>
                   {show("date") && <th className="col-md text-left">Date</th>}
+                  {show("lastlogin") && <th className="col-md text-left">Last Login</th>}
+                  {show("logins") && <th className="col-sm text-center">Total Logins</th>}
+                  {show("lastcontrib") && <th className="col-md text-left">Last Contribution</th>}
+                  {show("expertpapers") && <th className="col-sm text-center">Expert Papers</th>}
                   <th className="col-actions text-center">Actions</th>
                 </tr>
               </thead>
@@ -317,6 +374,8 @@ const AdminContributors = () => {
                                 ? "Rej"
                               : app.status === "deleted"
                                 ? "Del"
+                              : app.status === "deactivated"
+                                ? "Deact"
                                 : app.status}
                         </span>
                       </td>
@@ -327,6 +386,18 @@ const AdminContributors = () => {
                           </div>
                         </td>
                       )}
+                      {show("lastlogin") && (
+                        <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                          {app.last_login ? new Date(app.last_login).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : <span style={{ color: "#cbd5e1" }}>Never</span>}
+                        </td>
+                      )}
+                      {show("logins") && <td className="col-sm text-center" style={{ fontSize: "0.8rem", color: "#64748b" }}>{app.login_count || 0}</td>}
+                      {show("lastcontrib") && (
+                        <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                          {app.last_contribution ? new Date(app.last_contribution).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : <span style={{ color: "#cbd5e1" }}>—</span>}
+                        </td>
+                      )}
+                      {show("expertpapers") && <td className="col-sm text-center" style={{ fontSize: "0.8rem", color: "#64748b" }}>{app.expert_papers_count || 0}</td>}
                         <td className="col-actions text-center">
                           <ActionMenu>
                             <button
@@ -356,6 +427,26 @@ const AdminContributors = () => {
                                 >
                                   <i className="bi bi-shield-lock"></i> Manage
                                   Login
+                                </button>
+                                <button
+                                  className="action-menu-item"
+                                  onClick={() => handleDeactivate(app.id)}
+                                  style={{ color: "var(--warning-yellow)" }}
+                                >
+                                  <i className="bi bi-pause-circle"></i> Deactivate
+                                </button>
+                              </>
+                            )}
+
+                            {app.status === "deactivated" && (
+                              <>
+                                <div className="action-menu-separator"></div>
+                                <button
+                                  className="action-menu-item success"
+                                  onClick={() => handleReactivate(app.id)}
+                                  style={{ color: "var(--success-green)" }}
+                                >
+                                  <i className="bi bi-arrow-counterclockwise"></i> Reactivate
                                 </button>
                               </>
                             )}

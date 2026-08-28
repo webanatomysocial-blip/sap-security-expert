@@ -72,11 +72,15 @@ const CATEGORY_METADATA = {
     banner: '/assets/images/hero-product-reviews.png',
   },
   'videos': {
-    intro: 'Watch step-by-step video tutorials, presentations, webinars, and live demonstrations on SAP security configuration, GRC implementation, and cybersecurity hardening.',
+    intro: 'Two-minute perspectives from SAP Security professionals around the world.',
     banner: '/assets/images/hero-videos.png',
   },
   'expert-recommendations': {
     intro: 'Handpicked books, courses, toolkits, and study materials recommended by SAP security experts to accelerate your learning and career growth.',
+    banner: '/assets/images/hero-expert-recommendations.png',
+  },
+  'expert-papers': {
+    intro: 'In-depth papers authored by SAP security experts covering research, frameworks, and best practices across SAP Security, GRC, and cybersecurity.',
     banner: '/assets/images/hero-expert-recommendations.png',
   },
   'sap-licensing': {

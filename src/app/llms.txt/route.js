@@ -48,8 +48,9 @@ export async function GET() {
     `- [Downloads](${SITE_URL}/downloads): Free SAP security tools and resources`,
     `- [News](${SITE_URL}/news): Latest SAP security news and updates`,
     `- [Podcasts](${SITE_URL}/podcasts): Expert voices and podcast episodes`,
-    `- [Videos](${SITE_URL}/videos): SAP security video content`,
+    `- [Global Voices in SAP Security](${SITE_URL}/videos): Two-minute perspectives from SAP Security professionals around the world`,
     `- [Product Reviews](${SITE_URL}/product-reviews): Independent SAP tool and product reviews`,
+    `- [Expert Papers](${SITE_URL}/expert-papers): In-depth papers authored by SAP security experts`,
     ``,
   ];
 
