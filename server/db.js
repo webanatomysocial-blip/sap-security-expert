@@ -655,19 +655,35 @@ if (isSQLite) {
       });
       conn = await tmpPool.getConnection();
 
-      await conn.execute(`
+      // Each migration step below is wrapped in its own try/catch — this
+      // whole function previously shared ONE try/catch, so a single failing
+      // statement (verified live: `description TEXT DEFAULT ''` on MySQL
+      // 8/9 throws ER_BLOB_CANT_HAVE_DEFAULT even under CREATE TABLE IF NOT
+      // EXISTS, since MySQL validates column defs before checking
+      // existence) silently aborted every migration after it, including
+      // creating the `ambassadors` table entirely. Isolating each step
+      // means one bad statement only skips itself.
+      const step = async (label, fn) => {
+        try {
+          await fn();
+        } catch (err) {
+          console.error(`[DB] MySQL migration step "${label}" failed (non-fatal):`, err.message);
+        }
+      };
+
+      await step('create credit_activities', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS credit_activities (
           id          INT          NOT NULL AUTO_INCREMENT,
           \`key\`     VARCHAR(100) NOT NULL,
           label       VARCHAR(255) NOT NULL,
-          description TEXT         DEFAULT '',
+          description TEXT         DEFAULT NULL,
           credits     INT          NOT NULL DEFAULT 1,
           is_active   TINYINT(1)   NOT NULL DEFAULT 1,
           created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (id),
           UNIQUE KEY uq_ca_key (\`key\`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `);
+      `));
 
       const defaultActivities = [
         ['new_registration',  'New Registration',                    'Credits awarded when a new member registers',             10],
@@ -681,13 +697,13 @@ if (isSQLite) {
         ['linkedin_share',    'LinkedIn Share',                      'Credits awarded when a member shares on LinkedIn',        5],
       ];
       for (const [key, label, description, credits] of defaultActivities) {
-        await conn.execute(
+        await step(`seed credit_activities.${key}`, () => conn.execute(
           'INSERT IGNORE INTO credit_activities (`key`, label, description, credits) VALUES (?, ?, ?, ?)',
           [key, label, description, credits]
-        );
+        ));
       }
 
-      await conn.execute(`
+      await step('create ambassadors', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS ambassadors (
           id                            INT           NOT NULL AUTO_INCREMENT,
           full_name                     VARCHAR(255)  NOT NULL,
@@ -716,12 +732,12 @@ if (isSQLite) {
           deletion_confirmation_method  VARCHAR(50)   DEFAULT NULL,
           PRIMARY KEY (id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `);
+      `));
 
       // Append-only log of every badge grant, one row per (country, year) —
       // see the matching SQLite table above for why this exists alongside
       // ambassadors.has_badge (which only tracks the current holder).
-      await conn.execute(`
+      await step('create ambassador_badge_history', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS ambassador_badge_history (
           id            INT      NOT NULL AUTO_INCREMENT,
           ambassador_id INT      NOT NULL,
@@ -732,21 +748,21 @@ if (isSQLite) {
           UNIQUE KEY uq_abh_country_year (country, badge_year),
           KEY idx_abh_ambassador (ambassador_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `);
+      `));
 
-      await conn.execute(`
+      await step('create site_settings', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS site_settings (
           \`key\`      VARCHAR(100) NOT NULL,
           value        TEXT         NOT NULL,
           updated_at   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY (\`key\`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `);
-      await conn.execute(
+      `));
+      await step('seed site_settings default', () => conn.execute(
         "INSERT IGNORE INTO site_settings (`key`, value) VALUES ('paywall_default_preview_paragraphs', '3')"
-      );
+      ));
 
-      await conn.execute(`
+      await step('create member_file_downloads', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS member_file_downloads (
           id            INT          NOT NULL AUTO_INCREMENT,
           member_id     INT          NOT NULL,
@@ -758,9 +774,9 @@ if (isSQLite) {
           UNIQUE KEY uq_dld (member_id, file_url(191)),
           KEY idx_dld_member (member_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `);
+      `));
 
-      await conn.execute(`
+      await step('create email_logs', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS email_logs (
           id            INT          NOT NULL AUTO_INCREMENT,
           recipient     VARCHAR(255) NOT NULL,
@@ -772,9 +788,9 @@ if (isSQLite) {
           KEY idx_el_recipient (recipient),
           KEY idx_el_status    (status)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `);
+      `));
 
-      await conn.execute(`
+      await step('create email_queue', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS email_queue (
           id          INT           NOT NULL AUTO_INCREMENT,
           recipient   VARCHAR(255)  NOT NULL,
@@ -787,9 +803,9 @@ if (isSQLite) {
           PRIMARY KEY (id),
           UNIQUE KEY idx_recipient_blog (recipient, blog_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `);
+      `));
 
-      await conn.execute(`
+      await step('create audit_logs', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS audit_logs (
           id          INT          NOT NULL AUTO_INCREMENT,
           user_id     INT          DEFAULT NULL,
@@ -805,7 +821,7 @@ if (isSQLite) {
           KEY idx_al_action     (action),
           KEY idx_al_created_at (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-      `);
+      `));
       // ── Column migration helper ───────────────────────────────────────────────
       // Uses INFORMATION_SCHEMA so it works on MySQL 5.7+, MySQL 8, and MariaDB.
       async function getColumns(table) {

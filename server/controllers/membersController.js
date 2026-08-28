@@ -257,6 +257,16 @@ const getProfile = asyncHandler(async (req, res) => {
   profile.ambassador_badge_country = ambassadorBadge ? ambassadorBadge.country : null;
   profile.ambassador_badge_years = ambassadorBadge ? ambassadorBadge.badge_years : [];
 
+  // Contributor/ambassador profiles only go public after publishing ≥1
+  // article — surface that here so Profile Settings can explain why their
+  // photo/profile isn't showing publicly yet, instead of it just being
+  // silently invisible with no explanation.
+  const isAmbassador = !!ambassadorBadge;
+  if (isContributor || isAmbassador) {
+    const articlesPublished = await repo.countPublishedArticlesByEmail(db, profile.email);
+    profile.is_public_profile_pending = articlesPublished === 0;
+  }
+
   // Self-heal sessions created before CSRF protection was added to member
   // routes — those have no session.csrf_token at all, which would make every
   // change-password/profile-update/payment request 403 until the member
