@@ -76,7 +76,7 @@ const AmbassadorProfile = () => {
                   <span style={{ fontSize: "2.8rem", fontWeight: 800, color: "#ee5e42" }}>{ambassador.full_name?.charAt(0)}</span>
                 )}
               </div>
-              {ambassador.has_badge && (
+              {!!ambassador.has_badge && (
                 <div style={{ position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)", background: "#fbbf24", color: "#1e293b", fontSize: "0.6rem", fontWeight: 800, padding: "2px 10px", borderRadius: 20, whiteSpace: "nowrap", letterSpacing: "0.06em" }}>
                   AMBASSADOR
                 </div>
@@ -106,7 +106,7 @@ const AmbassadorProfile = () => {
       </div>
 
       <div style={{ maxWidth: 860, margin: "-64px auto 0", padding: "0 24px", position: "relative" }}>
-        {ambassador.has_badge && (
+        {!!ambassador.has_badge && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 30 }}>
             <AmbassadorBadge country={ambassador.country} year={ambassador.badge_year} size={280} />
           </div>
