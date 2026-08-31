@@ -9,9 +9,13 @@ async function updateRejectedApplication(db, id, fields) {
     expertise, otherExpertiseText, motivation, contributionExamples, nominationType, imagePath,
     detectedCountry, locationVerified,
   } = fields;
+  // `current_role` is unquoted here because MariaDB parses it as the
+  // CURRENT_ROLE keyword in this grammatical position (a bare identifier in
+  // an UPDATE SET list) and throws a syntax error — confirmed live on the
+  // dev server. Backtick-quoting forces it to be read as a column name.
   await db.execute(
     `UPDATE ambassadors SET
-     full_name=?, linkedin=?, country=?, state=?, city=?, organization=?, current_role=?, years_experience=?,
+     full_name=?, linkedin=?, country=?, state=?, city=?, organization=?, \`current_role\`=?, years_experience=?,
      expertise=?, other_expertise=?, motivation=?, contribution_examples=?, nomination_type=?,
      detected_country=?, location_verified=?,
      image=COALESCE(?,image), status='pending', created_at=CURRENT_TIMESTAMP WHERE id=?`,
@@ -29,7 +33,7 @@ async function createApplication(db, fields) {
   } = fields;
   const [result] = await db.execute(
     `INSERT INTO ambassadors
-     (full_name, email, linkedin, country, state, city, organization, current_role, years_experience,
+     (full_name, email, linkedin, country, state, city, organization, \`current_role\`, years_experience,
       expertise, other_expertise, motivation, contribution_examples, nomination_type, detected_country, location_verified,
       image, status, created_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',CURRENT_TIMESTAMP)`,
@@ -60,7 +64,7 @@ async function findApprovedAmbassadors(db) {
 
 async function findApprovedProfileById(db, id) {
   const [rows] = await db.execute(
-    `SELECT id, full_name, country, state, city, organization, current_role, years_experience,
+    `SELECT id, full_name, country, state, city, organization, \`current_role\`, years_experience,
             expertise, other_expertise, motivation, contribution_examples, linkedin, image AS profile_image,
             created_at, approved_at, has_badge, badge_year
      FROM ambassadors WHERE id = ? AND status = 'approved' LIMIT 1`,

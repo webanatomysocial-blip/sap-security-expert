@@ -97,7 +97,7 @@ async function findApprovedMemberByReferralCode(db, code) {
 
 async function insertMember(db, f) {
   await db.execute(
-    `INSERT INTO members (name, phone, email, username, location, country, company_name, job_role, password_hash, status, created_at, receive_blog_emails, referral_code, referred_by_code, goals, current_role, research_opt_in)
+    `INSERT INTO members (name, phone, email, username, location, country, company_name, job_role, password_hash, status, created_at, receive_blog_emails, referral_code, referred_by_code, goals, \`current_role\`, research_opt_in)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)`,
     [f.name, f.phone || null, f.email, f.username, f.location || null, f.country, f.company_name || null, f.job_role || null,
      f.hash, parseInt(f.receive_blog_emails) || 1, f.newRefCode, f.referredByCode,
