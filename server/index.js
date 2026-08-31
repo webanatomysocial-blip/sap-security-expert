@@ -486,6 +486,33 @@ if (isSQLite || process.env.NODE_ENV === 'production') {
       }
     });
     console.log('[cron] Contributor inactivity sweep cron started');
+
+    // Same rule, same schedule, for Country Ambassadors — a badge is still
+    // an earned recognition, but the account behind it goes dormant the
+    // same way a contributor's does if nothing gets published.
+    cron.schedule('0 4 * * *', async () => {
+      try {
+        const { poolExec } = require('./db');
+        const ambassadorsRepo = require('./repositories/admin/ambassadorsRepository');
+        const NotificationService = require('./services/NotificationService');
+        const mailService = MailService.getInstance();
+        const notifier = new NotificationService(mailService, poolExec);
+
+        const inactive = await ambassadorsRepo.findInactiveAmbassadorsForDeactivation(poolExec);
+        const reason = 'No articles published within 3 months of approval.';
+
+        for (const a of inactive) {
+          await ambassadorsRepo.deactivateAmbassador(poolExec, a.id);
+          await notifier.notifyAmbassadorDeactivated(a.email, a.full_name, reason).catch(() => {});
+          await notifier.notifyAdminAmbassadorDeactivated(a.full_name, a.email, reason).catch(() => {});
+        }
+
+        if (inactive.length) console.log(`[cron] Auto-deactivated ${inactive.length} inactive ambassador(s)`);
+      } catch (err) {
+        console.error('[cron] Ambassador inactivity sweep error:', err.message);
+      }
+    });
+    console.log('[cron] Ambassador inactivity sweep cron started');
   } catch (err) {
     console.warn('[cron] node-cron not available:', err.message);
   }

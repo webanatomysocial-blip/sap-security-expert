@@ -74,7 +74,7 @@ const ContributorDashboard = () => {
       <div className="page-header">
         <div>
           <h2 style={{ margin: 0 }}>
-            Welcome, {user?.username || "Contributor"}
+            Welcome, {user?.username || (stats.is_ambassador ? "Ambassador" : "Contributor")}
           </h2>
           <p
             style={{
@@ -83,7 +83,7 @@ const ContributorDashboard = () => {
               fontSize: "0.875rem",
             }}
           >
-            Your contributor dashboard
+            {stats.is_ambassador ? "Your Country Ambassador dashboard" : "Your contributor dashboard"}
           </p>
         </div>
         {stats.ambassador_has_badge && (

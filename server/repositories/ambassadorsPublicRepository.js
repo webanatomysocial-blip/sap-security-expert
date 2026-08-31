@@ -44,49 +44,33 @@ async function createApplication(db, fields) {
   return result.insertId;
 }
 
-// Same rule as contributors: an approved ambassador's image/profile only
-// goes public once they've actually published something — the badge is a
-// recognition, but the public directory shouldn't show a profile picture
-// for someone who registered and never contributed content.
+// Every approved ambassador shows up — same as contributors, their photo
+// stays hidden until they've actually published something.
 async function findApprovedAmbassadors(db) {
   const [rows] = await db.execute(
-    `SELECT * FROM (
-       SELECT a.id, a.full_name, a.country, a.state, a.city, a.organization, a.current_role, a.motivation, a.expertise,
-              a.image AS profile_image, a.created_at, a.has_badge, a.badge_year,
-         (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
-          WHERE u.ambassador_id = a.id AND b.status IN ('approved','published')) AS contributions_count
-       FROM ambassadors a WHERE a.status = 'approved'
-     ) t WHERE contributions_count > 0
+    `SELECT a.id, a.full_name, a.country, a.state, a.city, a.organization, a.\`current_role\`, a.motivation, a.expertise,
+            a.image AS profile_image, a.created_at, a.has_badge, a.badge_year,
+       (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
+        WHERE u.ambassador_id = a.id AND b.status IN ('approved','published')) AS contributions_count
+     FROM ambassadors a WHERE a.status = 'approved'
      ORDER BY has_badge DESC, created_at DESC`
   );
-  return rows;
+  return rows.map((r) => ({ ...r, profile_image: r.contributions_count > 0 ? r.profile_image : null }));
 }
 
 async function findApprovedProfileById(db, id) {
   const [rows] = await db.execute(
-    `SELECT id, full_name, country, state, city, organization, \`current_role\`, years_experience,
-            expertise, other_expertise, motivation, contribution_examples, linkedin, image AS profile_image,
-            created_at, approved_at, has_badge, badge_year
-     FROM ambassadors WHERE id = ? AND status = 'approved' LIMIT 1`,
+    `SELECT a.id, a.full_name, a.country, a.state, a.city, a.organization, a.\`current_role\`, a.years_experience,
+            a.expertise, a.other_expertise, a.motivation, a.contribution_examples, a.linkedin, a.image AS profile_image,
+            a.created_at, a.approved_at, a.has_badge, a.badge_year, u.id AS user_id,
+       (SELECT COUNT(*) FROM blogs b WHERE b.author_id = u.id AND b.status IN ('approved','published')) AS contributions_count
+     FROM ambassadors a
+     LEFT JOIN users u ON u.ambassador_id = a.id
+     WHERE a.id = ? AND a.status = 'approved' LIMIT 1`,
     [id]
   );
-  return rows[0] || null;
-}
-
-async function findPublishedBlogsByAuthorId(db, authorId) {
-  const [rows] = await db.execute(
-    `SELECT id, title, slug, category, excerpt, date, image, view_count, updated_at
-     FROM blogs
-     WHERE author_id = ? AND status IN ('approved','published')
-     ORDER BY date DESC`,
-    [authorId]
-  );
-  return rows;
-}
-
-async function findUserIdByAmbassadorId(db, ambassadorId) {
-  const [rows] = await db.execute('SELECT id FROM users WHERE ambassador_id = ? LIMIT 1', [ambassadorId]);
-  return rows[0]?.id || null;
+  if (!rows[0]) return null;
+  return { ...rows[0], profile_image: rows[0].contributions_count > 0 ? rows[0].profile_image : null };
 }
 
 // All years this ambassador has held their country's badge — the same
@@ -103,5 +87,5 @@ async function findBadgeYearsByAmbassadorId(db, ambassadorId) {
 
 module.exports = {
   findByEmail, updateRejectedApplication, createApplication, findApprovedAmbassadors, findApprovedProfileById,
-  findBadgeYearsByAmbassadorId, findPublishedBlogsByAuthorId, findUserIdByAmbassadorId,
+  findBadgeYearsByAmbassadorId,
 };

@@ -60,20 +60,24 @@ async function createApplication(db, fields) {
 // (applyContributorCountryVisibility now lives in utils/contributorVisibility.js,
 // shared with publicRepository.js.)
 
-// Only contributors with at least one published article are shown publicly.
+// Every approved contributor shows up — but their photo stays hidden until
+// they've actually published something, so registering alone doesn't earn a
+// profile picture on the public site.
 async function findApprovedContributors(db) {
   const [rows] = await db.execute(
-    `SELECT * FROM (
-       SELECT id, full_name, role, organization, designation, short_bio, expertise, image AS profile_image, created_at,
-         (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
-          WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count,
-         (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS member_country,
-         (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS profile_visibility
-       FROM contributors WHERE status = 'approved'
-     ) t WHERE contributions_count > 0
+    `SELECT id, full_name, role, organization, designation, short_bio, expertise, image AS profile_image, created_at,
+       (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
+        WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count,
+       (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS member_country,
+       (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS profile_visibility
+     FROM contributors WHERE status = 'approved'
      ORDER BY created_at DESC`
   );
-  return rows.map((r) => applyContributorCountryVisibility({ ...r, country: r.member_country || r.country }));
+  return rows.map((r) => applyContributorCountryVisibility({
+    ...r,
+    country: r.member_country || r.country,
+    profile_image: r.contributions_count > 0 ? r.profile_image : null,
+  }));
 }
 
 async function findApprovedProfileById(db, id) {
@@ -85,14 +89,19 @@ async function findApprovedProfileById(db, id) {
             c.peer_rating, c.peer_rating_count, c.experience_years,
             u.id AS user_id, u.username,
             (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS member_country,
-            (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS profile_visibility
+            (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS profile_visibility,
+            (SELECT COUNT(*) FROM blogs b WHERE b.author_id = u.id AND b.status IN ('approved','published')) AS contributions_count
      FROM contributors c
      LEFT JOIN users u ON u.contributor_id = c.id
      WHERE c.id = ? AND c.status = 'approved' LIMIT 1`,
     [id]
   );
   if (!rows[0]) return null;
-  return applyContributorCountryVisibility({ ...rows[0], country: rows[0].member_country || rows[0].country });
+  return applyContributorCountryVisibility({
+    ...rows[0],
+    country: rows[0].member_country || rows[0].country,
+    profile_image: rows[0].contributions_count > 0 ? rows[0].profile_image : null,
+  });
 }
 
 async function findPublishedBlogsByAuthorId(db, authorId) {
