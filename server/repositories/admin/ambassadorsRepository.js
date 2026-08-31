@@ -62,6 +62,24 @@ async function reactivateAmbassador(db, id) {
   await db.execute("UPDATE users SET is_active=1 WHERE ambassador_id=?", [id]).catch(() => {});
 }
 
+// Same rule as contributors — approved ambassadors with a linked user
+// account, approved 3+ months ago, with zero approved/published articles —
+// candidates for auto-deactivation.
+async function findInactiveAmbassadorsForDeactivation(db) {
+  const [rows] = await db.execute(
+    `SELECT a.id, a.full_name, a.email, u.id AS user_id
+     FROM ambassadors a
+     LEFT JOIN users u ON u.ambassador_id = a.id
+     WHERE a.status = 'approved'
+       AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
+       AND a.approved_at IS NOT NULL
+       AND a.approved_at <= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+       AND u.id IS NOT NULL
+       AND (SELECT COUNT(*) FROM blogs b WHERE b.author_id = u.id AND b.status IN ('approved','published')) = 0`
+  );
+  return rows;
+}
+
 // Only one ambassador per country can hold the badge at a time — granting it
 // to one revokes it from whoever currently holds it in the same country.
 async function grantBadge(db, id, year) {
@@ -215,6 +233,7 @@ async function findUserWithAmbassadorNameById(db, userId) {
 
 module.exports = {
   findAllActive, findById, approveAmbassador, updateStatus, deactivateAmbassador, reactivateAmbassador,
+  findInactiveAmbassadorsForDeactivation,
   grantBadge, revokeBadge, findBadgeHistoryByCountry,
   findUserByEmail, createUser, activateUserForAmbassador,
   findMemberByEmail, findUserPasswordByEmail, createMember, updateMemberPasswordByEmail,

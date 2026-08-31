@@ -13,6 +13,7 @@ const AdminSidebar = ({
   role = "admin",
   permissions = {},
   badges = {},
+  isAmbassador = false,
   isCollapsed = false,
   onToggle = () => {},
   isMobileOpen = false,
@@ -169,7 +170,7 @@ const AdminSidebar = ({
             fontWeight: 600,
           }}
         >
-          Contributor Portal
+          {isAmbassador ? "Country Ambassador Portal" : "Contributor Portal"}
         </div>
       )}
 

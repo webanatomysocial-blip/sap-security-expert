@@ -128,6 +128,12 @@ class NotificationService {
     });
   }
 
+  async notifyAdminAmbassadorDeactivated(name, email, reason) {
+    await this.mail.send(this.db, this.adminEmail, 'Country Ambassador Auto-Deactivated for Inactivity', 'admin/admin_ambassador_deactivated', {
+      name, email, reason,
+    });
+  }
+
   async notifyAmbassadorReactivated(email, name) {
     await this.mail.send(this.db, email, 'Your Country Ambassador Status Has Been Reactivated', 'ambassador/ambassador_reactivated', {
       name, login_url: this._loginUrl(), year: new Date().getFullYear(),

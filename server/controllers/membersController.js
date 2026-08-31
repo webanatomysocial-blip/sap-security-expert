@@ -257,12 +257,12 @@ const getProfile = asyncHandler(async (req, res) => {
   profile.ambassador_badge_country = ambassadorBadge ? ambassadorBadge.country : null;
   profile.ambassador_badge_years = ambassadorBadge ? ambassadorBadge.badge_years : [];
 
-  // Contributor/ambassador profiles only go public after publishing ≥1
-  // article — surface that here so Profile Settings can explain why their
-  // photo/profile isn't showing publicly yet, instead of it just being
-  // silently invisible with no explanation.
-  const isAmbassador = !!ambassadorBadge;
-  if (isContributor || isAmbassador) {
+  // Contributor profiles only go public after publishing ≥1 article —
+  // surface that here so Profile Settings can explain why their photo/
+  // profile isn't showing publicly yet. Ambassadors don't have this
+  // requirement (an earned recognition, not a content role), so they never
+  // see this notice.
+  if (isContributor) {
     const articlesPublished = await repo.countPublishedArticlesByEmail(db, profile.email);
     profile.is_public_profile_pending = articlesPublished === 0;
   }

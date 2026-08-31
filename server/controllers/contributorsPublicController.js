@@ -119,15 +119,11 @@ const getProfile = asyncHandler(async (req, res) => {
     }
   });
 
-  // Fetch published blog posts for this contributor
+  // Fetch published blog posts for this contributor — the profile itself is
+  // always public once approved; findApprovedContributors/ProfileById
+  // already null out profile_image until this list is non-empty.
   const userId = contributor.user_id || 0;
   const blogs = await repo.findPublishedBlogsByAuthorId(db, userId);
-
-  // A contributor profile only goes public once they've actually published
-  // something — an approved application alone doesn't earn a page.
-  if (blogs.length === 0) {
-    return sendError(res, 'Contributor not found or not approved.', 404);
-  }
 
   contributor.blogs = blogs;
   contributor.blog_count = blogs.length;

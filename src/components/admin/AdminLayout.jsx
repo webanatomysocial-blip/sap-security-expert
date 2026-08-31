@@ -37,6 +37,7 @@ const AdminLayout = () => {
     pendingReviews: 0,
     pendingComments: 0,
     pendingMembers: 0,
+    isAmbassador: false,
   });
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -103,6 +104,7 @@ const AdminLayout = () => {
             pendingContributors: 0,
             pendingReviews: res.data.pending_reviews || 0,
             pendingComments: res.data.pending_comments || 0,
+            isAmbassador: !!res.data.is_ambassador,
           });
         }
       }
@@ -258,6 +260,7 @@ const AdminLayout = () => {
         role={role}
         permissions={permissions}
         badges={badges}
+        isAmbassador={badges.isAmbassador}
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
         isMobileOpen={isMobileOpen}

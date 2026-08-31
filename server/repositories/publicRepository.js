@@ -92,8 +92,9 @@ async function findHomepageTrending(db, nowUtc) {
   return rows;
 }
 
-// Only contributors with at least one published article are shown publicly —
-// an approved application alone doesn't earn a public profile.
+// Every approved contributor shows up; their photo stays hidden until
+// they've actually published something (same rule as findLeaderboardContributors/
+// findApprovedContributors elsewhere).
 async function findApprovedContributorsWithCounts(db) {
   const [rows] = await db.execute(
     `SELECT * FROM (
@@ -103,10 +104,13 @@ async function findApprovedContributorsWithCounts(db) {
          (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS country,
          (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS profile_visibility
        FROM contributors WHERE status = 'approved'
-     ) t WHERE contributions_count > 0
+     ) t
      ORDER BY contributions_count DESC, created_at ASC`
   );
-  return rows.map(applyContributorCountryVisibility);
+  return rows.map((r) => applyContributorCountryVisibility({
+    ...r,
+    profile_image: r.contributions_count > 0 ? r.profile_image : null,
+  }));
 }
 
 async function findExpertPicks(db, nowUtc) {
@@ -162,17 +166,18 @@ async function findTagsSample(db) {
 // Only contributors with at least one published article are shown publicly.
 async function findLeaderboardContributors(db) {
   const [rows] = await db.execute(
-    `SELECT * FROM (
-       SELECT c.id, c.full_name AS name, c.role, c.image AS profile_image, c.short_bio, c.created_at,
-         (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
-          WHERE u.contributor_id = c.id AND b.status IN ('approved','published')) AS contributions_count,
-         (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS country,
-         (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS profile_visibility
-       FROM contributors c WHERE c.status = 'approved'
-     ) t WHERE contributions_count > 0
+    `SELECT c.id, c.full_name AS name, c.role, c.image AS profile_image, c.short_bio, c.created_at,
+       (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
+        WHERE u.contributor_id = c.id AND b.status IN ('approved','published')) AS contributions_count,
+       (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS country,
+       (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(c.email) LIMIT 1) AS profile_visibility
+     FROM contributors c WHERE c.status = 'approved'
      ORDER BY contributions_count DESC, created_at ASC`
   );
-  return rows.map(applyContributorCountryVisibility);
+  return rows.map((r) => applyContributorCountryVisibility({
+    ...r,
+    profile_image: r.contributions_count > 0 ? r.profile_image : null,
+  }));
 }
 
 async function findPublicMemberById(db, id) {

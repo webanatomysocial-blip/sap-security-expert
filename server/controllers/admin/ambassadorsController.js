@@ -149,6 +149,13 @@ const createAmbassadorLogin = asyncHandler(async (req, res) => {
 
   const ambassador = await repo.findById(db, ambassador_id);
   if (!ambassador) return sendError(res, 'Ambassador not found', 404);
+  // Credentials must never go out before the application is actually
+  // approved — this endpoint used to create+email a login regardless of
+  // status, which meant a login could be sent for a still-pending
+  // application (confirmed: login only worked once status caught up later).
+  if (ambassador.status !== 'approved') {
+    return sendError(res, 'This application must be approved before a login can be created.', 400);
+  }
 
   const password = crypto.randomBytes(6).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
   const hash = await bcrypt.hash(password, 10);

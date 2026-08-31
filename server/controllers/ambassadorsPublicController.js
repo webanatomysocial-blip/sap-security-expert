@@ -77,12 +77,6 @@ const getProfile = asyncHandler(async (req, res) => {
   const row = await repo.findApprovedProfileById(db, id);
   if (!row) return sendError(res, 'Ambassador not found or not approved.', 404);
 
-  // Same rule as contributors — an approved application alone doesn't earn
-  // a public page; they need to have actually published something.
-  const userId = await repo.findUserIdByAmbassadorId(db, row.id);
-  const blogs = userId ? await repo.findPublishedBlogsByAuthorId(db, userId) : [];
-  if (blogs.length === 0) return sendError(res, 'Ambassador not found or not approved.', 404);
-
   const ambassador = { ...row };
   if (ambassador.expertise && typeof ambassador.expertise === 'string') {
     try { ambassador.expertise = JSON.parse(ambassador.expertise); } catch { ambassador.expertise = {}; }
