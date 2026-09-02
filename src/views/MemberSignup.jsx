@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import SEO from "../components/SEO";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
 import SearchableSelect from "../components/SearchableSelect";
+import useGeoCountryLock from "../hooks/useGeoCountryLock";
 
 import "../css/MemberLogin.css";
 
@@ -57,6 +58,20 @@ const MemberSignup = () => {
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
   const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
+
+  // Locks the Country field to wherever the browser says the user actually
+  // is, the way "use my location" works on maps sites — auto-syncs country,
+  // state, and city.
+  const geo = useGeoCountryLock();
+  useEffect(() => {
+    if (geo.status !== "ready" || !geo.country) return;
+    setFormData((f) => ({
+      ...f,
+      country: geo.country,
+      state: geo.state || f.state,
+      location: geo.city || f.location,
+    }));
+  }, [geo.status, geo.country, geo.state, geo.city]);
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
@@ -435,10 +450,17 @@ const MemberSignup = () => {
                             value={formData.country}
                             onChange={(v) => setFormData((f) => ({ ...f, country: v, state: "", location: "" }))}
                             options={COUNTRIES}
-                            placeholder="Type to search your country"
+                            placeholder={geo.status === "loading" ? "Detecting your location..." : "Type to search your country"}
+                            disabled={geo.status === "ready"}
                             required
                           />
                         </div>
+                        {geo.status === "ready" && (
+                          <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
+                            <i className="bi bi-geo-alt-fill" style={{ marginRight: 4 }} />
+                            Auto-detected from your location and locked for accuracy.
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -454,6 +476,12 @@ const MemberSignup = () => {
                             options={stateOptions}
                             placeholder={formData.country ? "Type to search" : "Select a country first"}
                             disabled={!formData.country || stateOptions.length === 0}
+                            onUseCurrentLocation={
+                              geo.status === "ready" && geo.state
+                                ? () => setFormData((f) => ({ ...f, state: geo.state, location: geo.city || f.location }))
+                                : undefined
+                            }
+                            locationTooltip={`Use detected state (${geo.state || "current location"})`}
                           />
                         </div>
                       </div>
@@ -468,6 +496,12 @@ const MemberSignup = () => {
                             options={cityOptions}
                             placeholder={formData.country ? "Type to search" : "Select a country first"}
                             disabled={!formData.country}
+                            onUseCurrentLocation={
+                              geo.status === "ready" && geo.city
+                                ? () => setFormData((f) => ({ ...f, location: geo.city }))
+                                : undefined
+                            }
+                            locationTooltip={`Use detected city (${geo.city || "current location"})`}
                           />
                         </div>
                       </div>

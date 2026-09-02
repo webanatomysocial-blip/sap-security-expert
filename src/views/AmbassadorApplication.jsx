@@ -8,6 +8,7 @@ import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/coun
 import SearchableSelect from "../components/SearchableSelect";
 
 import useScrollLock from "../hooks/useScrollLock";
+import useGeoCountryLock from "../hooks/useGeoCountryLock";
 
 const AmbassadorApplication = () => {
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -57,6 +58,17 @@ const AmbassadorApplication = () => {
 
   const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
   const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
+
+  const geo = useGeoCountryLock();
+  useEffect(() => {
+    if (geo.status !== "ready" || !geo.country) return;
+    setFormData((f) => ({
+      ...f,
+      country: geo.country,
+      state: geo.state || f.state,
+      city: geo.city || f.city,
+    }));
+  }, [geo.status, geo.country, geo.state, geo.city]);
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
@@ -178,9 +190,16 @@ const AmbassadorApplication = () => {
                       value={formData.country}
                       onChange={(v) => setFormData((f) => ({ ...f, country: v, state: "", city: "" }))}
                       options={COUNTRIES}
-                      placeholder="Type to search your country"
+                      placeholder={geo.status === "loading" ? "Detecting your location..." : "Type to search your country"}
+                      disabled={geo.status === "ready"}
                       required
                     />
+                    {geo.status === "ready" && (
+                      <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
+                        <i className="bi bi-geo-alt-fill" style={{ marginRight: 4 }} />
+                        Auto-detected from your location and locked for accuracy.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -194,6 +213,12 @@ const AmbassadorApplication = () => {
                       options={stateOptions}
                       placeholder={formData.country ? "Type to search" : "Select a country first"}
                       disabled={!formData.country || stateOptions.length === 0}
+                      onUseCurrentLocation={
+                        geo.status === "ready" && geo.state
+                          ? () => setFormData((f) => ({ ...f, state: geo.state, city: geo.city || f.city }))
+                          : undefined
+                      }
+                      locationTooltip={`Use detected state (${geo.state || "current location"})`}
                     />
                   </div>
                   <div className="form-group half">
@@ -205,6 +230,12 @@ const AmbassadorApplication = () => {
                       options={cityOptions}
                       placeholder={formData.country ? "Type to search" : "Select a country first"}
                       disabled={!formData.country}
+                      onUseCurrentLocation={
+                        geo.status === "ready" && geo.city
+                          ? () => setFormData((f) => ({ ...f, city: geo.city }))
+                          : undefined
+                      }
+                      locationTooltip={`Use detected city (${geo.city || "current location"})`}
                     />
                   </div>
                 </div>
