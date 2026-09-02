@@ -65,8 +65,9 @@ export default function useGeoCountryLock() {
     city: "",
   }));
 
-  useEffect(() => {
+  const detectLocation = () => {
     if (!supportsGeolocation()) return;
+    setGeo((g) => ({ ...g, status: "loading" }));
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
@@ -98,7 +99,11 @@ export default function useGeoCountryLock() {
       () => setGeo((g) => ({ ...g, status: "denied" })),
       { timeout: 10000, maximumAge: 300000 }
     );
+  };
+
+  useEffect(() => {
+    detectLocation();
   }, []);
 
-  return geo;
+  return { ...geo, requestLocation: detectLocation };
 }
