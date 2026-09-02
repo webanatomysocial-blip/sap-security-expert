@@ -194,6 +194,32 @@ const AmbassadorApplication = () => {
                       disabled={geo.status === "ready"}
                       required
                     />
+                    {geo.status === "denied" && (
+                      <p style={{ margin: "6px 0 0", fontSize: "0.78rem", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
+                        <span>
+                          <i className="bi bi-info-circle-fill" style={{ marginRight: 4 }} />
+                          Location access denied. You can select country manually, or allow location to auto-detect.
+                        </span>
+                        {geo.requestLocation && (
+                          <button
+                            type="button"
+                            onClick={geo.requestLocation}
+                            style={{
+                              background: "#fef3c7",
+                              border: "1px solid #fde68a",
+                              borderRadius: "4px",
+                              padding: "2px 8px",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              color: "#b45309",
+                              cursor: "pointer",
+                            }}
+                          >
+                            📍 Retry Permission
+                          </button>
+                        )}
+                      </p>
+                    )}
                     {geo.status === "ready" && (
                       <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
                         <i className="bi bi-geo-alt-fill" style={{ marginRight: 4 }} />
