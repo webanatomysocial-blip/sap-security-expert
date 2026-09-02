@@ -65,10 +65,9 @@ const sections = [
   {
     heading: "Community",
     links: [
-      { label: "Contributors", to: "/contributors" },
       { label: "Leaderboard", to: "/leaderboard" },
       { label: "SAP Transactions Reference", to: "/transactions" },
-      { label: "Contributor Application", to: "/contributor-application" },
+      { label: "Contributor Application", to: "/apply-contributor" },
     ],
   },
   {
