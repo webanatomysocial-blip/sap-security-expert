@@ -218,7 +218,7 @@ const BlogPreviewModal = ({
               className="review-modal-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "2fr 1fr",
+                gridTemplateColumns: "minmax(0, 1fr) minmax(360px, 420px)",
                 gap: "32px",
               }}
             >
@@ -843,7 +843,7 @@ const BlogPreviewModal = ({
                     <p
                       style={{
                         margin: "0 0 16px",
-                        fontSize: "0.85rem",
+                        fontSize: "0.95rem",
                         color: draftMode ? "var(--slate-600)" : "#b91c1c",
                         fontWeight: "500",
                       }}
@@ -861,7 +861,10 @@ const BlogPreviewModal = ({
                       placeholder="Enter rejection reasons or requested changes..."
                       className="form-control"
                       style={{
-                        minHeight: "120px",
+                        minHeight: "180px",
+                        fontSize: "1.05rem",
+                        lineHeight: 1.5,
+                        padding: "16px 18px",
                         borderColor: rejectError
                           ? "#ef4444"
                           : draftMode

@@ -367,20 +367,20 @@ export default function MemberCredits() {
               </button>
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+            <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.88rem" }}>
               <thead>
                 <tr style={{ background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
-                  <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600 }}>Bundle</th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600 }}>Credits</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600 }}>Amount</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600 }}>Date</th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600 }}>Invoice</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600, width: "30%" }}>Bundle</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600, width: "17.5%" }}>Credits</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "17.5%" }}>Amount</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "17.5%" }}>Date</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600, width: "17.5%" }}>Invoice</th>
                 </tr>
               </thead>
               <tbody>
                 {paidPurchases.map((t, i) => (
                   <tr key={t.id || i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "14px 16px", color: "#334155", fontWeight: 500 }}>{t.bundle_name || "Credit Purchase"}</td>
+                    <td style={{ padding: "14px 16px", color: "#334155", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={t.bundle_name || "Credit Purchase"}>{t.bundle_name || "Credit Purchase"}</td>
                     <td style={{ padding: "14px 16px", textAlign: "center" }}>
                       <span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 10px", borderRadius: 20, fontWeight: 700, fontSize: "0.85rem" }}>+{t.credits_delta}</span>
                     </td>
@@ -434,13 +434,13 @@ export default function MemberCredits() {
                 <p style={{ color: "#94a3b8", fontSize: "0.85rem" }}>Earn credits by completing your profile, sharing on LinkedIn, getting comments approved, and more.</p>
               </div>
             ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+              <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.88rem" }}>
                 <thead>
                   <tr style={{ background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
-                    <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600 }}>Activity</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600 }}>Description</th>
-                    <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600 }}>Credits Earned</th>
-                    <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600 }}>Date</th>
+                    <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600, width: "22%" }}>Activity</th>
+                    <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600, width: "38%" }}>Description</th>
+                    <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600, width: "20%" }}>Credits Earned</th>
+                    <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "20%" }}>Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -448,8 +448,8 @@ export default function MemberCredits() {
                     const meta = getMeta(t.note);
                     return (
                       <tr key={t.id || i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "14px 16px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <td style={{ padding: "14px 16px", overflow: "hidden" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                             <div style={{
                               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
                               background: meta.color + "18",
@@ -457,10 +457,10 @@ export default function MemberCredits() {
                             }}>
                               <i className={`bi ${meta.icon}`} style={{ color: meta.color, fontSize: 16 }}></i>
                             </div>
-                            <span style={{ fontWeight: 600, color: "#334155" }}>{meta.label}</span>
+                            <span style={{ fontWeight: 600, color: "#334155", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{meta.label}</span>
                           </div>
                         </td>
-                        <td style={{ padding: "14px 16px", color: "#64748b", fontSize: "0.83rem" }}>
+                        <td style={{ padding: "14px 16px", color: "#64748b", fontSize: "0.83rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={t.note || "—"}>
                           {t.note || "—"}
                         </td>
                         <td style={{ padding: "14px 16px", textAlign: "center" }}>
@@ -491,20 +491,20 @@ export default function MemberCredits() {
               <p style={{ color: "#64748b" }}>You haven't unlocked any articles yet.</p>
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+            <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.88rem" }}>
               <thead>
                 <tr style={{ background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
-                  <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600 }}>Article</th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600 }}>Category</th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600 }}>Credits Used</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600 }}>Unlocked On</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600, width: "40%" }}>Article</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600, width: "20%" }}>Category</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600, width: "20%" }}>Credits Used</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "20%" }}>Unlocked On</th>
                 </tr>
               </thead>
               <tbody>
                 {unlocks.map((u, i) => (
                   <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "14px 16px" }}>
-                      <Link to={`/${u.category || "sap-security"}/${u.blog_slug}`} style={{ color: "#334155", fontWeight: 500, textDecoration: "none" }}>
+                    <td style={{ padding: "14px 16px", overflow: "hidden" }}>
+                      <Link to={`/${u.category || "sap-security"}/${u.blog_slug}`} style={{ color: "#334155", fontWeight: 500, textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={u.blog_title || u.blog_slug}>
                         {u.blog_title || u.blog_slug}
                       </Link>
                     </td>
@@ -539,13 +539,13 @@ export default function MemberCredits() {
               <p style={{ color: "#94a3b8", fontSize: "0.85rem", marginTop: 6 }}>Files you download from blog posts will appear here.</p>
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+            <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.88rem" }}>
               <thead>
                 <tr style={{ background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
-                  <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600 }}>File</th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600 }}>Credits Spent</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600 }}>Downloaded</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600 }}>Action</th>
+                  <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600, width: "40%" }}>File</th>
+                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600, width: "20%" }}>Credits Spent</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "20%" }}>Downloaded</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "20%" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -554,13 +554,13 @@ export default function MemberCredits() {
                   const ext = displayName.split(".").pop().toUpperCase();
                   return (
                     <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "14px 16px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <td style={{ padding: "14px 16px", overflow: "hidden" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                           <div style={{ width: 36, height: 36, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <i className="bi bi-file-earmark-fill" style={{ color: "#2563eb", fontSize: 16 }}></i>
                           </div>
-                          <div>
-                            <span style={{ fontWeight: 600, color: "#334155", display: "block" }}>{displayName}</span>
+                          <div style={{ minWidth: 0 }}>
+                            <span style={{ fontWeight: 600, color: "#334155", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={displayName}>{displayName}</span>
                             <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{ext}</span>
                           </div>
                         </div>

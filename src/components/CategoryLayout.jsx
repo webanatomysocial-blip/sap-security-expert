@@ -252,7 +252,7 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
                     </svg>
                   </div>
                   <div className="cat-stat-info">
-                    <span className="cat-stat-number">{communityStats.members || "4.3K+"}</span>
+                    <span className="cat-stat-number">{communityStats.members || "0"}</span>
                     <span className="cat-stat-label">Community Members</span>
                   </div>
                 </div>
@@ -266,7 +266,7 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
                     </svg>
                   </div>
                   <div className="cat-stat-info">
-                    <span className="cat-stat-number">{communityStats.comments || "1.7K+"}</span>
+                    <span className="cat-stat-number">{communityStats.comments || "0"}</span>
                     <span className="cat-stat-label">Discussions</span>
                   </div>
                 </div>

@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "api": "node server/index.js",
-    "api:dev": "npx nodemon server/index.js",
+    "api": "/Users/webanatomy/.nvm/versions/node/v22.23.2/bin/node server/index.js",
+    "api:dev": "/Users/webanatomy/.nvm/versions/node/v22.23.2/bin/node ./server/node_modules/.bin/nodemon server/index.js",
     "api:install": "cd server && npm install",
     "postinstall": "cd server && npm install",
     "build": "next build",
