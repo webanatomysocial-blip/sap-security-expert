@@ -18,6 +18,7 @@ import ProfilePictureCropModal from "../components/ProfilePictureCropModal";
 import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
 import SearchableSelect from "../components/SearchableSelect";
 import AmbassadorBadge from "../components/AmbassadorBadge";
+import useGeoCountryLock from "../hooks/useGeoCountryLock";
 
 const REPUTATION_CONFIG = {
   Contributor: {
@@ -90,6 +91,21 @@ export default function ProfileSettings() {
   });
   const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
   const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
+
+  // Automatically updates country, state, and city to wherever the browser detects the user
+  // is currently located (e.g. India, Telangana, Hyderabad) and locks the country.
+  const geo = useGeoCountryLock();
+  useEffect(() => {
+    if (geo.status !== "ready" || !geo.country) return;
+    setFormData((f) => ({
+      ...f,
+      country: geo.country,
+      state: geo.state || f.state,
+      location: geo.city || f.location,
+    }));
+  }, [geo.status, geo.country, geo.state, geo.city]);
+  const countryMismatch = false;
+
   const [preview, setPreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [cropSrc, setCropSrc] = useState(null);
@@ -355,7 +371,7 @@ export default function ProfileSettings() {
                     </div>
                   )}
 
-                  <ReputationBadge level={member?.ambassador_has_badge ? "CountryAmbassador" : member?.reputation_level} />
+                  <ReputationBadge level={member?.is_ambassador ? "CountryAmbassador" : member?.reputation_level} />
 
                   {member?.ambassador_has_badge && (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "14px", width: "100%" }}>
@@ -401,9 +417,21 @@ export default function ProfileSettings() {
                       value={formData.country}
                       onChange={(v) => setFormData({ ...formData, country: v, state: "", location: "" })}
                       options={COUNTRIES}
-                      placeholder="Type to search your country"
+                      placeholder={geo.status === "loading" ? "Detecting your location..." : "Type to search your country"}
+                      disabled={geo.status === "ready"}
                       required
                     />
+                    {countryMismatch ? (
+                      <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#b91c1c" }}>
+                        <LuTriangleAlert style={{ marginRight: 4, verticalAlign: "-2px" }} />
+                        Your current location is in {geo.country}, not {formData.country}. Country can't be changed while this mismatch exists.
+                      </p>
+                    ) : geo.status === "ready" ? (
+                      <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
+                        <i className="bi bi-geo-alt-fill" style={{ marginRight: 4 }} />
+                        Auto-detected from your location and locked for accuracy.
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="form-group">
@@ -415,6 +443,12 @@ export default function ProfileSettings() {
                       options={stateOptions}
                       placeholder={formData.country ? "Type to search" : "Select a country first"}
                       disabled={!formData.country || stateOptions.length === 0}
+                      onUseCurrentLocation={
+                        geo.status === "ready" && geo.state
+                          ? () => setFormData((f) => ({ ...f, state: geo.state, location: geo.city || f.location }))
+                          : undefined
+                      }
+                      locationTooltip={`Use detected state (${geo.state || "current location"})`}
                     />
                   </div>
 
@@ -430,6 +464,12 @@ export default function ProfileSettings() {
                         options={cityOptions}
                         placeholder={formData.country ? "Type to search" : "Select a country first"}
                         disabled={!formData.country}
+                        onUseCurrentLocation={
+                          geo.status === "ready" && geo.city
+                            ? () => setFormData((f) => ({ ...f, location: geo.city }))
+                            : undefined
+                        }
+                        locationTooltip={`Use detected city (${geo.city || "current location"})`}
                       />
                     </div>
                   </div>

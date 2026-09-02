@@ -252,6 +252,7 @@ const getProfile = asyncHandler(async (req, res) => {
   const reputation_level = isContributor ? 'Contributor' : 'Explorer';
 
   const ambassadorBadge = await repo.findAmbassadorBadgeByEmail(db, profile.email);
+  profile.is_ambassador = !!ambassadorBadge;
   profile.ambassador_has_badge = !!(ambassadorBadge && ambassadorBadge.has_badge);
   profile.ambassador_badge_year = ambassadorBadge ? ambassadorBadge.badge_year : null;
   profile.ambassador_badge_country = ambassadorBadge ? ambassadorBadge.country : null;
