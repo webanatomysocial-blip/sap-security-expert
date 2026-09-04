@@ -418,39 +418,51 @@ export default function ProfileSettings() {
                       onChange={(v) => setFormData({ ...formData, country: v, state: "", location: "" })}
                       options={COUNTRIES}
                       placeholder={geo.status === "loading" ? "Detecting your location..." : "Type to search your country"}
-                      disabled={geo.status === "ready"}
                       required
+                      onUseCurrentLocation={
+                        geo.status === "ready" && geo.country
+                          ? () => setFormData((f) => ({ ...f, country: geo.country, state: geo.state || f.state, location: geo.city || f.location }))
+                          : undefined
+                      }
+                      locationTooltip={`Use detected country (${geo.country || "current location"})`}
                     />
                     {geo.status === "denied" && (
-                      <p style={{ margin: "6px 0 0", fontSize: "0.78rem", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
-                        <span>
-                          <i className="bi bi-info-circle-fill" style={{ marginRight: 4 }} />
-                          Location access denied. You can select country manually, or allow location to auto-detect.
-                        </span>
-                        {geo.requestLocation && (
-                          <button
-                            type="button"
-                            onClick={geo.requestLocation}
-                            style={{
-                              background: "#fef3c7",
-                              border: "1px solid #fde68a",
-                              borderRadius: "4px",
-                              padding: "2px 8px",
-                              fontSize: "0.75rem",
-                              fontWeight: 600,
-                              color: "#b45309",
-                              cursor: "pointer",
-                            }}
-                          >
-                            📍 Retry Permission
-                          </button>
+                      <div style={{ margin: "8px 0 0", padding: "8px 12px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "6px", fontSize: "0.78rem", color: "#92400e" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                          <span>
+                            <i className="bi bi-geo-alt-fill" style={{ marginRight: 5, color: "#d97706" }} />
+                            Location access is blocked in your browser.
+                          </span>
+                          {geo.requestLocation && (
+                            <button
+                              type="button"
+                              onClick={geo.requestLocation}
+                              style={{
+                                background: "#fef3c7",
+                                border: "1px solid #fcd34d",
+                                borderRadius: "4px",
+                                padding: "3px 10px",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                                color: "#b45309",
+                                cursor: "pointer",
+                              }}
+                            >
+                              📍 Retry Location
+                            </button>
+                          )}
+                        </div>
+                        {geo.showHelp && (
+                          <div style={{ marginTop: "6px", paddingTop: "6px", borderTop: "1px dashed #fde68a", fontSize: "0.74rem", color: "#78350f" }}>
+                            To allow: Click the <strong>lock / tune icon 🔒</strong> next to the URL in your browser bar ➔ change <strong>Location</strong> to <em>Allow</em> ➔ then click <strong>Retry Location</strong>.
+                          </div>
                         )}
-                      </p>
+                      </div>
                     )}
                     {geo.status === "ready" && (
                       <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
                         <i className="bi bi-geo-alt-fill" style={{ marginRight: 4 }} />
-                        Auto-detected from your location and locked for accuracy.
+                        Auto-detected from your current location. You can also select or change it anytime.
                       </p>
                     )}
                   </div>

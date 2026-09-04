@@ -26,6 +26,12 @@ const SearchableSelect = ({
   const displayValue = open ? query : (value || "");
 
   useEffect(() => {
+    if (!open) {
+      setQuery(value || "");
+    }
+  }, [value, open]);
+
+  useEffect(() => {
     const handleClickOutside = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
     };
@@ -67,7 +73,6 @@ const SearchableSelect = ({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            setQuery("");
             setOpen(false);
             onUseCurrentLocation();
           }}
