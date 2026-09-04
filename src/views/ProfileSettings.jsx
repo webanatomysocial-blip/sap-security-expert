@@ -197,6 +197,14 @@ export default function ProfileSettings() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (geo.status === "ready" && geo.country && formData.country !== geo.country) {
+      setError(`Profile update not allowed: your detected country is ${geo.country}, which does not match "${formData.country}".`);
+      addToast(`Profile update not allowed: your detected country is ${geo.country}.`, "error");
+      setFormData((f) => ({ ...f, country: geo.country, state: geo.state || f.state, location: geo.city || f.location }));
+      return;
+    }
+
     setLoading(true);
 
     const data = new FormData();
@@ -415,8 +423,15 @@ export default function ProfileSettings() {
                     <SearchableSelect
                       className="form-control"
                       value={formData.country}
-                      onChange={(v) => setFormData({ ...formData, country: v, state: "", location: "" })}
-                      options={COUNTRIES}
+                      onChange={(v) => {
+                        if (geo.status === "ready" && geo.country && v && v !== geo.country) {
+                          addToast(`Only your detected country (${geo.country}) is allowed. Selecting a different country is not permitted.`, "error");
+                          setFormData((f) => ({ ...f, country: geo.country, state: geo.state || f.state, location: geo.city || f.location }));
+                          return;
+                        }
+                        setFormData({ ...formData, country: v, state: "", location: "" });
+                      }}
+                      options={geo.status === "ready" && geo.country ? COUNTRIES.filter((c) => c.name === geo.country) : COUNTRIES}
                       placeholder={geo.status === "loading" ? "Detecting your location..." : "Type to search your country"}
                       required
                       onUseCurrentLocation={
@@ -460,9 +475,9 @@ export default function ProfileSettings() {
                       </div>
                     )}
                     {geo.status === "ready" && (
-                      <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
+                      <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#16a34a", fontWeight: 500 }}>
                         <i className="bi bi-geo-alt-fill" style={{ marginRight: 4 }} />
-                        Auto-detected from your current location. You can also select or change it anytime.
+                        Verified from your current location ({geo.country}). Other countries are not allowed.
                       </p>
                     )}
                   </div>
