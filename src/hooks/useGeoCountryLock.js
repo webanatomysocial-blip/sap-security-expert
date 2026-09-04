@@ -52,10 +52,99 @@ function matchCityName(countryName, stateName, cityName) {
   return partial ? (typeof partial === "string" ? partial : partial.name) : cityName;
 }
 
+const supportsGeolocation = () => typeof navigator !== "undefined" && !!navigator.geolocation;
+
 // Detects the user's country/state/city from the browser's location, the
 // same way a "use my location" button on a maps site works. Once location
 // is detected, forms will auto-sync country, state, and city.
-const supportsGeolocation = () => typeof navigator !== "undefined" && !!navigator.geolocation;
+async function reverseGeocodeCoords(latitude, longitude) {
+  // Try OpenStreetMap Nominatim first (reliable, fast)
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.address) {
+        const country = matchCountryName(data.address.country);
+        const rawState = data.address.state || data.address.state_district || data.address.region || "";
+        const matchedState = matchStateName(country, rawState);
+        const rawCity = data.address.city || data.address.town || data.address.village || data.address.county || "";
+        const matchedCity = matchCityName(country, matchedState, rawCity);
+        if (country) {
+          return { country, state: matchedState, city: matchedCity };
+        }
+      }
+    }
+  } catch {
+    // fallback to BigDataCloud
+  }
+
+  // Fallback to BigDataCloud
+  try {
+    const res = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const country = matchCountryName(data.countryName);
+      const rawState = data.principalSubdivision || "";
+      const matchedState = matchStateName(country, rawState);
+      const rawCity = data.city || data.locality || "";
+      const matchedCity = matchCityName(country, matchedState, rawCity);
+      if (country) {
+        return { country, state: matchedState, city: matchedCity };
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
+
+async function fetchLocationByIP() {
+  // 1. Try our server endpoint first (/api/geoip) which is never blocked by browser adblockers or privacy extensions
+  try {
+    const res = await fetch("/api/geoip");
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.status === "success" && data.country) {
+        const country = matchCountryName(data.country);
+        const rawState = data.state || "";
+        const matchedState = matchStateName(country, rawState);
+        const rawCity = data.city || "";
+        const matchedCity = matchCityName(country, matchedState, rawCity);
+        if (country) {
+          return { country, state: matchedState, city: matchedCity };
+        }
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  // 2. Direct client-side fallback to ipwho.is
+  try {
+    const res = await fetch("https://ipwho.is/");
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.success) {
+        const country = matchCountryName(data.country);
+        const rawState = data.region || "";
+        const matchedState = matchStateName(country, rawState);
+        const rawCity = data.city || "";
+        const matchedCity = matchCityName(country, matchedState, rawCity);
+        if (country) {
+          return { country, state: matchedState, city: matchedCity };
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
 
 export default function useGeoCountryLock() {
   const [geo, setGeo] = useState(() => ({
@@ -63,47 +152,93 @@ export default function useGeoCountryLock() {
     country: "",
     state: "",
     city: "",
+    showHelp: false,
   }));
 
-  const detectLocation = () => {
-    if (!supportsGeolocation()) return;
-    setGeo((g) => ({ ...g, status: "loading" }));
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords;
-          const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-          );
-          const data = await res.json();
-          const country = matchCountryName(data.countryName);
-          if (!country) {
-            setGeo({ status: "error", country: "", state: "", city: "" });
-            return;
-          }
-          const rawState = data.principalSubdivision || "";
-          const matchedState = matchStateName(country, rawState);
-          const rawCity = data.city || data.locality || "";
-          const matchedCity = matchCityName(country, matchedState, rawCity);
+  const detectLocation = async (manualClick = false) => {
+    setGeo((g) => ({ ...g, status: "loading", showHelp: false }));
 
-          setGeo({
-            status: "ready",
-            country,
-            state: matchedState,
-            city: matchedCity,
-          });
-        } catch {
-          setGeo((g) => ({ ...g, status: "error" }));
-        }
-      },
-      () => setGeo((g) => ({ ...g, status: "denied" })),
-      { timeout: 10000, maximumAge: 300000 }
-    );
+    // 1. Immediately fetch IP geolocation so fields fill without any delay
+    let currentIP = null;
+    try {
+      currentIP = await fetchLocationByIP();
+      if (currentIP && currentIP.country) {
+        setGeo({
+          status: "ready",
+          country: currentIP.country,
+          state: currentIP.state || "",
+          city: currentIP.city || "",
+          showHelp: false,
+        });
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Also query GPS if browser supports it to get more granular coordinates
+    if (supportsGeolocation()) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
+            const result = await reverseGeocodeCoords(latitude, longitude);
+            if (result && result.country) {
+              setGeo({
+                status: "ready",
+                country: result.country,
+                state: result.state || "",
+                city: result.city || "",
+                showHelp: false,
+              });
+              return;
+            }
+          } catch {
+            // ignore
+          }
+
+          if (!currentIP) {
+            const fallbackIP = await fetchLocationByIP();
+            if (fallbackIP && fallbackIP.country) {
+              setGeo({
+                status: "ready",
+                country: fallbackIP.country,
+                state: fallbackIP.state || "",
+                city: fallbackIP.city || "",
+                showHelp: false,
+              });
+            }
+          }
+        },
+        async (err) => {
+          if (!currentIP) {
+            const fallbackIP = await fetchLocationByIP();
+            if (fallbackIP && fallbackIP.country) {
+              setGeo({
+                status: "ready",
+                country: fallbackIP.country,
+                state: fallbackIP.state || "",
+                city: fallbackIP.city || "",
+                showHelp: false,
+              });
+              return;
+            }
+            setGeo((g) => ({
+              ...g,
+              status: "denied",
+              showHelp: manualClick || err?.code === 1,
+            }));
+          }
+        },
+        { timeout: 5000, maximumAge: 300000, enableHighAccuracy: false }
+      );
+    } else if (!currentIP) {
+      setGeo((g) => ({ ...g, status: "unsupported" }));
+    }
   };
 
   useEffect(() => {
-    detectLocation();
+    detectLocation(false);
   }, []);
 
-  return { ...geo, requestLocation: detectLocation };
+  return { ...geo, requestLocation: () => detectLocation(true) };
 }

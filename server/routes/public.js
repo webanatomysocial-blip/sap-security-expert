@@ -82,4 +82,7 @@ router.get('/news/:slug', controller.newsBySlug);
 // GET /api/version — current app version (latest from CHANGELOG.md or DB)
 router.get('/version', controller.appVersion);
 
+// GET /api/geoip — IP geolocation proxy
+router.get('/geoip', controller.geoip);
+
 module.exports = router;

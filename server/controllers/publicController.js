@@ -716,8 +716,41 @@ const appVersion = async (req, res) => {
   }
 };
 
+// GET /api/geoip — server-side IP geolocation proxy so browsers never get blocked by CORS/adblockers
+const geoip = async (req, res) => {
+  try {
+    const rawIp =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      req.headers['x-real-ip'] ||
+      req.socket?.remoteAddress ||
+      '';
+    // If local/loopback, ipwho.is will inspect the caller's public IP
+    const url = rawIp && rawIp !== '::1' && rawIp !== '127.0.0.1'
+      ? `https://ipwho.is/${rawIp}`
+      : 'https://ipwho.is/';
+
+    const response = await fetch(url);
+    if (response.ok) {
+      const data = await response.json();
+      return res.json({
+        status: 'success',
+        country: data.country || '',
+        state: data.region || '',
+        city: data.city || '',
+        latitude: data.latitude,
+        longitude: data.longitude,
+      });
+    }
+    return res.json({ status: 'fail' });
+  } catch (err) {
+    console.error('[GET /api/geoip]', err.message);
+    return res.status(500).json({ status: 'error' });
+  }
+};
+
 module.exports = {
   homepage, popularTags, search, leaderboard, publicMemberProfile, memberDirectory, communityCountries, communityStats, categories, trendingTopics,
   announcementsPublic, announcementPublicBySlug, authors, recordView, captcha, deleteAccount, content, sitemap, seoMeta, postsSitemap,
-  learnings, learningsCounts, news, newsBySlug, sendMail, appVersion,
+  learnings, learningsCounts, news, newsBySlug, sendMail, appVersion, geoip,
 };
+
