@@ -5,6 +5,7 @@ const STATIC_PAGES = [
   { url: '/',                          priority: 1.0, changeFrequency: 'daily'   },
   { url: '/blogs',                     priority: 0.9, changeFrequency: 'daily'   },
   { url: '/about',                     priority: 0.7, changeFrequency: 'monthly' },
+  { url: '/experts/raghu-boddu',       priority: 0.7, changeFrequency: 'monthly' },
   { url: '/contact-us',                priority: 0.6, changeFrequency: 'monthly' },
   { url: '/news',                      priority: 0.8, changeFrequency: 'daily'   },
   { url: '/announcements',             priority: 0.7, changeFrequency: 'weekly'  },

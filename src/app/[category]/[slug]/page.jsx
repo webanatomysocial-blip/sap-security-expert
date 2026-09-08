@@ -8,7 +8,7 @@ const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
 const SSR_SECRET = process.env.REVALIDATE_SECRET || '';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
-const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next']);
+const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next', 'experts', 'contributor', 'ambassador']);
 
 function safeJsonLd(value) {
   return JSON.stringify(value)
@@ -84,6 +84,32 @@ function addLazyLoading(html) {
 
 export async function generateMetadata({ params }) {
   const { category, slug } = await params;
+  if (category === 'experts' && slug === 'raghu-boddu') {
+    const title = 'Raghu Boddu | SAP Security & GRC Expert | SAP Security Expert';
+    const description = 'Raghu Boddu is an SAP Security and GRC expert with 25+ years of experience across SAP security, GRC, audit, access governance, automation, and enterprise cybersecurity. CEO of ToggleNow and founder of SAP Security Expert.';
+    const canonical = `${SITE_URL}/experts/raghu-boddu`;
+    const image = `${SITE_URL}/assets/raghu_boddu.png`;
+    return {
+      title,
+      description,
+      robots: { index: true, follow: true },
+      alternates: { canonical },
+      openGraph: {
+        title,
+        description,
+        url: canonical,
+        siteName: 'SAP Security Expert',
+        images: [{ url: image }],
+        type: 'profile',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [image],
+      },
+    };
+  }
   if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert', robots: { index: false, follow: false } };
 
   const path = `/${category}/${slug}`;

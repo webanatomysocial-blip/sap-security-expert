@@ -6,6 +6,7 @@ const sections = [
     links: [
       { label: "Home", to: "/" },
       { label: "About Us", to: "/about" },
+      { label: "Raghu Boddu — SAP Security Expert", to: "/experts/raghu-boddu" },
       { label: "Blogs & Tutorials", to: "/blogs" },
       { label: "Contact Us", to: "/contact-us" },
       { label: "Become a Contributor", to: "/become-a-contributor" },

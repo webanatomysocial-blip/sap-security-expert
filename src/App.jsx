@@ -39,6 +39,7 @@ const LearningModulePage       = lazy(() => import("./views/LearningModulePage")
 
 // ── Lazy-loaded contributor / member / auth pages ─────────────────────────────
 const About                    = lazy(() => import("./views/About"));
+const ExpertRaghuBoddu         = lazy(() => import("./views/ExpertRaghuBoddu"));
 const ContactUs                = lazy(() => import("./views/ContactUs"));
 const BecomeContributor        = lazy(() => import("./components/BecomeContributor"));
 const ContributorApplication   = lazy(() => import("./views/ContributorApplication"));
@@ -193,6 +194,7 @@ function App() {
           <Route path="contributor/:id" element={<ContributorProfile />} />
           <Route path="leaderboard" element={<ContributorsLeaderboard />} />
           <Route path="about" element={<About />} />
+          <Route path="experts/raghu-boddu" element={<ExpertRaghuBoddu />} />
           <Route path="contact-us" element={<ContactUs />} />
           <Route path="community" element={<MeetTheCommunity />} />
 
