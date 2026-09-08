@@ -5,7 +5,7 @@ import ClientApp from '../[[...slug]]/ClientApp';
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
-const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next']);
+const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next', 'experts', 'contributor', 'ambassador']);
 
 const CATEGORY_LABELS = {
   'sap-security': 'SAP Security',
