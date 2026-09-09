@@ -31,6 +31,7 @@ router.post('/profile/update', requireMemberAuth, (req, res, next) => {
 }, requireCsrf, verifyImageMagicBytes, controller.updateProfile);
 router.post('/logout', controller.logout);
 router.get('/referral', requireMemberAuth, controller.referral);
+router.get('/ambassador-profile', requireMemberAuth, controller.getAmbassadorProfile);
 router.get('/achievements', requireMemberAuth, controller.achievements);
 router.post('/achievements/grant', requireAdmin, controller.grantAchievement);
 router.post('/change-password', rateLimit('member_change_password', 5, 900), requireMemberAuth, requireCsrf, controller.changePassword);

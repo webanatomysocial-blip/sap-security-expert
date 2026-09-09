@@ -588,6 +588,7 @@ h6 {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  gap:20px;
 }
 
 .page-header h2 {

@@ -4,14 +4,30 @@ import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
 import AmbassadorBadge from "../AmbassadorBadge";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
-import ColumnToggle from "./ColumnToggle.jsx";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
-import ManageAmbassadorModal from "./ManageAmbassadorModal";
 import useScrollLock from "../../hooks/useScrollLock";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
 import { getAmbassadors, updateAmbassadorStatus, getAmbassadorBadgeHistory } from "../../services/api";
+import { 
+  LuAward, 
+  LuCalendar, 
+  LuCheck, 
+  LuSparkles, 
+  LuUserCheck, 
+  LuMail, 
+  LuLinkedin, 
+  LuMapPin, 
+  LuBuilding, 
+  LuBriefcase, 
+  LuClock, 
+  LuExternalLink, 
+  LuHistory, 
+  LuFileText, 
+  LuShieldCheck, 
+  LuX 
+} from "react-icons/lu";
 import { downloadCSV } from "../../services/exportUtils";
 
 const AdminAmbassadors = () => {
@@ -19,40 +35,21 @@ const AdminAmbassadors = () => {
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState("approved");
   const [filterCountry, setFilterCountry] = useState("all");
+  const [filterBadge, setFilterBadge] = useState("all");
   const [selectedApp, setSelectedApp] = useState(null);
   const [badgeHistory, setBadgeHistory] = useState(null);
-  const [managingAmbassador, setManagingAmbassador] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [grantingBadgeApp, setGrantingBadgeApp] = useState(null);
+  const currentYear = new Date().getFullYear();
+  const [grantYear, setGrantYear] = useState(currentYear);
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
   const { fetchBadges } = useOutletContext() || {};
 
-  const AMBASSADOR_COLS = [
-    { key: "name", label: "Name" },
-    { key: "email", label: "Email" },
-    { key: "country", label: "Country" },
-    { key: "contribs", label: "Contribs" },
-    { key: "status", label: "Status" },
-    { key: "role", label: "Current Role", optional: true },
-    { key: "badge", label: "Badge", optional: true },
-    { key: "date", label: "Date", optional: true },
-    { key: "lastlogin", label: "Last Login", optional: true },
-    { key: "logins", label: "Total Logins", optional: true },
-    { key: "lastcontrib", label: "Last Contribution", optional: true },
-    { key: "expertpapers", label: "Expert Papers", optional: true },
-    { key: "actions", label: "Actions" },
-  ];
-  const [visibleCols, setVisibleCols] = useState(() => {
-    try { const s = localStorage.getItem("admin_ambassadors_cols"); if (s) return new Set(JSON.parse(s)); } catch {}
-    return new Set(AMBASSADOR_COLS.filter(c => !c.optional).map(c => c.key));
-  });
-  const handleColChange = (cols) => { setVisibleCols(cols); try { localStorage.setItem("admin_ambassadors_cols", JSON.stringify([...cols])); } catch {} };
-  const show = (key) => visibleCols.has(key);
-
-  useScrollLock(!!selectedApp || !!rejectingId);
+  useScrollLock(!!selectedApp || !!rejectingId || !!grantingBadgeApp);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -80,13 +77,9 @@ const AdminAmbassadors = () => {
       .catch(() => setBadgeHistory([]));
   }, [selectedApp]);
 
-  const performAction = async (id, action, reason = null) => {
-    // Captured before the API call — fetchApplications() below refetches
-    // asynchronously, so the in-memory row is what we still have handy to
-    // pre-fill the "Manage Login" modal opened right after approval.
-    const app = applications.find((a) => a.id === id);
+  const performAction = async (id, action, reason = null, extra = {}) => {
     try {
-      const res = await updateAmbassadorStatus({ id, action, reason });
+      const res = await updateAmbassadorStatus({ id, action, reason, ...extra });
       if (res.data?.status === "success") {
         setSelectedApp(null);
         setRejectingId(null);
@@ -94,12 +87,6 @@ const AdminAmbassadors = () => {
         addToast(`Ambassador ${action}d successfully.`, "success");
         fetchBadges?.();
         fetchApplications();
-
-        // Approval creates the member login the same way contributor approval
-        // does — open Manage Login immediately so the admin can see/share it.
-        if (action === "approve" && app) {
-          setManagingAmbassador({ ...app, status: "approved" });
-        }
       } else {
         addToast(res.data?.message || `Failed to ${action} ambassador.`, "error");
       }
@@ -161,12 +148,13 @@ const AdminAmbassadors = () => {
   };
 
   const handleGrantBadge = (app) => {
-    openConfirm({
-      title: "Grant Country Ambassador Badge?",
-      message: `This awards the "SAP Security Expert — Country Ambassador" recognition for ${app.country || "their country"} · ${new Date().getFullYear()}. Only one ambassador per country can hold it — granting this revokes it from anyone else currently holding it there.`,
-      confirmText: "Grant Badge",
-      onConfirm: () => performAction(app.id, "grant_badge"),
-    });
+    setGrantYear(currentYear);
+    setGrantingBadgeApp(app);
+  };
+
+  const confirmGrantBadge = () => {
+    performAction(grantingBadgeApp.id, "grant_badge", null, { badge_year: grantYear });
+    setGrantingBadgeApp(null);
   };
 
   const handleRevokeBadge = (id) => {
@@ -185,6 +173,7 @@ const AdminAmbassadors = () => {
     (app) =>
       (filterStatus === "all" ? app.status !== "deleted" : app.status === filterStatus) &&
       (filterCountry === "all" || app.country === filterCountry) &&
+      (filterBadge === "all" || (filterBadge === "has" ? !!app.has_badge : !app.has_badge)) &&
       ((app.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (app.email || "").toLowerCase().includes(searchTerm.toLowerCase())),
   );
@@ -222,6 +211,16 @@ const AdminAmbassadors = () => {
             <option value="all">All Countries</option>
             {countries.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
+          <select
+            className="btn-filter btn-sm"
+            style={{ maxWidth: "100%", minWidth: 0 }}
+            value={filterBadge}
+            onChange={(e) => setFilterBadge(e.target.value)}
+          >
+            <option value="all">All Badges</option>
+            <option value="has">Has Badge</option>
+            <option value="none">No Badge</option>
+          </select>
           <div className="search-box">
             <i className="bi bi-search"></i>
             <input type="text" placeholder="Search by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -239,9 +238,6 @@ const AdminAmbassadors = () => {
         <div className="admin-card"><TableSkeleton cols={6} rows={8} /></div>
       ) : (
         <div className="admin-card">
-          <div className="admin-table-controls">
-            <ColumnToggle columns={AMBASSADOR_COLS} visible={visibleCols} onChange={handleColChange} />
-          </div>
           <TableScrollContainer>
             <table className="admin-table">
               <thead>
@@ -249,22 +245,16 @@ const AdminAmbassadors = () => {
                   <th className="col-lg text-left">Name</th>
                   <th className="col-lg text-left">Email</th>
                   <th className="col-md text-left">Country</th>
-                  <th className="col-sm text-center">Contribs</th>
                   <th className="col-sm text-center">Status</th>
-                  {show("role") && <th className="col-xl text-left">Current Role</th>}
-                  {show("badge") && <th className="col-sm text-center">Badge</th>}
-                  {show("date") && <th className="col-md text-left">Date</th>}
-                  {show("lastlogin") && <th className="col-md text-left">Last Login</th>}
-                  {show("logins") && <th className="col-sm text-center">Total Logins</th>}
-                  {show("lastcontrib") && <th className="col-md text-left">Last Contribution</th>}
-                  {show("expertpapers") && <th className="col-sm text-center">Expert Papers</th>}
+                  <th className="col-sm text-center">Badge</th>
+                  <th className="col-md text-left">Date</th>
                   <th className="col-actions text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredApps.length === 0 ? (
                   <tr>
-                    <td colSpan="12" className="text-center">No matching applications found.</td>
+                    <td colSpan="7" className="text-center">No matching applications found.</td>
                   </tr>
                 ) : (
                   filteredApps.map((app) => (
@@ -274,47 +264,25 @@ const AdminAmbassadors = () => {
                       </td>
                       <td className="col-lg text-left no-wrap" style={{ fontSize: "0.8rem" }}>{app.email}</td>
                       <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>{app.country || "—"}</td>
-                      <td className="col-sm text-center" style={{ fontSize: "0.8rem", fontWeight: 600 }}>{app.blog_count ?? 0}</td>
                       <td className="col-sm text-center">
                         <span className={`status-badge status-${app.status}`} style={{ fontSize: "0.7rem", padding: "2px 6px" }}>
                           {app.status}
                         </span>
                       </td>
-                      {show("role") && (
-                        <td className="col-xl text-left wrap-text">
-                          <div className="truncate-2" style={{ fontSize: "0.8rem", color: "#64748b" }}>{app.current_role || "—"}</div>
-                        </td>
-                      )}
-                      {show("badge") && (
-                        <td className="col-sm text-center">
+                      <td className="col-sm text-center">
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 48 }}>
                           {app.has_badge ? (
-                            <div style={{ display: "inline-flex", justifyContent: "center" }}>
-                              <AmbassadorBadge country={app.country} year={app.badge_year} size={45} />
-                            </div>
+                            <AmbassadorBadge country={app.country} year={app.badge_year} size={52} />
                           ) : (
                             <span style={{ color: "#cbd5e1", fontSize: "0.8rem" }}>—</span>
                           )}
-                        </td>
-                      )}
-                      {show("date") && (
-                        <td className="col-md text-left">
-                          <div style={{ fontSize: "0.8rem" }}>
-                            {new Date(app.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                          </div>
-                        </td>
-                      )}
-                      {show("lastlogin") && (
-                        <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                          {app.last_login ? new Date(app.last_login).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : <span style={{ color: "#cbd5e1" }}>Never</span>}
-                        </td>
-                      )}
-                      {show("logins") && <td className="col-sm text-center" style={{ fontSize: "0.8rem", color: "#64748b" }}>{app.login_count || 0}</td>}
-                      {show("lastcontrib") && (
-                        <td className="col-md text-left" style={{ fontSize: "0.8rem", color: "#64748b" }}>
-                          {app.last_contribution ? new Date(app.last_contribution).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : <span style={{ color: "#cbd5e1" }}>—</span>}
-                        </td>
-                      )}
-                      {show("expertpapers") && <td className="col-sm text-center" style={{ fontSize: "0.8rem", color: "#64748b" }}>{app.expert_papers_count || 0}</td>}
+                        </div>
+                      </td>
+                      <td className="col-md text-left">
+                        <div style={{ fontSize: "0.8rem" }}>
+                          {new Date(app.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </div>
+                      </td>
                       <td className="col-actions text-center">
                         <ActionMenu>
                           <button className="action-menu-item" onClick={() => setSelectedApp(app)}>
@@ -336,9 +304,6 @@ const AdminAmbassadors = () => {
                           {app.status === "approved" && (
                             <>
                               <div className="action-menu-separator"></div>
-                              <button className="action-menu-item" onClick={() => setManagingAmbassador(app)}>
-                                <i className="bi bi-shield-lock"></i> Manage Login
-                              </button>
                               {app.has_badge ? (
                                 <button className="action-menu-item" onClick={() => handleRevokeBadge(app.id)} style={{ color: "var(--warning-yellow)" }}>
                                   <i className="bi bi-award"></i> Revoke Badge
@@ -381,96 +346,588 @@ const AdminAmbassadors = () => {
 
       {selectedApp && createPortal(
         <div className="modal-overlay" onClick={() => setSelectedApp(null)}>
-          <div className="modal-container large" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Ambassador Application Details</h3>
-              <button className="modal-close-btn" onClick={() => setSelectedApp(null)}>×</button>
+          <div
+            className="modal-container large"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "760px",
+              borderRadius: "16px",
+              boxShadow: "0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.08)",
+              overflow: "hidden",
+            }}
+          >
+            {/* Header */}
+            <div
+              className="modal-header"
+              style={{
+                padding: "16px 24px",
+                borderBottom: "1px solid #f1f5f9",
+                background: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: "linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)",
+                    color: "#0284c7",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid #7dd3fc",
+                  }}
+                >
+                  <LuUserCheck size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#0f172a" }}>
+                    Ambassador Application Details
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "0.76rem", color: "#64748b" }}>
+                    Review candidate qualifications, country representation, and recognition status
+                  </p>
+                </div>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setSelectedApp(null)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "#f1f5f9",
+                  color: "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "1.2rem",
+                  lineHeight: 1,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <LuX size={16} />
+              </button>
             </div>
-            <div className="modal-body" data-lenis-prevent="true">
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "20px", flexWrap: "wrap" }}>
+
+            {/* Body */}
+            <div
+              className="modal-body"
+              data-lenis-prevent="true"
+              style={{
+                padding: "24px",
+                background: "#f8fafc",
+                maxHeight: "75vh",
+                overflowY: "auto",
+              }}
+            >
+              {/* Profile Hero Header Card */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 20,
+                  padding: "20px 24px",
+                  borderRadius: 14,
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                  marginBottom: 20,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 18, minWidth: 240 }}>
                   <img
                     src={selectedApp.profile_image || "/assets/placeholder.webp"}
                     alt={selectedApp.name}
-                    style={{ width: "120px", height: "120px", borderRadius: "50%", objectFit: "cover", border: "4px solid #f1f5f9" }}
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "3px solid #f1f5f9",
+                      boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                    }}
                   />
-                  {selectedApp.has_badge && (
-                    <AmbassadorBadge country={selectedApp.country} year={selectedApp.badge_year} size={120} />
-                  )}
-                </div>
-                <h3 style={{ marginTop: "15px", marginBottom: "5px", fontSize: "1.5rem" }}>{selectedApp.name}</h3>
-                <span className={`status-badge status-${selectedApp.status}`}>{selectedApp.status}</span>
-              </div>
-
-              <div className="detail-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "20px", marginBottom: "20px" }}>
-                <div><strong>Email:</strong><div style={{ color: "#475569" }}>{selectedApp.email}</div></div>
-                <div><strong>LinkedIn:</strong><div>{selectedApp.linkedin ? <a href={selectedApp.linkedin} target="_blank" rel="noreferrer">View Profile</a> : "N/A"}</div></div>
-                <div><strong>Country:</strong><div style={{ color: "#475569" }}>{selectedApp.country || "N/A"}{selectedApp.state ? `, ${selectedApp.state}` : ""}</div></div>
-                <div><strong>Organization:</strong><div style={{ color: "#475569" }}>{selectedApp.organization || "N/A"}</div></div>
-                <div><strong>Current Role:</strong><div style={{ color: "#475569" }}>{selectedApp.current_role || "N/A"}</div></div>
-                <div><strong>Years Experience:</strong><div style={{ color: "#475569" }}>{selectedApp.years_experience || "N/A"}</div></div>
-                <div><strong>Nomination Type:</strong><div style={{ color: "#475569" }}>{selectedApp.nomination_type || "self"}</div></div>
-                <div>
-                  <strong>Joined:</strong>
-                  <div style={{ color: "#475569" }}>{new Date(selectedApp.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</div>
-                </div>
-              </div>
-
-              {selectedApp.country && (
-                <div style={{ marginBottom: 16 }}>
-                  <strong>Badge History for {selectedApp.country}:</strong>
-                  {badgeHistory === null ? (
-                    <p style={{ color: "#94a3b8", fontSize: "0.85rem", margin: "6px 0 0" }}>Loading…</p>
-                  ) : badgeHistory.length === 0 ? (
-                    <p style={{ color: "#94a3b8", fontSize: "0.85rem", margin: "6px 0 0" }}>No badge has ever been granted for this country.</p>
-                  ) : (
-                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-                      {badgeHistory.map((h) => (
-                        <div
-                          key={h.badge_year}
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "1.35rem", fontWeight: 700, color: "#0f172a" }}>
+                      {selectedApp.name}
+                    </h3>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748b", fontSize: "0.85rem", marginTop: 4 }}>
+                      <LuMapPin size={14} color="#f97316" />
+                      <span>{selectedApp.country || "Global"}{selectedApp.state ? `, ${selectedApp.state}` : ""}</span>
+                      {selectedApp.organization && (
+                        <>
+                          <span style={{ opacity: 0.5 }}>•</span>
+                          <span>{selectedApp.organization}</span>
+                        </>
+                      )}
+                    </div>
+                    <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className={`status-badge status-${selectedApp.status}`}>
+                        {selectedApp.status}
+                      </span>
+                      {selectedApp.has_badge && (
+                        <span
                           style={{
-                            display: "flex", alignItems: "center", justifyContent: "space-between",
-                            padding: "8px 12px", borderRadius: 8,
-                            background: h.ambassador_id === selectedApp.id ? "#fff7ed" : "#f8fafc",
-                            border: `1px solid ${h.ambassador_id === selectedApp.id ? "#fed7aa" : "#e2e8f0"}`,
-                            fontSize: "0.85rem",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            background: "#fff7ed",
+                            color: "#c2410c",
+                            fontSize: "0.72rem",
+                            fontWeight: 700,
+                            border: "1px solid #fed7aa",
                           }}
                         >
-                          <span style={{ fontWeight: 700, color: "#0f172a" }}>{h.badge_year}</span>
-                          <span style={{ color: "#475569" }}>{h.full_name}</span>
+                          <LuAward size={12} /> Active Ambassador ({selectedApp.badge_year})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick actions for ambassador if approved */}
+                {selectedApp.status === "approved" && (
+                  <div>
+                    {!selectedApp.has_badge ? (
+                      <button
+                        type="button"
+                        onClick={() => handleGrantBadge(selectedApp)}
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: 10,
+                          fontSize: "0.82rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
+                          color: "#ffffff",
+                          border: "none",
+                          boxShadow: "0 2px 8px rgba(217, 119, 6, 0.25)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <LuAward size={14} /> Grant Badge
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleRevokeBadge(selectedApp.id)}
+                        style={{
+                          padding: "8px 14px",
+                          borderRadius: 10,
+                          fontSize: "0.8rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          background: "#fff",
+                          color: "#dc2626",
+                          border: "1px solid #fecaca",
+                        }}
+                      >
+                        Revoke Badge
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Earned Badges Section */}
+              {(() => {
+                const ambassadorHistoricalBadges = (badgeHistory || []).filter(
+                  (h) => h.ambassador_id === selectedApp.id
+                );
+                const hasCurrentBadge = selectedApp.has_badge;
+                const earnedBadgesList = [];
+
+                if (hasCurrentBadge) {
+                  earnedBadgesList.push({
+                    year: selectedApp.badge_year || new Date().getFullYear(),
+                    country: selectedApp.country,
+                    isCurrent: true,
+                  });
+                }
+
+                ambassadorHistoricalBadges.forEach((h) => {
+                  if (!earnedBadgesList.some((b) => String(b.year) === String(h.badge_year))) {
+                    earnedBadgesList.push({
+                      year: h.badge_year,
+                      country: selectedApp.country,
+                      isCurrent: false,
+                    });
+                  }
+                });
+
+                if (earnedBadgesList.length === 0) return null;
+
+                return (
+                  <div
+                    style={{
+                      marginBottom: 20,
+                      padding: "16px 20px",
+                      borderRadius: 14,
+                      background: "linear-gradient(135deg, #fffbf0 0%, #fff7ed 100%)",
+                      border: "1px solid #fed7aa",
+                      boxShadow: "0 2px 8px rgba(249, 115, 22, 0.05)",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            background: "#ffedd5",
+                            color: "#c2410c",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <LuAward size={16} />
+                        </div>
+                        <span style={{ fontSize: "0.92rem", fontWeight: 700, color: "#9a3412" }}>
+                          Earned Country Ambassador Badges ({earnedBadgesList.length})
+                        </span>
+                      </div>
+                      <span style={{ fontSize: "0.78rem", color: "#c2410c", fontWeight: 600, background: "#ffffff", padding: "3px 10px", borderRadius: 999, border: "1px solid #fed7aa" }}>
+                        Official Recognition · {selectedApp.country}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "stretch", gap: 14, flexWrap: "wrap" }}>
+                      {earnedBadgesList.map((b) => (
+                        <div
+                          key={b.year}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 14,
+                            background: "#ffffff",
+                            padding: "10px 16px",
+                            borderRadius: 12,
+                            border: "1px solid #fed7aa",
+                            boxShadow: "0 2px 6px rgba(249, 115, 22, 0.06)",
+                          }}
+                        >
+                          <AmbassadorBadge country={b.country} year={b.year} size={72} />
+                          <div>
+                            <div style={{ fontSize: "0.95rem", fontWeight: 800, color: "#0f172a" }}>
+                              {b.year}
+                            </div>
+                            <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                              {b.country} Ambassador
+                            </div>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                marginTop: 4,
+                                padding: "2px 8px",
+                                borderRadius: 999,
+                                fontSize: "0.68rem",
+                                fontWeight: 700,
+                                background: b.isCurrent ? "#ffedd5" : "#f1f5f9",
+                                color: b.isCurrent ? "#c2410c" : "#64748b",
+                              }}
+                            >
+                              {b.isCurrent ? "● Active" : "Archived"}
+                            </span>
+                          </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Detail Info Grid */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: 14,
+                  border: "1px solid #e2e8f0",
+                  padding: "18px 20px",
+                  marginBottom: 20,
+                }}
+              >
+                <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 14 }}>
+                  Application Details
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: "16px 20px",
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <LuMail size={16} color="#64748b" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>Email</div>
+                      <div style={{ fontSize: "0.88rem", color: "#0f172a", fontWeight: 600, wordBreak: "break-all" }}>
+                        {selectedApp.email}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <LuLinkedin size={16} color="#0a66c2" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>LinkedIn Profile</div>
+                      <div style={{ fontSize: "0.88rem", fontWeight: 600 }}>
+                        {selectedApp.linkedin ? (
+                          <a
+                            href={selectedApp.linkedin}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ color: "#0a66c2", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
+                          >
+                            View Profile <LuExternalLink size={12} />
+                          </a>
+                        ) : (
+                          <span style={{ color: "#94a3b8" }}>Not provided</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <LuBriefcase size={16} color="#64748b" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>Current Role</div>
+                      <div style={{ fontSize: "0.88rem", color: "#0f172a", fontWeight: 600 }}>
+                        {selectedApp.current_role || "N/A"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <LuBuilding size={16} color="#64748b" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>Organization</div>
+                      <div style={{ fontSize: "0.88rem", color: "#0f172a", fontWeight: 600 }}>
+                        {selectedApp.organization || "N/A"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <LuClock size={16} color="#64748b" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>Experience & Nomination</div>
+                      <div style={{ fontSize: "0.88rem", color: "#0f172a", fontWeight: 600 }}>
+                        {selectedApp.years_experience ? `${selectedApp.years_experience} yrs exp` : "Experience N/A"} · {selectedApp.nomination_type || "self"} nomination
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <LuCalendar size={16} color="#64748b" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>Application Date</div>
+                      <div style={{ fontSize: "0.88rem", color: "#0f172a", fontWeight: 600 }}>
+                        {new Date(selectedApp.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Country Badge History */}
+              {selectedApp.country && (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: 14,
+                    border: "1px solid #e2e8f0",
+                    padding: "18px 20px",
+                    marginBottom: 20,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                      <LuHistory size={14} /> Badge History for {selectedApp.country}
+                    </div>
+                    <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>All-time records</span>
+                  </div>
+
+                  {badgeHistory === null ? (
+                    <p style={{ color: "#94a3b8", fontSize: "0.85rem", margin: "6px 0 0" }}>Loading history…</p>
+                  ) : badgeHistory.length === 0 ? (
+                    <p style={{ color: "#94a3b8", fontSize: "0.85rem", margin: "6px 0 0" }}>No badge has ever been granted for this country yet.</p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {badgeHistory.map((h) => {
+                        const isThisAmbassador = h.ambassador_id === selectedApp.id;
+                        return (
+                          <div
+                            key={`${h.ambassador_id}-${h.badge_year}`}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "10px 14px",
+                              borderRadius: 10,
+                              background: isThisAmbassador ? "#fff7ed" : "#f8fafc",
+                              border: `1px solid ${isThisAmbassador ? "#fed7aa" : "#e2e8f0"}`,
+                              fontSize: "0.85rem",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <span
+                                style={{
+                                  fontWeight: 800,
+                                  color: isThisAmbassador ? "#c2410c" : "#0f172a",
+                                  background: isThisAmbassador ? "#ffedd5" : "#e2e8f0",
+                                  padding: "2px 8px",
+                                  borderRadius: 6,
+                                  fontSize: "0.8rem",
+                                }}
+                              >
+                                {h.badge_year}
+                              </span>
+                              <span style={{ color: "#0f172a", fontWeight: isThisAmbassador ? 700 : 500 }}>
+                                {h.full_name}
+                              </span>
+                            </div>
+                            {isThisAmbassador && (
+                              <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#c2410c", background: "#ffedd5", padding: "2px 8px", borderRadius: 999 }}>
+                                Current Candidate
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               )}
 
+              {/* Motivation & Contributions Cards */}
               {selectedApp.motivation && (
-                <div style={{ marginBottom: 16 }}>
-                  <strong>Motivation:</strong>
-                  <p style={{ color: "#475569", whiteSpace: "pre-wrap" }}>{selectedApp.motivation}</p>
+                <div
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: 14,
+                    border: "1px solid #e2e8f0",
+                    padding: "18px 20px",
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>
+                    <LuFileText size={14} /> Motivation
+                  </div>
+                  <p style={{ color: "#334155", fontSize: "0.9rem", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>
+                    {selectedApp.motivation}
+                  </p>
                 </div>
               )}
+
               {selectedApp.contribution_examples && (
-                <div style={{ marginBottom: 16 }}>
-                  <strong>Community Contribution Examples:</strong>
-                  <p style={{ color: "#475569", whiteSpace: "pre-wrap" }}>{selectedApp.contribution_examples}</p>
+                <div
+                  style={{
+                    background: "#ffffff",
+                    borderRadius: 14,
+                    border: "1px solid #e2e8f0",
+                    padding: "18px 20px",
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>
+                    <LuShieldCheck size={14} /> Community Contribution Examples
+                  </div>
+                  <p style={{ color: "#334155", fontSize: "0.9rem", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>
+                    {selectedApp.contribution_examples}
+                  </p>
                 </div>
               )}
+
               {selectedApp.rejection_reason && (
-                <div style={{ marginBottom: 16 }}>
-                  <strong>Rejection Reason:</strong>
-                  <p style={{ color: "#b91c1c" }}>{selectedApp.rejection_reason}</p>
+                <div
+                  style={{
+                    background: "#fef2f2",
+                    borderRadius: 14,
+                    border: "1px solid #fecaca",
+                    padding: "16px 20px",
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#b91c1c", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
+                    Rejection Reason
+                  </div>
+                  <p style={{ color: "#991b1b", fontSize: "0.88rem", margin: 0 }}>
+                    {selectedApp.rejection_reason}
+                  </p>
                 </div>
               )}
             </div>
 
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setSelectedApp(null)}>Close</button>
+            {/* Footer */}
+            <div
+              className="modal-footer"
+              style={{
+                padding: "16px 24px",
+                background: "#ffffff",
+                borderTop: "1px solid #f1f5f9",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+                margin: 0,
+              }}
+            >
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setSelectedApp(null)}
+                style={{
+                  padding: "9px 20px",
+                  borderRadius: 10,
+                  fontSize: "0.88rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Close
+              </button>
               {selectedApp.status === "pending" && (
                 <>
-                  <button className="btn-reject" onClick={() => handleReject(selectedApp.id)}>Reject</button>
-                  <button className="btn-approve" onClick={() => handleApprove(selectedApp.id)}>Approve</button>
+                  <button
+                    type="button"
+                    className="btn-reject"
+                    onClick={() => handleReject(selectedApp.id)}
+                    style={{
+                      padding: "9px 20px",
+                      borderRadius: 10,
+                      fontSize: "0.88rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-approve"
+                    onClick={() => handleApprove(selectedApp.id)}
+                    style={{
+                      padding: "9px 22px",
+                      borderRadius: 10,
+                      fontSize: "0.88rem",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Approve Application
+                  </button>
                 </>
               )}
             </div>
@@ -510,12 +967,341 @@ const AdminAmbassadors = () => {
         document.body
       )}
 
-      {managingAmbassador && (
-        <ManageAmbassadorModal
-          ambassador={managingAmbassador}
-          onClose={() => setManagingAmbassador(null)}
-        />
+      {grantingBadgeApp && createPortal(
+        <div className="modal-overlay" onClick={() => setGrantingBadgeApp(null)}>
+          <div
+            className="modal-container"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "580px",
+              borderRadius: "16px",
+              boxShadow: "0 20px 45px -10px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.08)",
+              overflow: "hidden",
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              className="modal-header"
+              style={{
+                padding: "20px 24px",
+                borderBottom: "1px solid #f1f5f9",
+                background: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                    color: "#b45309",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid #fcd34d",
+                    boxShadow: "0 2px 6px rgba(245, 158, 11, 0.15)",
+                  }}
+                >
+                  <LuAward size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, color: "#0f172a" }}>
+                    Grant Country Ambassador Badge
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "#64748b" }}>
+                    Assign official recognition for {grantingBadgeApp.country || "selected region"}
+                  </p>
+                </div>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setGrantingBadgeApp(null)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "#f1f5f9",
+                  color: "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "1.2rem",
+                  lineHeight: 1,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div
+              className="modal-body"
+              data-lenis-prevent="true"
+              style={{ padding: "20px 24px", background: "#f8fafc", maxHeight: "75vh", overflowY: "auto" }}
+            >
+              {/* Ambassador Card / Live Preview */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                  padding: "16px 20px",
+                  borderRadius: "14px",
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
+                  marginBottom: "20px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", minWidth: 200 }}>
+                  <img
+                    src={grantingBadgeApp.profile_image || "/assets/placeholder.webp"}
+                    alt={grantingBadgeApp.name}
+                    style={{
+                      width: "56px",
+                      height: "56px",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "2.5px solid #fed7aa",
+                      boxShadow: "0 2px 8px rgba(249, 115, 22, 0.12)",
+                    }}
+                  />
+                  <div>
+                    <div style={{ fontSize: "1rem", fontWeight: 700, color: "#0f172a" }}>
+                      {grantingBadgeApp.name}
+                    </div>
+                    <div style={{ fontSize: "0.82rem", color: "#64748b", marginTop: 2 }}>
+                      {grantingBadgeApp.country || "Unknown Country"}
+                      {grantingBadgeApp.state ? ` · ${grantingBadgeApp.state}` : ""}
+                    </div>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: "0.72rem",
+                        fontWeight: 600,
+                        color: "#c2410c",
+                        background: "#fff7ed",
+                        padding: "2px 8px",
+                        borderRadius: 999,
+                        marginTop: 4,
+                        border: "1px solid #ffedd5",
+                      }}
+                    >
+                      <LuSparkles size={11} /> Badge Candidate
+                    </div>
+                  </div>
+                </div>
+
+                {/* Badge Visual Preview */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "linear-gradient(135deg, #fffbf0 0%, #fff7ed 100%)",
+                    padding: "8px 14px",
+                    borderRadius: "12px",
+                    border: "1px solid #fed7aa",
+                    marginLeft: "auto",
+                  }}
+                >
+                  <AmbassadorBadge
+                    country={grantingBadgeApp.country || "Country"}
+                    year={grantYear}
+                    size={78}
+                  />
+                  <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#9a3412", marginTop: 4 }}>
+                    Preview · {grantYear}
+                  </span>
+                </div>
+              </div>
+
+              {/* Year Selection Section */}
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                  <label
+                    style={{
+                      fontSize: "0.85rem",
+                      fontWeight: 700,
+                      color: "#334155",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.03em",
+                    }}
+                  >
+                    <LuCalendar size={14} color="#64748b" /> Select Recognition Year
+                  </label>
+                  <span style={{ fontSize: "0.78rem", color: "#94a3b8" }}>
+                    Selected: <strong style={{ color: "#0f172a" }}>{grantYear}</strong>
+                  </span>
+                </div>
+
+                {/* Year Grid */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: "8px",
+                  }}
+                >
+                  {Array.from({ length: 10 }, (_, i) => currentYear - 4 + i).map((y) => {
+                    const isSelected = y === grantYear;
+                    const isCurrent = y === currentYear;
+
+                    return (
+                      <button
+                        key={y}
+                        type="button"
+                        onClick={() => setGrantYear(y)}
+                        style={{
+                          position: "relative",
+                          padding: "10px 4px",
+                          borderRadius: "10px",
+                          fontWeight: isSelected ? 800 : 600,
+                          fontSize: "0.92rem",
+                          cursor: "pointer",
+                          transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          minHeight: "54px",
+                          background: isSelected
+                            ? "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+                            : isCurrent
+                            ? "#fffbeb"
+                            : "#ffffff",
+                          color: isSelected
+                            ? "#ffffff"
+                            : isCurrent
+                            ? "#92400e"
+                            : "#334155",
+                          border: isSelected
+                            ? "2px solid #0f172a"
+                            : isCurrent
+                            ? "2px solid #f59e0b"
+                            : "1px solid #e2e8f0",
+                          boxShadow: isSelected
+                            ? "0 4px 12px rgba(15, 23, 42, 0.25)"
+                            : "0 1px 2px rgba(0, 0, 0, 0.03)",
+                          transform: isSelected ? "scale(1.02)" : "none",
+                        }}
+                      >
+                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          {isSelected && <LuCheck size={12} color="#f59e0b" />}
+                          {y}
+                        </span>
+                        {isCurrent && (
+                          <span
+                            style={{
+                              fontSize: "0.62rem",
+                              fontWeight: 700,
+                              color: isSelected ? "#fcd34d" : "#b45309",
+                              marginTop: "2px",
+                              letterSpacing: "0.02em",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Current
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Informational callout banner */}
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  fontSize: "0.8rem",
+                  color: "#1e40af",
+                  lineHeight: 1.45,
+                  display: "flex",
+                  gap: 10,
+                }}
+              >
+                <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>ℹ️</span>
+                <div>
+                  This badge awards the <strong>{grantYear} Country Ambassador</strong> badge to{" "}
+                  <strong>{grantingBadgeApp.name}</strong>. It will be publicly showcased on the
+                  Ambassador showcase page and in their member profile.
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              className="modal-footer"
+              style={{
+                padding: "16px 24px",
+                background: "#ffffff",
+                borderTop: "1px solid #f1f5f9",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+                margin: 0,
+              }}
+            >
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={() => setGrantingBadgeApp(null)}
+                style={{
+                  padding: "9px 18px",
+                  borderRadius: "10px",
+                  fontSize: "0.88rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmGrantBadge}
+                style={{
+                  padding: "9px 22px",
+                  borderRadius: "10px",
+                  fontSize: "0.88rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
+                  color: "#ffffff",
+                  border: "none",
+                  boxShadow: "0 4px 12px rgba(217, 119, 6, 0.3)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <LuAward size={16} /> Grant Badge for {grantYear}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
+
     </div>
   );
 };

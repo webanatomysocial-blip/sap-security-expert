@@ -8,57 +8,70 @@ import { useToast } from "../context/ToastContext";
 import "../css/ContactForm.css";
 import "../css/MemberLogin.css";
 
-// Modal shown to contributors (and Country Ambassadors, who log in the same
-// way) asking which area to enter
-const ContributorChoiceModal = ({ username, isAmbassador, onDashboard, onMember }) => createPortal(
-  <div style={{
-    position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
-    backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
-    justifyContent: "center", zIndex: 9999, padding: 20,
-  }}>
+// Modal shown after login to anyone with more than one place to land:
+// Contributors, Country Ambassadors, or both at once (one account can hold
+// both roles). A pure Ambassador never sees the Contributor Dashboard option
+// — that portal (Manage Comments, Manage Ads, etc.) doesn't apply to them,
+// they get their own single Ambassador page instead.
+const ContributorChoiceModal = ({ username, isRealContributor, isAmbassador, onDashboard, onAmbassador, onMember }) => {
+  const buttonStyle = {
+    padding: "14px 20px", background: "#1e293b", color: "#fff",
+    border: "none", borderRadius: 10, fontSize: "0.95rem",
+    fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+  };
+
+  return createPortal(
     <div style={{
-      background: "#fff", borderRadius: 20, padding: "40px 36px",
-      maxWidth: 440, width: "100%", textAlign: "center",
-      boxShadow: "0 24px 60px rgba(0,0,0,0.18)",
-      animation: "slideUp 0.3s cubic-bezier(0.16,1,0.3,1)",
+      position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
+      backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
+      justifyContent: "center", zIndex: 9999, padding: 20,
     }}>
-      <div style={{ fontSize: "2.2rem", marginBottom: 12 }}>👋</div>
-      <h3 style={{ margin: "0 0 8px", fontSize: "1.2rem", color: "#1e293b" }}>
-        Welcome back, {username}!
-      </h3>
-      <p style={{ margin: "0 0 28px", color: "#64748b", fontSize: "0.9rem", lineHeight: 1.6 }}>
-        {isAmbassador
-          ? "You have a Country Ambassador account. Where would you like to go?"
-          : "You have a contributor account. Where would you like to go?"}
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <button
-          onClick={onDashboard}
-          style={{
-            padding: "14px 20px", background: "#1e293b", color: "#fff",
-            border: "none", borderRadius: 10, fontSize: "0.95rem",
-            fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }}
-        >
-          {isAmbassador ? <>🌍 Go to Ambassador Dashboard</> : <>✍️ Go to Contributor Dashboard</>}
-        </button>
-        <button
-          onClick={onMember}
-          style={{
-            padding: "14px 20px", background: "#f8fafc", color: "#334155",
-            border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: "0.95rem",
-            fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }}
-        >
-          🌐 Continue as Member
-        </button>
+      <div style={{
+        background: "#fff", borderRadius: 20, padding: "40px 36px",
+        maxWidth: 440, width: "100%", textAlign: "center",
+        boxShadow: "0 24px 60px rgba(0,0,0,0.18)",
+        animation: "slideUp 0.3s cubic-bezier(0.16,1,0.3,1)",
+      }}>
+        <div style={{ fontSize: "2.2rem", marginBottom: 12 }}>👋</div>
+        <h3 style={{ margin: "0 0 8px", fontSize: "1.2rem", color: "#1e293b" }}>
+          Welcome back, {username}!
+        </h3>
+        <p style={{ margin: "0 0 28px", color: "#64748b", fontSize: "0.9rem", lineHeight: 1.6 }}>
+          {isRealContributor && isAmbassador
+            ? "You have a Contributor and Country Ambassador account. Where would you like to go?"
+            : isAmbassador
+              ? "You have a Country Ambassador account. Where would you like to go?"
+              : "You have a contributor account. Where would you like to go?"}
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {isRealContributor && (
+            <button onClick={onDashboard} style={buttonStyle}>
+              ✍️ Go to Contributor Dashboard
+            </button>
+          )}
+          {isAmbassador && (
+            <button onClick={onAmbassador} style={buttonStyle}>
+              🌍 Go to Ambassador Page
+            </button>
+          )}
+          <button
+            onClick={onMember}
+            style={{
+              padding: "14px 20px", background: "#f8fafc", color: "#334155",
+              border: "1.5px solid #e2e8f0", borderRadius: 10, fontSize: "0.95rem",
+              fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            🌐 Continue as Member
+          </button>
+        </div>
       </div>
-    </div>
-  </div>,
-  document.body
-);
+    </div>,
+    document.body
+  );
+};
 
 const MemberLogin = () => {
   const [email, setEmail] = useState("");
@@ -132,6 +145,11 @@ const MemberLogin = () => {
     navigate("/admin", { replace: true });
   };
 
+  const goToAmbassadorPage = () => {
+    addToast("Welcome back!", "success");
+    navigate("/member/ambassador", { replace: true });
+  };
+
   const goToMember = () => {
     addToast("Welcome back!", "success");
     const returnTo = location.state?.fromAuth ? "/" : (location.state?.from || "/");
@@ -143,8 +161,10 @@ const MemberLogin = () => {
     {contributorChoice && (
       <ContributorChoiceModal
         username={contributorChoice.member?.full_name || contributorChoice.member?.username}
+        isRealContributor={!!contributorChoice.is_real_contributor}
         isAmbassador={!!contributorChoice.is_ambassador}
         onDashboard={goToDashboard}
+        onAmbassador={goToAmbassadorPage}
         onMember={goToMember}
       />
     )}

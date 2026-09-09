@@ -55,6 +55,7 @@ const MemberLogin              = lazy(() => import("./views/MemberLogin"));
 const MemberSignup             = lazy(() => import("./views/MemberSignup"));
 const MemberCredits            = lazy(() => import("./views/MemberCredits"));
 const MemberAchievements       = lazy(() => import("./views/MemberAchievements"));
+const AmbassadorMemberPage     = lazy(() => import("./views/AmbassadorMemberPage"));
 const MemberInvoice            = lazy(() => import("./views/MemberInvoice"));
 const PaidArticles             = lazy(() => import("./views/PaidArticles"));
 const ProfileSettings          = lazy(() => import("./views/ProfileSettings"));
@@ -202,6 +203,7 @@ function App() {
           <Route path="member/register" element={<Navigate to="/member/signup" replace />} />
           <Route path="member/credits" element={<MemberCredits />} />
           <Route path="member/achievements" element={<MemberAchievements />} />
+          <Route path="member/ambassador" element={<AmbassadorMemberPage />} />
           <Route path="member/invoice/:txId" element={<MemberInvoice />} />
           <Route path="member/settings" element={<ProfileSettings />} />
           <Route path="member/directory" element={<MemberDirectory />} />
