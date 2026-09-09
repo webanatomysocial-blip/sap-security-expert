@@ -364,6 +364,30 @@ async function recordUserLogin(db, userId) {
 // Country Ambassador badge, resolved via the linked users row (members and
 // users aren't directly linked by FK — email is the shared key everywhere
 // else in this login flow, so it's used here too).
+// Full application details + badge history for the Ambassador member page —
+// findAmbassadorBadgeByEmail above only returns the badge-relevant columns.
+async function findAmbassadorFullProfileByEmail(db, email) {
+  const [rows] = await db.execute(
+    `SELECT a.id, a.full_name, a.email, a.linkedin, a.country, a.state, a.city, a.organization,
+            a.\`current_role\`, a.years_experience, a.expertise, a.other_expertise, a.motivation,
+            a.image, a.has_badge, a.badge_year, a.status, a.approved_at,
+            (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
+             WHERE u.ambassador_id = a.id AND b.status IN ('approved','published')) AS contributions_count
+     FROM users u JOIN ambassadors a ON a.id = u.ambassador_id
+     WHERE LOWER(u.email) = LOWER(?) AND a.status = 'approved' LIMIT 1`,
+    [email]
+  ).catch(() => [[]]);
+  const profile = rows[0];
+  if (!profile) return null;
+  const [yearRows] = await db.execute(
+    'SELECT badge_year, granted_at FROM ambassador_badge_history WHERE ambassador_id = ? ORDER BY badge_year DESC',
+    [profile.id]
+  ).catch(() => [[]]);
+  profile.badge_history = yearRows;
+  profile.image = profile.contributions_count > 0 ? profile.image : null;
+  return profile;
+}
+
 async function findAmbassadorBadgeByEmail(db, email) {
   const [rows] = await db.execute(
     `SELECT a.id, a.has_badge, a.badge_year, a.country
@@ -391,6 +415,7 @@ module.exports = {
   findApprovedMemberByReferralCode, insertMember,
   findMemberProfileById, findContributorApprovedByEmail, updateMemberProfile, findMemberEmailById, syncProfileImageToUserAndContributor,
   findReferralCodeById, updateReferralCode, countApprovedReferrals,
+  findAmbassadorFullProfileByEmail,
   ensureAchievementTables, findAchievementRecord, insertAchievement, findAchievementType, markAchievementEmailSent,
   findAllAchievementTypes, findEarnedAchievements, findMemberEmailAndName, countApprovedComments, hasCreditTransactionNote,
   findMemberAuthById, updateMemberPassword, syncPasswordToUser, recordMemberLogin, recordUserLogin, findAmbassadorBadgeByEmail,

@@ -108,10 +108,17 @@ const login = async (req, res) => {
     }
 
     const ambassadorBadge = await repo.findAmbassadorBadgeByEmail(db, member.email);
+    // isContributor above only means "has a users-table login" — true for
+    // Ambassadors too, since they share the same login mechanism. This is
+    // the actual "did they apply and get approved as a Contributor" check,
+    // used by the frontend to decide whether to offer the Contributor
+    // Dashboard at all (an Ambassador-only account shouldn't see it).
+    const isRealContributor = await repo.findContributorApprovedByEmail(db, member.email);
 
     return res.json({
       status: 'success',
       is_contributor: isContributor,
+      is_real_contributor: isRealContributor,
       is_ambassador: !!ambassadorBadge,
       csrf_token: req.session.csrf_token || null,
       admin_user: adminData,
@@ -130,6 +137,8 @@ const login = async (req, res) => {
         profile_visibility: member.profile_visibility || null,
         receive_blog_emails: member.receive_blog_emails ?? 1,
         status: member.status,
+        is_real_contributor: isRealContributor,
+        is_ambassador: !!ambassadorBadge,
         ambassador_has_badge: !!(ambassadorBadge && ambassadorBadge.has_badge),
         ambassador_badge_year: ambassadorBadge ? ambassadorBadge.badge_year : null,
         ambassador_badge_country: ambassadorBadge ? ambassadorBadge.country : null,
@@ -250,6 +259,11 @@ const getProfile = asyncHandler(async (req, res) => {
   // Determine reputation level
   const isContributor = await repo.findContributorApprovedByEmail(db, profile.email);
   const reputation_level = isContributor ? 'Contributor' : 'Explorer';
+  // Distinguishes "actually approved as a Contributor" from merely "has an
+  // admin-portal-capable login" — an Ambassador-only account shares the
+  // latter (needed so they can still publish articles) but must never see
+  // the Contributor Dashboard link.
+  profile.is_real_contributor = isContributor;
 
   const ambassadorBadge = await repo.findAmbassadorBadgeByEmail(db, profile.email);
   profile.is_ambassador = !!ambassadorBadge;
@@ -283,6 +297,18 @@ const getProfile = asyncHandler(async (req, res) => {
     subscription,
     csrf_token: req.session.csrf_token,
   });
+});
+
+// GET /api/member/ambassador-profile — the logged-in member's Ambassador
+// application details + badge history, for the dedicated Ambassador page.
+const getAmbassadorProfile = asyncHandler(async (req, res) => {
+  const db = req.db;
+  if (!req.session.member_logged_in) {
+    return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  }
+  const profile = await repo.findAmbassadorFullProfileByEmail(db, req.session.member_email);
+  if (!profile) return res.status(404).json({ status: 'error', message: 'Not an approved Ambassador.' });
+  return res.json({ status: 'success', ambassador: profile });
 });
 
 // POST /api/member/profile/update
@@ -530,4 +556,5 @@ const changePassword = asyncHandler(async (req, res) => {
 
 module.exports = {
   login, signup, getProfile, updateProfile, logout, referral, achievements, grantAchievement, changePassword,
+  getAmbassadorProfile,
 };

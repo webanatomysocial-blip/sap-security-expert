@@ -51,6 +51,7 @@ export const getSuggestedArticles = (slug) => api.get(`/posts/${slug}/suggested`
 export const updateBlogBadges = (id, badges) => api.put(`/posts/${id}/badges`, badges);
 export const getExclusiveCount = () => api.get('/posts/exclusive-count');
 export const getMemberProfile = () => api.get('/member/profile');
+export const getAmbassadorMemberProfile = () => api.get('/member/ambassador-profile');
 export const getCommentsByBlogId = (blogId) => api.get(`/get-comments?blogId=${blogId}`);
 export const submitComment = (data) => api.post('/comments', data);
 export const applyContributor = (data) => api.post('/contributors/apply', data, {
@@ -100,9 +101,6 @@ export const updateContributorStatus = (data) => api.post('/admin/contributors',
 export const deleteContributor = (id, otp) => api.post('/admin/delete-contributor', { id, ...(otp ? { otp } : {}) });
 export const getAmbassadors = () => api.get('/admin/ambassadors');
 export const updateAmbassadorStatus = (data) => api.post('/admin/ambassadors', data);
-export const getAmbassadorLogin = (ambassadorId) => api.get(`/admin/ambassador-login?ambassador_id=${ambassadorId}`);
-export const createAmbassadorLogin = (data) => api.post('/admin/create-ambassador-login', data);
-export const updateAmbassadorAccess = (data) => api.post('/admin/update-ambassador-access', data);
 export const getAmbassadorBadgeHistory = (country) => api.get(`/admin/ambassador-badge-history?country=${encodeURIComponent(country)}`);
 
 // ── Members Management (Admin) ───────────────────────────────────────────────

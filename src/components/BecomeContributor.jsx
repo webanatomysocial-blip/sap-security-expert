@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 // next-disabled: import "../css/BecomeContributor.css";
 
 const BecomeContributor = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedRoleIndex, setSelectedRoleIndex] = useState(null);
 
   const roles = [
@@ -142,7 +143,9 @@ const BecomeContributor = () => {
   const handleApplyNow = () => {
     if (selectedRoleIndex === null) return;
     const roleTitle = roles[selectedRoleIndex].title;
-    navigate("/apply-contributor", { state: { role: roleTitle } });
+    // Forwards along any pre-fill data this page itself arrived with (e.g.
+    // name/email/etc. from a just-submitted Ambassador application).
+    navigate("/apply-contributor", { state: { ...(location.state || {}), role: roleTitle } });
   };
 
   return (
