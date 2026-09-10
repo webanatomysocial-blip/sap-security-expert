@@ -82,20 +82,18 @@ async function findInactiveAmbassadorsForDeactivation(db) {
 
 // Only one ambassador per country can hold the badge at a time — granting it
 // to one revokes it from whoever currently holds it in the same country.
+// Multiple ambassadors can hold the badge for the same country at once —
+// granting it to one no longer revokes it from anyone else in that country.
 async function grantBadge(db, id, year) {
   const ambassador = await findById(db, id);
   if (!ambassador) return;
-  if (ambassador.country) {
-    await db.execute("UPDATE ambassadors SET has_badge=0, badge_year=NULL WHERE country=? AND id<>?", [ambassador.country, id]);
-  }
   await db.execute("UPDATE ambassadors SET has_badge=1, badge_year=? WHERE id=?", [year, id]);
 
-  // Log this grant permanently — re-granting the same country+year (e.g. an
-  // admin correcting who it went to) overwrites that year's row rather than
-  // duplicating it, since exactly one ambassador can hold a given
-  // country+year. VALUES(ambassador_id) (not a bound param) keeps the param
-  // count identical after translateSQL() strips this clause for SQLite —
-  // same pattern as settingsRepository.js's upsert.
+  // Log this grant permanently — re-granting the same ambassador+country+year
+  // (e.g. correcting a mistake) overwrites that row rather than duplicating
+  // it. VALUES(ambassador_id) (not a bound param) keeps the param count
+  // identical after translateSQL() strips this clause for SQLite — same
+  // pattern as settingsRepository.js's upsert.
   if (ambassador.country) {
     await db.execute(
       `INSERT INTO ambassador_badge_history (ambassador_id, country, badge_year, granted_at)

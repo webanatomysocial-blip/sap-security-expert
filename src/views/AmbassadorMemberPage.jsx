@@ -1,0 +1,157 @@
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import SEO from "../components/SEO";
+import AmbassadorBadge from "../components/AmbassadorBadge";
+import { useMemberAuth } from "../context/MemberAuthContext";
+import { getAmbassadorMemberProfile } from "../services/api";
+
+// The one page a Country Ambassador needs after logging in: their
+// application details, current badge, and every year they've held it —
+// deliberately NOT the full Contributor admin portal (Manage Comments,
+// Manage Ads, etc. don't apply to them).
+export default function AmbassadorMemberPage() {
+  const { isLoggedIn } = useMemberAuth();
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigate("/member/login?return=/member/ambassador");
+      return;
+    }
+    getAmbassadorMemberProfile()
+      .then((res) => setProfile(res.data.ambassador))
+      .catch((err) => setError(err.response?.data?.message || "Couldn't load your Ambassador profile."))
+      .finally(() => setLoading(false));
+  }, [isLoggedIn, navigate]);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "50vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+        Loading your Ambassador profile…
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div style={{ minHeight: "50vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, textAlign: "center", padding: 24 }}>
+        <p style={{ color: "#64748b" }}>{error || "This account isn't an approved Country Ambassador."}</p>
+        <Link to="/" style={{ color: "#ee5e42", fontWeight: 600 }}>Go home</Link>
+      </div>
+    );
+  }
+
+  let expertise = profile.expertise || {};
+  if (typeof expertise === "string") {
+    try { expertise = JSON.parse(expertise); } catch { expertise = {}; }
+  }
+  const expertiseTags = Array.isArray(expertise) ? expertise : Object.keys(expertise).filter((k) => expertise[k]);
+
+  return (
+    <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 20px 80px" }}>
+      <SEO title={`${profile.full_name} | Country Ambassador Dashboard`} />
+
+      <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 32, flexWrap: "wrap" }}>
+        <div style={{
+          width: 84, height: 84, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+          background: "linear-gradient(135deg, #fff0ec, #ffe4dc)",
+          border: profile.has_badge ? "3px solid #fbbf24" : "1px solid #fecdb5",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "1.8rem", fontWeight: 700, color: "#ee5e42",
+        }}>
+          {profile.image ? (
+            <img src={profile.image} alt={profile.full_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            (profile.full_name || "A")[0].toUpperCase()
+          )}
+        </div>
+        <div>
+          <h1 style={{ margin: 0, fontSize: "1.5rem", color: "#0f172a" }}>{profile.full_name}</h1>
+          <p style={{ margin: "4px 0 0", color: "#64748b" }}>
+            Country Ambassador{profile.country ? ` · ${profile.country}` : ""}
+          </p>
+        </div>
+      </div>
+
+      {profile.contributions_count === 0 && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 16px", marginBottom: 28, fontSize: "0.85rem", color: "#92400e" }}>
+          <i className="bi bi-info-circle-fill" style={{ marginRight: 6 }} />
+          Your photo and public profile stay hidden on the Ambassadors directory until you publish your first article.
+        </div>
+      )}
+
+      {/* Badge */}
+      <section style={{ marginBottom: 40 }}>
+        <h2 style={{ fontSize: "1.05rem", color: "#0f172a", marginBottom: 16 }}>Country Ambassador Badge</h2>
+        {profile.has_badge ? (
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+            <AmbassadorBadge country={profile.country} year={profile.badge_year} size={220} />
+          </div>
+        ) : (
+          <div style={{ background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: 12, padding: 24, textAlign: "center", color: "#64748b", fontSize: "0.9rem" }}>
+            You're an approved Country Ambassador. The yearly badge is granted separately by the SAP Security Expert team.
+          </div>
+        )}
+
+        {profile.badge_history?.length > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <h3 style={{ fontSize: "0.8rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+              Badge History
+            </h3>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {profile.badge_history.map((h) => (
+                <span key={h.badge_year} style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 50, padding: "6px 14px", fontSize: "0.82rem", fontWeight: 600, color: "#1e293b" }}>
+                  <i className="bi bi-award-fill" style={{ color: "#f59e0b", marginRight: 6 }} />
+                  {h.badge_year}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Application details */}
+      <section style={{ marginBottom: 40 }}>
+        <h2 style={{ fontSize: "1.05rem", color: "#0f172a", marginBottom: 16 }}>Your Details</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 20 }}>
+          <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Organization</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.organization || "—"}</p></div>
+          <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Role</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.current_role || "—"}</p></div>
+          <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Location</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "—"}</p></div>
+          <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Years of Experience</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.years_experience || "—"}</p></div>
+        </div>
+        {expertiseTags.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+            {expertiseTags.map((tag) => (
+              <span key={tag} style={{ background: "#f3513f1a", color: "#ee5e42", borderRadius: 50, padding: "5px 14px", fontSize: "0.78rem", fontWeight: 600 }}>
+                {tag.replace(/_/g, " ")}
+              </span>
+            ))}
+          </div>
+        )}
+        {profile.motivation && (
+          <p style={{ marginTop: 16, color: "#475569", fontSize: "0.9rem", lineHeight: 1.7 }}>{profile.motivation}</p>
+        )}
+      </section>
+
+      {/* Actions */}
+      <section style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <Link
+          to="/admin"
+          style={{ background: "linear-gradient(135deg, #ee5e42, #c0392b)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 700, textDecoration: "none", fontSize: "0.9rem" }}
+        >
+          <i className="bi bi-pencil-square" style={{ marginRight: 8 }} />
+          Write an Article
+        </Link>
+        <Link
+          to="/member/settings"
+          style={{ background: "#f8fafc", color: "#334155", border: "1px solid #e2e8f0", padding: "12px 24px", borderRadius: 10, fontWeight: 600, textDecoration: "none", fontSize: "0.9rem" }}
+        >
+          Edit Profile Settings
+        </Link>
+      </section>
+    </div>
+  );
+}

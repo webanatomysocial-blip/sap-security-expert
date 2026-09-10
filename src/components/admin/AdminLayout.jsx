@@ -38,6 +38,7 @@ const AdminLayout = () => {
     pendingComments: 0,
     pendingMembers: 0,
     isAmbassador: false,
+    isRealContributor: true,
   });
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -105,6 +106,7 @@ const AdminLayout = () => {
             pendingReviews: res.data.pending_reviews || 0,
             pendingComments: res.data.pending_comments || 0,
             isAmbassador: !!res.data.is_ambassador,
+            isRealContributor: !!res.data.is_real_contributor,
           });
         }
       }
@@ -134,6 +136,15 @@ const AdminLayout = () => {
       Promise.all([fetchProfile(), fetchBadges()]).catch(() => {});
     }
   }, [isAuthenticated, fetchProfile, fetchBadges]);
+
+  // An Ambassador-only account (never approved as a Contributor) shares the
+  // same login mechanism so it can publish articles, but must never actually
+  // land on the Contributor Dashboard — bounce it to its own Ambassador page.
+  useEffect(() => {
+    if (isAuthenticated && role === "contributor" && !badges.isRealContributor && badges.isAmbassador) {
+      navigate("/member/ambassador", { replace: true });
+    }
+  }, [isAuthenticated, role, badges.isRealContributor, badges.isAmbassador, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
