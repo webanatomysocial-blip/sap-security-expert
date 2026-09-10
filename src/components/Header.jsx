@@ -8,7 +8,7 @@ import { FaChevronDown } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 
-import { LuSettings, LuUser, LuKey, LuLogOut, LuShieldCheck, LuChevronRight, LuChevronDown, LuX, LuTrash2, LuCoins, LuBookOpen } from "react-icons/lu";
+import { LuSettings, LuUser, LuKey, LuLogOut, LuShieldCheck, LuChevronRight, LuChevronDown, LuX, LuTrash2, LuCoins, LuBookOpen, LuGlobe } from "react-icons/lu";
 import MemberProfileModal from "./MemberProfileModal";
 import HeaderSearchModal from "./HeaderSearchModal";
 import DeleteAccountModal from "./DeleteAccountModal";
@@ -26,7 +26,6 @@ const Header = () => {
   const {
     isLoggedIn: isMemberLoggedIn,
     member,
-    isContributor,
     logout: memberLogout,
     creditBalance,
   } = useMemberAuth();
@@ -265,7 +264,18 @@ const Header = () => {
                     >
                       <LuBookOpen className="dropdown-icon" /> My Unlocked Articles
                     </button>
-                    {isContributor && (
+                    {(member?.is_ambassador || member?.ambassador_has_badge) && (
+                      <button
+                        className="member-dropdown-item"
+                        onClick={() => {
+                          setIsMemberDropdownOpen(false);
+                          navigate("/member/ambassador");
+                        }}
+                      >
+                        <LuGlobe className="dropdown-icon" /> Ambassador Page
+                      </button>
+                    )}
+                    {member?.is_real_contributor && (
                       <button
                         className="member-dropdown-item"
                         onClick={() => {
@@ -417,7 +427,18 @@ const Header = () => {
                 >
                   <LuShieldCheck size={18} /> Security & Privacy
                 </button>
-                {isContributor && (
+                {(member?.is_ambassador || member?.ambassador_has_badge) && (
+                  <button
+                    className="mobile-profile-btn"
+                    onClick={() => {
+                      closeMenu();
+                      navigate("/member/ambassador");
+                    }}
+                  >
+                    <LuGlobe size={18} /> Ambassador Page
+                  </button>
+                )}
+                {member?.is_real_contributor && (
                   <button
                     className="mobile-profile-btn"
                     onClick={() => {

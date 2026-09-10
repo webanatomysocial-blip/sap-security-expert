@@ -29,14 +29,14 @@ const ContributorApplication = () => {
   }, [previewUrl]);
 
   const [formData, setFormData] = useState({
-    // Section 1
-    fullName: "",
-    email: "",
-    linkedin: "",
-    country: "",
-    state: "",
-    city: "",
-    organization: "",
+    // Section 1 — pre-filled from an Ambassador application, if that's where they came from
+    fullName: location.state?.fullName || "",
+    email: location.state?.email || "",
+    linkedin: location.state?.linkedin || "",
+    country: location.state?.country || "",
+    state: location.state?.state || "",
+    city: location.state?.city || "",
+    organization: location.state?.organization || "",
     role: location.state?.role || "", // Pre-fill from previous page if available
     designation: "", // Separated from role (which is the contributor role)
 

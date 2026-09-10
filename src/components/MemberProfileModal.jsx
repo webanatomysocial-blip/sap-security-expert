@@ -147,6 +147,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
           phone: member.phone || "",
           location: member.location || "",
           country: member.country || "",
+          state: member.state || "",
           company_name: member.company_name || "",
           job_role: member.job_role || "",
           receive_blog_emails: member.receive_blog_emails !== undefined ? (member.receive_blog_emails == 1) : false,
@@ -209,6 +210,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
     data.append("phone", formData.phone);
     data.append("location", formData.location);
     data.append("country", formData.country);
+    data.append("state", formData.state);
     data.append("company_name", formData.company_name);
     data.append("job_role", formData.job_role);
     data.append("receive_blog_emails", formData.receive_blog_emails);
@@ -304,6 +306,9 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
             { key: 'security',     icon: <LuShieldCheck size={16} />, label: 'Security'      },
             { key: 'visibility',   icon: <LuEye size={16} />,         label: 'Visibility'    },
             { key: 'achievements', icon: <i className="bi bi-award-fill" />, label: 'Achievements' },
+            ...(member?.is_ambassador
+              ? [{ key: 'badges', icon: <i className="bi bi-shield-fill-check" />, label: 'Badges' }]
+              : []),
           ].map(({ key, icon, label }) => (
             <button
               key={key}
@@ -394,6 +399,38 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
                   </div>
                 </>
               )}
+            </div>
+          ) : activeTab === 'badges' ? (
+            <div style={{ textAlign: 'center' }}>
+              {member?.ambassador_has_badge ? (
+                <AmbassadorBadge country={member.ambassador_badge_country} year={member.ambassador_badge_year} size={200} style={{ margin: '0 auto' }} />
+              ) : (
+                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 12, padding: 24, color: '#64748b', fontSize: '0.85rem' }}>
+                  You're an approved Country Ambassador. The yearly badge is granted separately by the SAP Security Expert team.
+                </div>
+              )}
+              {member?.ambassador_badge_years?.length > 1 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 20 }}>
+                  {member.ambassador_badge_years.map((y) => (
+                    <span key={y} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 50, padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600, color: '#1e293b' }}>
+                      <i className="bi bi-award-fill" style={{ color: '#f59e0b', marginRight: 6 }} />
+                      {y}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div style={{ textAlign: 'center', marginTop: 24 }}>
+                <button
+                  onClick={() => { onClose(); navigate('/member/ambassador'); }}
+                  style={{
+                    background: 'none', border: '1px solid #ee5e42', color: '#ee5e42',
+                    borderRadius: '8px', padding: '8px 20px', cursor: 'pointer',
+                    fontSize: '0.875rem', fontWeight: '600',
+                  }}
+                >
+                  Open Ambassador Page
+                </button>
+              </div>
             </div>
           ) : activeTab === 'visibility' ? (
             <div className="visibility-settings">

@@ -225,9 +225,28 @@ if (isSQLite) {
       country       TEXT NOT NULL,
       badge_year    INTEGER NOT NULL,
       granted_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE (country, badge_year)
+      UNIQUE (ambassador_id, country, badge_year)
     )
   `).run();
+
+  // Multiple ambassadors can now hold the badge for the same country at
+  // once — rebuild any table still carrying the old one-per-country UNIQUE
+  // (country, badge_year), which would silently block a second grant.
+  const badgeHistorySql = sqliteDb.prepare("SELECT sql FROM sqlite_master WHERE name='ambassador_badge_history'").get()?.sql || '';
+  if (badgeHistorySql.includes('UNIQUE (country, badge_year)')) {
+    sqliteDb.prepare('ALTER TABLE ambassador_badge_history RENAME TO _stale_ambassador_badge_history').run();
+    sqliteDb.prepare(`CREATE TABLE ambassador_badge_history (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      ambassador_id INTEGER NOT NULL,
+      country       TEXT NOT NULL,
+      badge_year    INTEGER NOT NULL,
+      granted_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (ambassador_id, country, badge_year)
+    )`).run();
+    sqliteDb.prepare('INSERT INTO ambassador_badge_history SELECT * FROM _stale_ambassador_badge_history').run();
+    sqliteDb.prepare('DROP TABLE _stale_ambassador_badge_history').run();
+    console.log('[DB] Migration: allowed multiple ambassadors per country to hold the badge (ambassador_badge_history)');
+  }
 
   // member_subscriptions table
   sqliteDb.prepare(`
@@ -359,6 +378,7 @@ if (isSQLite) {
     { name: 'last_login',      def: "DATETIME DEFAULT NULL" },
     { name: 'login_count',     def: "INTEGER NOT NULL DEFAULT 0" },
     { name: 'country',         def: "TEXT DEFAULT NULL" },
+    { name: 'state',           def: "TEXT DEFAULT NULL" },
     { name: 'goals',           def: "TEXT DEFAULT NULL" },
     { name: 'current_role',    def: "TEXT DEFAULT NULL" },
     { name: 'research_opt_in', def: "INTEGER DEFAULT NULL" },
@@ -734,9 +754,9 @@ if (isSQLite) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `));
 
-      // Append-only log of every badge grant, one row per (country, year) —
-      // see the matching SQLite table above for why this exists alongside
-      // ambassadors.has_badge (which only tracks the current holder).
+      // Append-only log of every badge grant, one row per ambassador/country/
+      // year — see the matching SQLite table above for why this exists
+      // alongside ambassadors.has_badge (which only tracks current holders).
       await step('create ambassador_badge_history', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS ambassador_badge_history (
           id            INT      NOT NULL AUTO_INCREMENT,
@@ -745,10 +765,32 @@ if (isSQLite) {
           badge_year    INT      NOT NULL,
           granted_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (id),
-          UNIQUE KEY uq_abh_country_year (country, badge_year),
+          UNIQUE KEY uq_abh_ambassador_country_year (ambassador_id, country, badge_year),
           KEY idx_abh_ambassador (ambassador_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `));
+
+      // Multiple ambassadors can now hold the badge for the same country at
+      // once — existing tables still carrying the old one-per-country
+      // UNIQUE (country, badge_year) need it swapped for the new
+      // per-ambassador one, or a second grant in the same country silently
+      // fails/overwrites the first. Checked first (rather than relying on
+      // try/catch) so an already-migrated DB doesn't log a spurious failure
+      // on every restart.
+      await step('migrate ambassador_badge_history to per-ambassador unique key', async () => {
+        const [indexes] = await conn.execute(
+          `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ambassador_badge_history'
+             AND INDEX_NAME IN ('uq_abh_country_year', 'uq_abh_ambassador_country_year')`
+        );
+        const names = indexes.map((r) => r.INDEX_NAME);
+        if (names.includes('uq_abh_country_year')) {
+          await conn.execute('ALTER TABLE ambassador_badge_history DROP INDEX uq_abh_country_year');
+        }
+        if (!names.includes('uq_abh_ambassador_country_year')) {
+          await conn.execute('ALTER TABLE ambassador_badge_history ADD UNIQUE KEY uq_abh_ambassador_country_year (ambassador_id, country, badge_year)');
+        }
+      });
 
       await step('create site_settings', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS site_settings (
@@ -865,6 +907,7 @@ if (isSQLite) {
       if (!memberCols.includes('last_login'))          await addCol('members', 'last_login',         "DATETIME DEFAULT NULL");
       if (!memberCols.includes('login_count'))         await addCol('members', 'login_count',        "INT NOT NULL DEFAULT 0");
       if (!memberCols.includes('country'))             await addCol('members', 'country',            "VARCHAR(100) DEFAULT NULL");
+      if (!memberCols.includes('state'))               await addCol('members', 'state',              "VARCHAR(100) DEFAULT NULL");
       if (!memberCols.includes('goals'))               await addCol('members', 'goals',              "TEXT DEFAULT NULL");
       if (!memberCols.includes('current_role'))        await addCol('members', 'current_role',       "VARCHAR(100) DEFAULT NULL");
       if (!memberCols.includes('research_opt_in'))     await addCol('members', 'research_opt_in',    "TINYINT(1) DEFAULT NULL");

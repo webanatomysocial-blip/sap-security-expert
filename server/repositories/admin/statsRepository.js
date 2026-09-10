@@ -46,6 +46,16 @@ async function getContributorStats(db, userId) {
     [userId]
   ).catch(() => [[null]]);
 
+  // An Ambassador-only account still has role='contributor' on its users row
+  // (needed so it can publish articles), but is not a real approved
+  // Contributor — this distinguishes the two for the frontend so an
+  // Ambassador-only account never sees the Contributor Dashboard.
+  const [[realContributor]] = await db.execute(
+    `SELECT c.id FROM users u JOIN contributors c ON c.id = u.contributor_id
+     WHERE u.id = ? AND c.status = 'approved' LIMIT 1`,
+    [userId]
+  ).catch(() => [[null]]);
+
   return {
     total: total.c,
     drafts: drafts.c,
@@ -59,6 +69,7 @@ async function getContributorStats(db, userId) {
     rejected_comments: rejected_comments.c,
     total_ads: total_ads.c,
     total_announcements: total_announcements.c,
+    is_real_contributor: !!realContributor,
     is_ambassador: !!ambassador,
     ambassador_has_badge: !!(ambassador && ambassador.has_badge),
     ambassador_badge_year: ambassador ? ambassador.badge_year : null,

@@ -108,10 +108,17 @@ const login = async (req, res) => {
     }
 
     const ambassadorBadge = await repo.findAmbassadorBadgeByEmail(db, member.email);
+    // isContributor above only means "has a users-table login" — true for
+    // Ambassadors too, since they share the same login mechanism. This is
+    // the actual "did they apply and get approved as a Contributor" check,
+    // used by the frontend to decide whether to offer the Contributor
+    // Dashboard at all (an Ambassador-only account shouldn't see it).
+    const isRealContributor = await repo.findContributorApprovedByEmail(db, member.email);
 
     return res.json({
       status: 'success',
       is_contributor: isContributor,
+      is_real_contributor: isRealContributor,
       is_ambassador: !!ambassadorBadge,
       csrf_token: req.session.csrf_token || null,
       admin_user: adminData,
@@ -124,12 +131,15 @@ const login = async (req, res) => {
         phone: member.phone || null,
         location: member.location || null,
         country: member.country || null,
+        state: member.state || null,
         company_name: member.company_name || null,
         job_role: member.job_role || null,
         profile_image: member.profile_image || null,
         profile_visibility: member.profile_visibility || null,
         receive_blog_emails: member.receive_blog_emails ?? 1,
         status: member.status,
+        is_real_contributor: isRealContributor,
+        is_ambassador: !!ambassadorBadge,
         ambassador_has_badge: !!(ambassadorBadge && ambassadorBadge.has_badge),
         ambassador_badge_year: ambassadorBadge ? ambassadorBadge.badge_year : null,
         ambassador_badge_country: ambassadorBadge ? ambassadorBadge.country : null,
@@ -147,7 +157,7 @@ const login = async (req, res) => {
 const signup = async (req, res) => {
   const db = req.db;
   const {
-    name, phone, email, location, country, company_name, job_role, username: rawUsername,
+    name, phone, email, location, country, state, company_name, job_role, username: rawUsername,
     password, receive_blog_emails = 1, ref_code, goals, currentRole, researchOptIn,
   } = req.body || {};
 
@@ -218,7 +228,7 @@ const signup = async (req, res) => {
     }
 
     await repo.insertMember(db, {
-      name, phone, email, username, location, country, company_name, job_role, hash,
+      name, phone, email, username, location, country, state, company_name, job_role, hash,
       receive_blog_emails, newRefCode, referredByCode, goals, currentRole, researchOptIn,
     });
 
@@ -250,6 +260,11 @@ const getProfile = asyncHandler(async (req, res) => {
   // Determine reputation level
   const isContributor = await repo.findContributorApprovedByEmail(db, profile.email);
   const reputation_level = isContributor ? 'Contributor' : 'Explorer';
+  // Distinguishes "actually approved as a Contributor" from merely "has an
+  // admin-portal-capable login" — an Ambassador-only account shares the
+  // latter (needed so they can still publish articles) but must never see
+  // the Contributor Dashboard link.
+  profile.is_real_contributor = isContributor;
 
   const ambassadorBadge = await repo.findAmbassadorBadgeByEmail(db, profile.email);
   profile.is_ambassador = !!ambassadorBadge;
@@ -285,13 +300,25 @@ const getProfile = asyncHandler(async (req, res) => {
   });
 });
 
+// GET /api/member/ambassador-profile — the logged-in member's Ambassador
+// application details + badge history, for the dedicated Ambassador page.
+const getAmbassadorProfile = asyncHandler(async (req, res) => {
+  const db = req.db;
+  if (!req.session.member_logged_in) {
+    return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  }
+  const profile = await repo.findAmbassadorFullProfileByEmail(db, req.session.member_email);
+  if (!profile) return res.status(404).json({ status: 'error', message: 'Not an approved Ambassador.' });
+  return res.json({ status: 'success', ambassador: profile });
+});
+
 // POST /api/member/profile/update
 const updateProfile = asyncHandler(async (req, res) => {
   const db = req.db;
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   }
-  const { name, phone, location, country, company_name, job_role, receive_blog_emails, profile_visibility } = req.body || {};
+  const { name, phone, location, country, state, company_name, job_role, receive_blog_emails, profile_visibility } = req.body || {};
 
   let profileImage = null;
   if (req.file) {
@@ -299,7 +326,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   }
 
   await repo.updateMemberProfile(db, req.session.member_id, {
-    name, phone, location, country, company_name, job_role, receive_blog_emails, profile_visibility, profileImage,
+    name, phone, location, country, state, company_name, job_role, receive_blog_emails, profile_visibility, profileImage,
   });
 
   // Sync profile image to contributor/user account (same email) so both portals show the same photo
@@ -307,6 +334,16 @@ const updateProfile = asyncHandler(async (req, res) => {
     const memberRow = await repo.findMemberEmailById(db, req.session.member_id);
     if (memberRow) {
       await repo.syncProfileImageToUserAndContributor(db, memberRow.email, profileImage);
+    }
+  }
+
+  // Keep Contributor/Ambassador application records in sync with whatever
+  // country/state/city the member sets here — they're the same person's
+  // location, shown across three different tables.
+  if (country !== undefined || state !== undefined || location !== undefined) {
+    const memberRow = await repo.findMemberEmailById(db, req.session.member_id);
+    if (memberRow) {
+      await repo.syncLocationToContributorAndAmbassador(db, memberRow.email, { country, state, city: location });
     }
   }
 
@@ -530,4 +567,5 @@ const changePassword = asyncHandler(async (req, res) => {
 
 module.exports = {
   login, signup, getProfile, updateProfile, logout, referral, achievements, grantAchievement, changePassword,
+  getAmbassadorProfile,
 };

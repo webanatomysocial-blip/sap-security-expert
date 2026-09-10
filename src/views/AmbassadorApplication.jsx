@@ -164,9 +164,27 @@ const AmbassadorApplication = () => {
                 Thank you for your interest in the Country Ambassador recognition. Our team will review your
                 profile against our qualification criteria and get back to you shortly.
               </p>
-              <Link to="/" className="btn-apply-now">
-                Return to Home
-              </Link>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
+                <Link to="/" className="btn-apply-now">
+                  Return to Home
+                </Link>
+                <Link
+                  to="/become-a-contributor"
+                  state={{
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    linkedin: formData.linkedin,
+                    country: formData.country,
+                    state: formData.state,
+                    city: formData.city,
+                    organization: formData.organization,
+                  }}
+                  className="btn-apply-now"
+                  style={{ background: "transparent", color: "var(--primary-color, #ee5e42)", border: "2px solid currentColor" }}
+                >
+                  Want to also become a Contributor?
+                </Link>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleInitialSubmit} className="detailed-form">
