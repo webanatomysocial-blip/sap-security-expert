@@ -131,6 +131,7 @@ const login = async (req, res) => {
         phone: member.phone || null,
         location: member.location || null,
         country: member.country || null,
+        state: member.state || null,
         company_name: member.company_name || null,
         job_role: member.job_role || null,
         profile_image: member.profile_image || null,
@@ -156,7 +157,7 @@ const login = async (req, res) => {
 const signup = async (req, res) => {
   const db = req.db;
   const {
-    name, phone, email, location, country, company_name, job_role, username: rawUsername,
+    name, phone, email, location, country, state, company_name, job_role, username: rawUsername,
     password, receive_blog_emails = 1, ref_code, goals, currentRole, researchOptIn,
   } = req.body || {};
 
@@ -227,7 +228,7 @@ const signup = async (req, res) => {
     }
 
     await repo.insertMember(db, {
-      name, phone, email, username, location, country, company_name, job_role, hash,
+      name, phone, email, username, location, country, state, company_name, job_role, hash,
       receive_blog_emails, newRefCode, referredByCode, goals, currentRole, researchOptIn,
     });
 
@@ -317,7 +318,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   }
-  const { name, phone, location, country, company_name, job_role, receive_blog_emails, profile_visibility } = req.body || {};
+  const { name, phone, location, country, state, company_name, job_role, receive_blog_emails, profile_visibility } = req.body || {};
 
   let profileImage = null;
   if (req.file) {
@@ -325,7 +326,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   }
 
   await repo.updateMemberProfile(db, req.session.member_id, {
-    name, phone, location, country, company_name, job_role, receive_blog_emails, profile_visibility, profileImage,
+    name, phone, location, country, state, company_name, job_role, receive_blog_emails, profile_visibility, profileImage,
   });
 
   // Sync profile image to contributor/user account (same email) so both portals show the same photo
@@ -333,6 +334,16 @@ const updateProfile = asyncHandler(async (req, res) => {
     const memberRow = await repo.findMemberEmailById(db, req.session.member_id);
     if (memberRow) {
       await repo.syncProfileImageToUserAndContributor(db, memberRow.email, profileImage);
+    }
+  }
+
+  // Keep Contributor/Ambassador application records in sync with whatever
+  // country/state/city the member sets here — they're the same person's
+  // location, shown across three different tables.
+  if (country !== undefined || state !== undefined || location !== undefined) {
+    const memberRow = await repo.findMemberEmailById(db, req.session.member_id);
+    if (memberRow) {
+      await repo.syncLocationToContributorAndAmbassador(db, memberRow.email, { country, state, city: location });
     }
   }
 

@@ -378,6 +378,7 @@ if (isSQLite) {
     { name: 'last_login',      def: "DATETIME DEFAULT NULL" },
     { name: 'login_count',     def: "INTEGER NOT NULL DEFAULT 0" },
     { name: 'country',         def: "TEXT DEFAULT NULL" },
+    { name: 'state',           def: "TEXT DEFAULT NULL" },
     { name: 'goals',           def: "TEXT DEFAULT NULL" },
     { name: 'current_role',    def: "TEXT DEFAULT NULL" },
     { name: 'research_opt_in', def: "INTEGER DEFAULT NULL" },
@@ -906,6 +907,7 @@ if (isSQLite) {
       if (!memberCols.includes('last_login'))          await addCol('members', 'last_login',         "DATETIME DEFAULT NULL");
       if (!memberCols.includes('login_count'))         await addCol('members', 'login_count',        "INT NOT NULL DEFAULT 0");
       if (!memberCols.includes('country'))             await addCol('members', 'country',            "VARCHAR(100) DEFAULT NULL");
+      if (!memberCols.includes('state'))               await addCol('members', 'state',              "VARCHAR(100) DEFAULT NULL");
       if (!memberCols.includes('goals'))               await addCol('members', 'goals',              "TEXT DEFAULT NULL");
       if (!memberCols.includes('current_role'))        await addCol('members', 'current_role',       "VARCHAR(100) DEFAULT NULL");
       if (!memberCols.includes('research_opt_in'))     await addCol('members', 'research_opt_in',    "TINYINT(1) DEFAULT NULL");

@@ -147,6 +147,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
           phone: member.phone || "",
           location: member.location || "",
           country: member.country || "",
+          state: member.state || "",
           company_name: member.company_name || "",
           job_role: member.job_role || "",
           receive_blog_emails: member.receive_blog_emails !== undefined ? (member.receive_blog_emails == 1) : false,
@@ -209,6 +210,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
     data.append("phone", formData.phone);
     data.append("location", formData.location);
     data.append("country", formData.country);
+    data.append("state", formData.state);
     data.append("company_name", formData.company_name);
     data.append("job_role", formData.job_role);
     data.append("receive_blog_emails", formData.receive_blog_emails);

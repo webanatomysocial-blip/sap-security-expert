@@ -97,9 +97,9 @@ async function findApprovedMemberByReferralCode(db, code) {
 
 async function insertMember(db, f) {
   await db.execute(
-    `INSERT INTO members (name, phone, email, username, location, country, company_name, job_role, password_hash, status, created_at, receive_blog_emails, referral_code, referred_by_code, goals, \`current_role\`, research_opt_in)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)`,
-    [f.name, f.phone || null, f.email, f.username, f.location || null, f.country, f.company_name || null, f.job_role || null,
+    `INSERT INTO members (name, phone, email, username, location, country, state, company_name, job_role, password_hash, status, created_at, receive_blog_emails, referral_code, referred_by_code, goals, \`current_role\`, research_opt_in)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)`,
+    [f.name, f.phone || null, f.email, f.username, f.location || null, f.country, f.state || null, f.company_name || null, f.job_role || null,
      f.hash, parseInt(f.receive_blog_emails) || 1, f.newRefCode, f.referredByCode,
      f.goals ? JSON.stringify(f.goals) : null, f.currentRole || null, f.researchOptIn === 'yes' ? 1 : (f.researchOptIn === 'no' ? 0 : null)]
   );
@@ -108,7 +108,7 @@ async function insertMember(db, f) {
 // ── Profile ───────────────────────────────────────────────────────────────
 async function findMemberProfileById(db, memberId) {
   const [rows] = await db.execute(
-    'SELECT id, name, email, username, phone, location, country, company_name, job_role, profile_image, receive_blog_emails, profile_visibility, status FROM members WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, username, phone, location, country, state, company_name, job_role, profile_image, receive_blog_emails, profile_visibility, status FROM members WHERE id = ? LIMIT 1',
     [memberId]
   );
   return rows[0] || null;
@@ -145,6 +145,11 @@ async function updateMemberProfile(db, memberId, fields) {
     params.push(fields.country);
   }
 
+  if (fields.state) {
+    updates.push('state=?');
+    params.push(fields.state);
+  }
+
   if (fields.profile_visibility) {
     updates.push('profile_visibility=?');
     params.push(typeof fields.profile_visibility === 'string' ? fields.profile_visibility : JSON.stringify(fields.profile_visibility));
@@ -169,6 +174,22 @@ async function syncProfileImageToUserAndContributor(db, email, profileImage) {
   await db.execute(
     'UPDATE contributors SET image=? WHERE id=(SELECT contributor_id FROM users WHERE LOWER(email)=LOWER(?) LIMIT 1)',
     [profileImage, email]
+  ).catch(() => {});
+}
+
+// Keeps the location a member sets in Profile Settings in sync with their
+// Contributor/Ambassador application rows (same email) — those forms collect
+// their own country/state/city at apply time, which would otherwise drift
+// from whatever the member later corrects on their account. contributors has
+// only a country column (no state/city), so only that gets synced there.
+async function syncLocationToContributorAndAmbassador(db, email, { country, state, city }) {
+  await db.execute(
+    'UPDATE contributors SET country=? WHERE LOWER(email)=LOWER(?)',
+    [country || null, email]
+  ).catch(() => {});
+  await db.execute(
+    'UPDATE ambassadors SET country=?, state=?, city=? WHERE LOWER(email)=LOWER(?)',
+    [country || null, state || null, city || null, email]
   ).catch(() => {});
 }
 
@@ -414,6 +435,7 @@ module.exports = {
   findMemberStatusByEmail, userExistsByEmail, memberExistsByUsername, userExistsByUsername,
   findApprovedMemberByReferralCode, insertMember,
   findMemberProfileById, findContributorApprovedByEmail, updateMemberProfile, findMemberEmailById, syncProfileImageToUserAndContributor,
+  syncLocationToContributorAndAmbassador,
   findReferralCodeById, updateReferralCode, countApprovedReferrals,
   findAmbassadorFullProfileByEmail,
   ensureAchievementTables, findAchievementRecord, insertAchievement, findAchievementType, markAchievementEmailSent,
