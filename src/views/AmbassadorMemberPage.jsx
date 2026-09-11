@@ -259,52 +259,6 @@ export default function AmbassadorMemberPage() {
 
         {/* Right Main Column */}
         <main className="amb-content-col">
-          {/* Multi-Year Badges Gallery Section (if multiple years exist) */}
-          {badgeHistory.length > 0 && (
-            <section className="amb-card">
-              <div className="amb-card-header">
-                <h2 className="amb-card-title">
-                  <i className="bi bi-award-fill" style={{ color: "#f59e0b" }} />
-                  Multi-Year Ambassador Badges ({badgeHistory.length})
-                </h2>
-              </div>
-              <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: "0.92rem", lineHeight: 1.5 }}>
-                As an officially recognized SAP Security Expert Country Ambassador, each awarded year gives you a dedicated badge customized with your country and year. You can preview or download high-resolution PNGs for any awarded year below:
-              </p>
-
-              <div className="amb-gallery-grid">
-                {badgeHistory.map((h) => (
-                  <div
-                    key={h.badge_year}
-                    className={`amb-gallery-card ${activeDisplayYear === h.badge_year ? "active" : ""}`}
-                  >
-                    <span className="amb-gallery-year-badge">
-                      <i className="bi bi-award-fill" /> {h.badge_year}
-                    </span>
-
-                    <AmbassadorBadge
-                      country={profile.country}
-                      year={h.badge_year}
-                      size={170}
-                      onClick={() => setSelectedYear(h.badge_year)}
-                    />
-
-                    <button
-                      type="button"
-                      className="amb-gallery-dl-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        downloadBadgeImage(profile.country, h.badge_year);
-                      }}
-                    >
-                      <i className="bi bi-download" /> Download PNG
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
           {/* Details Card */}
           <section className="amb-card">
             <div className="amb-card-header">
@@ -458,6 +412,52 @@ export default function AmbassadorMemberPage() {
                     <p className="amb-answer-body">{profile.contribution_links}</p>
                   </div>
                 )}
+              </div>
+            </section>
+          )}
+
+          {/* Official Ambassador Badges Gallery (Moved to Bottom, 3 per row) */}
+          {badgeHistory.length > 0 && (
+            <section className="amb-card">
+              <div className="amb-card-header">
+                <h2 className="amb-card-title">
+                  <i className="bi bi-award-fill" style={{ color: "#f59e0b" }} />
+                  Official Ambassador Badges ({badgeHistory.length})
+                </h2>
+              </div>
+              <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: "0.92rem", lineHeight: 1.5 }}>
+                As an officially recognized Country Ambassador, each year of active service entitles you to a custom badge featuring your country and year. Preview and download high-resolution PNGs for any awarded year below:
+              </p>
+
+              <div className="amb-gallery-grid">
+                {badgeHistory.map((h) => (
+                  <div
+                    key={h.badge_year}
+                    className={`amb-gallery-card ${activeDisplayYear === h.badge_year ? "active" : ""}`}
+                  >
+                    <span className="amb-gallery-year-badge">
+                      <i className="bi bi-award-fill" /> {h.badge_year}
+                    </span>
+
+                    <AmbassadorBadge
+                      country={profile.country}
+                      year={h.badge_year}
+                      size={170}
+                      onClick={() => setSelectedYear(h.badge_year)}
+                    />
+
+                    <button
+                      type="button"
+                      className="amb-gallery-dl-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadBadgeImage(profile.country, h.badge_year);
+                      }}
+                    >
+                      <i className="bi bi-download" /> Download PNG
+                    </button>
+                  </div>
+                ))}
               </div>
             </section>
           )}
