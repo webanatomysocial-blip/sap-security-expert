@@ -76,13 +76,6 @@ export default function AmbassadorMemberPage() {
         </div>
       </div>
 
-      {profile.contributions_count === 0 && (
-        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: "12px 16px", marginBottom: 28, fontSize: "0.85rem", color: "#92400e" }}>
-          <i className="bi bi-info-circle-fill" style={{ marginRight: 6 }} />
-          Your photo and public profile stay hidden on the Ambassadors directory until you publish your first article.
-        </div>
-      )}
-
       {/* Badge */}
       <section style={{ marginBottom: 40 }}>
         <h2 style={{ fontSize: "1.05rem", color: "#0f172a", marginBottom: 16 }}>Country Ambassador Badge</h2>
@@ -139,15 +132,8 @@ export default function AmbassadorMemberPage() {
       {/* Actions */}
       <section style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <Link
-          to="/admin"
-          style={{ background: "linear-gradient(135deg, #ee5e42, #c0392b)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 700, textDecoration: "none", fontSize: "0.9rem" }}
-        >
-          <i className="bi bi-pencil-square" style={{ marginRight: 8 }} />
-          Write an Article
-        </Link>
-        <Link
           to="/member/settings"
-          style={{ background: "#f8fafc", color: "#334155", border: "1px solid #e2e8f0", padding: "12px 24px", borderRadius: 10, fontWeight: 600, textDecoration: "none", fontSize: "0.9rem" }}
+          style={{ background: "linear-gradient(135deg, #ee5e42, #c0392b)", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 700, textDecoration: "none", fontSize: "0.9rem" }}
         >
           Edit Profile Settings
         </Link>

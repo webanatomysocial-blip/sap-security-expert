@@ -428,6 +428,7 @@ export default function DynamicBlog() {
         content_version={blog.content_version || null}
         preview_paragraphs={blog.paywall_preview ?? blog.preview_paragraphs ?? null}
         author_contributor_id={blog.author_contributor_id || null}
+        author_contributor_slug={blog.author_contributor_slug || null}
         dynamicRecentPosts={[]}
         viewCount={blog.view_count || 0}
         commentCount={commentsCount}

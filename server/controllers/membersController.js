@@ -70,11 +70,16 @@ const login = async (req, res) => {
     // member-facing mutating routes (profile update, payments) verify this too.
     req.session.csrf_token = req.session.csrf_token || crypto.randomBytes(32).toString('hex');
 
+    const ambassadorBadge = await repo.findAmbassadorBadgeByEmail(db, member.email);
+    const isRealContributor = await repo.findContributorApprovedByEmail(db, member.email);
+
     let isContributor = false;
     let adminData = null;
     let permissions = {};
 
-    if (user && user.is_active == 1 && user.role === 'contributor') {
+    // Ambassador-only accounts must never get an admin/dashboard session —
+    // only an actually-approved Contributor receives an admin session.
+    if (user && user.is_active == 1 && user.role === 'contributor' && isRealContributor) {
       isContributor = true;
       req.session.admin_id = user.id;
       req.session.admin_user = user.username;
@@ -106,14 +111,6 @@ const login = async (req, res) => {
       req.session.has_premium = true;
       req.session.premium_expires_at = subscription.expires_at;
     }
-
-    const ambassadorBadge = await repo.findAmbassadorBadgeByEmail(db, member.email);
-    // isContributor above only means "has a users-table login" — true for
-    // Ambassadors too, since they share the same login mechanism. This is
-    // the actual "did they apply and get approved as a Contributor" check,
-    // used by the frontend to decide whether to offer the Contributor
-    // Dashboard at all (an Ambassador-only account shouldn't see it).
-    const isRealContributor = await repo.findContributorApprovedByEmail(db, member.email);
 
     return res.json({
       status: 'success',
@@ -273,14 +270,11 @@ const getProfile = asyncHandler(async (req, res) => {
   profile.ambassador_badge_country = ambassadorBadge ? ambassadorBadge.country : null;
   profile.ambassador_badge_years = ambassadorBadge ? ambassadorBadge.badge_years : [];
 
-  // Contributor profiles only go public after publishing ≥1 article —
-  // surface that here so Profile Settings can explain why their photo/
-  // profile isn't showing publicly yet. Ambassadors don't have this
-  // requirement (an earned recognition, not a content role), so they never
-  // see this notice.
   if (isContributor) {
     const articlesPublished = await repo.countPublishedArticlesByEmail(db, profile.email);
     profile.is_public_profile_pending = articlesPublished === 0;
+  } else {
+    profile.is_public_profile_pending = false;
   }
 
   // Self-heal sessions created before CSRF protection was added to member

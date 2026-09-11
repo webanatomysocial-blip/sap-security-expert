@@ -103,10 +103,14 @@ const performAction = asyncHandler(async (req, res) => {
     audit.logReq('ambassador_badge_granted', 'ambassador', id, `Granted Country Ambassador badge (${year}) to: ${ambassador.full_name} (${ambassador.email})`).catch(() => {});
     return sendSuccess(res, { message: 'Badge granted.' });
   } else if (normalised === 'revoke_badge') {
-    await repo.revokeBadge(db, id);
+    const year = body.badge_year ? parseInt(body.badge_year) : null;
+    await repo.revokeBadge(db, id, year);
     const audit = AuditService.fromRequest(db, req);
-    audit.logReq('ambassador_badge_revoked', 'ambassador', id, `Revoked Country Ambassador badge from: ${ambassador.full_name} (${ambassador.email})`).catch(() => {});
-    return sendSuccess(res, { message: 'Badge revoked.' });
+    const msg = year
+      ? `Revoked Country Ambassador badge (${year}) from: ${ambassador.full_name} (${ambassador.email})`
+      : `Revoked Country Ambassador badge from: ${ambassador.full_name} (${ambassador.email})`;
+    audit.logReq('ambassador_badge_revoked', 'ambassador', id, msg).catch(() => {});
+    return sendSuccess(res, { message: year ? `Badge for ${year} revoked.` : 'Badge revoked.' });
   } else if (normalised === 'delete') {
     if (ambassador.image) deleteImage(ambassador.image);
     await repo.detachUserFromAmbassador(db, id);

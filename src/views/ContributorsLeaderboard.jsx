@@ -60,7 +60,7 @@ const ContributorsLeaderboard = () => {
             {contributors.length >= 1 && (
               <div className="leaderboard-podium">
                 {contributors.slice(0, Math.min(3, contributors.length)).map((c, i) => (
-                  <Link key={c.id} to={`/contributor/${c.id}`} className={`podium-card podium-rank-${i + 1}`}>
+                  <Link key={c.id} to={`/contributor/${c.slug || c.id}`} className={`podium-card podium-rank-${i + 1}`}>
                     <div className="podium-medal">{MEDALS[i]}</div>
                     <div className="podium-avatar">
                       <Image src={c.profile_image || "/assets/placeholder.webp"} alt={c.name || c.full_name} fill style={{ objectFit: "cover" }} />
@@ -76,7 +76,7 @@ const ContributorsLeaderboard = () => {
 
             {/* Remaining rows */}
             {contributors.slice(3).map((c, i) => (
-              <Link key={c.id} to={`/contributor/${c.id}`} className="leaderboard-row">
+              <Link key={c.id} to={`/contributor/${c.slug || c.id}`} className="leaderboard-row">
                 <div className="lb-rank">#{i + 4}</div>
                 <div className="lb-avatar">
                   <Image src={c.profile_image || "/assets/placeholder.webp"} alt={c.name || c.full_name} fill style={{ objectFit: "cover" }} />

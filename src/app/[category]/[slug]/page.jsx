@@ -186,7 +186,7 @@ function buildSchemas(blog, category, url) {
   const authorObj = {
     '@type': 'Person',
     name: authorName,
-    ...(blog.author_contributor_id ? { url: `${SITE_URL}/contributor/${blog.author_contributor_id}` } : {}),
+    ...(blog.author_contributor_id ? { url: `${SITE_URL}/contributor/${blog.author_contributor_slug || blog.author_contributor_id}` } : {}),
     ...(blog.author_image ? { image: blog.author_image.startsWith('http') ? blog.author_image : `${SITE_URL}${blog.author_image}` } : {}),
   };
 
@@ -413,7 +413,7 @@ export default async function BlogPostPage({ params }) {
                 )}
                 <div suppressHydrationWarning>
                   {blog.author_contributor_id ? (
-                    <a href={`/contributor/${blog.author_contributor_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <a href={`/contributor/${blog.author_contributor_slug || blog.author_contributor_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                       <h3 style={{ margin: '0 0 8px', fontSize: '1.25rem', color: '#0f172a' }}>{authorName}</h3>
                     </a>
                   ) : (

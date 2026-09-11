@@ -55,10 +55,13 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Global overflow prevention */
+  /* Global overflow prevention. clip, not hidden — hidden pairs with
+     visible on the other axis and gets promoted to auto (CSS Overflow
+     spec), which turns body into its own scroll container and breaks
+     position:sticky everywhere on the site. */
   word-wrap: break-word;
   overflow-wrap: break-word;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 h1,

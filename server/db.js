@@ -1,4 +1,5 @@
 const path = require('path');
+const { slugify } = require('./utils/slugify');
 
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
@@ -204,12 +205,50 @@ if (isSQLite) {
     { name: 'badge_year',       def: "INTEGER DEFAULT NULL" },
     { name: 'detected_country', def: "TEXT DEFAULT NULL" },
     { name: 'location_verified',def: "INTEGER NOT NULL DEFAULT 0" },
+    // New application questionnaire fields (screening data — admin-facing,
+    // not shown on the public profile). `motivation`/`contribution_examples`
+    // above are reused for the questionnaire's two public-facing long-answer
+    // questions (contribution plan / initiative example) since they already
+    // render on the public profile page.
+    { name: 'community_contribution',        def: "TEXT DEFAULT NULL" },
+    { name: 'contribution_links',            def: "TEXT DEFAULT NULL" },
+    { name: 'mentorship_experience',         def: "TEXT DEFAULT NULL" },
+    { name: 'community_helping_frequency',   def: "TEXT DEFAULT NULL" },
+    { name: 'country_challenge',             def: "TEXT DEFAULT NULL" },
+    { name: 'ambassador_motivations',        def: "TEXT DEFAULT NULL" },
+    { name: 'other_motivation_text',         def: "TEXT DEFAULT NULL" },
+    { name: 'contribution_willingness',      def: "TEXT DEFAULT NULL" },
+    { name: 'ambassador_definition',         def: "TEXT DEFAULT NULL" },
+    { name: 'slug',                          def: "TEXT DEFAULT NULL" },
   ];
   const ambassadorsExisting = sqliteDb.prepare("PRAGMA table_info(ambassadors)").all().map(r => r.name);
   for (const col of ambassadorColumns) {
     if (!ambassadorsExisting.includes(col.name)) {
       sqliteDb.prepare(`ALTER TABLE ambassadors ADD COLUMN ${col.name} ${col.def}`).run();
       console.log(`[DB] Migration: added ambassadors.${col.name}`);
+    }
+  }
+
+  // Backfill slugs for any ambassador rows created before the slug column
+  // existed, so /ambassador/:slug works for everyone, not just new applicants.
+  {
+    const needsSlug = sqliteDb.prepare("SELECT id, full_name FROM ambassadors WHERE slug IS NULL OR slug = ''").all();
+    if (needsSlug.length) {
+      const existingSlugs = new Set(
+        sqliteDb.prepare("SELECT slug FROM ambassadors WHERE slug IS NOT NULL AND slug != ''").all().map(r => r.slug)
+      );
+      const update = sqliteDb.prepare('UPDATE ambassadors SET slug = ? WHERE id = ?');
+      for (const row of needsSlug) {
+        const base = slugify(row.full_name) || `ambassador-${row.id}`;
+        let candidate = base;
+        let n = 2;
+        while (existingSlugs.has(candidate)) {
+          candidate = `${base}-${n++}`;
+        }
+        existingSlugs.add(candidate);
+        update.run(candidate, row.id);
+      }
+      console.log(`[DB] Migration: backfilled slug for ${needsSlug.length} ambassador(s)`);
     }
   }
 
@@ -334,12 +373,37 @@ if (isSQLite) {
     { name: 'peer_rating_count',            def: "INTEGER DEFAULT 0" },
     { name: 'experience_years',             def: "INTEGER DEFAULT NULL" },
     { name: 'approved_at',                  def: "DATETIME DEFAULT NULL" },
+    { name: 'slug',                         def: "TEXT DEFAULT NULL" },
   ];
   const contribExisting = sqliteDb.prepare("PRAGMA table_info(contributors)").all().map(r => r.name);
   for (const col of contribColumns) {
     if (!contribExisting.includes(col.name)) {
       sqliteDb.prepare(`ALTER TABLE contributors ADD COLUMN ${col.name} ${col.def}`).run();
       console.log(`[DB] Migration: added contributors.${col.name}`);
+    }
+  }
+
+  // Backfill slugs for any contributor rows created before the slug column
+  // existed (or from before slug generation was wired into approval), so
+  // /contributor/:slug works for everyone, not just new applicants.
+  {
+    const needsSlug = sqliteDb.prepare("SELECT id, full_name FROM contributors WHERE slug IS NULL OR slug = ''").all();
+    if (needsSlug.length) {
+      const existingSlugs = new Set(
+        sqliteDb.prepare("SELECT slug FROM contributors WHERE slug IS NOT NULL AND slug != ''").all().map(r => r.slug)
+      );
+      const update = sqliteDb.prepare('UPDATE contributors SET slug = ? WHERE id = ?');
+      for (const row of needsSlug) {
+        const base = slugify(row.full_name) || `contributor-${row.id}`;
+        let candidate = base;
+        let n = 2;
+        while (existingSlugs.has(candidate)) {
+          candidate = `${base}-${n++}`;
+        }
+        existingSlugs.add(candidate);
+        update.run(candidate, row.id);
+      }
+      console.log(`[DB] Migration: backfilled slug for ${needsSlug.length} contributor(s)`);
     }
   }
 
@@ -954,6 +1018,27 @@ if (isSQLite) {
       if (!contCols.includes('peer_rating_count'))            await addCol('contributors', 'peer_rating_count',            "INT DEFAULT 0");
       if (!contCols.includes('experience_years'))             await addCol('contributors', 'experience_years',             "INT DEFAULT 0");
       if (!contCols.includes('approved_at'))                  await addCol('contributors', 'approved_at',                  "DATETIME DEFAULT NULL");
+      if (!contCols.includes('slug'))                         await addCol('contributors', 'slug',                         "VARCHAR(255) DEFAULT NULL");
+
+      // Backfill slugs for any contributor rows created before the slug
+      // column existed, so /contributor/:slug works for everyone.
+      await step('backfill contributors.slug', async () => {
+        const [rows] = await conn.execute("SELECT id, full_name FROM contributors WHERE slug IS NULL OR slug = ''");
+        if (!rows.length) return;
+        const [existingRows] = await conn.execute("SELECT slug FROM contributors WHERE slug IS NOT NULL AND slug != ''");
+        const existingSlugs = new Set(existingRows.map((r) => r.slug));
+        for (const row of rows) {
+          const base = slugify(row.full_name) || `contributor-${row.id}`;
+          let candidate = base;
+          let n = 2;
+          while (existingSlugs.has(candidate)) {
+            candidate = `${base}-${n++}`;
+          }
+          existingSlugs.add(candidate);
+          await conn.execute('UPDATE contributors SET slug = ? WHERE id = ?', [candidate, row.id]);
+        }
+        console.log(`[DB] Migration: backfilled slug for ${rows.length} contributor(s)`);
+      });
 
       // ── ambassadors: Country Ambassador badge columns ──────────────────────────
       const ambCols = await getColumns('ambassadors');
@@ -961,6 +1046,36 @@ if (isSQLite) {
       if (!ambCols.includes('badge_year'))                    await addCol('ambassadors', 'badge_year',                    "INT DEFAULT NULL");
       if (!ambCols.includes('detected_country'))              await addCol('ambassadors', 'detected_country',              "VARCHAR(100) DEFAULT NULL");
       if (!ambCols.includes('location_verified'))             await addCol('ambassadors', 'location_verified',             "TINYINT(1) NOT NULL DEFAULT 0");
+      if (!ambCols.includes('community_contribution'))        await addCol('ambassadors', 'community_contribution',        "TEXT DEFAULT NULL");
+      if (!ambCols.includes('contribution_links'))            await addCol('ambassadors', 'contribution_links',            "TEXT DEFAULT NULL");
+      if (!ambCols.includes('mentorship_experience'))         await addCol('ambassadors', 'mentorship_experience',         "VARCHAR(50) DEFAULT NULL");
+      if (!ambCols.includes('community_helping_frequency'))   await addCol('ambassadors', 'community_helping_frequency',   "VARCHAR(50) DEFAULT NULL");
+      if (!ambCols.includes('country_challenge'))             await addCol('ambassadors', 'country_challenge',             "TEXT DEFAULT NULL");
+      if (!ambCols.includes('ambassador_motivations'))        await addCol('ambassadors', 'ambassador_motivations',        "TEXT DEFAULT NULL");
+      if (!ambCols.includes('other_motivation_text'))         await addCol('ambassadors', 'other_motivation_text',         "TEXT DEFAULT NULL");
+      if (!ambCols.includes('contribution_willingness'))      await addCol('ambassadors', 'contribution_willingness',      "VARCHAR(100) DEFAULT NULL");
+      if (!ambCols.includes('ambassador_definition'))          await addCol('ambassadors', 'ambassador_definition',         "TEXT DEFAULT NULL");
+      if (!ambCols.includes('slug'))                           await addCol('ambassadors', 'slug',                          "VARCHAR(255) DEFAULT NULL");
+
+      // Backfill slugs for any ambassador rows created before the slug
+      // column existed, so /ambassador/:slug works for everyone.
+      await step('backfill ambassadors.slug', async () => {
+        const [rows] = await conn.execute("SELECT id, full_name FROM ambassadors WHERE slug IS NULL OR slug = ''");
+        if (!rows.length) return;
+        const [existingRows] = await conn.execute("SELECT slug FROM ambassadors WHERE slug IS NOT NULL AND slug != ''");
+        const existingSlugs = new Set(existingRows.map((r) => r.slug));
+        for (const row of rows) {
+          const base = slugify(row.full_name) || `ambassador-${row.id}`;
+          let candidate = base;
+          let n = 2;
+          while (existingSlugs.has(candidate)) {
+            candidate = `${base}-${n++}`;
+          }
+          existingSlugs.add(candidate);
+          await conn.execute('UPDATE ambassadors SET slug = ? WHERE id = ?', [candidate, row.id]);
+        }
+        console.log(`[DB] Migration: backfilled slug for ${rows.length} ambassador(s)`);
+      });
 
       // ── users: columns added after original schema ────────────────────────────
       const userCols = await getColumns('users');

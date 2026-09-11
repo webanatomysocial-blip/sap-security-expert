@@ -187,7 +187,6 @@ const Header = () => {
               <Link to="/news">News &amp; Updates</Link>
               <Link to="/announcements">Announcements</Link>
               <Link to="/ambassadors">Country Ambassadors</Link>
-              <Link to="/become-a-country-ambassador">Become a Country Ambassador</Link>
               <Link to="/contact-us">Contact Us</Link>
             </div>
           </div>
@@ -618,9 +617,6 @@ const Header = () => {
                 </Link>
                 <Link to="/ambassadors" onClick={closeMenu}>
                   Country Ambassadors
-                </Link>
-                <Link to="/become-a-country-ambassador" onClick={closeMenu}>
-                  Become a Country Ambassador
                 </Link>
                 <Link to="/contact-us" onClick={closeMenu}>
                   Contact Us

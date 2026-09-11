@@ -16,30 +16,32 @@
             <h2>Welcome, Country Ambassador!</h2>
         </div>
         <p>Hello <strong>{{name}}</strong>,</p>
-        <p>Congratulations — you've earned the <strong>SAP Security Expert — Country Ambassador</strong> recognition. Thank you for the expertise and community contribution that got you here.</p>
-        <p>Your profile will now carry the Country Ambassador designation, and you can log in to your dashboard the same way contributors do — to write, manage, and submit content.</p>
+        <p>Congratulations — you have earned the <strong>SAP Security Expert — Country Ambassador</strong> recognition. Thank you for your leadership, professional credibility, and commitment to the SAP Security community.</p>
+        <p>Your Country Ambassador profile and official recognition badge are now active on the SAP Security Expert directory. You can sign in using your member login to view your Ambassador page, badge details, and profile settings.</p>
 
+        {{#if password}}
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <p style="margin-top: 0; font-weight: 700; color: #1e293b;">Your Login Details:</p>
-            <p style="margin-bottom: 8px;"><strong>Username/Email:</strong> {{username}}</p>
+            <p style="margin-top: 0; font-weight: 700; color: #1e293b;">Your Member Account Credentials:</p>
+            <p style="margin-bottom: 8px;"><strong>Email:</strong> {{username}}</p>
             <p style="margin-bottom: 0;"><strong>Password:</strong> {{password}}</p>
-            <p style="font-size: 13px; color: #64748b; margin-top: 10px;"><em>Note: For security, we recommend changing your password after your first login.</em></p>
+            <p style="font-size: 13px; color: #64748b; margin-top: 10px;"><em>Note: For security, we recommend updating your password after signing in.</em></p>
         </div>
+        {{/if}}
 
         <div style="text-align: center;">
-            <a href="{{login_url}}" class="btn">Sign In</a>
+            <a href="{{login_url}}" class="btn">Sign In to Member Portal</a>
         </div>
 
-        <div style="background: #fff7ed; border: 1px solid #fed7aa; padding: 16px 20px; border-radius: 8px; margin: 25px 0; font-size: 0.92rem; color: #78350f;">
-            <p style="margin-top: 0; font-weight: 700; color: #78350f;">A few things to know:</p>
-            <ul style="margin: 0; padding-left: 20px;">
-                <li>Your public profile photo stays hidden until you publish your first article.</li>
-                <li>Once you publish, your photo appears on your public profile automatically.</li>
-                <li>If you don't publish anything within 3 months of approval, your ambassador account is automatically deactivated for inactivity (your regular member login still works).</li>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px 20px; border-radius: 8px; margin: 25px 0; font-size: 0.92rem; color: #334155;">
+            <p style="margin-top: 0; font-weight: 700; color: #0f172a;">Country Ambassador Recognition Details:</p>
+            <ul style="margin: 0; padding-left: 20px; line-height: 1.7;">
+                <li>The Country Ambassador designation is an earned community recognition awarded for one year.</li>
+                <li>Your designation is displayed on your public SAP Security Expert profile and the Ambassadors directory.</li>
+                <li>If you wish to contribute technical articles, case studies, or research papers, you can also apply to become an approved Contributor.</li>
             </ul>
         </div>
 
-        <p>The designation is awarded for one year and may be renewed based on continued contribution to the community. If you have any questions, reach out at <a href="mailto:hello@sapsecurityexpert.com">hello@sapsecurityexpert.com</a>.</p>
+        <p>If you have any questions or need assistance, please contact us at <a href="mailto:hello@sapsecurityexpert.com">hello@sapsecurityexpert.com</a>.</p>
 
         <div class="footer">
             &copy; 2026 SAP Security Expert. The leading community for SAP Security Professionals.<br>

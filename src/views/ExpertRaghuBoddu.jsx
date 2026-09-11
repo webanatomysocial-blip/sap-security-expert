@@ -1,883 +1,928 @@
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import SEO from "../components/SEO";
 import { VITE_SITE_URL } from "../utils/env";
-import "../css/ExpertProfile.css";
+import {
+  LuAward, LuBookOpen, LuClock, LuPlay, LuShieldCheck, LuUsers, LuX,
+} from "react-icons/lu";
+import {
+  ARTICLE_CATEGORIES, AUDIT_MATRIX, BOOKS, CERTIFICATIONS, EXPERTISE, LINKS,
+  MODERN_LANDSCAPE, PODCAST_TOPICS, RESEARCH_TOPICS, SECTIONS, SPEAKING_CHANNELS,
+  TRUST, VIEWPOINT_QUESTIONS,
+} from "../constants/raghuBoddu";
+import "../css/ExpertRaghuBoddu.css";
 
 const EXT = { target: "_blank", rel: "noopener noreferrer" };
+const TITLE = "Raghu Boddu | SAP Security Expert | SAP Security, GRC & SecOps";
+const DESCRIPTION =
+  "Raghu Boddu is an SAP Security and GRC expert with 25+ years of experience across SAP Security, cybersecurity, access governance, automation, audit and SAP SecOps.";
 
-const EXPERTISE_AREAS = [
-  {
-    icon: "bi bi-shield-lock-fill",
-    title: "SAP Security & Authorizations",
-    items: [
-      "SAP authorization architecture",
-      "Role design and optimization (PFCG)",
-      "User and identity governance",
-      "SAP S/4HANA security & migration",
-      "Security in SAP Fiori & launchpads",
-      "Authorization analysis & tracing",
-      "Least privilege architecture",
-      "Non-human and technical identities",
-    ],
-  },
-  {
-    icon: "bi bi-diagram-3-fill",
-    title: "SAP GRC and Access Governance",
-    items: [
-      "SAP Access Control (ARA, ARM, EAM, BRM)",
-      "Access Risk Analysis & rulesets",
-      "Segregation of Duties (SoD) design",
-      "User Access Review automation",
-      "Emergency Access Management (Firefighter)",
-      "SAP Identity Access Governance (IAG)",
-      "SAP Process Control & continuous monitoring",
-      "Enterprise Risk Management",
-    ],
-  },
-  {
-    icon: "bi bi-cpu-fill",
-    title: "SAP Security & Cybersecurity",
-    items: [
-      "SAP threat monitoring & triage",
-      "SAP SecOps architecture",
-      "SAP SIEM / SOAR integrations",
-      "SAP HANA database security",
-      "Data protection & masking",
-      "Privileged access management (PAM)",
-      "Audit logging & forensics",
-      "Continuous security monitoring",
-    ],
-  },
-  {
-    icon: "bi bi-robot",
-    title: "Security Automation and AI",
-    items: [
-      "SAP security orchestration",
-      "GRC workflow automation (BRFplus/MSMP)",
-      "AI-powered security operations",
-      "SAP authorizations for AI agents",
-      "Non-human identity governance",
-      "Autonomous access anomaly detection",
-      "Human-in-the-loop security governance",
-      "Continuous audit readiness automation",
-    ],
-  },
-  {
-    icon: "bi bi-clipboard-check-fill",
-    title: "Audit, Risk & Compliance",
-    items: [
-      "IT General Controls (ITGC) frameworks",
-      "SAP audit readiness & reporting",
-      "Statutory audit trail compliance",
-      "Internal controls testing",
-      "SoD mitigation control design",
-      "Regulatory compliance (SOX, GDPR, ISO)",
-      "Continuous controls oversight (CCM)",
-      "Risk assessment & gap analysis",
-    ],
-  },
-];
+/* ── Small shared primitives ──────────────────────────────────────── */
 
-const BOOKS = [
-  {
-    title: "SAP Access Control — Comprehensive Guide",
-    badge: "Bestseller",
-    desc: "A comprehensive authoritative guide to SAP Access Control covering architecture, installation, configuration, Access Risk Analysis, Emergency Access Management, Access Request Management, Business Role Management, User Access Reviews, Segregation of Duties, BRFplus, MSMP workflows, and Fiori integration.",
-    href: "https://www.sap-press.com/sap-access-control_5636/",
-  },
-  {
-    title: "SAP Process Control 12.0 — Comprehensive Guide",
-    badge: "Official Guide",
-    desc: "A practical guide to SAP Process Control covering compliance governance, configuration, master data, automated control evaluations, continuous controls monitoring (CCM), policy lifecycles, executive reporting, SAP Fiori, and Financial Compliance Management.",
-    href: "https://www.sap-press.com/sap-process-control_5799/",
-  },
-  {
-    title: "SAP Cloud Identity Access Governance (IAG)",
-    badge: "Cloud Guide",
-    desc: "An in-depth guide introducing SAP Cloud Identity Access Governance (IAG) and its core cloud modules: access analysis, privileged access management, access requests, role design, and seamless hybrid integration with on-premise SAP ECC and S/4HANA environments.",
-    href: "https://www.sap-press.com/introducing-sap-cloud-identity-access-governance-iag_5985/",
-  },
-];
+function Arrow({ className = "" }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className={`rb-arrow ${className}`}>
+      <path d="M3 8h9M8.5 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
-const CERTIFICATIONS = [
-  "CISA – Certified Information Systems Auditor",
-  "CFE – Certified Fraud Examiner",
-  "Certified Data Privacy Solutions Engineer (CDPSE)",
-  "SAP Certified Security Professional",
-  "SAP GRC Associate",
-  "ITIL V3 Certified",
-  "Foundation PRINCE2",
-  "Security+ (CompTIA)",
-];
+function ExtLink({ href, children, className = "" }) {
+  return (
+    <a href={href} {...EXT} className={`rb-ext-link ${className}`}>
+      <span>{children}</span>
+      <Arrow />
+    </a>
+  );
+}
 
-const RESEARCH_TOPICS = [
-  "Evolution of SAP Security",
-  "Digital Access Risk & Indirect Usage",
-  "Continuous SAP SecOps",
-  "Continuous Access Governance",
-  "SAP Security Vulnerabilities & Patching",
-  "Access & SoD Risk Management",
-  "Modernization of SAP GRC",
-  "Enterprise AI Agent Authorizations",
-  "Non-Human Identity Governance",
-  "SAP Data Protection & Cryptography",
-  "Audit Trails & Regulatory Compliance",
-  "Security Automation in Hybrid SAP",
-  "Cloud-Based SAP Identity (IAS/IPS)",
-];
+function Reveal({ children, delay = 0, className = "", as = "div", style }) {
+  const Tag = as;
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
 
-const VIEWPOINT_QUESTIONS = [
-  { q: "Who has access to the business system?", n: "01" },
-  { q: "How do they technically have access to it?", n: "02" },
-  { q: "What business process does that access permit?", n: "03" },
-  { q: "What other systems and APIs are interconnected?", n: "04" },
-  { q: "What was the identity actually doing in practice?", n: "05" },
-  { q: "Is unauthorized or anomalous activity detectable in real time?", n: "06" },
-  { q: "Is the internal control under continuous surveillance?", n: "07" },
-  { q: "How can we automate governance while keeping humans accountable?", n: "08" },
-];
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setVisible(true);
+            io.disconnect();
+          }
+        }
+      },
+      { rootMargin: "0px 0px -6% 0px", threshold: 0.05 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <Tag
+      ref={ref}
+      data-visible={visible}
+      style={delay > 0 ? { ...style, transitionDelay: `${delay}ms` } : style}
+      className={`rb-reveal ${className}`}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+function EyebrowPill({ text }) {
+  return (
+    <div className="rb-eyebrow-pill">
+      <span className="rb-eyebrow-pill-dot" />
+      <span className="rb-eyebrow-pill-text">{text}</span>
+    </div>
+  );
+}
+
+function SectionHeader({ eyebrow, title, intro }) {
+  return (
+    <Reveal className="rb-section-header">
+      {eyebrow && <EyebrowPill text={eyebrow} />}
+      <h2 className="rb-section-title">{title}</h2>
+      {intro && <p className="rb-section-intro">{intro}</p>}
+    </Reveal>
+  );
+}
+
+function Section({ id, children, tone, className = "" }) {
+  return (
+    <section id={id} className={`rb-section ${tone === "muted" ? "rb-section--muted" : ""} ${className}`}>
+      <div className="rb-section-inner">{children}</div>
+    </section>
+  );
+}
+
+/* ── Nav / scroll chrome ──────────────────────────────────────────── */
+
+function ScrollProgress() {
+  const [pct, setPct] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      setPct(h > 0 ? Math.min(100, (window.scrollY / h) * 100) : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return (
+    <div className="rb-scroll-progress">
+      <div className="rb-scroll-progress-bar" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function SectionNav() {
+  const [active, setActive] = useState(SECTIONS[0].id);
+
+  useEffect(() => {
+    const els = SECTIONS.map((s) => document.getElementById(s.id)).filter(Boolean);
+    if (!els.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]?.target.id) setActive(visible[0].target.id);
+      },
+      { rootMargin: "-96px 0px -60% 0px", threshold: 0 }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <nav aria-label="Profile sections" className="rb-section-nav">
+      <p className="rb-eyebrow rb-section-nav-eyebrow">In this profile</p>
+      <ul>
+        {SECTIONS.map((s) => (
+          <li key={s.id}>
+            <a href={`#${s.id}`} className={active === s.id ? "active" : ""}>
+              {s.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+function MobileSectionBar() {
+  return (
+    <div className="rb-mobile-section-bar">
+      <div className="rb-mobile-section-bar-inner">
+        {SECTIONS.map((s) => (
+          <a key={s.id} href={`#${s.id}`}>{s.label}</a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────────────── */
 
 export default function ExpertRaghuBoddu() {
   const pageUrl = `${VITE_SITE_URL}/experts/raghu-boddu/`;
 
   return (
-    <div className="expert-profile-wrapper">
+    <div className="rb-page">
       <SEO
-        title="Raghu Boddu | SAP Security & GRC Expert | SAP Security Expert"
-        description="Raghu Boddu is an SAP Security and GRC expert with 25+ years of experience across SAP security, GRC, audit, access governance, automation, and enterprise cybersecurity. CEO of ToggleNow and founder of SAP Security Expert."
+        title={TITLE}
+        description={DESCRIPTION}
         url={pageUrl}
-        image="/assets/raghu_boddu.png"
+        image="/assets/raghu_boddu_hero.png"
         type="profile"
-        keywords="Raghu Boddu, SAP Security, SAP GRC, SAP Access Control, SAP Process Control, SAP Identity Access Governance, SAP S/4HANA Security, SAP Cybersecurity, Segregation of Duties, Emergency Access Management, SAP SecOps, Security Automation, AI for SAP Security, ToggleNow, SAP PRESS Author"
+        keywords="Raghu Boddu, SAP Security, SAP GRC, SAP SecOps, SAP Access Control, SAP Process Control, SAP Identity Access Governance, SAP S/4HANA Security, SAP Cybersecurity, Segregation of Duties, Emergency Access Management, Security Automation, AI for SAP Security, ToggleNow, SAP PRESS Author"
         author="Raghu Boddu"
         schemaData={{
           "@context": "https://schema.org",
           "@type": "Person",
           name: "Raghu Boddu",
-          jobTitle: "CEO, ToggleNow & Founder, SAP Security Expert",
-          description:
-            "SAP Security and GRC expert with 25+ years of experience across SAP security, governance, risk and compliance, audits, access governance, automation, and enterprise cybersecurity.",
-          url: pageUrl,
-          image: `${VITE_SITE_URL}/assets/raghu_boddu.png`,
-          sameAs: [
-            "https://www.linkedin.com/in/raghuboddu",
-            "https://www.linkedin.com/in/bodduraghu/",
-            "https://blog.sap-press.com/author/raghu-boddu",
-            "https://community.sap.com/t5/user/viewprofilepage/user-id/600573",
-            "https://www.togglenow.com",
-            "https://www.raghuboddu.com",
+          jobTitle: "SAP Security Expert",
+          description: DESCRIPTION,
+          url: LINKS.personalSite,
+          sameAs: [LINKS.linkedin, LINKS.sapPressAuthor, LINKS.sapCommunity, LINKS.sapSecurityExpert, LINKS.toggleNow],
+          knowsAbout: [
+            "SAP Security", "SAP GRC", "Cyber Security", "Access Governance", "SAP S/4HANA Security",
+            "SAP Cloud Security", "Security Automation", "AI for SAP Security", "SAP SecOps", "Audit & Compliance",
           ],
-          worksFor: { "@type": "Organization", name: "ToggleNow", url: "https://www.togglenow.com" },
-          founder: { "@type": "Organization", name: "SAP Security Expert", url: VITE_SITE_URL },
+          worksFor: { "@type": "Organization", name: "ToggleNow", url: LINKS.toggleNow },
         }}
       />
 
-      {/* ────────────────────────────────────────────────────────────
-          1. HERO BANNER
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-hero">
-        <div className="ep-hero-grid-pattern" />
-        <div className="ep-hero-glow-1" />
-        <div className="ep-hero-glow-2" />
+      <ScrollProgress />
+      <MobileSectionBar />
 
-        <div className="ep-hero-container">
-          {/* Breadcrumbs */}
-          <nav className="ep-breadcrumbs" aria-label="Breadcrumbs">
-            <Link to="/">Home</Link>
-            <span className="ep-breadcrumbs-sep">/</span>
-            <Link to="/community">Community</Link>
-            <span className="ep-breadcrumbs-sep">/</span>
-            <span className="ep-breadcrumbs-current">Raghu Boddu</span>
-          </nav>
-
-          <div className="ep-hero-layout">
-            {/* Left Content Column */}
-            <div className="ep-hero-content">
-              <div className="ep-badge-row">
-                <span className="ep-eyebrow-pill">
-                  <span className="pulse-dot" />
-                  Founder & Principal Architect
-                </span>
-                <span className="ep-status-tag">
-                  <i className="bi bi-patch-check-fill" style={{ color: "#ee5e42" }} />
-                  SAP PRESS Author
-                </span>
-                <span className="ep-status-tag">
-                  <i className="bi bi-award-fill" style={{ color: "#f59e0b" }} />
-                  3x Microsoft MVP
-                </span>
-              </div>
-
-              <h1 className="ep-hero-title">
-                Raghu Boddu <br />
-                <span className="ep-text-gradient">SAP Security & GRC Expert</span>
-              </h1>
-
-              <div className="ep-hero-designation">
-                <span className="highlight">CEO @ ToggleNow</span>
-                <span>•</span>
-                <span>Founder, SAP Security Expert</span>
-                <span>•</span>
-                <span>Advisory Board Member</span>
-              </div>
-
-              <p className="ep-hero-bio-short">
-                Over 25 years pioneering enterprise SAP Security, Access Governance, GRC, and Cyber Risk. Author of 3 authoritative SAP PRESS books, transforming static authorization audits into continuous, automated, and AI-enabled SAP SecOps.
-              </p>
-
-              <div className="ep-hero-actions">
-                <a href="#publications" className="ep-btn-primary">
-                  <span>Explore SAP PRESS Books</span>
-                  <i className="bi bi-arrow-right" />
-                </a>
-                <a href="#viewpoint" className="ep-btn-secondary">
-                  <span>Executive Viewpoint</span>
-                  <i className="bi bi-compass" />
-                </a>
-              </div>
-
-              {/* Social Channels */}
-              <div className="ep-social-strip">
-                <a
-                  href="https://www.linkedin.com/in/raghuboddu"
-                  {...EXT}
-                  className="ep-social-pill"
-                  title="LinkedIn Profile"
-                  aria-label="LinkedIn Profile"
-                >
-                  <i className="bi bi-linkedin" />
-                </a>
-                <a
-                  href="https://blog.sap-press.com/author/raghu-boddu"
-                  {...EXT}
-                  className="ep-social-pill"
-                  title="SAP PRESS Author Page"
-                  aria-label="SAP PRESS Author Page"
-                >
-                  <i className="bi bi-book-fill" />
-                </a>
-                <a
-                  href="https://www.togglenow.com"
-                  {...EXT}
-                  className="ep-social-pill"
-                  title="ToggleNow Website"
-                  aria-label="ToggleNow Website"
-                >
-                  <i className="bi bi-building" />
-                </a>
-                <a
-                  href="https://www.raghuboddu.com"
-                  {...EXT}
-                  className="ep-social-pill"
-                  title="Personal Site"
-                  aria-label="Personal Site"
-                >
-                  <i className="bi bi-globe2" />
-                </a>
-              </div>
-            </div>
-
-            {/* Right Visual / Portrait Card */}
-            <div className="ep-hero-visual">
-              <div className="ep-portrait-card">
-                <div className="ep-portrait-frame">
-                  <img
-                    src="/assets/raghu_boddu.png"
-                    alt="Raghu Boddu - SAP Security & GRC Expert"
-                    className="ep-portrait-img"
-                    width="420"
-                    height="470"
-                  />
-                  <div className="ep-portrait-badge-top">
-                    <i className="bi bi-shield-check" />
-                    <span>VERIFIED AUTHORITY</span>
-                  </div>
-                  <div className="ep-portrait-caption">
-                    <div>
-                      <h2 className="ep-portrait-caption-name">Raghu Boddu</h2>
-                      <p className="ep-portrait-caption-sub">Hyderabad, India • Global Advisory</p>
-                    </div>
-                    <div className="ep-portrait-verified-stamp" title="Verified Practitioner">
-                      <i className="bi bi-check-lg" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating Micro-Credential */}
-                <div className="ep-floating-tag">
-                  <div className="ep-floating-icon">
-                    <i className="bi bi-award" />
-                  </div>
-                  <div>
-                    <div className="ep-floating-title">25+ Years Experience</div>
-                    <div className="ep-floating-sub">Trusted by Fortune 500 Enterprises</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="rb-shell">
+        <div className="rb-shell-nav">
+          <SectionNav />
         </div>
-      </section>
 
-      {/* ────────────────────────────────────────────────────────────
-          2. PULL-UP STATS METRIC STRIP
-          ──────────────────────────────────────────────────────────── */}
-      <div className="ep-stats-container">
-        <div className="ep-stats-grid">
-          <div className="ep-stat-card">
-            <div className="ep-stat-icon-wrap coral">
-              <i className="bi bi-shield-shaded" />
-            </div>
-            <div className="ep-stat-details">
-              <span className="ep-stat-number">25+</span>
-              <span className="ep-stat-label">Years in SAP Security</span>
-            </div>
-          </div>
+        <main>
+          <Hero />
+          <TrustStrip />
+          <Overview />
+          <Expertise />
+          <AuditRisk />
+          <Books />
+          <Training />
+          <Certifications />
+          <SecOps />
+          <Research />
+          <Articles />
+          <Podcasts />
+          <Speaking />
+          <Interviews />
+          <ToggleNow />
+          <Viewpoint />
+          <Connect />
+        </main>
+      </div>
+    </div>
+  );
+}
 
-          <div className="ep-stat-card">
-            <div className="ep-stat-icon-wrap navy">
-              <i className="bi bi-book-half" />
-            </div>
-            <div className="ep-stat-details">
-              <span className="ep-stat-number">3</span>
-              <span className="ep-stat-label">SAP PRESS Books</span>
-            </div>
-          </div>
+/* ---------------------------------------------------------------- Hero */
 
-          <div className="ep-stat-card">
-            <div className="ep-stat-icon-wrap amber">
-              <i className="bi bi-trophy-fill" />
-            </div>
-            <div className="ep-stat-details">
-              <span className="ep-stat-number">3x</span>
-              <span className="ep-stat-label">Microsoft MVP Awardee</span>
-            </div>
-          </div>
+const TRUST_ICONS = [LuClock, LuBookOpen, LuShieldCheck, LuAward, LuUsers];
 
-          <div className="ep-stat-card">
-            <div className="ep-stat-icon-wrap emerald">
-              <i className="bi bi-globe" />
+function Hero() {
+  return (
+    <section id="overview" className="rb-section rb-hero">
+      <div className="rb-section-inner">
+        <div className="rb-hero-grid">
+          <Reveal>
+            <p className="rb-eyebrow">SAP Security Expert</p>
+            <h1>
+              <span style={{ display: "block" }}>Raghu Boddu</span>
+              <span className="rb-hero-role">SAP Security Expert</span>
+            </h1>
+            <p className="rb-hero-tagline">SAP Security, GRC, Cyber Security, Access Governance, Automation, AI</p>
+            <p className="rb-hero-desc">
+              Raghu Boddu is an SAP Security and GRC expert with around 25 years of experience across
+              SAP security, governance, risk and compliance, audits, access governance, automation and
+              enterprise cybersecurity.
+            </p>
+            <div className="rb-hero-actions">
+              <a href="#expertise" className="rb-btn-primary">Explore Expertise <Arrow className="rb-arrow-white" /></a>
+              <a href="#connect" className="rb-btn-outline">Connect</a>
             </div>
-            <div className="ep-stat-details">
-              <span className="ep-stat-number">2005</span>
-              <span className="ep-stat-label">Founded Security Expert</span>
-            </div>
-          </div>
+          </Reveal>
+
+          <Reveal delay={120}>
+            <figure className="rb-hero-photo">
+              <img src="/assets/raghu_boddu_hero.png" alt="Raghu Boddu" loading="eager" decoding="async" />
+            </figure>
+          </Reveal>
         </div>
       </div>
+    </section>
+  );
+}
 
-      {/* ────────────────────────────────────────────────────────────
-          3. EXECUTIVE OVERVIEW & PILLARS
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section">
-        <div className="ep-container">
-          <div className="ep-overview-grid">
-            <div className="ep-overview-card">
-              <div className="ep-kicker">
-                <i className="bi bi-compass" />
-                Executive Summary
-              </div>
-              <h2 className="ep-section-title">25+ Years Shaping SAP Security & GRC</h2>
-              <div className="ep-prose">
-                <p>
-                  Raghu Boddu is the CEO of <strong>ToggleNow</strong> and heads global product innovation and design. In 2005, he founded <a href="https://www.sapsecurityexpert.com" {...EXT}>SAP Security Expert</a> — creating a definitive peer platform and knowledge exchange for practitioners in SAP Security, GRC, Cybersecurity, and Audit.
-                </p>
-                <p>
-                  With deep hands-on expertise across complex global SAP landscapes, Raghu has guided multinational organizations through the transition from legacy static role administration into agile, automated, and continuously governed access environments. He has delivered pioneering orchestrated automations in SAP GRC, chronicled in published <a href="https://togglenow.com/automation-stories/" {...EXT}>Automation Stories</a> acclaimed throughout the ecosystem.
-                </p>
-                <p>
-                  As an educator, author with <a href="https://blog.sap-press.com/author/raghu-boddu" {...EXT}>SAP PRESS / Rheinwerk Publishing</a>, and frequent industry keynote speaker, he actively drives the technical evolution toward modern cloud identity and AI-driven SAP SecOps.
-                </p>
-              </div>
-            </div>
-
-            {/* Strategic Pillars Column */}
-            <div className="ep-pillars-column">
-              <div className="ep-pillar-card">
-                <div className="ep-pillar-icon-box">
-                  <i className="bi bi-building-check" />
-                </div>
-                <div className="ep-pillar-content">
-                  <h3>Executive Leadership</h3>
-                  <p>
-                    CEO at <a href="https://www.togglenow.com" {...EXT}>ToggleNow Global</a> and Advisory Board Member at <a href="https://aginnolabs.com/" {...EXT}>Access Governance Inno Labs Oy</a>.
-                  </p>
-                </div>
-              </div>
-
-              <div className="ep-pillar-card">
-                <div className="ep-pillar-icon-box">
-                  <i className="bi bi-people-fill" />
-                </div>
-                <div className="ep-pillar-content">
-                  <h3>Community Stewardship</h3>
-                  <p>
-                    Founder of <strong>SAP Security Expert</strong> — championing practitioner-first tutorials, frameworks, and open collaboration since 2005.
-                  </p>
-                </div>
-              </div>
-
-              <div className="ep-pillar-card">
-                <div className="ep-pillar-icon-box">
-                  <i className="bi bi-journal-check" />
-                </div>
-                <div className="ep-pillar-content">
-                  <h3>SAP PRESS Author</h3>
-                  <p>
-                    Authored canonical references on SAP Access Control, SAP Process Control, and SAP Cloud Identity Access Governance (IAG).
-                  </p>
-                </div>
-              </div>
-
-              <div className="ep-pillar-card">
-                <div className="ep-pillar-icon-box">
-                  <i className="bi bi-award-fill" />
-                </div>
-                <div className="ep-pillar-content">
-                  <h3>Recognized Industry Fellow</h3>
-                  <p>
-                    Former 3-year Microsoft MVP for Windows Shell, contributor of 30+ Microsoft KB articles, and leading SAP community author.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────
-          4. SAP PRESS PUBLICATIONS
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section light-bg" id="publications">
-        <div className="ep-container">
-          <div className="ep-section-header centered">
-            <span className="ep-kicker">
-              <i className="bi bi-book-fill" />
-              Publications & Literature
-            </span>
-            <h2 className="ep-section-title">Author with SAP PRESS</h2>
-            <p className="ep-section-subtitle">
-              Comprehensive reference books that serve as the definitive standard for security architects and GRC administrators worldwide.
-            </p>
-          </div>
-
-          <div className="ep-books-grid">
-            {BOOKS.map((b) => (
-              <div className="ep-book-card" key={b.title}>
-                <div>
-                  <div className="ep-book-top">
-                    <span className="ep-book-badge">{b.badge}</span>
-                    <i className="bi bi-bookmark-star ep-book-icon" />
-                  </div>
-                  <h3 className="ep-book-title">{b.title}</h3>
-                  <p className="ep-book-desc">{b.desc}</p>
-                </div>
-                <a href={b.href} {...EXT} className="ep-book-link">
-                  <span>View Book at SAP PRESS</span>
-                  <i className="bi bi-box-arrow-up-right" />
-                </a>
-              </div>
-            ))}
-          </div>
-
-          {/* Online Masterclass Callout */}
-          <div className="ep-course-callout">
-            <div className="ep-course-callout-content">
-              <h4>Masterclass: Authorizations and Security for SAP S/4HANA</h4>
-              <p>
-                Raghu served as official instructor for Rheinwerk / SAP PRESS's premier 5-session curriculum covering S/4HANA authorizations, PFCG optimization, Fiori catalogs & spaces, security tracing, and audit readiness.
+function TrustStrip() {
+  return (
+    <div className="rb-trust-strip">
+      <ul className="rb-trust-grid">
+        {TRUST.map((t, i) => {
+          const Icon = TRUST_ICONS[i] || LuShieldCheck;
+          return (
+            <Reveal as="li" key={t.value} delay={i * 60} className="rb-trust-item">
+              <p className="rb-trust-value">
+                <Icon size={16} style={{ color: "#ea5845", flexShrink: 0, marginTop: 2 }} />
+                <span>{t.value}</span>
               </p>
-            </div>
-            <a
-              href="https://www.sap-press.com/online-courses/authorizations-and-security-for-sap-s4hana/"
-              {...EXT}
-              className="ep-course-btn"
-            >
-              Explore Course Syllabus <i className="bi bi-arrow-right" />
-            </a>
-          </div>
-        </div>
-      </section>
+              <p className="rb-trust-label">{t.label}</p>
+            </Reveal>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
-      {/* ────────────────────────────────────────────────────────────
-          5. DOMAINS OF EXPERTISE
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section">
-        <div className="ep-container">
-          <div className="ep-section-header centered">
-            <span className="ep-kicker">
-              <i className="bi bi-grid-fill" />
-              Technical Competencies
-            </span>
-            <h2 className="ep-section-title">Where Raghu's Work Sits</h2>
-            <p className="ep-section-subtitle">
-              Operating at the critical intersection of SAP Security, enterprise compliance governance, and modern cyber operations.
-            </p>
-          </div>
+/* ------------------------------------------------------------ Overview */
 
-          <div className="ep-expertise-grid">
-            {EXPERTISE_AREAS.map((area) => (
-              <div className="ep-expertise-card" key={area.title}>
-                <div className="ep-expertise-header">
-                  <div className="ep-expertise-icon">
-                    <i className={area.icon} />
-                  </div>
-                  <h3>{area.title}</h3>
-                </div>
-                <ul className="ep-expertise-list">
-                  {area.items.map((item) => (
-                    <li key={item}>
-                      <i className="bi bi-check2-circle" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+function Overview() {
+  return (
+    <Section id="about">
+      <SectionHeader eyebrow="About Raghu Boddu" title="A career built around practical SAP security" />
+      <div className="rb-overview-grid">
+        <Reveal delay={60} className="rb-overview-text">
+          <p>
+            He is, by title, CEO of ToggleNow, but heads up product innovation and design. In 2005 he
+            founded <ExtLink href={LINKS.sapSecurityExpert}>SAP Security Expert</ExtLink> — a community
+            and knowledge platform for practitioners in the fields of SAP Security, GRC, Cybersecurity
+            and Audit.
+          </p>
+          <p>
+            Raghu has vast experience in complex SAP environments and a proven track record of helping
+            organizations transform from traditional role administration and periodic compliance
+            activities to practical, automated and continuously governed SAP security. He has delivered
+            many orchestrated automations in SAP GRC — without even using RPA or AI — published as{" "}
+            <ExtLink href={LINKS.automationStories}>Automation Stories</ExtLink> and appreciated by the
+            SAP Security &amp; GRC community.
+          </p>
+          <p>
+            He is also a published author with{" "}
+            <ExtLink href={LINKS.sapPressAuthor}>SAP PRESS / Rheinwerk Publishing</ExtLink>, educator,
+            speaker, practitioner and contributor to the SAP security community.
+          </p>
+        </Reveal>
+
+        <Reveal delay={120} className="rb-card">
+          <EyebrowPill text="Key Distinctions" />
+          <ul className="rb-list-plain">
+            {[
+              "25+ years of SAP Security, GRC, Audit & Automation experience",
+              "SAP PRESS author — SAP Access Control, SAP Process Control and SAP Cloud Identity and Access Governance",
+              "Certifications: CISA, CFE, CDPSE, SAP Certified Security Professional, SAP GRC Associate",
+              "Focus: SAP Security, SAP GRC, Access Governance, SAP Cybersecurity, Audit & Compliance, SAP S/4HANA Security, SAP Cloud Security, Security Automation and AI for SAP Security",
+              "Former Microsoft MVP — Microsoft Most Valuable Professional for three years in a row",
+            ].map((item) => (
+              <li key={item}>
+                <span className="rb-dot" />
+                <span>{item}</span>
+              </li>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────
-          6. PHILOSOPHY: FROM STATIC SECURITY TO CONTEMPORARY SECOPS
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section light-bg" id="viewpoint">
-        <div className="ep-container">
-          <div className="ep-evolution-container">
-            <div className="ep-section-header centered">
-              <span className="ep-kicker">
-                <i className="bi bi-diagram-2" />
-                Evolutionary Perspective
+            <li>
+              <span className="rb-dot" />
+              <span>
+                Leadership — CEO, <ExtLink href={LINKS.toggleNow}>ToggleNow Global</ExtLink> · Board
+                Member, <ExtLink href={LINKS.agInnoLabs}>Access Governance Inno Labs Oy</ExtLink>
               </span>
-              <h2 className="ep-section-title">From SAP Security to SAP SecOps</h2>
-              <p className="ep-section-subtitle">
-                Over 25 years, the paradigm has shifted from isolated user roles to complex, multi-cloud digital identity fabrics.
-              </p>
+            </li>
+          </ul>
+        </Reveal>
+      </div>
+    </Section>
+  );
+}
+
+/* ----------------------------------------------------------- Expertise */
+
+function Expertise() {
+  return (
+    <Section id="expertise" tone="muted">
+      <SectionHeader
+        eyebrow="Capabilities"
+        title="Areas of Expertise"
+        intro="Raghu's work sits at the intersection of SAP Security, enterprise risk and cyber security."
+      />
+      <div className="rb-expertise-grid">
+        {EXPERTISE.map((e, i) => (
+          <Reveal as="article" key={e.n} delay={i * 80} className="rb-expertise-card">
+            <p className="rb-expertise-num">{e.n}</p>
+            <h3>{e.title}</h3>
+            <p className="rb-expertise-summary">{e.summary}</p>
+            <ul className="rb-expertise-topics">
+              {e.topics.map((t) => (
+                <li key={t}>
+                  <span className="rb-dot" />
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function AuditRisk() {
+  return (
+    <Section id="audit">
+      <SectionHeader
+        eyebrow="Controls"
+        title="Audit, Risk & Compliance"
+        intro="A structured control view across ITGC, SAP audit readiness and continuous controls oversight."
+      />
+      <div className="rb-audit-grid">
+        {AUDIT_MATRIX.map((c, i) => (
+          <Reveal key={c} delay={i * 40} className="rb-audit-cell">
+            <p className="rb-audit-code">C-{String(i + 1).padStart(2, "0")}</p>
+            <p>{c}</p>
+          </Reveal>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* --------------------------------------------------------------- Books */
+
+function Books() {
+  return (
+    <Section id="books" tone="muted">
+      <SectionHeader
+        eyebrow="Published knowledge"
+        title="SAP PRESS Author"
+        intro="Raghu is the author and co-author of several SAP PRESS books focusing on SAP Security, GRC, and Identity Access Governance."
+      />
+      <div className="rb-books-grid">
+        {BOOKS.map((b, i) => (
+          <Reveal as="article" key={b.title} delay={i * 80} className="rb-book-card">
+            <div className="rb-book-cover">
+              <p>SAP PRESS</p>
+              <p>{b.title}</p>
             </div>
-
-            <div className="ep-compare-grid">
-              <div className="ep-compare-card classic">
-                <span className="ep-compare-badge">1998 — 2015 Paradigm</span>
-                <h3>Classic SAP Security</h3>
-                <p className="ep-compare-flow">
-                  Users → Roles (PFCG) → Authorizations → Transactions (T-codes)
-                </p>
-                <p style={{ marginTop: 14, fontSize: "0.9rem", color: "#64748b", lineHeight: 1.6 }}>
-                  Static, perimeter-based role models focused purely on t-code restriction and annual periodic audits.
-                </p>
-              </div>
-
-              <div className="ep-compare-card modern">
-                <span className="ep-compare-badge">Contemporary Era</span>
-                <h3>Modern SAP SecOps Landscape</h3>
-                <p className="ep-compare-flow">
-                  Humans + AI Agents → APIs → Fiori Spaces → BTP → Non-Human IDs → Microservices
-                </p>
-                <p style={{ marginTop: 14, fontSize: "0.9rem", color: "#94a3b8", lineHeight: 1.6 }}>
-                  Dynamic identity orchestration, automated continuous monitoring, runtime behavioral telemetry, and API controls.
-                </p>
+            <div className="rb-book-body">
+              <p>{b.description}</p>
+              <p className="rb-book-publisher">{b.publisher}</p>
+              <div className="rb-book-cta">
+                <ExtLink href={b.href}>{b.cta}</ExtLink>
               </div>
             </div>
+          </Reveal>
+        ))}
+      </div>
+      <Reveal delay={120} style={{ marginTop: 32 }}>
+        <ExtLink href={LINKS.sapPressAuthor}>All published works on the SAP PRESS author page</ExtLink>
+      </Reveal>
+    </Section>
+  );
+}
 
-            {/* Signature Can Do vs Did Do Callout */}
-            <div className="ep-candodid-box">
-              <div className="ep-candodid-header">
-                <i className="bi bi-lightbulb-fill" />
-                <h3>The Core Philosophy: "Can Do vs. Did Do"</h3>
-              </div>
-              <div className="ep-candodid-body">
-                <p>
-                  <strong>Can Do</strong> represents what an identity technically possesses permission to execute according to configured roles and profiles.
-                </p>
-                <p>
-                  <strong>Did Do</strong> captures what that identity actually executed across business tables, RFC destinations, and application payloads.
-                </p>
-                <p style={{ marginBottom: 0 }}>
-                  This distinction marks the boundary between check-the-box compliance and genuine threat prevention. As Raghu notes in his acclaimed article{" "}
-                  <Link to="/expert-recommendations/sap-security-2015-model-already-behind" style={{ color: "#ee5e42", fontWeight: 700 }}>
-                    "The 2015 Security Model is Already Behind"
-                  </Link>
-                  , modern defenses require continuous visibility into active operational risk.
-                </p>
-              </div>
-            </div>
-          </div>
+function Training() {
+  return (
+    <Section id="training">
+      <div className="rb-split-grid">
+        <div>
+          <SectionHeader
+            eyebrow="Course"
+            title="SAP S/4HANA Security Training"
+            intro="Raghu has also contributed as an instructor for SAP PRESS / Rheinwerk's Authorizations and Security for SAP S/4HANA course. It includes practical demonstrations, is spread over 5 sessions and is available today as a recorded session."
+          />
+          <Reveal delay={80} style={{ marginTop: 24 }}>
+            <ExtLink href={LINKS.training}>View Course</ExtLink>
+          </Reveal>
         </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────
-          7. CREDENTIALS & CERTIFICATIONS
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section">
-        <div className="ep-container">
-          <div className="ep-section-header centered">
-            <span className="ep-kicker">
-              <i className="bi bi-patch-check" />
-              Credentials
-            </span>
-            <h2 className="ep-section-title">Professional Qualifications & Honors</h2>
-            <p className="ep-section-subtitle">
-              Certified across international standards for information systems audit, fraud examination, and enterprise privacy.
-            </p>
-          </div>
-
-          <div className="ep-cert-grid">
-            {CERTIFICATIONS.map((cert) => (
-              <div className="ep-cert-chip" key={cert}>
-                <i className="bi bi-patch-check-fill ep-cert-icon" />
-                <span className="ep-cert-name">{cert}</span>
-              </div>
+        <Reveal delay={80} className="rb-card">
+          <EyebrowPill text="Course Topics" />
+          <ul className="rb-topic-list">
+            {["Authorization concepts", "User management", "Roles & profiles", "Fiori authorizations", "Troubleshooting", "Auditing"].map((t) => (
+              <li key={t}>
+                <span><span className="rb-dot" /><span>{t}</span></span>
+                <span className="rb-tech" style={{ color: "var(--rb-text-muted)" }}>SAP S/4HANA</span>
+              </li>
             ))}
-          </div>
-        </div>
-      </section>
+          </ul>
+        </Reveal>
+      </div>
+    </Section>
+  );
+}
 
-      {/* ────────────────────────────────────────────────────────────
-          8. THE 8 CRITICAL ACCESS QUESTIONS
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section light-bg">
-        <div className="ep-container">
-          <div className="ep-section-header centered">
-            <span className="ep-kicker">
-              <i className="bi bi-question-diamond" />
-              Security Audit Mindset
-            </span>
-            <h2 className="ep-section-title">Beyond "Can the User Access It?"</h2>
-            <p className="ep-section-subtitle">
-              The fundamental questions security architects must ask when evaluating enterprise exposure today.
-            </p>
-          </div>
-
-          <div className="ep-questions-grid">
-            {VIEWPOINT_QUESTIONS.map((item) => (
-              <div className="ep-question-card" key={item.n}>
-                <span className="ep-question-number">{item.n}</span>
-                <span className="ep-question-text">{item.q}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────
-          9. RESEARCH & THOUGHT LEADERSHIP TOPICS
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section">
-        <div className="ep-container">
-          <div className="ep-section-header centered">
-            <span className="ep-kicker">
-              <i className="bi bi-journal-text" />
-              Research & Analysis
-            </span>
-            <h2 className="ep-section-title">Specialized Research Topics</h2>
-            <p className="ep-section-subtitle">
-              Ongoing technical investigations and published analyses addressing where emerging cloud architectures challenge legacy controls.
-            </p>
-          </div>
-
-          <div className="ep-tags-cloud">
-            {RESEARCH_TOPICS.map((topic) => (
-              <span className="ep-topic-tag" key={topic}>
-                {topic}
-              </span>
-            ))}
-          </div>
-
-          <div style={{ textAlign: "center", marginTop: 32 }}>
-            <Link to="/expert-recommendations" className="ep-btn-secondary" style={{ color: "#0f172a", borderColor: "#cbd5e1", background: "#fff" }}>
-              <span>Browse All Expert Articles</span>
-              <i className="bi bi-arrow-right" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────
-          10. MEDIA & BROADCAST INTERVIEWS
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section light-bg">
-        <div className="ep-container">
-          <div className="ep-section-header centered">
-            <span className="ep-kicker">
-              <i className="bi bi-camera-video" />
-              Media Coverage
-            </span>
-            <h2 className="ep-section-title">Keynote Interviews & Broadcasts</h2>
-            <p className="ep-section-subtitle">
-              Expert commentary on enterprise artificial intelligence risks, digital frauds, and enterprise defense strategies.
-            </p>
-          </div>
-
-          <div className="ep-media-grid">
-            <div className="ep-media-card">
-              <div>
-                <div className="ep-media-header">
-                  <span className="ep-media-channel-badge">Sakshi TV</span>
-                  <span style={{ fontSize: "0.82rem", color: "#64748b" }}>Broadcast Interview</span>
+function Certifications() {
+  const stack1 = CERTIFICATIONS.slice(0, 4);
+  const stack2 = CERTIFICATIONS.slice(4, 8);
+  return (
+    <Section id="certifications" tone="muted">
+      <SectionHeader eyebrow="Credentials" title="Professional Qualifications & Certifications" />
+      <div className="rb-cert-grid">
+        {[stack1, stack2].map((stack, si) => (
+          <ul className="rb-cert-list" key={si}>
+            {stack.map((c, i) => (
+              <Reveal as="li" key={c.code} delay={(i + si * 4) * 50}>
+                <div className="rb-cert-code">
+                  <span className="rb-dot" />
+                  <span>{c.code}</span>
                 </div>
-                <h3>Is Artificial Intelligence a Threat to Enterprise Security?</h3>
-                <p>
-                  Comprehensive television interview analyzing AI-enabled threat actors, autonomous agent vulnerabilities, and the defensive safeguards organizations must adopt.
-                </p>
-              </div>
-              <a href="https://www.youtube.com/watch?v=AiGP4hL041s" {...EXT} className="ep-media-btn">
-                <span>Watch Interview on YouTube</span>
-                <i className="bi bi-play-circle-fill" />
-              </a>
-            </div>
+                <span>{c.name}</span>
+              </Reveal>
+            ))}
+          </ul>
+        ))}
+      </div>
+    </Section>
+  );
+}
 
-            <div className="ep-media-card">
-              <div>
-                <div className="ep-media-header">
-                  <span className="ep-media-channel-badge">Hybiz TV</span>
-                  <span style={{ fontSize: "0.82rem", color: "#64748b" }}>Financial Fraud Analysis</span>
+/* -------------------------------------------------------------- SecOps */
+
+function SecOps() {
+  return (
+    <Section id="secops">
+      <SectionHeader
+        eyebrow="Signature thinking"
+        title="From SAP Security to SAP SecOps"
+        intro="Classic SAP Security was largely static, focused on users, roles, and periodic audits. Modern enterprise landscapes demand a transition to continuous, real-time SAP SecOps."
+      />
+
+      <div className="rb-secops-grid">
+        <Reveal delay={60} className="rb-model-card">
+          <div className="rb-model-head">
+            <div>
+              <p className="rb-eyebrow" style={{ color: "var(--rb-text-muted)" }}>Traditional Model</p>
+              <h3>Classic SAP Security</h3>
+            </div>
+            <span className="rb-model-tag">Static · Periodic</span>
+          </div>
+          <p className="rb-model-desc">
+            Built primarily around static role provisioning, standard authorization profiles, and
+            periodic manual governance reviews.
+          </p>
+          <div>
+            <p className="rb-eyebrow rb-pipeline-label">Authorization Pipeline</p>
+            <div className="rb-pipeline-grid">
+              {["Users", "Roles", "Authorizations", "Transactions"].map((s, i) => (
+                <div className="rb-pipeline-step" key={s}>
+                  <span>0{i + 1}</span>
+                  <span>{s}</span>
                 </div>
-                <h3>Combating Enterprise & Cyber Frauds</h3>
-                <p>
-                  Special feature spotlighting emerging digital fraud patterns, insider threat vectors in ERP systems, and proactive forensic controls for fraud prevention.
-                </p>
-              </div>
-              <a href="https://www.youtube.com/watch?v=Rhs66vy54OE" {...EXT} className="ep-media-btn">
-                <span>Watch Feature on YouTube</span>
-                <i className="bi bi-play-circle-fill" />
-              </a>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────
-          11. CURRENT VENTURES
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section">
-        <div className="ep-container">
-          <div className="ep-section-header centered">
-            <span className="ep-kicker">
-              <i className="bi bi-briefcase" />
-              Ventures & Initiatives
-            </span>
-            <h2 className="ep-section-title">Active Ventures</h2>
+          <div className="rb-model-footer">
+            <p>Focus: Entitlement assignment &amp; quarterly box-ticking compliance.</p>
           </div>
+        </Reveal>
 
-          <div className="ep-ventures-grid">
-            <div className="ep-venture-card">
-              <div>
-                <h3>ToggleNow Global</h3>
-                <p>
-                  A next-generation technology company pioneering automated SAP Security, continuous GRC oversight, and AI-enabled SAP SecOps. ToggleNow translates decades of field experience into managed capabilities and modular automation products.
-                </p>
-              </div>
-              <div className="ep-venture-actions">
-                <a href="https://www.togglenow.com" {...EXT} className="ep-btn-primary">
-                  <span>Visit ToggleNow</span>
-                  <i className="bi bi-box-arrow-up-right" />
-                </a>
-                <a href="https://togglenow.com/solutions/" {...EXT} className="ep-btn-secondary" style={{ color: "#0f172a", borderColor: "#cbd5e1" }}>
-                  <span>Explore Solutions</span>
-                </a>
-              </div>
+        <Reveal delay={120} className="rb-model-card rb-model-card--modern">
+          <div className="rb-model-head">
+            <div>
+              <EyebrowPill text="Modern Paradigm" />
+              <h3>SAP SecOps Landscape</h3>
             </div>
-
-            <div className="ep-venture-card">
-              <div>
-                <h3>SAP Security Expert</h3>
-                <p>
-                  Founded in 2005 as a community-driven sanctuary for practitioners across SAP Security, GRC, BTP, and Audit. Providing independent research, podcasts, implementation checklists, and expert peer insights.
-                </p>
-              </div>
-              <div className="ep-venture-actions">
-                <Link to="/" className="ep-btn-primary">
-                  <span>Explore Knowledge Hub</span>
-                  <i className="bi bi-house" />
-                </Link>
-                <Link to="/podcasts" className="ep-btn-secondary" style={{ color: "#0f172a", borderColor: "#cbd5e1" }}>
-                  <span>Listen to Podcasts</span>
-                </Link>
-              </div>
+            <span className="rb-model-tag rb-model-tag--active"><span className="rb-eyebrow-pill-dot" />Continuous · Telemetry</span>
+          </div>
+          <p className="rb-model-desc">
+            Encompasses human and non-human identities across hybrid cloud fabrics, orchestrated
+            automations, and live risk monitoring.
+          </p>
+          <div>
+            <p className="rb-eyebrow rb-pipeline-label">Ecosystem Vectors</p>
+            <div className="rb-tag-chip-row">
+              {MODERN_LANDSCAPE.map((m) => <span className="rb-tag-chip" key={m}>{m}</span>)}
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────
-          12. CONNECT CHANNELS
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-section light-bg">
-        <div className="ep-container">
-          <div className="ep-section-header centered">
-            <span className="ep-kicker">
-              <i className="bi bi-share" />
-              Channels
-            </span>
-            <h2 className="ep-section-title">Connect with Raghu Boddu</h2>
-            <p className="ep-section-subtitle">
-              Available for keynote speaking, executive advisory, research collaboration, and podcast discussions.
+          <div className="rb-model-footer">
+            <p><strong style={{ color: "#0f172a" }}>Focus:</strong>{" "}
+              <span style={{ color: "var(--rb-text-secondary)" }}>Pervasive visibility, live threat detection &amp; human oversight.</span>
             </p>
           </div>
+        </Reveal>
+      </div>
 
-          <div className="ep-connect-grid">
-            <a href="https://www.linkedin.com/in/raghuboddu" {...EXT} className="ep-connect-card">
-              <div className="ep-connect-icon">
-                <i className="bi bi-linkedin" />
-              </div>
-              <h3>LinkedIn</h3>
-              <p>Professional updates, architecture diagrams & articles</p>
-            </a>
-
-            <a href="https://blog.sap-press.com/author/raghu-boddu" {...EXT} className="ep-connect-card">
-              <div className="ep-connect-icon">
-                <i className="bi bi-book-half" />
-              </div>
-              <h3>SAP PRESS</h3>
-              <p>Author catalog, published volumes & eBites</p>
-            </a>
-
-            <a href="https://www.togglenow.com" {...EXT} className="ep-connect-card">
-              <div className="ep-connect-icon">
-                <i className="bi bi-building" />
-              </div>
-              <h3>ToggleNow</h3>
-              <p>Enterprise GRC & SAP Security solutions</p>
-            </a>
-
-            <a href="https://www.raghuboddu.com" {...EXT} className="ep-connect-card">
-              <div className="ep-connect-icon">
-                <i className="bi bi-globe" />
-              </div>
-              <h3>Personal Portal</h3>
-              <p>raghuboddu.com personal website & blog</p>
-            </a>
-          </div>
-
-          <p style={{ textAlign: "center", marginTop: 28, fontSize: "0.92rem", color: "#64748b" }}>
-            SAP Community Profile: <strong style={{ color: "#0f172a" }}>@GRCwithRaghu</strong> &nbsp;·&nbsp; Member since 2005
+      <Reveal delay={160} className="rb-formula-banner">
+        <div className="rb-formula-intro">
+          <EyebrowPill text="The Core Analytical Framework" />
+          <h3 className="rb-formula-title">The "Can Do" vs. "Did Do" Duality</h3>
+          <p className="rb-formula-desc">
+            Raghu's foundational methodology asserts that knowing what an identity is permitted to do
+            is insufficient without analyzing what that identity actually performs.
           </p>
         </div>
-      </section>
 
-      {/* ────────────────────────────────────────────────────────────
-          13. BOTTOM CTA BANNER
-          ──────────────────────────────────────────────────────────── */}
-      <section className="ep-cta-section">
-        <div className="ep-container">
-          <div className="ep-cta-banner">
-            <h2>Explore More SAP Security Insights</h2>
-            <p>
-              Dive into our library of expert tutorials, download practical security checklists, or connect with fellow enterprise architects.
-            </p>
-            <div className="ep-cta-btn-group">
-              <Link to="/expert-recommendations" className="ep-btn-primary">
-                <span>View Expert Articles</span>
-                <i className="bi bi-arrow-right" />
-              </Link>
-              <Link to="/contact-us" className="ep-btn-secondary">
-                <span>Contact Community Team</span>
-                <i className="bi bi-envelope" />
-              </Link>
+        <div className="rb-cando-grid">
+          <Reveal delay={80} className="rb-cando-card">
+            <div className="rb-cando-tag-row">
+              <span className="rb-cando-tag"><span className="rb-eyebrow-pill-dot" />Entitlement State</span>
+              <span className="rb-cando-meta">Static Analysis</span>
             </div>
-          </div>
+            <h4>Can Do</h4>
+            <p className="rb-cando-quote">"What can this identity technically execute?"</p>
+            <p className="rb-cando-desc">
+              Evaluates assigned roles, transaction authorizations, and Segregation of Duties (SoD)
+              permissions configured in SAP GRC and identity governance repositories.
+            </p>
+          </Reveal>
+          <Reveal delay={160} className="rb-cando-card">
+            <div className="rb-cando-tag-row">
+              <span className="rb-cando-tag"><span className="rb-eyebrow-pill-dot" />Runtime Activity</span>
+              <span className="rb-cando-meta">Dynamic Telemetry</span>
+            </div>
+            <h4>Did Do</h4>
+            <p className="rb-cando-quote">"What did the identity actually perform?"</p>
+            <p className="rb-cando-desc">
+              Captures audit logs, transaction executions, database queries, and behavioral anomalies
+              to verify if potential access was actually exercised.
+            </p>
+          </Reveal>
         </div>
-      </section>
-    </div>
+
+        <Reveal delay={240} className="rb-formula-row">
+          <div className="rb-formula-boxes">
+            <span className="rb-formula-box">Can Do</span>
+            <span className="rb-formula-plus">+</span>
+            <span className="rb-formula-box">Did Do</span>
+            <span className="rb-formula-goesto">&#10132;</span>
+            <span className="rb-formula-box rb-formula-box--result">Security Context</span>
+          </div>
+          <p className="rb-formula-note">
+            Continuous correlation enables proactive incident containment rather than retrospective
+            audits.
+          </p>
+        </Reveal>
+      </Reveal>
+    </Section>
+  );
+}
+
+/* ------------------------------------------------------------ Research */
+
+function Research() {
+  const mid = Math.ceil(RESEARCH_TOPICS.length / 2);
+  const col1 = RESEARCH_TOPICS.slice(0, mid);
+  const col2 = RESEARCH_TOPICS.slice(mid);
+
+  return (
+    <Section id="research" tone="muted">
+      <SectionHeader
+        eyebrow="Insights"
+        title="Research & Expert Insights"
+        intro="Raghu writes on emerging issues in SAP Security, GRC and enterprise cyber security, with particular interest in areas where traditional security models are challenged by changing technology."
+      />
+      <div className="rb-link-grid">
+        {[col1, col2].map((col, ci) => (
+          <ul className="rb-link-list" key={ci}>
+            {col.map((t, i) => (
+              <Reveal as="li" key={t} delay={(i + ci * mid) * 30}>
+                <a href={LINKS.sseRecommendations} {...EXT}>
+                  <span>{t}</span>
+                  <Arrow />
+                </a>
+              </Reveal>
+            ))}
+          </ul>
+        ))}
+      </div>
+
+      <Reveal delay={100} className="rb-recommendation-card">
+        <EyebrowPill text="Expert Recommendation" />
+        <h3>SAP Security 2015 model already behind</h3>
+        <p>
+          In his latest SAP Security Expert work, Raghu states that the traditional security model
+          from 2015 is no longer sufficient for the current SAP landscape, where Fiori, BTP, APIs,
+          automation and AI open up additional access paths and identities.
+        </p>
+        <ExtLink href={LINKS.sse2015Model}>Read Expert Recommendation</ExtLink>
+      </Reveal>
+    </Section>
+  );
+}
+
+function Articles() {
+  return (
+    <Section id="articles">
+      <SectionHeader
+        eyebrow="Published content"
+        title="Technical Articles & Published Content"
+        intro="Raghu regularly publishes practical SAP Security and GRC content through SAP Security Expert, SAP PRESS and other professional channels."
+      />
+      <div className="rb-articles-grid">
+        {ARTICLE_CATEGORIES.map((a, i) => (
+          <Reveal as="article" key={a.category} delay={i * 60} className="rb-article-card">
+            <p>{a.category}</p>
+            <p>{a.description}</p>
+            <ExtLink href={LINKS.sapSecurityExpert}>Read articles</ExtLink>
+          </Reveal>
+        ))}
+      </div>
+      <Reveal delay={100} style={{ marginTop: 32, display: "flex", flexWrap: "wrap", gap: 24 }}>
+        <ExtLink href={LINKS.linkedin}>Publishing presence on LinkedIn</ExtLink>
+        <ExtLink href={LINKS.sapPressAuthor}>SAP PRESS author page</ExtLink>
+      </Reveal>
+    </Section>
+  );
+}
+
+function Podcasts() {
+  const mid = Math.ceil(PODCAST_TOPICS.length / 2);
+  const col1 = PODCAST_TOPICS.slice(0, mid);
+  const col2 = PODCAST_TOPICS.slice(mid);
+  return (
+    <Section id="podcasts" tone="muted">
+      <SectionHeader
+        eyebrow="Conversations"
+        title="Podcasts & Discussions"
+        intro="Raghu joins conversations with SAP Security, GRC, cybersecurity and technology professionals."
+      />
+      <div className="rb-link-grid">
+        {[col1, col2].map((col, ci) => (
+          <ul className="rb-link-list rb-podcast-list" key={ci}>
+            {col.map((p, i) => (
+              <Reveal as="li" key={p} delay={(i + ci * mid) * 40}>
+                <a href={LINKS.ssePodcasts} {...EXT}>
+                  <span>
+                    <span className="rb-podcast-kicker"><span className="rb-dot" />Podcast / Discussion</span>
+                    <span className="rb-podcast-title">{p}</span>
+                  </span>
+                  <Arrow />
+                </a>
+              </Reveal>
+            ))}
+          </ul>
+        ))}
+      </div>
+      <Reveal delay={80} style={{ marginTop: 32 }}>
+        <ExtLink href={LINKS.ssePodcasts}>SAP Security Expert Podcasts</ExtLink>
+      </Reveal>
+    </Section>
+  );
+}
+
+function Speaking() {
+  return (
+    <Section id="speaking">
+      <SectionHeader eyebrow="Community" title="Speaking & Sharing Knowledge" />
+      <div className="rb-speaking-grid">
+        <Reveal>
+          <ul className="rb-channel-cell-list">
+            {SPEAKING_CHANNELS.map((s, i) => (
+              <Reveal as="li" key={s} delay={i * 50}>
+                <span className="rb-dot" />
+                <span>{s}</span>
+              </Reveal>
+            ))}
+          </ul>
+        </Reveal>
+        <Reveal delay={100} className="rb-quote-block" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+          <blockquote style={{ margin: 0 }}>
+            <p>"So what should a security professional actually do differently on Monday morning?"</p>
+            <footer>Raghu's focus is deliberately practical.</footer>
+          </blockquote>
+        </Reveal>
+      </div>
+    </Section>
+  );
+}
+
+function Interviews() {
+  const [activeVideo, setActiveVideo] = useState(null);
+  const media = [
+    { source: "Sakshi TV", title: 'Interview — "Is AI a threat?"', href: LINKS.sakshiTv, videoId: "AiGP4hL041s" },
+    { source: "Hybiz TV", title: "Cyber frauds — television discussion", href: LINKS.hybizTv, videoId: "Rhs66vy54OE" },
+  ];
+
+  return (
+    <Section id="interviews" tone="muted">
+      <SectionHeader
+        eyebrow="Media"
+        title="Interviews & Articles"
+        intro="Raghu's professional journey and expertise in SAP and AI have been spotlighted on technology, professional and media platforms."
+      />
+      <div className="rb-media-grid">
+        {media.map((m, i) => {
+          const key = `${m.videoId}-${i}`;
+          const isPlaying = activeVideo === key;
+          const thumbnailUrl = `https://img.youtube.com/vi/${m.videoId}/hqdefault.jpg`;
+          return (
+            <Reveal as="article" key={key} delay={i * 70} className="rb-media-card">
+              <div className="rb-media-thumb-wrap">
+                {isPlaying ? (
+                  <div className="rb-media-iframe-wrap">
+                    <iframe
+                      src={`https://www.youtube-nocookie.com/embed/${m.videoId}?autoplay=1&rel=0&modestbranding=1`}
+                      title={m.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                    <button type="button" onClick={() => setActiveVideo(null)} aria-label="Close video" className="rb-media-close-btn">
+                      <LuX size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setActiveVideo(key)} className="rb-media-thumb-btn" aria-label={`Play video: ${m.title}`}>
+                    <img src={thumbnailUrl} alt={m.title} loading="lazy" referrerPolicy="no-referrer" />
+                    <div className="rb-media-gradient" />
+                    <div className="rb-media-source-badge">{m.source}</div>
+                    <div className="rb-media-play">
+                      <div className="rb-media-play-circle"><LuPlay size={20} /></div>
+                    </div>
+                  </button>
+                )}
+              </div>
+              <div className="rb-media-body">
+                <span className="rb-media-kicker"><span className="rb-dot" />{m.source}</span>
+                <h3 className="rb-media-title">{m.title}</h3>
+                <div className="rb-media-footer">
+                  <button type="button" onClick={() => setActiveVideo(key)} className="rb-media-watch-btn">
+                    <LuPlay size={14} /> Watch Video
+                  </button>
+                  <a href={m.href} {...EXT} style={{ fontSize: 13, color: "var(--rb-text-muted)" }}>Open on YouTube</a>
+                </div>
+              </div>
+            </Reveal>
+          );
+        })}
+      </div>
+
+      <Reveal delay={80} style={{ marginTop: 32, maxWidth: "48rem", fontSize: 15, lineHeight: 1.65, color: "var(--rb-text-secondary)" }}>
+        <p>
+          Raghu has also contributed significantly to a variety of technical communities, publishing
+          on <ExtLink href={LINKS.sapCommunity}>SAP Community Blogs</ExtLink> and authoring over 30
+          Microsoft Knowledge Base articles during his earlier Microsoft ecosystem work. He was awarded
+          Microsoft Most Valuable Professional (MVP) for Windows Shell three years running.
+        </p>
+      </Reveal>
+    </Section>
+  );
+}
+
+/* ----------------------------------------------------------- ToggleNow */
+
+function ToggleNow() {
+  const chain = ["SAP Security", "GRC", "Cybersecurity", "Automation", "AI-driven Security Operations"];
+  return (
+    <Section id="togglenow">
+      <div className="rb-split-grid">
+        <div>
+          <SectionHeader
+            eyebrow="Leadership"
+            title="ToggleNow"
+            intro="Raghu is the CEO of ToggleNow, a SAP-centric technology and services company working across SAP Security, GRC, cyber security, automation and AI-driven security operations."
+          />
+          <Reveal delay={80} style={{ marginTop: 16, fontSize: 15, lineHeight: 1.65, color: "var(--rb-text-secondary)" }}>
+            <p>
+              At ToggleNow his focus is on translating years of SAP Security and GRC experience into
+              practical technology, automation and managed capabilities.
+            </p>
+            <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+              <ExtLink href={LINKS.toggleNow}>Go to ToggleNow</ExtLink>
+              <ExtLink href={LINKS.toggleNowSolutions}>Discover ToggleNow products &amp; solutions</ExtLink>
+              {LINKS.toggleNowSecOps && <ExtLink href={LINKS.toggleNowSecOps}>Explore SAP Security &amp; SecOps</ExtLink>}
+              <ExtLink href={LINKS.automationStories}>Automation Stories</ExtLink>
+            </div>
+          </Reveal>
+        </div>
+        <Reveal delay={100} className="rb-card">
+          <EyebrowPill text="Executive Leadership" />
+          <p className="rb-exec-label">CEO / Product Innovation</p>
+          <ol className="rb-chain-list">
+            {chain.map((c, i) => (
+              <li key={c}>
+                <p className="rb-chain-step">{c}</p>
+                {i < chain.length - 1 && <p className="rb-chain-arrow">&#8595;</p>}
+              </li>
+            ))}
+          </ol>
+        </Reveal>
+      </div>
+    </Section>
+  );
+}
+
+/* ----------------------------------------------------------- Viewpoint */
+
+function Viewpoint() {
+  const stack1 = VIEWPOINT_QUESTIONS.slice(0, 4);
+  const stack2 = VIEWPOINT_QUESTIONS.slice(4, 8);
+  return (
+    <Section id="viewpoint" tone="muted">
+      <SectionHeader eyebrow="Philosophy" title="Raghu's Viewpoint" />
+      <Reveal delay={60} className="rb-viewpoint-quote">
+        <p>SAP Security should be more than just "Can the user access it?"</p>
+        <p>Security today demands a wider set of questions.</p>
+      </Reveal>
+
+      <div className="rb-viewpoint-grid">
+        {[stack1, stack2].map((stack, si) => (
+          <ol className="rb-viewpoint-list" key={si}>
+            {stack.map((q, i) => (
+              <Reveal as="li" key={q} delay={(i + si * 4) * 50}>
+                <span className="rb-viewpoint-num">{String(i + 1 + si * 4).padStart(2, "0")}</span>
+                <span className="rb-viewpoint-q">{q}</span>
+              </Reveal>
+            ))}
+          </ol>
+        ))}
+      </div>
+
+      <Reveal delay={80} style={{ marginTop: 32, maxWidth: "48rem", fontSize: 15, color: "var(--rb-text-secondary)" }}>
+        <p>These questions are increasingly shaping Raghu's philosophy of SAP Security.</p>
+      </Reveal>
+    </Section>
+  );
+}
+
+function Connect() {
+  const channels = [
+    { label: "LinkedIn", value: "Raghu Boddu", href: LINKS.linkedin },
+    { label: "SAP Profile", value: "@GRCwithRaghu", href: LINKS.sapCommunity },
+    { label: "SAP Security Expert", value: "sapsecurityexpert.com", href: LINKS.sapSecurityExpert },
+    { label: "ToggleNow", value: "togglenow.com", href: LINKS.toggleNow },
+    { label: "Personal website", value: "www.raghuboddu.com", href: LINKS.personalSite },
+  ];
+  return (
+    <Section id="connect">
+      <SectionHeader
+        eyebrow="Get in touch"
+        title="Follow & Connect"
+        intro="Connect with Raghu on his professional channels or his personal website for professional discussions, speaking opportunities, interviews, podcasts, research collaborations or SAP Security / GRC topics."
+      />
+      <div className="rb-connect-grid">
+        <Reveal>
+          <ul className="rb-channel-list">
+            {channels.map((c) => (
+              <li key={c.label}>
+                <a href={c.href} {...EXT}>
+                  <span>
+                    <span className="rb-channel-label">{c.label}</span>
+                    <span className="rb-channel-value">{c.value}</span>
+                  </span>
+                  <Arrow />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+        <Reveal delay={100} className="rb-card rb-cta-card">
+          <EyebrowPill text="Start A Conversation" />
+          <h3>Speaking, interviews, podcasts and research collaborations</h3>
+          <div className="rb-cta-actions">
+            <a href={LINKS.linkedin} {...EXT} className="rb-cta-primary">Connect with Raghu <Arrow className="rb-arrow-white" /></a>
+            <a href={LINKS.sapSecurityExpert} {...EXT} className="rb-cta-outline">Explore SAP Security Expert <Arrow /></a>
+            <a href={LINKS.toggleNow} {...EXT} className="rb-cta-outline-muted">Visit ToggleNow <Arrow /></a>
+          </div>
+        </Reveal>
+      </div>
+    </Section>
   );
 }

@@ -369,19 +369,24 @@ export default function ProfileSettings() {
                   </div>
                   <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>Recommended: Square JPG, PNG or WebP</p>
 
+
+                  <ReputationBadge level={member?.is_ambassador ? "CountryAmbassador" : member?.reputation_level} />
+
                   {member?.is_public_profile_pending && (
                     <div style={{
-                      display: "flex", alignItems: "flex-start", gap: 8, marginTop: 12, width: "100%",
-                      background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 12px",
+                      marginTop: "14px", padding: "12px 16px",
+                      background: "#fffbeb", border: "1.5px solid #fde68a",
+                      borderRadius: "10px", width: "100%", textAlign: "center",
                     }}>
-                      <i className="bi bi-info-circle-fill" style={{ color: "#d97706", fontSize: "0.95rem", marginTop: 1 }} />
-                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#92400e", lineHeight: 1.5 }}>
-                        Your profile photo and public profile aren't visible to others yet — they'll appear once you publish your first article.
+                      <p style={{ margin: 0, fontSize: "0.8rem", color: "#b45309", fontWeight: 600 }}>
+                        <i className="bi bi-eye-slash-fill" style={{ marginRight: "6px" }} />
+                        Public Profile Hidden
+                      </p>
+                      <p style={{ margin: "4px 0 0", fontSize: "0.75rem", color: "#78350f" }}>
+                        Your profile will become visible in the public Contributors directory once your first article is submitted and published.
                       </p>
                     </div>
                   )}
-
-                  <ReputationBadge level={member?.is_ambassador ? "CountryAmbassador" : member?.reputation_level} />
 
                   {member?.ambassador_has_badge && (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "14px", width: "100%" }}>

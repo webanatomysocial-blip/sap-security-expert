@@ -240,15 +240,43 @@ const ContributorApplication = () => {
         <div id="application-form" className="application-form-container">
           {submitStatus === "success" ? (
             <div className="success-message-box">
-              <i className="bi bi-check-circle-fill"></i>
-              <h3>Application Submitted Successfully!</h3>
-              <p>
-                Thank you for your application. Our team will review your
-                profile and get back to you shortly.
+              <div className="success-icon-wrapper">
+                <i className="bi bi-check-lg"></i>
+              </div>
+              <h3>Contributor Application Submitted!</h3>
+              <p className="success-desc">
+                Thank you for applying to become a <strong>Contributor</strong>.
+                Our editorial team will review your application details and get back to you shortly.
               </p>
-              <Link to="/" className="btn-apply-now">
-                Return to Home
-              </Link>
+
+              <div className="success-steps-box">
+                <div className="success-steps-title">
+                  <i className="bi bi-info-circle-fill"></i> What Happens Next
+                </div>
+                <ul className="success-steps-list">
+                  <li>
+                    <i className="bi bi-check-circle-fill"></i>
+                    <span><strong>Application Review:</strong> Our editorial team will evaluate your profile within 1–2 business days.</span>
+                  </li>
+                  <li>
+                    <i className="bi bi-check-circle-fill"></i>
+                    <span><strong>Email Notification:</strong> You will receive an approval email at <strong>{formData.email}</strong> with your Contributor Dashboard access details.</span>
+                  </li>
+                  <li>
+                    <i className="bi bi-check-circle-fill"></i>
+                    <span><strong>Publish & Go Public:</strong> Submit your first article — once published, your public profile will go live in the Contributors directory automatically!</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="success-buttons-group">
+                <Link to="/" className="btn-apply-now">
+                  <i className="bi bi-house-door-fill"></i> Return to Home
+                </Link>
+                <Link to="/apply-ambassador" className="btn-apply-now-outline">
+                  <i className="bi bi-award-fill"></i> Apply as Country Ambassador
+                </Link>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleInitialSubmit} className="detailed-form">
