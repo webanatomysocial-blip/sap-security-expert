@@ -49,6 +49,14 @@ class MailService {
       if (!fs.existsSync(fullPath)) throw new Error(`Template ${templatePath} not found`);
 
       let body = fs.readFileSync(fullPath, 'utf8');
+
+      // Minimal {{#if key}}...{{/if}} block support — templates use this to
+      // show/hide a section (e.g. a password box only when one was actually
+      // generated). The plain {{key}} loop below has no concept of blocks,
+      // so without this the literal `{{#if ...}}`/`{{/if}}` tags leak
+      // straight into the sent email whenever a template uses them.
+      body = body.replace(/\{\{#if\s+(\w+)\s*\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, key, inner) => (data[key] ? inner : ''));
+
       for (const [key, val] of Object.entries(data)) {
         // Escape before interpolation — several templates substitute
         // user-submitted fields (name, reason, etc.) straight from public
