@@ -206,7 +206,7 @@ const BecomeContributor = () => {
                 <h3>{roles[selectedRoleIndex].title}</h3>
 
                 <div className="role-meta">
-                  {roles[selectedRoleIndex].count && (
+                  {!!roles[selectedRoleIndex].count && (
                     <span className="meta-badge">
                       <i className="bi bi-people-fill"></i>{" "}
                       {roles[selectedRoleIndex].count}
