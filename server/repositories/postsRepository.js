@@ -35,7 +35,11 @@ const AUTHOR_FIELDS = `
   CASE
     WHEN b.author_id IS NULL OR b.author_id = 1 THEN 'raghu'
     ELSE CAST(c.id AS CHAR)
-  END as author_contributor_id
+  END as author_contributor_id,
+  CASE
+    WHEN b.author_id IS NULL OR b.author_id = 1 THEN 'raghu'
+    ELSE COALESCE(c.slug, CAST(c.id AS CHAR))
+  END as author_contributor_slug
 `;
 
 async function getExclusivePremiumCounts(db) {

@@ -25,13 +25,32 @@ const apply = async (req, res) => {
   let expertise = input.expertise || '{}';
   if (Array.isArray(expertise) || typeof expertise === 'object') expertise = JSON.stringify(expertise);
 
+  let communityContribution = input.communityContribution || '{}';
+  if (Array.isArray(communityContribution) || typeof communityContribution === 'object') {
+    communityContribution = JSON.stringify(communityContribution);
+  }
+
+  let ambassadorMotivations = input.ambassadorMotivations || '{}';
+  if (Array.isArray(ambassadorMotivations) || typeof ambassadorMotivations === 'object') {
+    ambassadorMotivations = JSON.stringify(ambassadorMotivations);
+  }
+
   const fields = {
     fullName: input.fullName || '', email, linkedin: input.linkedin || '',
     country: input.country || '', state: input.state || '', city: input.city || '',
-    organization: input.organization || '', currentRole: input.currentRole || '',
+    organization: input.organization || '',
+    currentRole: input.currentRole === 'Other' && input.otherCurrentRoleText ? input.otherCurrentRoleText : (input.currentRole || ''),
     yearsExperience: input.yearsExperience || '', expertise, otherExpertiseText: input.otherExpertiseText || '',
-    motivation: input.motivation || '', contributionExamples: input.contributionExamples || '',
-    nominationType: input.nominationType || 'self', imagePath,
+    // motivation/contributionExamples now carry the questionnaire's two
+    // public-facing long-answer questions (contribution plan / initiative
+    // example) — reusing these columns since they already render on the
+    // public profile page.
+    motivation: input.contributionPlan || '', contributionExamples: input.initiativeExample || '',
+    nominationType: 'self', imagePath,
+    communityContribution, contributionLinks: input.contributionLinks || '',
+    mentorshipExperience: input.mentorshipExperience || '', communityHelpingFrequency: input.communityHelpingFrequency || '',
+    countryChallenge: input.countryChallenge || '', ambassadorMotivations, otherMotivationText: input.otherMotivationText || '',
+    contributionWillingness: input.contributionWillingness || '', ambassadorDefinition: input.ambassadorDefinition || '',
   };
 
   try {

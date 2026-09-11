@@ -43,7 +43,11 @@ function requireAuth(options = {}) {
     // keeps dashboard access until it naturally expires.
     if (sess.admin_logged_in) {
       const current = await authRepo.findCurrentAccessState(req.db, sess.admin_id);
-      const stillHasDashboardAccess = current && current.is_active == 1 && (current.role === 'admin' || current.role === 'contributor');
+      let stillHasDashboardAccess = current && current.is_active == 1 && (current.role === 'admin' || current.role === 'contributor');
+      if (stillHasDashboardAccess && current.role === 'contributor') {
+        const approvedContributor = await authRepo.findContributorByEmail(req.db, current.email);
+        if (!approvedContributor) stillHasDashboardAccess = false;
+      }
       if (!stillHasDashboardAccess) {
         req.session.destroy(() => {});
         return res.status(403).json({

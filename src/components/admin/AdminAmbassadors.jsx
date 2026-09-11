@@ -30,6 +30,45 @@ import {
 } from "react-icons/lu";
 import { downloadCSV } from "../../services/exportUtils";
 
+const EXPERTISE_LABELS = {
+  s4hanaSecurity: "S/4HANA Security", sapGrc: "SAP GRC / Access Governance", sapIag: "SAP IAG",
+  btpSecurity: "BTP Security", sapCyber: "SAP Cybersecurity", iam: "IAM / Identity",
+  sapAudit: "SAP Audit / Risk & Compliance", other: "Other",
+};
+const COMMUNITY_CONTRIBUTION_LABELS = {
+  publishedArticles: "Published technical articles or Expert Papers", presentedConferences: "Presented at conferences or industry events",
+  webinars: "Conducted webinars or expert sessions", podcasts: "Participated in podcasts",
+  sapCommunity: "Contributed to SAP Community or other professional communities", mentored: "Mentored SAP Security professionals",
+  research: "Conducted research or surveys", organizedEvents: "Organized community events or discussions",
+  none: "Has not yet made a significant community contribution",
+};
+const AMBASSADOR_MOTIVATION_LABELS = {
+  helpConnect: "Help professionals in their country connect", shareKnowledge: "Share knowledge and experience",
+  mentor: "Mentor emerging professionals", representLocal: "Represent local SAP Security perspectives globally",
+  contributeResearch: "Contribute to research and industry discussions", expandNetwork: "Expand professional network",
+  buildBrand: "Build personal brand", promoteCompany: "Promote company/services", other: "Other",
+};
+
+// Renders a JSON-stringified {key:boolean} checkbox-group field (expertise,
+// community_contribution, ambassador_motivations) as a tag list.
+const TagList = ({ json, labels }) => {
+  let obj = json;
+  if (typeof obj === "string") {
+    try { obj = JSON.parse(obj); } catch { obj = {}; }
+  }
+  const keys = Object.keys(obj || {}).filter((k) => obj[k]);
+  if (keys.length === 0) return <span style={{ color: "#94a3b8", fontSize: "0.85rem" }}>None selected</span>;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {keys.map((k) => (
+        <span key={k} style={{ background: "#f1f5f9", color: "#334155", borderRadius: 999, padding: "4px 10px", fontSize: "0.78rem", fontWeight: 600 }}>
+          {labels[k] || k}
+        </span>
+      ))}
+    </div>
+  );
+};
+
 const AdminAmbassadors = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -43,13 +82,16 @@ const AdminAmbassadors = () => {
   const [rejectError, setRejectError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [grantingBadgeApp, setGrantingBadgeApp] = useState(null);
+  const [revokingBadgeApp, setRevokingBadgeApp] = useState(null);
+  const [revokingBadgeYears, setRevokingBadgeYears] = useState([]);
   const currentYear = new Date().getFullYear();
   const [grantYear, setGrantYear] = useState(currentYear);
+  const [revokeYear, setRevokeYear] = useState(currentYear);
   const { addToast } = useToast();
   const { openConfirm } = useConfirm();
   const { fetchBadges } = useOutletContext() || {};
 
-  useScrollLock(!!selectedApp || !!rejectingId || !!grantingBadgeApp);
+  useScrollLock(!!selectedApp || !!rejectingId || !!grantingBadgeApp || !!revokingBadgeApp);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -79,26 +121,42 @@ const AdminAmbassadors = () => {
 
   const performAction = async (id, action, reason = null, extra = {}) => {
     try {
-      const res = await updateAmbassadorStatus({ id, action, reason, ...extra });
-      if (res.data?.status === "success") {
-        setSelectedApp(null);
-        setRejectingId(null);
-        setRejectReason("");
-        addToast(`Ambassador ${action}d successfully.`, "success");
-        fetchBadges?.();
-        fetchApplications();
-      } else {
-        addToast(res.data?.message || `Failed to ${action} ambassador.`, "error");
+      await updateAmbassadorStatus({ id, action, reason, ...extra });
+      const actionLabels = {
+        approve: "Ambassador application approved",
+        reject: "Ambassador application rejected",
+        grant_badge: extra.badge_year ? `Badge granted for year ${extra.badge_year}` : "Badge granted",
+        revoke_badge: extra.badge_year ? `Badge revoked for year ${extra.badge_year}` : "Badge revoked",
+        deactivate: "Ambassador deactivated",
+        reactivate: "Ambassador reactivated",
+        delete: "Ambassador application deleted",
+      };
+      addToast(actionLabels[action] || "Action completed", "success");
+      fetchApplications();
+
+      if (selectedApp && selectedApp.id === id) {
+        if (action === "delete") {
+          setSelectedApp(null);
+        } else {
+          const res = await getAmbassadors();
+          if (res.data) {
+            const updated = res.data.find((a) => a.id === id);
+            if (updated) setSelectedApp(updated);
+          }
+        }
       }
+
+      if (typeof fetchBadges === "function") fetchBadges();
     } catch (error) {
-      addToast(error.response?.data?.message || "Connection error. Please try again.", "error");
+      console.error(`Error performing ${action}:`, error);
+      addToast(error.response?.data?.message || `Failed to ${action}`, "error");
     }
   };
 
   const handleApprove = (id) => {
     openConfirm({
-      title: "Approve Ambassador",
-      message: "This will grant the Country Ambassador recognition and create their member login, the same way contributor approval does.",
+      title: "Approve Ambassador Application?",
+      message: "This will grant this user official Country Ambassador status.",
       confirmText: "Approve",
       onConfirm: () => performAction(id, "approve"),
     });
@@ -112,16 +170,17 @@ const AdminAmbassadors = () => {
 
   const submitRejection = () => {
     if (!rejectReason.trim()) {
-      setRejectError("A rejection reason is mandatory.");
+      setRejectError("Please provide a reason for rejection.");
       return;
     }
-    performAction(rejectingId, "reject", rejectReason);
+    performAction(rejectingId, "reject", rejectReason.trim());
+    setRejectingId(null);
   };
 
   const handleDeactivate = (id) => {
     openConfirm({
       title: "Deactivate Ambassador?",
-      message: "Their public Ambassador recognition will be hidden and login disabled. They can still sign in as a regular member. They'll be notified by email.",
+      message: "This will pause their active Ambassador status. They can be reactivated anytime.",
       confirmText: "Deactivate",
       isDanger: true,
       onConfirm: () => performAction(id, "deactivate"),
@@ -131,7 +190,7 @@ const AdminAmbassadors = () => {
   const handleReactivate = (id) => {
     openConfirm({
       title: "Reactivate Ambassador?",
-      message: "Their public Ambassador recognition and login will be restored.",
+      message: "This will restore their active Ambassador status.",
       confirmText: "Reactivate",
       onConfirm: () => performAction(id, "reactivate"),
     });
@@ -148,7 +207,7 @@ const AdminAmbassadors = () => {
   };
 
   const handleGrantBadge = (app) => {
-    setGrantYear(currentYear);
+    setGrantYear(Math.max(2026, currentYear));
     setGrantingBadgeApp(app);
   };
 
@@ -157,14 +216,50 @@ const AdminAmbassadors = () => {
     setGrantingBadgeApp(null);
   };
 
-  const handleRevokeBadge = (id) => {
-    openConfirm({
-      title: "Revoke Badge?",
-      message: "This removes the public Country Ambassador recognition from their profile.",
-      confirmText: "Revoke",
-      isDanger: true,
-      onConfirm: () => performAction(id, "revoke_badge"),
-    });
+  const handleRevokeBadge = async (appOrId, year = null) => {
+    const targetApp = typeof appOrId === "object" ? appOrId : applications.find((a) => a.id === appOrId);
+    if (!targetApp) return;
+
+    if (year) {
+      openConfirm({
+        title: `Revoke ${year} Badge?`,
+        message: `This removes the ${year} Country Ambassador badge recognition for ${targetApp.name || "this profile"}.`,
+        confirmText: "Revoke",
+        isDanger: true,
+        onConfirm: () => performAction(targetApp.id, "revoke_badge", null, { badge_year: year }),
+      });
+      return;
+    }
+
+    let years = [];
+    try {
+      const res = await getAmbassadorBadgeHistory(targetApp.country);
+      const history = res.data?.history || [];
+      const userHistory = history.filter((h) => String(h.ambassador_id) === String(targetApp.id) && Number(h.badge_year) >= 2026);
+      years = userHistory.map((h) => Number(h.badge_year));
+    } catch (e) {
+      console.error("Error fetching badge history for revoke modal:", e);
+    }
+
+    if (targetApp.badge_year && Number(targetApp.badge_year) >= 2026 && !years.includes(Number(targetApp.badge_year))) {
+      years.push(Number(targetApp.badge_year));
+    }
+
+    years = [...new Set(years)].sort((a, b) => b - a);
+
+    if (years.length === 0 && targetApp.has_badge) {
+      years = [targetApp.badge_year ? Number(targetApp.badge_year) : Math.max(2026, currentYear)];
+    }
+
+    setRevokingBadgeYears(years);
+    setRevokeYear(years[0] || Math.max(2026, currentYear));
+    setRevokingBadgeApp(targetApp);
+  };
+
+  const confirmRevokeBadge = () => {
+    if (!revokingBadgeApp) return;
+    performAction(revokingBadgeApp.id, "revoke_badge", null, { badge_year: revokeYear });
+    setRevokingBadgeApp(null);
   };
 
   const countries = [...new Set(applications.map((a) => a.country).filter(Boolean))].sort();
@@ -542,17 +637,16 @@ const AdminAmbassadors = () => {
                 )}
               </div>
 
-              {/* Earned Badges Section */}
+              {/* Earned & Scheduled Badges Section */}
               {(() => {
                 const ambassadorHistoricalBadges = (badgeHistory || []).filter(
-                  (h) => h.ambassador_id === selectedApp.id
+                  (h) => h.ambassador_id === selectedApp.id && Number(h.badge_year) >= 2026
                 );
-                const hasCurrentBadge = selectedApp.has_badge;
                 const earnedBadgesList = [];
 
-                if (hasCurrentBadge) {
+                if (selectedApp.has_badge && selectedApp.badge_year && Number(selectedApp.badge_year) >= 2026) {
                   earnedBadgesList.push({
-                    year: selectedApp.badge_year || new Date().getFullYear(),
+                    year: selectedApp.badge_year,
                     country: selectedApp.country,
                     isCurrent: true,
                   });
@@ -561,12 +655,14 @@ const AdminAmbassadors = () => {
                 ambassadorHistoricalBadges.forEach((h) => {
                   if (!earnedBadgesList.some((b) => String(b.year) === String(h.badge_year))) {
                     earnedBadgesList.push({
-                      year: h.badge_year,
+                      year: Number(h.badge_year),
                       country: selectedApp.country,
-                      isCurrent: false,
+                      isCurrent: String(h.badge_year) === String(selectedApp.badge_year) && Number(h.badge_year) <= currentYear,
                     });
                   }
                 });
+
+                earnedBadgesList.sort((a, b) => b.year - a.year);
 
                 if (earnedBadgesList.length === 0) return null;
 
@@ -598,7 +694,7 @@ const AdminAmbassadors = () => {
                           <LuAward size={16} />
                         </div>
                         <span style={{ fontSize: "0.92rem", fontWeight: 700, color: "#9a3412" }}>
-                          Earned Country Ambassador Badges ({earnedBadgesList.length})
+                          Ambassador Badges ({earnedBadgesList.length})
                         </span>
                       </div>
                       <span style={{ fontSize: "0.78rem", color: "#c2410c", fontWeight: 600, background: "#ffffff", padding: "3px 10px", borderRadius: 999, border: "1px solid #fed7aa" }}>
@@ -607,45 +703,67 @@ const AdminAmbassadors = () => {
                     </div>
 
                     <div style={{ display: "flex", alignItems: "stretch", gap: 14, flexWrap: "wrap" }}>
-                      {earnedBadgesList.map((b) => (
-                        <div
-                          key={b.year}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 14,
-                            background: "#ffffff",
-                            padding: "10px 16px",
-                            borderRadius: 12,
-                            border: "1px solid #fed7aa",
-                            boxShadow: "0 2px 6px rgba(249, 115, 22, 0.06)",
-                          }}
-                        >
-                          <AmbassadorBadge country={b.country} year={b.year} size={72} />
-                          <div>
-                            <div style={{ fontSize: "0.95rem", fontWeight: 800, color: "#0f172a" }}>
-                              {b.year}
+                      {earnedBadgesList.map((b) => {
+                        const isFuture = b.year > currentYear;
+                        return (
+                          <div
+                            key={b.year}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 14,
+                              background: "#ffffff",
+                              padding: "12px 16px",
+                              borderRadius: 12,
+                              border: isFuture ? "1.5px dashed #3b82f6" : "1px solid #fed7aa",
+                              boxShadow: "0 2px 6px rgba(249, 115, 22, 0.06)",
+                            }}
+                          >
+                            <AmbassadorBadge country={b.country} year={b.year} size={72} />
+                            <div>
+                              <div style={{ fontSize: "0.95rem", fontWeight: 800, color: "#0f172a" }}>
+                                {b.year}
+                              </div>
+                              <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                                {b.country} Ambassador
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    padding: "2px 8px",
+                                    borderRadius: 999,
+                                    fontSize: "0.68rem",
+                                    fontWeight: 700,
+                                    background: isFuture ? "#eff6ff" : b.isCurrent ? "#ffedd5" : "#f1f5f9",
+                                    color: isFuture ? "#1d4ed8" : b.isCurrent ? "#c2410c" : "#64748b",
+                                    border: isFuture ? "1px solid #bfdbfe" : "none",
+                                  }}
+                                >
+                                  {isFuture ? `📅 Scheduled (${b.year})` : b.isCurrent ? "● Active" : "Archived"}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRevokeBadge(selectedApp.id, b.year)}
+                                  style={{
+                                    background: "#fef2f2",
+                                    color: "#dc2626",
+                                    border: "1px solid #fecaca",
+                                    borderRadius: "6px",
+                                    padding: "2px 8px",
+                                    fontSize: "0.7rem",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                  }}
+                                  title={`Revoke ${b.year} Badge`}
+                                >
+                                  Revoke {b.year}
+                                </button>
+                              </div>
                             </div>
-                            <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                              {b.country} Ambassador
-                            </div>
-                            <span
-                              style={{
-                                display: "inline-block",
-                                marginTop: 4,
-                                padding: "2px 8px",
-                                borderRadius: 999,
-                                fontSize: "0.68rem",
-                                fontWeight: 700,
-                                background: b.isCurrent ? "#ffedd5" : "#f1f5f9",
-                                color: b.isCurrent ? "#c2410c" : "#64748b",
-                              }}
-                            >
-                              {b.isCurrent ? "● Active" : "Archived"}
-                            </span>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -725,9 +843,9 @@ const AdminAmbassadors = () => {
                   <div style={{ display: "flex", gap: 10 }}>
                     <LuClock size={16} color="#64748b" style={{ marginTop: 2, flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>Experience & Nomination</div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>Experience</div>
                       <div style={{ fontSize: "0.88rem", color: "#0f172a", fontWeight: 600 }}>
-                        {selectedApp.years_experience ? `${selectedApp.years_experience} yrs exp` : "Experience N/A"} · {selectedApp.nomination_type || "self"} nomination
+                        {selectedApp.years_experience || "N/A"}
                       </div>
                     </div>
                   </div>
@@ -814,9 +932,27 @@ const AdminAmbassadors = () => {
                 </div>
               )}
 
-              {/* Motivation & Contributions Cards */}
-              {selectedApp.motivation && (
+              {/* Questionnaire Cards */}
+              {[
+                { icon: LuSparkles, label: "Areas of Expertise", content: <TagList json={selectedApp.expertise} labels={EXPERTISE_LABELS} /> },
+                selectedApp.other_expertise && { icon: LuSparkles, label: "Other Expertise", content: selectedApp.other_expertise },
+                { icon: LuUserCheck, label: "Community Contribution Types", content: <TagList json={selectedApp.community_contribution} labels={COMMUNITY_CONTRIBUTION_LABELS} /> },
+                selectedApp.contribution_links && { icon: LuExternalLink, label: "Published Work / Links", content: selectedApp.contribution_links },
+                selectedApp.mentorship_experience && { icon: LuUserCheck, label: "Mentorship Experience", content: selectedApp.mentorship_experience },
+                selectedApp.community_helping_frequency && { icon: LuUserCheck, label: "Helped Local Community", content: selectedApp.community_helping_frequency },
+                selectedApp.motivation && { icon: LuFileText, label: "How They'd Contribute as Ambassador", content: selectedApp.motivation },
+                selectedApp.country_challenge && { icon: LuFileText, label: "SAP Security Challenge/Trend in Their Country", content: selectedApp.country_challenge },
+                selectedApp.contribution_examples && { icon: LuShieldCheck, label: "Community Initiative Example", content: selectedApp.contribution_examples },
+                { icon: LuAward, label: "Motivation to Become Ambassador", content: <TagList json={selectedApp.ambassador_motivations} labels={AMBASSADOR_MOTIVATION_LABELS} /> },
+                selectedApp.other_motivation_text && { icon: LuAward, label: "Other Motivation", content: selectedApp.other_motivation_text },
+                selectedApp.contribution_willingness && { icon: LuCheck, label: "Willingness to Contribute Regularly", content: selectedApp.contribution_willingness },
+                selectedApp.ambassador_definition && { icon: LuAward, label: "Their Definition of a Country Ambassador", content: selectedApp.ambassador_definition },
+              ].filter(Boolean).map((item) => {
+                const Icon = item.icon;
+                const { label, content } = item;
+                return (
                 <div
+                  key={label}
                   style={{
                     background: "#ffffff",
                     borderRadius: 14,
@@ -826,32 +962,16 @@ const AdminAmbassadors = () => {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>
-                    <LuFileText size={14} /> Motivation
+                    <Icon size={14} /> {label}
                   </div>
-                  <p style={{ color: "#334155", fontSize: "0.9rem", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>
-                    {selectedApp.motivation}
-                  </p>
+                  {typeof content === "string" ? (
+                    <p style={{ color: "#334155", fontSize: "0.9rem", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>
+                      {content}
+                    </p>
+                  ) : content}
                 </div>
-              )}
-
-              {selectedApp.contribution_examples && (
-                <div
-                  style={{
-                    background: "#ffffff",
-                    borderRadius: 14,
-                    border: "1px solid #e2e8f0",
-                    padding: "18px 20px",
-                    marginBottom: 16,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>
-                    <LuShieldCheck size={14} /> Community Contribution Examples
-                  </div>
-                  <p style={{ color: "#334155", fontSize: "0.9rem", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>
-                    {selectedApp.contribution_examples}
-                  </p>
-                </div>
-              )}
+                );
+              })}
 
               {selectedApp.rejection_reason && (
                 <div
@@ -1158,9 +1278,10 @@ const AdminAmbassadors = () => {
                     gap: "8px",
                   }}
                 >
-                  {Array.from({ length: 10 }, (_, i) => currentYear - 4 + i).map((y) => {
+                  {Array.from({ length: 10 }, (_, i) => 2026 + i).map((y) => {
                     const isSelected = y === grantYear;
                     const isCurrent = y === currentYear;
+                    const isFuture = y > currentYear;
 
                     return (
                       <button
@@ -1184,6 +1305,8 @@ const AdminAmbassadors = () => {
                             ? "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
                             : isCurrent
                             ? "#fffbeb"
+                            : isFuture
+                            ? "#f8fafc"
                             : "#ffffff",
                           color: isSelected
                             ? "#ffffff"
@@ -1194,6 +1317,8 @@ const AdminAmbassadors = () => {
                             ? "2px solid #0f172a"
                             : isCurrent
                             ? "2px solid #f59e0b"
+                            : isFuture
+                            ? "1.5px dashed #cbd5e1"
                             : "1px solid #e2e8f0",
                           boxShadow: isSelected
                             ? "0 4px 12px rgba(15, 23, 42, 0.25)"
@@ -1205,7 +1330,7 @@ const AdminAmbassadors = () => {
                           {isSelected && <LuCheck size={12} color="#f59e0b" />}
                           {y}
                         </span>
-                        {isCurrent && (
+                        {isCurrent ? (
                           <span
                             style={{
                               fontSize: "0.62rem",
@@ -1218,7 +1343,19 @@ const AdminAmbassadors = () => {
                           >
                             Current
                           </span>
-                        )}
+                        ) : isFuture ? (
+                          <span
+                            style={{
+                              fontSize: "0.6rem",
+                              fontWeight: 600,
+                              color: isSelected ? "#93c5fd" : "#64748b",
+                              marginTop: "2px",
+                              letterSpacing: "0.01em",
+                            }}
+                          >
+                            Future
+                          </span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -1230,20 +1367,27 @@ const AdminAmbassadors = () => {
                 style={{
                   padding: "12px 14px",
                   borderRadius: "10px",
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
+                  background: grantYear > currentYear ? "#fff7ed" : "#eff6ff",
+                  border: grantYear > currentYear ? "1px solid #fed7aa" : "1px solid #bfdbfe",
                   fontSize: "0.8rem",
-                  color: "#1e40af",
+                  color: grantYear > currentYear ? "#9a3412" : "#1e40af",
                   lineHeight: 1.45,
                   display: "flex",
                   gap: 10,
                 }}
               >
-                <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>ℹ️</span>
+                <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>{grantYear > currentYear ? "📅" : "ℹ️"}</span>
                 <div>
-                  This badge awards the <strong>{grantYear} Country Ambassador</strong> badge to{" "}
-                  <strong>{grantingBadgeApp.name}</strong>. It will be publicly showcased on the
-                  Ambassador showcase page and in their member profile.
+                  {grantYear > currentYear ? (
+                    <>
+                      <strong>Future Year Selected ({grantYear}):</strong> This badge will be scheduled and will automatically become active on <strong>{grantingBadgeApp.name}</strong>'s public profile when the calendar enters {grantYear}.
+                    </>
+                  ) : (
+                    <>
+                      This badge awards the <strong>{grantYear} Country Ambassador</strong> badge to{" "}
+                      <strong>{grantingBadgeApp.name}</strong>. It will be publicly showcased on their member profile and the Ambassador directory immediately.
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1295,6 +1439,314 @@ const AdminAmbassadors = () => {
                 }}
               >
                 <LuAward size={16} /> Grant Badge for {grantYear}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {revokingBadgeApp && createPortal(
+        <div className="modal-overlay" onClick={() => setRevokingBadgeApp(null)}>
+          <div
+            className="modal-container"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "580px",
+              borderRadius: "16px",
+              boxShadow: "0 20px 45px -10px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.08)",
+              overflow: "hidden",
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              className="modal-header"
+              style={{
+                padding: "20px 24px",
+                borderBottom: "1px solid #f1f5f9",
+                background: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: "linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)",
+                    color: "#dc2626",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "1px solid #fca5a5",
+                    boxShadow: "0 2px 6px rgba(220, 38, 38, 0.15)",
+                  }}
+                >
+                  <LuAward size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, color: "#0f172a" }}>
+                    Revoke Country Ambassador Badge
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "#64748b" }}>
+                    Remove official recognition for {revokingBadgeApp.country || "selected region"}
+                  </p>
+                </div>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => setRevokingBadgeApp(null)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "#f1f5f9",
+                  color: "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "1.2rem",
+                  lineHeight: 1,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div
+              className="modal-body"
+              data-lenis-prevent="true"
+              style={{ padding: "20px 24px", background: "#f8fafc", maxHeight: "75vh", overflowY: "auto" }}
+            >
+              {/* Ambassador Card / Live Preview */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                  background: "#ffffff",
+                  padding: "16px",
+                  borderRadius: "14px",
+                  border: "1px solid #e2e8f0",
+                  marginBottom: "20px",
+                  boxShadow: "0 2px 6px rgba(0, 0, 0, 0.02)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <img
+                    src={revokingBadgeApp.profile_image || "/assets/placeholder.webp"}
+                    alt={revokingBadgeApp.name}
+                    style={{
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "12px",
+                      objectFit: "cover",
+                      border: "2px solid #e2e8f0",
+                    }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.95rem" }}>
+                      {revokingBadgeApp.name}
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <LuMapPin size={12} color="#94a3b8" />
+                      {revokingBadgeApp.country || "Unknown Country"}
+                      {revokingBadgeApp.state ? ` · ${revokingBadgeApp.state}` : ""}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <AmbassadorBadge country={revokingBadgeApp.country || "Country"} year={revokeYear} size={56} />
+                  <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#dc2626", marginTop: "2px" }}>
+                    Target: {revokeYear}
+                  </span>
+                </div>
+              </div>
+
+              {/* Year Selection Section */}
+              <div style={{ marginBottom: "20px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    color: "#334155",
+                    marginBottom: "8px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  Select Badge Year to Revoke
+                </label>
+
+                {/* Year Buttons Grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+                  {(() => {
+                    const yearOptions = revokingBadgeYears.length > 0
+                      ? revokingBadgeYears
+                      : [Number(revokingBadgeApp.badge_year || Math.max(2026, currentYear))];
+
+                    return yearOptions.map((y) => {
+                      const isSelected = revokeYear === y;
+                      const isCurrent = y === currentYear;
+                      const isFuture = y > currentYear;
+
+                      return (
+                        <button
+                          key={y}
+                          type="button"
+                          onClick={() => setRevokeYear(y)}
+                          style={{
+                            padding: "10px 8px",
+                            borderRadius: "12px",
+                            fontWeight: isSelected ? 800 : 600,
+                            fontSize: "0.92rem",
+                            cursor: "pointer",
+                            transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: "54px",
+                            background: isSelected
+                              ? "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)"
+                              : isCurrent
+                              ? "#fffbeb"
+                              : isFuture
+                              ? "#f8fafc"
+                              : "#ffffff",
+                            color: isSelected
+                              ? "#ffffff"
+                              : isCurrent
+                              ? "#92400e"
+                              : "#334155",
+                            border: isSelected
+                              ? "2px solid #dc2626"
+                              : isCurrent
+                              ? "2px solid #f59e0b"
+                              : isFuture
+                              ? "1.5px dashed #cbd5e1"
+                              : "1px solid #e2e8f0",
+                            boxShadow: isSelected
+                              ? "0 4px 12px rgba(220, 38, 38, 0.25)"
+                              : "0 1px 2px rgba(0, 0, 0, 0.03)",
+                            transform: isSelected ? "scale(1.02)" : "none",
+                          }}
+                        >
+                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                            {isSelected && <LuCheck size={12} color="#ffffff" />}
+                            {y}
+                          </span>
+                          {isCurrent ? (
+                            <span
+                              style={{
+                                fontSize: "0.62rem",
+                                fontWeight: 700,
+                                color: isSelected ? "#fecaca" : "#b45309",
+                                marginTop: "2px",
+                                letterSpacing: "0.02em",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              Current
+                            </span>
+                          ) : isFuture ? (
+                            <span
+                              style={{
+                                fontSize: "0.6rem",
+                                fontWeight: 600,
+                                color: isSelected ? "#fecaca" : "#64748b",
+                                marginTop: "2px",
+                                letterSpacing: "0.01em",
+                              }}
+                            >
+                              Future
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* Informational callout banner */}
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: "10px",
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  fontSize: "0.8rem",
+                  color: "#991b1b",
+                  lineHeight: 1.45,
+                  display: "flex",
+                  gap: 10,
+                }}
+              >
+                <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>⚠️</span>
+                <div>
+                  <strong>Revoking Badge ({revokeYear}):</strong> This will remove the <strong>{revokeYear} Country Ambassador</strong> badge for <strong>{revokingBadgeApp.name}</strong>. Their active badge status will be recalculated based on their remaining active badge history.
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              className="modal-footer"
+              style={{
+                padding: "16px 24px",
+                background: "#ffffff",
+                borderTop: "1px solid #f1f5f9",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+                margin: 0,
+              }}
+            >
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={() => setRevokingBadgeApp(null)}
+                style={{
+                  padding: "9px 18px",
+                  borderRadius: "10px",
+                  fontSize: "0.88rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmRevokeBadge}
+                style={{
+                  padding: "9px 22px",
+                  borderRadius: "10px",
+                  fontSize: "0.88rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  background: "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)",
+                  color: "#ffffff",
+                  border: "none",
+                  boxShadow: "0 4px 12px rgba(220, 38, 38, 0.3)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <LuAward size={16} /> Revoke Badge for {revokeYear}
               </button>
             </div>
           </div>

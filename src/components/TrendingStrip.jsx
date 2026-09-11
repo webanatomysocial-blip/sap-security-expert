@@ -44,6 +44,10 @@ const TrendingStrip = () => {
             ))}
           </div>
         </div>
+        <Link to="/become-a-country-ambassador" className="trending-ambassador-btn">
+          <i className="bi bi-globe-americas"></i>
+          Become an Ambassador
+        </Link>
       </div>
       <style>{`
         .trending-strip-wrapper {
@@ -110,8 +114,9 @@ const TrendingStrip = () => {
           text-decoration: none;
           transition: color 0.2s;
         }
-        .trending-link:hover {
-          color: #38bdf8;
+        .trending-link:hover,
+        .trending-link:hover .trending-title {
+          color: #ea5845;
         }
         .trending-title {
           font-weight: 500;
@@ -133,6 +138,29 @@ const TrendingStrip = () => {
           color: #475569;
           font-size: 0.8rem;
         }
+        .trending-ambassador-btn {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+          background: transparent;
+          color: #fbbf24;
+          font-weight: 600;
+          font-size: 0.8rem;
+          padding: 6px 14px;
+          border: 1.5px solid #fbbf24;
+          border-radius: 20px;
+          text-decoration: none;
+          transition: background-color 0.2s, color 0.2s;
+        }
+        .trending-ambassador-btn i {
+          font-size: 0.9rem;
+        }
+        .trending-ambassador-btn:hover {
+          background: #fbbf24;
+          color: #1e293b;
+        }
         @media (max-width: 768px) {
           .trending-strip-inner {
             flex-direction: column;
@@ -144,6 +172,9 @@ const TrendingStrip = () => {
           }
           .trending-title {
             max-width: 200px;
+          }
+          .trending-ambassador-btn {
+            align-self: flex-start;
           }
         }
       `}</style>

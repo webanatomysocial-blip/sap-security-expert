@@ -386,44 +386,44 @@ async function recordUserLogin(db, userId) {
 // users aren't directly linked by FK — email is the shared key everywhere
 // else in this login flow, so it's used here too).
 // Full application details + badge history for the Ambassador member page —
-// findAmbassadorBadgeByEmail above only returns the badge-relevant columns.
+// findAmbassadorBadgeByEmail below only returns the badge-relevant columns.
 async function findAmbassadorFullProfileByEmail(db, email) {
+  const currentYear = new Date().getFullYear();
   const [rows] = await db.execute(
     `SELECT a.id, a.full_name, a.email, a.linkedin, a.country, a.state, a.city, a.organization,
             a.\`current_role\`, a.years_experience, a.expertise, a.other_expertise, a.motivation,
-            a.image, a.has_badge, a.badge_year, a.status, a.approved_at,
-            (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
-             WHERE u.ambassador_id = a.id AND b.status IN ('approved','published')) AS contributions_count
-     FROM users u JOIN ambassadors a ON a.id = u.ambassador_id
-     WHERE LOWER(u.email) = LOWER(?) AND a.status = 'approved' LIMIT 1`,
-    [email]
+            a.image, a.status, a.approved_at,
+            CASE WHEN (SELECT COUNT(*) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) > 0 THEN 1 ELSE 0 END AS has_badge,
+            (SELECT MAX(h.badge_year) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) AS badge_year
+     FROM ambassadors a
+     WHERE LOWER(a.email) = LOWER(?) AND a.status = 'approved' LIMIT 1`,
+    [currentYear, currentYear, email]
   ).catch(() => [[]]);
   const profile = rows[0];
   if (!profile) return null;
   const [yearRows] = await db.execute(
-    'SELECT badge_year, granted_at FROM ambassador_badge_history WHERE ambassador_id = ? ORDER BY badge_year DESC',
-    [profile.id]
+    'SELECT badge_year, granted_at FROM ambassador_badge_history WHERE ambassador_id = ? AND badge_year <= ? ORDER BY badge_year DESC',
+    [profile.id, currentYear]
   ).catch(() => [[]]);
   profile.badge_history = yearRows;
-  profile.image = profile.contributions_count > 0 ? profile.image : null;
   return profile;
 }
 
 async function findAmbassadorBadgeByEmail(db, email) {
+  const currentYear = new Date().getFullYear();
   const [rows] = await db.execute(
-    `SELECT a.id, a.has_badge, a.badge_year, a.country
-     FROM users u JOIN ambassadors a ON a.id = u.ambassador_id
-     WHERE LOWER(u.email) = LOWER(?) LIMIT 1`,
-    [email]
+    `SELECT a.id, a.country,
+            CASE WHEN (SELECT COUNT(*) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) > 0 THEN 1 ELSE 0 END AS has_badge,
+            (SELECT MAX(h.badge_year) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) AS badge_year
+     FROM ambassadors a
+     WHERE LOWER(a.email) = LOWER(?) AND a.status = 'approved' LIMIT 1`,
+    [currentYear, currentYear, email]
   ).catch(() => [[]]);
   const badge = rows[0];
   if (!badge) return null;
-  // All years this ambassador has ever held the badge, not just the current
-  // one — someone who won it several years running should see every year,
-  // and this is also how "more than one badge" gets detected for the UI.
   const [yearRows] = await db.execute(
-    'SELECT badge_year FROM ambassador_badge_history WHERE ambassador_id = ? ORDER BY badge_year DESC',
-    [badge.id]
+    'SELECT badge_year FROM ambassador_badge_history WHERE ambassador_id = ? AND badge_year <= ? ORDER BY badge_year DESC',
+    [badge.id, currentYear]
   ).catch(() => [[]]);
   badge.badge_years = yearRows.map((r) => r.badge_year);
   return badge;

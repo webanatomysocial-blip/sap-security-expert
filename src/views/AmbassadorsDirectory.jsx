@@ -41,7 +41,7 @@ const AmbassadorsDirectory = () => {
             {[...ambassadors].sort((a, b) => (b.has_badge ? 1 : 0) - (a.has_badge ? 1 : 0)).map((a) => (
               <Link
                 key={a.id}
-                to={`/ambassador/${a.id}`}
+                to={`/ambassador/${a.slug || a.id}`}
                 style={{
                   background: a.has_badge ? "linear-gradient(135deg, #fffdf5 0%, #fffbeb 100%)" : "#fff",
                   borderRadius: 24,

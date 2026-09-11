@@ -1,4 +1,22 @@
 const { applyContributorCountryVisibility } = require('../utils/contributorVisibility');
+const { slugify } = require('../utils/slugify');
+
+// Appends -2, -3, ... until the slug doesn't collide with an existing one —
+// full names aren't unique (two "Raghu"s could apply), but public profile
+// URLs need to be.
+async function generateUniqueSlug(db, fullName, excludeId) {
+  const base = slugify(fullName) || 'contributor';
+  let candidate = base;
+  let n = 2;
+  for (;;) {
+    const [rows] = await db.execute(
+      excludeId ? 'SELECT id FROM contributors WHERE slug = ? AND id != ? LIMIT 1' : 'SELECT id FROM contributors WHERE slug = ? LIMIT 1',
+      excludeId ? [candidate, excludeId] : [candidate]
+    );
+    if (!rows.length) return candidate;
+    candidate = `${base}-${n++}`;
+  }
+}
 
 async function findByEmail(db, email) {
   const [rows] = await db.execute('SELECT id, status, image FROM contributors WHERE email = ?', [email]);
@@ -36,19 +54,20 @@ async function createApplication(db, fields) {
     preferredFrequency, primaryMotivation, weeklyTime, volunteerEvents, productEvaluation,
     personalWebsite, twitterHandle, imagePath,
   } = fields;
+  const slug = await generateUniqueSlug(db, fullName);
   const [result] = await db.execute(
     `INSERT INTO contributors
      (full_name, email, linkedin, country, organization, designation, role, expertise, other_expertise,
       years_experience, short_bio, contribution_types, proposed_topics, contributed_elsewhere, previous_work_links,
       preferred_frequency, primary_motivation, weekly_time, volunteer_events, product_evaluation,
-      personal_website, twitter_handle, image, status, created_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',CURRENT_TIMESTAMP)`,
+      personal_website, twitter_handle, image, slug, status, created_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',CURRENT_TIMESTAMP)`,
     [fullName, email, linkedin, country, organization, designation,
      role, expertise, otherExpertiseText, yearsExperience, shortBio,
      contributionTypes, proposedTopics, contributedElsewhere, previousWorkLinks,
      preferredFrequency, primaryMotivation, weeklyTime,
      volunteerEvents, productEvaluation,
-     personalWebsite, twitterHandle, imagePath]
+     personalWebsite, twitterHandle, imagePath, slug]
   );
   return result.insertId;
 }
@@ -60,29 +79,28 @@ async function createApplication(db, fields) {
 // (applyContributorCountryVisibility now lives in utils/contributorVisibility.js,
 // shared with publicRepository.js.)
 
-// Every approved contributor shows up — but their photo stays hidden until
-// they've actually published something, so registering alone doesn't earn a
-// profile picture on the public site.
+// A contributor's public profile stays off the site until they've published their first article.
 async function findApprovedContributors(db) {
   const [rows] = await db.execute(
-    `SELECT id, full_name, role, organization, designation, short_bio, expertise, image AS profile_image, created_at,
-       (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
-        WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count,
-       (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS member_country,
-       (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS profile_visibility
-     FROM contributors WHERE status = 'approved'
+    `SELECT * FROM (
+       SELECT id, slug, full_name, role, organization, designation, short_bio, expertise, image AS profile_image, created_at,
+         (SELECT COUNT(*) FROM blogs b JOIN users u ON b.author_id = u.id
+          WHERE u.contributor_id = contributors.id AND b.status IN ('approved','published')) AS contributions_count,
+         (SELECT m.country FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS member_country,
+         (SELECT m.profile_visibility FROM members m WHERE LOWER(m.email) = LOWER(contributors.email) LIMIT 1) AS profile_visibility
+       FROM contributors WHERE status = 'approved'
+     ) t WHERE contributions_count > 0
      ORDER BY created_at DESC`
   );
-  return rows.map((r) => applyContributorCountryVisibility({
-    ...r,
-    country: r.member_country || r.country,
-    profile_image: r.contributions_count > 0 ? r.profile_image : null,
-  }));
+  return rows.map((r) => applyContributorCountryVisibility({ ...r, country: r.member_country || r.country }));
 }
 
-async function findApprovedProfileById(db, id) {
+// idOrSlug: the public profile URL now carries the contributor's slug
+// (e.g. "raghu-boddu"), but a bare numeric id is still accepted for any
+// old bookmarked/shared links.
+async function findApprovedProfileById(db, idOrSlug) {
   const [rows] = await db.execute(
-    `SELECT c.id, c.full_name, c.role, c.organization, c.designation, c.short_bio,
+    `SELECT c.id, c.slug, c.full_name, c.role, c.organization, c.designation, c.short_bio,
             c.expertise, c.image AS profile_image, c.linkedin, c.twitter_handle,
             c.personal_website, c.created_at, c.country,
             c.sap_certifications, c.sap_press_books, c.implementations_count,
@@ -93,14 +111,13 @@ async function findApprovedProfileById(db, id) {
             (SELECT COUNT(*) FROM blogs b WHERE b.author_id = u.id AND b.status IN ('approved','published')) AS contributions_count
      FROM contributors c
      LEFT JOIN users u ON u.contributor_id = c.id
-     WHERE c.id = ? AND c.status = 'approved' LIMIT 1`,
-    [id]
+     WHERE (c.slug = ? OR c.id = ?) AND c.status = 'approved' LIMIT 1`,
+    [idOrSlug, idOrSlug]
   );
-  if (!rows[0]) return null;
+  if (!rows[0] || rows[0].contributions_count === 0) return null;
   return applyContributorCountryVisibility({
     ...rows[0],
     country: rows[0].member_country || rows[0].country,
-    profile_image: rows[0].contributions_count > 0 ? rows[0].profile_image : null,
   });
 }
 

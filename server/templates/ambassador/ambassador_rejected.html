@@ -1,12 +1,39 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eef2f6; border-radius: 8px; }
+        .header { text-align: center; border-bottom: 2px solid #ee5e42; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h2 { color: #ee5e42; margin: 0; }
+        .footer { font-size: 12px; color: #94a3b8; margin-top: 30px; text-align: center; border-top: 1px solid #eef2f6; padding-top: 15px; }
+        .btn { display: inline-block; background: #ee5e42; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 600; margin: 20px 0; }
+    </style>
+</head>
 <body>
-    <h2>Country Ambassador Application Update</h2>
-    <p>Hello {{name}},</p>
-    <p>Thank you for your interest in the SAP Security Expert Country Ambassador recognition. After careful review, we are unable to approve your application at this time.</p>
-    <p><strong>Reason:</strong></p>
-    <blockquote style="background:#f8fafc; border-left:4px solid #ef4444; padding:10px 15px;">{{reason}}</blockquote>
-    <p>Community impact, not follower count, is what qualifies someone for this recognition — it can be earned over time. In the meantime, you're welcome to get involved as a Contributor and build your track record in the community.</p>
-    <p>We appreciate your interest and wish you the best.</p>
+    <div class="container">
+        <div class="header">
+            <h2>Country Ambassador Application Update</h2>
+        </div>
+        <p>Hello <strong>{{name}}</strong>,</p>
+        <p>Thank you for your interest in the <strong>SAP Security Expert — Country Ambassador</strong> recognition. After careful review against our qualification criteria, we are unable to approve your application at this time.</p>
+        
+        {{#if reason}}
+        <div style="background: #f8fafc; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 20px 0; font-size: 0.92rem;">
+            <strong>Details:</strong> {{reason}}
+        </div>
+        {{/if}}
+
+        <p>Country Ambassador is an earned community recognition based on practical expertise, professional credibility, and community leadership. If you would like to build your community track record, you can start as an expert Contributor and engage in community knowledge sharing.</p>
+
+        <div style="text-align: center;">
+            <a href="{{site_url}}/become-a-contributor" class="btn">Learn About Contributors</a>
+        </div>
+
+        <div class="footer">
+            &copy; 2026 SAP Security Expert. The leading community for SAP Security Professionals.<br>
+            <a href="{{site_url}}" style="color: #94a3b8;">{{site_domain}}</a>
+        </div>
+    </div>
 </body>
 </html>

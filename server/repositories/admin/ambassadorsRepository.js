@@ -1,8 +1,11 @@
 async function findAllActive(db) {
+  const currentYear = new Date().getFullYear();
   const [rows] = await db.execute(
     `SELECT a.*,
             a.full_name AS name,
             a.image     AS profile_image,
+            CASE WHEN (SELECT COUNT(*) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) > 0 THEN 1 ELSE 0 END AS has_badge,
+            (SELECT MAX(h.badge_year) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) AS badge_year,
             u.id        AS user_id,
             u.username,
             u.is_active,
@@ -31,7 +34,8 @@ async function findAllActive(db) {
      FROM ambassadors a
      LEFT JOIN users u ON u.ambassador_id = a.id
      WHERE a.is_deleted = 0 OR a.is_deleted IS NULL
-     ORDER BY a.created_at DESC`
+     ORDER BY a.created_at DESC`,
+    [currentYear, currentYear]
   );
   return rows;
 }
@@ -58,7 +62,7 @@ async function deactivateAmbassador(db, id) {
 }
 
 async function reactivateAmbassador(db, id) {
-  await db.execute("UPDATE ambassadors SET status='approved', approved_at=CURRENT_TIMESTAMP WHERE id=?", [id]);
+  await db.execute("UPDATE ambassadors SET status='approved' WHERE id=?", [id]);
   await db.execute("UPDATE users SET is_active=1 WHERE ambassador_id=?", [id]).catch(() => {});
 }
 
@@ -80,28 +84,16 @@ async function findInactiveAmbassadorsForDeactivation(db) {
   return rows;
 }
 
-// Only one ambassador per country can hold the badge at a time — granting it
-// to one revokes it from whoever currently holds it in the same country.
-// Multiple ambassadors can hold the badge for the same country at once —
-// granting it to one no longer revokes it from anyone else in that country.
-async function grantBadge(db, id, year) {
-  const ambassador = await findById(db, id);
-  if (!ambassador) return;
-  await db.execute("UPDATE ambassadors SET has_badge=1, badge_year=? WHERE id=?", [year, id]);
+async function deleteAmbassador(db, id) {
+  await db.execute(
+    "UPDATE ambassadors SET is_deleted=1, deleted_at=CURRENT_TIMESTAMP, status='deleted' WHERE id=?",
+    [id]
+  );
+  await db.execute("UPDATE users SET is_active=0 WHERE ambassador_id=?", [id]).catch(() => {});
+}
 
-  // Log this grant permanently — re-granting the same ambassador+country+year
-  // (e.g. correcting a mistake) overwrites that row rather than duplicating
-  // it. VALUES(ambassador_id) (not a bound param) keeps the param count
-  // identical after translateSQL() strips this clause for SQLite — same
-  // pattern as settingsRepository.js's upsert.
-  if (ambassador.country) {
-    await db.execute(
-      `INSERT INTO ambassador_badge_history (ambassador_id, country, badge_year, granted_at)
-       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-       ON DUPLICATE KEY UPDATE ambassador_id = VALUES(ambassador_id), granted_at = CURRENT_TIMESTAMP`,
-      [id, ambassador.country, year]
-    );
-  }
+async function detachUserFromAmbassador(db, ambassadorId) {
+  await db.execute('UPDATE users SET ambassador_id = NULL WHERE ambassador_id = ?', [ambassadorId]);
 }
 
 async function findBadgeHistoryByCountry(db, country) {
@@ -116,8 +108,58 @@ async function findBadgeHistoryByCountry(db, country) {
   return rows;
 }
 
-async function revokeBadge(db, id) {
-  await db.execute("UPDATE ambassadors SET has_badge=0, badge_year=NULL WHERE id=?", [id]);
+// Only one ambassador per country can hold the badge at a time — granting it
+// to one revokes it from whoever currently holds it in the same country.
+// Multiple ambassadors can hold the badge for the same country at once —
+// granting it to one no longer revokes it from anyone else in that country.
+async function grantBadge(db, id, year) {
+  const ambassador = await findById(db, id);
+  if (!ambassador) return;
+
+  if (ambassador.country) {
+    await db.execute(
+      `INSERT INTO ambassador_badge_history (ambassador_id, country, badge_year, granted_at)
+       VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+       ON DUPLICATE KEY UPDATE ambassador_id = VALUES(ambassador_id), granted_at = CURRENT_TIMESTAMP`,
+      [id, ambassador.country, year]
+    );
+  }
+
+  const currentYear = new Date().getFullYear();
+  const [activeRows] = await db.execute(
+    `SELECT badge_year FROM ambassador_badge_history
+     WHERE ambassador_id = ? AND badge_year <= ?
+     ORDER BY badge_year DESC LIMIT 1`,
+    [id, currentYear]
+  ).catch(() => [[]]);
+
+  if (activeRows.length > 0) {
+    await db.execute("UPDATE ambassadors SET has_badge=1, badge_year=? WHERE id=?", [activeRows[0].badge_year, id]);
+  } else {
+    await db.execute("UPDATE ambassadors SET has_badge=0, badge_year=NULL WHERE id=?", [id]);
+  }
+}
+
+async function revokeBadge(db, id, year = null) {
+  if (year) {
+    await db.execute("DELETE FROM ambassador_badge_history WHERE ambassador_id = ? AND badge_year = ?", [id, year]);
+  } else {
+    await db.execute("DELETE FROM ambassador_badge_history WHERE ambassador_id = ?", [id]);
+  }
+
+  const currentYear = new Date().getFullYear();
+  const [activeRows] = await db.execute(
+    `SELECT badge_year FROM ambassador_badge_history
+     WHERE ambassador_id = ? AND badge_year <= ?
+     ORDER BY badge_year DESC LIMIT 1`,
+    [id, currentYear]
+  ).catch(() => [[]]);
+
+  if (activeRows.length > 0) {
+    await db.execute("UPDATE ambassadors SET has_badge=1, badge_year=? WHERE id=?", [activeRows[0].badge_year, id]);
+  } else {
+    await db.execute("UPDATE ambassadors SET has_badge=0, badge_year=NULL WHERE id=?", [id]);
+  }
 }
 
 async function findUserByEmail(db, email) {
@@ -128,7 +170,7 @@ async function findUserByEmail(db, email) {
 async function createUser(db, { username, email, hash, fullName, ambassadorId }) {
   const [result] = await db.execute(
     `INSERT INTO users (username, email, password, role, full_name, is_active, ambassador_id, created_at)
-     VALUES (?, ?, ?, 'contributor', ?, 1, ?, CURRENT_TIMESTAMP)`,
+     VALUES (?, ?, ?, 'member', ?, 1, ?, CURRENT_TIMESTAMP)`,
     [username, email, hash, fullName, ambassadorId]
   );
   return result.insertId;

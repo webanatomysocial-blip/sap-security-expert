@@ -292,7 +292,7 @@ export default function About() {
                     )}
                     <div className="about-team-name">{name}</div>
                     <Link
-                      to={`/contributor/${c.id || c.username}`}
+                      to={`/contributor/${c.slug || c.id || c.username}`}
                       className="about-team-link"
                     >
                       View profile →

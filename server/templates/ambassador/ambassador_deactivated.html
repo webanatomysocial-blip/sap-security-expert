@@ -14,22 +14,26 @@
 <body>
   <div class="container">
     <div class="header">
-      <h2>Your Country Ambassador Status Has Been Deactivated</h2>
+      <h2>Your Country Ambassador Status Update</h2>
     </div>
-    <p>Hello {{name}},</p>
-    <p>Your <strong>SAP Security Expert — Country Ambassador</strong> account has been deactivated because of no activity until now.</p>
+    <p>Hello <strong>{{name}}</strong>,</p>
+    <p>Your <strong>SAP Security Expert — Country Ambassador</strong> recognition status has been deactivated.</p>
 
+    {{#if reason}}
     <div class="info-box">
-      <strong>Details:</strong> {{reason}}
+      <strong>Reason:</strong> {{reason}}
     </div>
+    {{/if}}
 
-    <p>The Country Ambassador designation is awarded for one year and renewed based on continued contribution. Your public listing is no longer active, but you can still sign in as a regular member.</p>
-    <p>If you believe this was a mistake, reach out to the admin team.</p>
+    <p>Your public Country Ambassador directory listing is currently inactive. You can continue to access the platform using your regular member account.</p>
+    <p>If you have any questions or believe this was done in error, please contact our team at <a href="mailto:hello@sapsecurityexpert.com">hello@sapsecurityexpert.com</a>.</p>
 
-    <a href="{{login_url}}" class="btn">Sign In</a>
+    <div style="text-align: center;">
+      <a href="{{login_url}}" class="btn">Sign In to Member Portal</a>
+    </div>
 
     <div class="footer">
-      &copy; {{year}} SAP Security Expert. The leading community for SAP Security Professionals.<br>
+      &copy; 2026 SAP Security Expert. The leading community for SAP Security Professionals.<br>
       <a href="{{site_url}}" style="color: #94a3b8;">{{site_domain}}</a>
     </div>
   </div>

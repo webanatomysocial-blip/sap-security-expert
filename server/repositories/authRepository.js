@@ -46,13 +46,19 @@ async function findUserById(db, id) {
 // Used by requireAuth on every request to catch sessions left stale by an
 // admin action taken elsewhere (e.g. a contributor deleted mid-session).
 async function findCurrentAccessState(db, id) {
-  const [rows] = await db.execute('SELECT role, is_active FROM users WHERE id = ? LIMIT 1', [id]);
+  const [rows] = await db.execute('SELECT role, is_active, email FROM users WHERE id = ? LIMIT 1', [id]);
   return rows[0] || null;
 }
 
+// Ambassador-only accounts share this same users-table login (role
+// 'contributor', active) so they can exist as a login at all — this join
+// against contributors.status makes sure only an actually-approved
+// Contributor auto-logs into the admin/dashboard session this way.
 async function findContributorByEmail(db, email) {
   const [rows] = await db.execute(
-    "SELECT * FROM users WHERE email = ? AND role = 'contributor' AND is_active = 1 LIMIT 1",
+    `SELECT u.* FROM users u
+     JOIN contributors c ON c.id = u.contributor_id
+     WHERE u.email = ? AND u.role = 'contributor' AND u.is_active = 1 AND c.status = 'approved' LIMIT 1`,
     [email]
   );
   return rows[0] || null;

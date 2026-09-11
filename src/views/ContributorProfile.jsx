@@ -106,6 +106,7 @@ export default function ContributorProfile() {
     (contributor.sap_press_books && contributor.sap_press_books.length);
 
   const avatarUrl = imgError || !contributor.profile_image ? null : contributor.profile_image;
+  const isRaghu = id === "raghu-boddu" || contributor.slug === "raghu-boddu" || (contributor.full_name && contributor.full_name.toLowerCase().includes("raghu"));
 
   return (
     <div style={{ background: "#f1f5f9", minHeight: "100vh", paddingBottom: 60 }}>
@@ -156,7 +157,7 @@ export default function ContributorProfile() {
               <p style={{ margin: "0 0 14px", color: "rgba(255,255,255,0.6)", fontSize: "0.95rem" }}>
                 {contributor.role}
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                 {contributor.organization && (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.75)", borderRadius: 8, padding: "4px 12px", fontSize: "0.78rem", fontWeight: 500 }}>
                     <i className="bi bi-building" /> {contributor.organization}
@@ -170,6 +171,26 @@ export default function ContributorProfile() {
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(238,94,66,0.2)", border: "1px solid rgba(238,94,66,0.4)", color: "#fda58a", borderRadius: 8, padding: "4px 12px", fontSize: "0.78rem", fontWeight: 600 }}>
                   <i className="bi bi-patch-check-fill" /> Verified Contributor
                 </span>
+                {isRaghu && (
+                  <Link
+                    to="/experts/raghu-boddu"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      background: "linear-gradient(135deg, #ee5e42 0%, #d94835 100%)",
+                      color: "#ffffff",
+                      borderRadius: 8,
+                      padding: "4px 14px",
+                      fontSize: "0.78rem",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      boxShadow: "0 2px 10px rgba(238,94,66,0.35)",
+                    }}
+                  >
+                    <i className="bi bi-person-badge-fill" /> Read Full Expert Profile
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -231,6 +252,55 @@ export default function ContributorProfile() {
 
           {/* ── Left column ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+            {/* Raghu Boddu Expert Banner */}
+            {isRaghu && (
+              <div style={{
+                background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
+                borderRadius: 16,
+                padding: "20px 24px",
+                border: "1px solid #fed7aa",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                flexWrap: "wrap",
+                boxShadow: "0 2px 8px rgba(249, 115, 22, 0.08)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: "#ea5845", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", flexShrink: 0 }}>
+                    <i className="bi bi-star-fill" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#9a3412" }}>
+                      Featured SAP Security & GRC Expert
+                    </h3>
+                    <p style={{ margin: "2px 0 0", fontSize: "0.82rem", color: "#c2410c" }}>
+                      Explore Raghu Boddu's publications, training courses, SecOps frameworks & research.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  to="/experts/raghu-boddu"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "#ea5845",
+                    color: "#ffffff",
+                    padding: "9px 18px",
+                    borderRadius: 10,
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    whiteSpace: "nowrap",
+                    boxShadow: "0 4px 12px rgba(234, 88, 69, 0.25)",
+                  }}
+                >
+                  Read More About Raghu Boddu <i className="bi bi-arrow-right" />
+                </Link>
+              </div>
+            )}
 
             {/* About */}
             {contributor.short_bio && (

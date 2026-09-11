@@ -31,7 +31,11 @@
 html {
   scroll-behavior: smooth;
   max-width: 100%;
-  overflow-x: hidden;
+  /* clip, not hidden: hidden pairs with a visible y and gets promoted to
+     auto (per spec), turning html/body into their own scroll containers —
+     which silently breaks position:sticky everywhere on the site. clip
+     doesn't trigger that promotion. */
+  overflow-x: clip;
 }
 
 * {
@@ -304,7 +308,8 @@ body {
   padding: 0;
   /* padding-top: 100px; */
   max-width: 100%;
-  overflow-x: hidden;
+  /* clip, not hidden — see the html rule above for why. */
+  overflow-x: clip;
 }
 
 @media (max-width: 768px) {

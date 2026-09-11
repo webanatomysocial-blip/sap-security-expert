@@ -137,12 +137,11 @@ const AdminLayout = () => {
     }
   }, [isAuthenticated, fetchProfile, fetchBadges]);
 
-  // An Ambassador-only account (never approved as a Contributor) shares the
-  // same login mechanism so it can publish articles, but must never actually
-  // land on the Contributor Dashboard — bounce it to its own Ambassador page.
+  // An Ambassador-only account (or any non-approved contributor account) must
+  // never land on the Contributor Dashboard — bounce it immediately.
   useEffect(() => {
-    if (isAuthenticated && role === "contributor" && !badges.isRealContributor && badges.isAmbassador) {
-      navigate("/member/ambassador", { replace: true });
+    if (isAuthenticated && role === "contributor" && !badges.isRealContributor) {
+      navigate(badges.isAmbassador ? "/member/ambassador" : "/", { replace: true });
     }
   }, [isAuthenticated, role, badges.isRealContributor, badges.isAmbassador, navigate]);
 

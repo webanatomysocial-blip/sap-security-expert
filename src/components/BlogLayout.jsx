@@ -127,6 +127,7 @@ const BlogLayout = ({
   difficulty_level = null,
   content_version = null,
   author_contributor_id = null,
+  author_contributor_slug = null,
   blogType = null,
 }) => {
   const { isLoggedIn } = useMemberAuth();
@@ -641,7 +642,7 @@ const BlogLayout = ({
                   <div className="bl-author-card bl-author-card--primary">
                     <div className="bl-author-card__left">
                       {author_contributor_id ? (
-                        <Link to={`/contributor/${author_contributor_id}`}>
+                        <Link to={`/contributor/${author_contributor_slug || author_contributor_id}`}>
                           <Image
                             src={cleanAuthorImage}
                             alt={author_name}
@@ -666,7 +667,7 @@ const BlogLayout = ({
                     </div>
                     <div className="bl-author-card__body">
                       {author_contributor_id ? (
-                        <Link to={`/contributor/${author_contributor_id}`} style={{ textDecoration: "none" }}>
+                        <Link to={`/contributor/${author_contributor_slug || author_contributor_id}`} style={{ textDecoration: "none" }}>
                           <h3 className="bl-author-name" style={{ cursor: "pointer" }}>{author_name}</h3>
                         </Link>
                       ) : (

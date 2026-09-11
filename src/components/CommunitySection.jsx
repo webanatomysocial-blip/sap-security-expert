@@ -276,7 +276,7 @@ export default function CommunitySection() {
                   {contributors.slice(0, 3).map((contributor, index) => {
                     const medals = ["🥇", "🥈", "🥉"];
                     return (
-                      <Link key={index} to={`/contributor/${contributor.id}`} className="top-contributor-row">
+                      <Link key={index} to={`/contributor/${contributor.slug || contributor.id}`} className="top-contributor-row">
                         <span className="tc-medal">{medals[index]}</span>
                         <div className="tc-avatar">
                           {contributor.profile_image ? (
