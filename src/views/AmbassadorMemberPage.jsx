@@ -44,11 +44,36 @@ export default function AmbassadorMemberPage() {
     );
   }
 
-  let expertise = profile.expertise || {};
-  if (typeof expertise === "string") {
-    try { expertise = JSON.parse(expertise); } catch { expertise = {}; }
-  }
-  const expertiseTags = Array.isArray(expertise) ? expertise : Object.keys(expertise).filter((k) => expertise[k]);
+  const parseTags = (val) => {
+    let obj = val || {};
+    if (typeof obj === "string") {
+      try { obj = JSON.parse(obj); } catch { obj = {}; }
+    }
+    return Array.isArray(obj) ? obj : Object.keys(obj).filter((k) => obj[k]);
+  };
+  const expertiseTags = parseTags(profile.expertise);
+  const communityContributionTags = parseTags(profile.community_contribution);
+  const ambassadorMotivationTags = parseTags(profile.ambassador_motivations);
+
+  const TagRow = ({ label, tags }) => tags.length > 0 && (
+    <div style={{ marginTop: 16 }}>
+      <span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>{label}</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+        {tags.map((tag) => (
+          <span key={tag} style={{ background: "#f3513f1a", color: "#ee5e42", borderRadius: 50, padding: "5px 14px", fontSize: "0.78rem", fontWeight: 600, textTransform: "capitalize" }}>
+            {tag.replace(/_/g, " ").replace(/([a-z0-9])([A-Z])/g, "$1 $2")}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+
+  const AnswerBlock = ({ label, value }) => value && (
+    <div style={{ marginBottom: 20 }}>
+      <span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.04em" }}>{label}</span>
+      <p style={{ margin: "6px 0 0", color: "#334155", fontSize: "0.92rem", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{value}</p>
+    </div>
+  );
 
   return (
     <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 20px 80px" }}>
@@ -110,23 +135,29 @@ export default function AmbassadorMemberPage() {
       <section style={{ marginBottom: 40 }}>
         <h2 style={{ fontSize: "1.05rem", color: "#0f172a", marginBottom: 16 }}>Your Details</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, padding: 20 }}>
+          <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Email</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.email || "—"}</p></div>
+          <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>LinkedIn</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b", overflowWrap: "anywhere" }}>{profile.linkedin ? <a href={profile.linkedin} target="_blank" rel="noreferrer" style={{ color: "#ee5e42" }}>View Profile</a> : "—"}</p></div>
           <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Organization</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.organization || "—"}</p></div>
           <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Role</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.current_role || "—"}</p></div>
           <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Location</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "—"}</p></div>
           <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Years of Experience</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.years_experience || "—"}</p></div>
+          <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Mentorship Experience</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.mentorship_experience || "—"}</p></div>
+          <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Community Help Frequency</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.community_helping_frequency || "—"}</p></div>
+          <div><span style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase" }}>Contribution Willingness</span><p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1e293b" }}>{profile.contribution_willingness || "—"}</p></div>
         </div>
-        {expertiseTags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
-            {expertiseTags.map((tag) => (
-              <span key={tag} style={{ background: "#f3513f1a", color: "#ee5e42", borderRadius: 50, padding: "5px 14px", fontSize: "0.78rem", fontWeight: 600 }}>
-                {tag.replace(/_/g, " ")}
-              </span>
-            ))}
-          </div>
-        )}
-        {profile.motivation && (
-          <p style={{ marginTop: 16, color: "#475569", fontSize: "0.9rem", lineHeight: 1.7 }}>{profile.motivation}</p>
-        )}
+
+        <TagRow label="Areas of Expertise" tags={expertiseTags} />
+        <TagRow label="Community Contribution" tags={communityContributionTags} />
+        <TagRow label="Motivations" tags={ambassadorMotivationTags} />
+
+        <div style={{ marginTop: 24 }}>
+          <AnswerBlock label="Contribution Plan" value={profile.motivation} />
+          <AnswerBlock label="Community Initiative Example" value={profile.contribution_examples} />
+          <AnswerBlock label="Country Security Challenge" value={profile.country_challenge} />
+          <AnswerBlock label="What a Country Ambassador Should Be" value={profile.ambassador_definition} />
+          <AnswerBlock label="Other Motivation" value={profile.other_motivation_text} />
+          <AnswerBlock label="Published Work / Contribution Links" value={profile.contribution_links} />
+        </div>
       </section>
 
       {/* Actions */}

@@ -392,6 +392,10 @@ async function findAmbassadorFullProfileByEmail(db, email) {
   const [rows] = await db.execute(
     `SELECT a.id, a.full_name, a.email, a.linkedin, a.country, a.state, a.city, a.organization,
             a.\`current_role\`, a.years_experience, a.expertise, a.other_expertise, a.motivation,
+            a.contribution_examples, a.community_contribution, a.contribution_links,
+            a.mentorship_experience, a.community_helping_frequency, a.country_challenge,
+            a.ambassador_motivations, a.other_motivation_text, a.contribution_willingness,
+            a.ambassador_definition,
             a.image, a.status, a.approved_at,
             CASE WHEN (SELECT COUNT(*) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) > 0 THEN 1 ELSE 0 END AS has_badge,
             (SELECT MAX(h.badge_year) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) AS badge_year
