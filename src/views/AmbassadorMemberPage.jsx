@@ -12,6 +12,7 @@ export default function AmbassadorMemberPage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedYear, setSelectedYear] = useState(null);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -19,7 +20,15 @@ export default function AmbassadorMemberPage() {
       return;
     }
     getAmbassadorMemberProfile()
-      .then((res) => setProfile(res.data.ambassador))
+      .then((res) => {
+        const amb = res.data.ambassador;
+        setProfile(amb);
+        if (amb?.badge_year) {
+          setSelectedYear(amb.badge_year);
+        } else if (amb?.badge_history?.length > 0) {
+          setSelectedYear(amb.badge_history[0].badge_year);
+        }
+      })
       .catch((err) => setError(err.response?.data?.message || "Couldn't load your Ambassador profile."))
       .finally(() => setLoading(false));
   }, [isLoggedIn, navigate]);
@@ -62,9 +71,15 @@ export default function AmbassadorMemberPage() {
   const communityContributionTags = parseTags(profile.community_contribution);
   const ambassadorMotivationTags = parseTags(profile.ambassador_motivations);
 
+  const badgeHistory = profile.badge_history && profile.badge_history.length > 0
+    ? profile.badge_history
+    : (profile.has_badge && profile.badge_year ? [{ badge_year: profile.badge_year }] : []);
+
+  const activeDisplayYear = selectedYear || profile.badge_year || (badgeHistory[0]?.badge_year) || "2026";
+
   const handleShareLinkedIn = () => {
     const shareUrl = encodeURIComponent("https://sapsecurityexpert.com/become-a-country-ambassador");
-    const shareText = encodeURIComponent(`Honored to be recognized as an official SAP Security Expert Country Ambassador for ${profile.country || "my region"}! 🏅 Check out our global community leadership program:`);
+    const shareText = encodeURIComponent(`Honored to be recognized as an official SAP Security Expert Country Ambassador (${activeDisplayYear}) for ${profile.country || "my region"}! 🏅 Check out our global community leadership program:`);
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}&summary=${shareText}`, "_blank", "width=600,height=600");
   };
 
@@ -139,7 +154,7 @@ export default function AmbassadorMemberPage() {
               </div>
               <div>
                 <p className="amb-stat-val">{profile.badge_year || "2026"}</p>
-                <p className="amb-stat-lbl">Active Badge Year</p>
+                <p className="amb-stat-lbl">Latest Badge Year</p>
               </div>
             </div>
 
@@ -165,11 +180,11 @@ export default function AmbassadorMemberPage() {
 
             <div className="amb-stat-box">
               <div className="amb-stat-icon" style={{ background: "rgba(99, 102, 241, 0.15)", color: "#6366f1" }}>
-                <i className="bi bi-clock-history" />
+                <i className="bi bi-patch-check-fill" />
               </div>
               <div>
-                <p className="amb-stat-val">{profile.badge_history?.length || 1} Year{(profile.badge_history?.length || 1) > 1 ? "s" : ""}</p>
-                <p className="amb-stat-lbl">Honors Awarded</p>
+                <p className="amb-stat-val">{badgeHistory.length} Badge{badgeHistory.length !== 1 ? "s" : ""}</p>
+                <p className="amb-stat-lbl">Multi-Year Honors</p>
               </div>
             </div>
           </div>
@@ -178,23 +193,40 @@ export default function AmbassadorMemberPage() {
 
       {/* Main Content Layout */}
       <div className="amb-main-layout">
-        {/* Left Sidebar: Official Badge */}
+        {/* Left Sidebar: Official Badge Preview */}
         <aside className="amb-sidebar-card">
           <h2 className="amb-sidebar-title">
             <i className="bi bi-patch-check-fill" style={{ color: "#f59e0b" }} />
-            Official Recognition Badge
+            Official Badge ({activeDisplayYear})
           </h2>
 
           <div className="amb-badge-container">
-            {profile.has_badge ? (
+            {profile.has_badge || badgeHistory.length > 0 ? (
               <>
-                <AmbassadorBadge country={profile.country} year={profile.badge_year} size={250} />
+                {badgeHistory.length > 1 && (
+                  <div className="amb-year-selector" title="Select year badge to view and download">
+                    {badgeHistory.map((h) => (
+                      <button
+                        key={h.badge_year}
+                        type="button"
+                        className={`amb-year-btn ${activeDisplayYear === h.badge_year ? "active" : ""}`}
+                        onClick={() => setSelectedYear(h.badge_year)}
+                      >
+                        <i className="bi bi-award-fill" />
+                        {h.badge_year}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <AmbassadorBadge country={profile.country} year={activeDisplayYear} size={250} />
+
                 <button
                   type="button"
                   className="amb-download-btn"
-                  onClick={() => downloadBadgeImage(profile.country, profile.badge_year)}
+                  onClick={() => downloadBadgeImage(profile.country, activeDisplayYear)}
                 >
-                  <i className="bi bi-download" /> Download High-Res Badge
+                  <i className="bi bi-download" /> Download {activeDisplayYear} Badge (PNG)
                 </button>
               </>
             ) : (
@@ -204,13 +236,18 @@ export default function AmbassadorMemberPage() {
               </div>
             )}
 
-            {profile.badge_history?.length > 0 && (
+            {badgeHistory.length > 0 && (
               <div className="amb-history-box">
-                <h3 className="amb-history-title">Badge History</h3>
+                <h3 className="amb-history-title">Badge History ({badgeHistory.length})</h3>
                 <div className="amb-history-pills">
-                  {profile.badge_history.map((h) => (
-                    <span key={h.badge_year} className="amb-history-pill">
-                      <i className="bi bi-award-fill" style={{ color: "#f59e0b" }} />
+                  {badgeHistory.map((h) => (
+                    <span
+                      key={h.badge_year}
+                      className={`amb-history-pill ${activeDisplayYear === h.badge_year ? "active" : ""}`}
+                      onClick={() => setSelectedYear(h.badge_year)}
+                      title={`Click to preview ${h.badge_year} badge`}
+                    >
+                      <i className="bi bi-award-fill" />
                       {h.badge_year}
                     </span>
                   ))}
@@ -220,8 +257,54 @@ export default function AmbassadorMemberPage() {
           </div>
         </aside>
 
-        {/* Right Main Column: Application Details & Responses */}
+        {/* Right Main Column */}
         <main className="amb-content-col">
+          {/* Multi-Year Badges Gallery Section (if multiple years exist) */}
+          {badgeHistory.length > 0 && (
+            <section className="amb-card">
+              <div className="amb-card-header">
+                <h2 className="amb-card-title">
+                  <i className="bi bi-award-fill" style={{ color: "#f59e0b" }} />
+                  Multi-Year Ambassador Badges ({badgeHistory.length})
+                </h2>
+              </div>
+              <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: "0.92rem", lineHeight: 1.5 }}>
+                As an officially recognized SAP Security Expert Country Ambassador, each awarded year gives you a dedicated badge customized with your country and year. You can preview or download high-resolution PNGs for any awarded year below:
+              </p>
+
+              <div className="amb-gallery-grid">
+                {badgeHistory.map((h) => (
+                  <div
+                    key={h.badge_year}
+                    className={`amb-gallery-card ${activeDisplayYear === h.badge_year ? "active" : ""}`}
+                  >
+                    <span className="amb-gallery-year-badge">
+                      <i className="bi bi-award-fill" /> {h.badge_year}
+                    </span>
+
+                    <AmbassadorBadge
+                      country={profile.country}
+                      year={h.badge_year}
+                      size={170}
+                      onClick={() => setSelectedYear(h.badge_year)}
+                    />
+
+                    <button
+                      type="button"
+                      className="amb-gallery-dl-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadBadgeImage(profile.country, h.badge_year);
+                      }}
+                    >
+                      <i className="bi bi-download" /> Download PNG
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Details Card */}
           <section className="amb-card">
             <div className="amb-card-header">

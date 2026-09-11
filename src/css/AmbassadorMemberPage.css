@@ -293,6 +293,39 @@
   width: 100%;
 }
 
+.amb-year-selector {
+  display: flex;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 50px;
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.amb-year-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 6px 14px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.amb-year-btn.active {
+  background: #ffffff;
+  color: #d97706;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
 .amb-download-btn {
   width: 100%;
   display: inline-flex;
@@ -349,6 +382,81 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.amb-history-pill:hover, .amb-history-pill.active {
+  background: #f59e0b;
+  color: #ffffff;
+  border-color: #d97706;
+}
+
+/* --- Multi-Badge Gallery Section --- */
+.amb-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.amb-gallery-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.amb-gallery-card:hover {
+  transform: translateY(-3px);
+  border-color: #f59e0b;
+  box-shadow: 0 8px 24px -4px rgba(245, 158, 11, 0.18);
+}
+
+.amb-gallery-card.active {
+  border: 2px solid #f59e0b;
+  background: #fffdfa;
+}
+
+.amb-gallery-year-badge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 4px 14px;
+  border-radius: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.amb-gallery-dl-btn {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.amb-gallery-dl-btn:hover {
+  background: #ee5e42;
+  color: #ffffff;
+  border-color: #ee5e42;
 }
 
 /* --- Content Column --- */
