@@ -136,7 +136,7 @@ async function findUnlockedSlugsForMember(db, memberId) {
   return rows.map(r => r.blog_slug);
 }
 
-async function findList(db, { isContributor, authorOnly, currentUserId, isAdminLoggedIn, trending, filterCategory, nowUtc }) {
+async function findList(db, { isContributor, authorOnly, currentUserId, isAdminLoggedIn, trending, filterCategory, nowUtc, limit }) {
   let sql = `SELECT b.*, b.view_count,
     (SELECT COUNT(*) FROM comments c_count WHERE c_count.post_id = b.slug AND c_count.status = 'approved') as comment_count,
     ${AUTHOR_FIELDS}
@@ -181,6 +181,16 @@ async function findList(db, { isContributor, authorOnly, currentUserId, isAdminL
     sql += ' ORDER BY recent_views DESC, b.view_count DESC LIMIT 5';
   } else {
     sql += ' ORDER BY b.created_at DESC';
+    // Public homepage/category pages only ever render the first 10-20 cards,
+    // but this endpoint previously returned every matching row (full `content`
+    // HTML included) regardless of the caller's `?limit=` — on every request,
+    // uncached, that meant transferring and JSON-serializing the entire blogs
+    // table just to slice(0, 20) client-side. Apply the limit at the SQL level
+    // when the caller passes one (bounded to 100 to avoid an accidental huge scan).
+    if (limit) {
+      sql += ' LIMIT ?';
+      params.push(Math.min(parseInt(limit) || 20, 100));
+    }
   }
 
   const [rows] = await db.execute(sql, params);
