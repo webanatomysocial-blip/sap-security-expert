@@ -494,12 +494,13 @@ const list = asyncHandler(async (req, res) => {
     }
 
     // Premium credit gate — content only sent to members who have unlocked this article.
-    // Bypassed only for contributors/admins explicitly granted can_access_premium_articles.
-    // Admin role alone does NOT bypass — admins browsing the public site see the same paywall.
+    // Bypassed for contributors/admins explicitly granted can_access_premium_articles,
+    // and for staff viewing/editing their own post (hasAdminAccess) so the admin blog
+    // editor always loads the full saved content instead of the truncated preview —
+    // without this, saving a post as premium made it appear to lose its body on reopen.
     const isPremium = parseInt(blog.is_premium || 0);
     const creditsRequired = parseInt(blog.credits_required || 0);
-    // Only grant access via explicit permission flag — NOT by admin role alone
-    const hasGrantedAccess = !!(sess.permissions?.can_access_premium_articles) || isInternalSSR;
+    const hasGrantedAccess = !!(sess.permissions?.can_access_premium_articles) || hasAdminAccess;
     if (isPremium && !hasGrantedAccess) {
       let hasUnlocked = false;
       if (sess.member_logged_in && sess.member_id) {
@@ -569,9 +570,11 @@ const list = asyncHandler(async (req, res) => {
       b.content = paras[0] || (b.content || '').slice(0, 300);
       b.faqs = null;
     }
-    // Match single-post gate: admin role alone does NOT bypass premium — only
-    // explicit can_access_premium_articles permission or a paid unlock does.
-    if (Number(b.is_premium) === 1 && !hasGrantedAccess && !unlockedSlugs.has(b.slug)) {
+    // Match single-post gate: bypassed by explicit can_access_premium_articles
+    // permission, a paid unlock, or staff viewing/editing their own post
+    // (hasAdminAccess) — otherwise the admin editor list only ever shows the
+    // truncated paywall preview for a post's own premium content.
+    if (Number(b.is_premium) === 1 && !hasGrantedAccess && !hasAdminAccess && !unlockedSlugs.has(b.slug)) {
       b.premium_locked = true;
       const paras = (b.content || '').match(/<p[\s\S]*?<\/p>/gi) || [];
       b.content = paras[0] || (b.content || '').slice(0, 300);
