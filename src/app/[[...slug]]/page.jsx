@@ -139,7 +139,7 @@ export default async function CatchAll({ params }) {
   try {
     const apiUrl = isCategory
       ? `${INTERNAL_API}/api/posts?category=${encodeURIComponent(firstSegment)}&limit=20`
-      : `${INTERNAL_API}/api/posts`;
+      : `${INTERNAL_API}/api/posts?limit=10`;
     const res = await fetch(apiUrl, { next: { revalidate: 3600 } });
     if (res.ok) {
       const data = await res.json();

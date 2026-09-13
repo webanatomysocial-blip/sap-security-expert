@@ -526,8 +526,14 @@ const list = asyncHandler(async (req, res) => {
     // contributors viewing their own post still need draft/review fields.
     if (!hasAdminAccess) stripInternalFields(blog);
 
-    // Public, non-locked posts can be cached by the browser/CDN for 5 minutes
-    const isPublicAndOpen = !isAdmin && !isContributor && !blog.premium_locked && !isMembersOnly;
+    // Public, non-locked posts can be cached by the browser/CDN for 5 minutes.
+    // isInternalSSR must NEVER be marked public-cacheable: that request gets the
+    // full, un-truncated premium/members-only body via the SSR bypass (for
+    // Googlebot indexing), and a shared cache does not vary by the internal
+    // secret header — caching it as "public" would let the very next anonymous
+    // request for the same URL be served the full paywalled content straight
+    // from the cache, bypassing the paywall entirely.
+    const isPublicAndOpen = !isAdmin && !isContributor && !isInternalSSR && !blog.premium_locked && !isMembersOnly;
     if (isPublicAndOpen) {
       res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=60');
     } else {
@@ -540,10 +546,13 @@ const list = asyncHandler(async (req, res) => {
   // List — never include news items here; they are served via /api/news
   const filterCategory = req.query.category || null;
   const trending = req.query.trending === 'true';
+  // Only honor an explicit ?limit= — the admin blog manager relies on the
+  // unlimited default to fetch its full editable list in one call.
+  const limit = req.query.limit ? parseInt(req.query.limit) || null : null;
 
   const rows = await repo.findList(db, {
     isContributor, authorOnly, currentUserId,
-    isAdminLoggedIn: !!sess.admin_logged_in, trending, filterCategory, nowUtc,
+    isAdminLoggedIn: !!sess.admin_logged_in, trending, filterCategory, nowUtc, limit,
   });
 
   // Same content-gating the single-post endpoint applies — the list query
