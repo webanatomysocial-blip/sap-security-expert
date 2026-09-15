@@ -156,7 +156,23 @@ export default async function CatchAll({ params }) {
       // re-fetch it before it can render real content (see homepageData).
       const res = await fetch(`${INTERNAL_API}/api/homepage`, { next: { revalidate: 1800 } });
       if (res.ok) {
-        homepageData = await res.json();
+        const rawData = await res.json();
+        // /api/homepage returns full blog rows (SELECT b.*), including the
+        // complete article `content` HTML — needed nowhere on the homepage
+        // itself (CommunitySection only ever renders title/excerpt/image/
+        // date/author for these cards). Left in, that full-body HTML alone
+        // made the embedded SSR payload ~350KB, most of it dead weight the
+        // browser has to download before the page can even start rendering.
+        // Strip to just the fields the homepage actually uses before this
+        // goes into recentArticles or gets embedded for the client below.
+        const HERO_FIELDS = ['id', 'title', 'slug', 'category', 'excerpt', 'hero_image', 'homepage_featured_image', 'image'];
+        const CARD_FIELDS = ['id', 'title', 'slug', 'category', 'excerpt', 'date', 'created_at', 'author_name', 'author_image', 'is_premium', 'is_members_only'];
+        const pick = (obj, fields) => Object.fromEntries(fields.map((f) => [f, obj[f]]).filter(([, v]) => v !== undefined));
+        homepageData = {
+          ...rawData,
+          heroArticles: (rawData.heroArticles || []).map((a) => pick(a, HERO_FIELDS)),
+          recent: (rawData.recent || []).map((a) => pick(a, CARD_FIELDS)),
+        };
         const posts = (homepageData.heroArticles?.length ? homepageData.heroArticles : homepageData.recent) || [];
         recentArticles = posts.slice(0, 10);
       }
