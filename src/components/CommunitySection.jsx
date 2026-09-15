@@ -14,8 +14,29 @@ import {
   getPopularTags,
 } from "../services/api";
 
+// Reads the homepage payload the server already fetched and embedded
+// alongside the SSR shell (see src/app/[[...slug]]/page.jsx). When present,
+// it lets this component render real content on first paint instead of a
+// loading skeleton it would otherwise show for the length of a whole extra
+// round-trip — that skeleton flash (replacing real SSR content with
+// "Loading…") is exactly what shows up as a stalled Speed Index in
+// Lighthouse. Absent (e.g. an SPA-internal navigation back to "/", or the
+// SSR fetch failing) it just falls through to the normal client fetch.
+function readSsrHomepageSeed() {
+  if (typeof document === "undefined") return null;
+  const el = document.getElementById("__HOMEPAGE_SSR_DATA__");
+  if (!el) return null;
+  try {
+    const data = JSON.parse(el.textContent || "");
+    return data?.status === "success" ? data : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function CommunitySection() {
   const { isLoggedIn, member } = useMemberAuth();
+  const [ssrSeed] = useState(readSsrHomepageSeed);
 
   const getImageUrl = (path) => {
     if (!path) return "https://placehold.co/100x100?text=Author";
@@ -38,11 +59,11 @@ export default function CommunitySection() {
   };
 
   const [popularTags, setPopularTags] = useState([]);
-  const [contributorCount, setContributorCount] = useState(0);
+  const [contributorCount, setContributorCount] = useState(() => ssrSeed?.contributors?.length || 0);
   const [memberCount, setMemberCount] = useState(0);
   const [articleCount, setArticleCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
-  const [contributors, setContributors] = useState([]);
+  const [contributors, setContributors] = useState(() => ssrSeed?.contributors || []);
 
   // State for announcements
   const [announcements, setAnnouncements] = useState([]);
@@ -53,16 +74,22 @@ export default function CommunitySection() {
     community_right: { active: false, image: "", link: "" },
   });
 
-  // Dynamic Data State
-  const [heroArticles, setHeroArticles] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [expertPicks, setExpertPicks] = useState([]);
-  const [premiumArticles, setPremiumArticles] = useState([]);
-  const [latestNews, setLatestNews] = useState([]);
+  // Dynamic Data State — seeded from the SSR-embedded payload when present
+  // (see readSsrHomepageSeed above) so first paint shows real content
+  // instead of the loading skeleton below.
+  const [heroArticles, setHeroArticles] = useState(() => ssrSeed?.heroArticles || []);
+  const [recentActivity, setRecentActivity] = useState(() =>
+    (ssrSeed?.recent || []).filter(
+      (post) => new Date((post.date || post.created_at || "").replace(" ", "T")) <= new Date(),
+    ),
+  );
+  const [expertPicks, setExpertPicks] = useState(() => ssrSeed?.expertPicks || []);
+  const [premiumArticles, setPremiumArticles] = useState(() => ssrSeed?.premiumArticles || []);
+  const [latestNews, setLatestNews] = useState(() => ssrSeed?.latestNews || []);
   const [activeTab, setActiveTab] = useState("all");
-  const [trending, setTrending] = useState([]);
+  const [trending, setTrending] = useState(() => ssrSeed?.trending || []);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
-  const [homepageLoading, setHomepageLoading] = useState(true);
+  const [homepageLoading, setHomepageLoading] = useState(() => !ssrSeed);
 
   useEffect(() => {
     if (heroArticles.length <= 1) return;

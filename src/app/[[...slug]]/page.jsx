@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import ClientApp from './ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
@@ -136,17 +137,33 @@ export default async function CatchAll({ params }) {
 
   // Homepage or category page: fetch articles for SSR
   let recentArticles = [];
+  let homepageData = null;
   try {
-    const apiUrl = isCategory
-      ? `${INTERNAL_API}/api/posts?category=${encodeURIComponent(firstSegment)}&limit=20`
-      : `${INTERNAL_API}/api/posts?limit=10`;
-    const res = await fetch(apiUrl, { next: { revalidate: 3600 } });
-    if (res.ok) {
-      const data = await res.json();
-      const posts = Array.isArray(data) ? data : (data.posts || data.blogs || []);
-      recentArticles = posts.slice(0, isCategory ? 20 : 10);
+    if (isCategory) {
+      const apiUrl = `${INTERNAL_API}/api/posts?category=${encodeURIComponent(firstSegment)}&limit=20`;
+      const res = await fetch(apiUrl, { next: { revalidate: 3600 } });
+      if (res.ok) {
+        const data = await res.json();
+        const posts = Array.isArray(data) ? data : (data.posts || data.blogs || []);
+        recentArticles = posts.slice(0, 20);
+      }
+    } else {
+      // Homepage: reuse the same curated /api/homepage endpoint (and its own
+      // 1800s server-side cache — see server/controllers/publicController.js)
+      // that CommunitySection fetches client-side, so the SSR fallback shows
+      // the same featured articles instead of a generic "recent posts" list,
+      // and the same payload is embedded below so the client doesn't have to
+      // re-fetch it before it can render real content (see homepageData).
+      const res = await fetch(`${INTERNAL_API}/api/homepage`, { next: { revalidate: 1800 } });
+      if (res.ok) {
+        homepageData = await res.json();
+        const posts = (homepageData.heroArticles?.length ? homepageData.heroArticles : homepageData.recent) || [];
+        recentArticles = posts.slice(0, 10);
+      }
     }
   } catch (_) {}
+
+  const nonce = homepageData ? (await headers()).get('x-nonce') || undefined : undefined;
 
   const pageTitle = isCategory
     ? `${CATEGORY_LABELS[firstSegment]} — Articles & Guides`
@@ -215,6 +232,26 @@ export default async function CatchAll({ params }) {
           )}
         </div>
       </div>
+
+      {/*
+        Hands the already-fetched homepage payload to the client so
+        CommunitySection can seed its initial state from it instead of
+        rendering a loading skeleton and re-fetching from scratch on mount.
+        Without this, hydration replaces the real SSR content above with a
+        loading spinner for the length of that extra round-trip — a visible
+        regression that shows up directly in Lighthouse's filmstrip/Speed
+        Index. JSON.stringify escapes quotes but not </script>, so escape
+        that sequence manually to avoid it closing the tag early.
+      */}
+      {homepageData && (
+        <script
+          id="__HOMEPAGE_SSR_DATA__"
+          type="application/json"
+          nonce={nonce}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageData).replace(/<\/script/gi, '<\\/script') }}
+        />
+      )}
 
       {/* Full interactive SPA — AppWrapper removes #ssr-blog-content on mount */}
       <ClientApp />
