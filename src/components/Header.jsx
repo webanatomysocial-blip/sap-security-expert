@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef, useEffect } from "react";
+import React, { useState, useContext, useRef, useEffect, Suspense, lazy } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import Image from "next/image";
 // next-disabled: import "../css/header.css";
@@ -9,7 +9,13 @@ import { useAuth } from "../context/AuthContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 
 import { LuSettings, LuUser, LuKey, LuLogOut, LuShieldCheck, LuChevronRight, LuChevronDown, LuX, LuTrash2, LuCoins, LuBookOpen, LuGlobe } from "react-icons/lu";
-import MemberProfileModal from "./MemberProfileModal";
+// Lazy — MemberProfileModal pulls in the full country/state/city dataset
+// (country-state-city), a ~7.7MB chunk. Header renders on every single page,
+// so a static import here meant every visitor downloaded that entire dataset
+// just to load the homepage, whether or not they ever open this modal.
+// React.lazy() + only rendering it once opened (below) defers that fetch
+// until someone actually clicks into their profile.
+const MemberProfileModal = lazy(() => import("./MemberProfileModal"));
 import HeaderSearchModal from "./HeaderSearchModal";
 import DeleteAccountModal from "./DeleteAccountModal";
 
@@ -634,11 +640,15 @@ const Header = () => {
           </Link>
         </nav>
       </div>
-      <MemberProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        initialTab={profileInitialTab}
-      />
+      {isProfileModalOpen && (
+        <Suspense fallback={null}>
+          <MemberProfileModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            initialTab={profileInitialTab}
+          />
+        </Suspense>
+      )}
 
       <DeleteAccountModal
         isOpen={isDeleteAccountOpen}
