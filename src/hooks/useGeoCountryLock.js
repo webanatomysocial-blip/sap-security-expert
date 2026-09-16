@@ -175,8 +175,12 @@ export default function useGeoCountryLock() {
       // ignore
     }
 
-    // 2. Also query GPS if browser supports it to get more granular coordinates
-    if (supportsGeolocation()) {
+    // 2. Only fall back to native GPS when IP lookup didn't already give us a
+    // usable result. GPS used to run unconditionally here even after a
+    // successful IP lookup — every visitor saw the browser's location
+    // permission prompt and waited on a call that could take up to the full
+    // 5s timeout, for zero benefit once we already had a country/state/city.
+    if (!currentIP && supportsGeolocation()) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           try {
