@@ -23,9 +23,14 @@ export default function FeaturedInsights({ id }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch latest blogs from API
+    // Fetch latest blogs from API. This only ever renders 3 cards per tab
+    // (see the .slice(0, 3) calls below), but was fetching every published
+    // blog's full row — including the complete article HTML `content` — to
+    // do it: 40 blogs measured at ~6.9MB on the wire for 3 visible cards.
+    // A generous limit still comfortably covers 3 matches per category tab
+    // after client-side filtering, at a fraction of the payload.
     api
-      .get("/posts")
+      .get("/posts?limit=24")
       .then((response) => {
         const data = response.data;
         const blogData = Array.isArray(data) ? data : data.data || [];
