@@ -46,6 +46,7 @@ const apply = async (req, res) => {
     // example) — reusing these columns since they already render on the
     // public profile page.
     motivation: input.contributionPlan || '', contributionExamples: input.initiativeExample || '',
+    aboutMe: input.aboutMe || '',
     nominationType: 'self', imagePath,
     communityContribution, contributionLinks: input.contributionLinks || '',
     mentorshipExperience: input.mentorshipExperience || '', communityHelpingFrequency: input.communityHelpingFrequency || '',
@@ -100,9 +101,23 @@ const getProfile = asyncHandler(async (req, res) => {
   if (ambassador.expertise && typeof ambassador.expertise === 'string') {
     try { ambassador.expertise = JSON.parse(ambassador.expertise); } catch { ambassador.expertise = {}; }
   }
+  if (ambassador.community_contribution && typeof ambassador.community_contribution === 'string') {
+    try { ambassador.community_contribution = JSON.parse(ambassador.community_contribution); } catch { ambassador.community_contribution = {}; }
+  }
   ambassador.badge_years = await repo.findBadgeYearsByAmbassadorId(db, ambassador.id);
 
   return sendSuccess(res, { ambassador });
 });
 
-module.exports = { apply, listApproved, getProfile };
+// POST /api/ambassadors/about-me — self-service bio edit from Profile Settings
+const updateAboutMe = asyncHandler(async (req, res) => {
+  const db = req.db;
+  if (!req.session.member_logged_in) {
+    return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  }
+  const aboutMe = String(req.body?.aboutMe || '').slice(0, 2000);
+  await repo.updateAboutMe(db, req.session.member_email, aboutMe);
+  return sendSuccess(res, { message: 'Bio updated.' });
+});
+
+module.exports = { apply, listApproved, getProfile, updateAboutMe };

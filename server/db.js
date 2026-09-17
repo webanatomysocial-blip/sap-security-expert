@@ -220,6 +220,10 @@ if (isSQLite) {
     { name: 'contribution_willingness',      def: "TEXT DEFAULT NULL" },
     { name: 'ambassador_definition',         def: "TEXT DEFAULT NULL" },
     { name: 'slug',                          def: "TEXT DEFAULT NULL" },
+    // Free-text "About Me" bio — the applicant's own words, shown on their
+    // public profile. Editable later from Profile Settings, same pattern as
+    // contributors.short_bio.
+    { name: 'about_me',                      def: "TEXT DEFAULT NULL" },
   ];
   const ambassadorsExisting = sqliteDb.prepare("PRAGMA table_info(ambassadors)").all().map(r => r.name);
   for (const col of ambassadorColumns) {
@@ -1056,6 +1060,7 @@ if (isSQLite) {
       if (!ambCols.includes('contribution_willingness'))      await addCol('ambassadors', 'contribution_willingness',      "VARCHAR(100) DEFAULT NULL");
       if (!ambCols.includes('ambassador_definition'))          await addCol('ambassadors', 'ambassador_definition',         "TEXT DEFAULT NULL");
       if (!ambCols.includes('slug'))                           await addCol('ambassadors', 'slug',                          "VARCHAR(255) DEFAULT NULL");
+      if (!ambCols.includes('about_me'))                       await addCol('ambassadors', 'about_me',                      "TEXT DEFAULT NULL");
 
       // Backfill slugs for any ambassador rows created before the slug
       // column existed, so /ambassador/:slug works for everyone.

@@ -11,7 +11,7 @@ import {
   LuTrash2,
   LuEye,
 } from "react-icons/lu";
-import { updateMemberProfile, getMemberAchievements, memberChangePassword } from "../services/api";
+import { updateMemberProfile, getMemberAchievements, memberChangePassword, getAmbassadorMemberProfile, updateAmbassadorAboutMe } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import ProfilePictureCropModal from "../components/ProfilePictureCropModal";
@@ -79,6 +79,8 @@ export default function ProfileSettings() {
   const [activeTab, setActiveTab] = useState(location.state?.tab || "profile");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [aboutMe, setAboutMe] = useState("");
+  const [aboutMeSaving, setAboutMeSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -133,6 +135,27 @@ export default function ProfileSettings() {
       navigate("/member/login?return=/member/settings");
     }
   }, [isLoggedIn, navigate]);
+
+  // Ambassador "About Me" bio lives on the ambassadors table, not members —
+  // fetched separately via the same endpoint the Ambassador dashboard uses.
+  useEffect(() => {
+    if (!member?.is_ambassador) return;
+    getAmbassadorMemberProfile()
+      .then((res) => setAboutMe(res.data?.ambassador?.about_me || ""))
+      .catch(() => {});
+  }, [member?.is_ambassador]);
+
+  const handleAboutMeSave = async () => {
+    setAboutMeSaving(true);
+    try {
+      await updateAmbassadorAboutMe(aboutMe);
+      addToast("About Me updated", "success");
+    } catch (err) {
+      addToast(err.response?.data?.message || "Failed to save About Me", "error");
+    } finally {
+      setAboutMeSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'achievements' && achievements.length === 0 && !achievementsLoading) {
@@ -405,6 +428,29 @@ export default function ProfileSettings() {
                         <AmbassadorBadge key={y} country={member.ambassador_badge_country} year={y} size={100} />
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {member?.is_ambassador && (
+                  <div style={{ marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0' }}>
+                    <label className="form-label">About Me
+                      <br /><small style={{ fontWeight: 400 }}>Shown on your public Ambassador profile.</small>
+                    </label>
+                    <textarea
+                      className="form-control" rows="4" value={aboutMe}
+                      onChange={(e) => setAboutMe(e.target.value)}
+                      placeholder="Tell the community a bit about yourself..."
+                      style={{ marginTop: 8 }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={handleAboutMeSave}
+                      disabled={aboutMeSaving}
+                      style={{ marginTop: 10 }}
+                    >
+                      {aboutMeSaving ? "Saving..." : "Save About Me"}
+                    </button>
                   </div>
                 )}
 
