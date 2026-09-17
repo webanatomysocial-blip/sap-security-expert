@@ -52,6 +52,7 @@ export const updateBlogBadges = (id, badges) => api.put(`/posts/${id}/badges`, b
 export const getExclusiveCount = () => api.get('/posts/exclusive-count');
 export const getMemberProfile = () => api.get('/member/profile');
 export const getAmbassadorMemberProfile = () => api.get('/member/ambassador-profile');
+export const updateAmbassadorAboutMe = (aboutMe) => api.post('/ambassadors/about-me', { aboutMe });
 export const getCommentsByBlogId = (blogId) => api.get(`/get-comments?blogId=${blogId}`);
 export const submitComment = (data) => api.post('/comments', data);
 export const applyContributor = (data) => api.post('/contributors/apply', data, {

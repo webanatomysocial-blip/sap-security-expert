@@ -33,6 +33,7 @@ const AmbassadorApplication = () => {
     state: "",
     city: "",
     organization: "",
+    aboutMe: "",
 
     // Q1
     yearsExperience: "",
@@ -388,6 +389,16 @@ const AmbassadorApplication = () => {
                       onChange={handleInputChange} placeholder="e.g. Senior SAP Security Architect"
                     />
                   </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">About Me
+                    <br /><small>A short bio in your own words — shown on your public Ambassador profile. You can update this later from Profile Settings.</small>
+                  </label>
+                  <textarea
+                    className="form-control" name="aboutMe" rows="4" value={formData.aboutMe}
+                    onChange={handleInputChange}
+                    placeholder="Tell the community a bit about yourself, your background, and what drives your work in SAP Security..."
+                  ></textarea>
                 </div>
               </div>
 

@@ -395,7 +395,7 @@ async function findAmbassadorFullProfileByEmail(db, email) {
             a.contribution_examples, a.community_contribution, a.contribution_links,
             a.mentorship_experience, a.community_helping_frequency, a.country_challenge,
             a.ambassador_motivations, a.other_motivation_text, a.contribution_willingness,
-            a.ambassador_definition,
+            a.ambassador_definition, a.about_me,
             a.image, a.status, a.approved_at,
             CASE WHEN (SELECT COUNT(*) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) > 0 THEN 1 ELSE 0 END AS has_badge,
             (SELECT MAX(h.badge_year) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) AS badge_year

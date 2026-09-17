@@ -22,7 +22,7 @@ async function updateRejectedApplication(db, id, fields) {
   const {
     fullName, linkedin, country, state, city, organization, currentRole, yearsExperience,
     expertise, otherExpertiseText, motivation, contributionExamples, nominationType, imagePath,
-    detectedCountry, locationVerified,
+    detectedCountry, locationVerified, aboutMe,
     communityContribution, contributionLinks, mentorshipExperience, communityHelpingFrequency,
     countryChallenge, ambassadorMotivations, otherMotivationText, contributionWillingness, ambassadorDefinition,
   } = fields;
@@ -34,13 +34,13 @@ async function updateRejectedApplication(db, id, fields) {
     `UPDATE ambassadors SET
      full_name=?, linkedin=?, country=?, state=?, city=?, organization=?, \`current_role\`=?, years_experience=?,
      expertise=?, other_expertise=?, motivation=?, contribution_examples=?, nomination_type=?,
-     detected_country=?, location_verified=?,
+     detected_country=?, location_verified=?, about_me=?,
      community_contribution=?, contribution_links=?, mentorship_experience=?, community_helping_frequency=?,
      country_challenge=?, ambassador_motivations=?, other_motivation_text=?, contribution_willingness=?, ambassador_definition=?,
      image=COALESCE(?,image), status='pending', created_at=CURRENT_TIMESTAMP WHERE id=?`,
     [fullName, linkedin, country, state, city, organization, currentRole, yearsExperience,
      expertise, otherExpertiseText, motivation, contributionExamples, nominationType,
-     detectedCountry || null, locationVerified ? 1 : 0,
+     detectedCountry || null, locationVerified ? 1 : 0, aboutMe || null,
      communityContribution, contributionLinks, mentorshipExperience, communityHelpingFrequency,
      countryChallenge, ambassadorMotivations, otherMotivationText, contributionWillingness, ambassadorDefinition,
      imagePath, id]
@@ -51,7 +51,7 @@ async function createApplication(db, fields) {
   const {
     fullName, email, linkedin, country, state, city, organization, currentRole, yearsExperience,
     expertise, otherExpertiseText, motivation, contributionExamples, nominationType, imagePath,
-    detectedCountry, locationVerified,
+    detectedCountry, locationVerified, aboutMe,
     communityContribution, contributionLinks, mentorshipExperience, communityHelpingFrequency,
     countryChallenge, ambassadorMotivations, otherMotivationText, contributionWillingness, ambassadorDefinition,
   } = fields;
@@ -59,19 +59,25 @@ async function createApplication(db, fields) {
   const [result] = await db.execute(
     `INSERT INTO ambassadors
      (full_name, email, linkedin, country, state, city, organization, \`current_role\`, years_experience,
-      expertise, other_expertise, motivation, contribution_examples, nomination_type, detected_country, location_verified,
+      expertise, other_expertise, motivation, contribution_examples, nomination_type, detected_country, location_verified, about_me,
       community_contribution, contribution_links, mentorship_experience, community_helping_frequency,
       country_challenge, ambassador_motivations, other_motivation_text, contribution_willingness, ambassador_definition,
       image, slug, status, created_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',CURRENT_TIMESTAMP)`,
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',CURRENT_TIMESTAMP)`,
     [fullName, email, linkedin, country, state, city, organization, currentRole, yearsExperience,
      expertise, otherExpertiseText, motivation, contributionExamples, nominationType,
-     detectedCountry || null, locationVerified ? 1 : 0,
+     detectedCountry || null, locationVerified ? 1 : 0, aboutMe || null,
      communityContribution, contributionLinks, mentorshipExperience, communityHelpingFrequency,
      countryChallenge, ambassadorMotivations, otherMotivationText, contributionWillingness, ambassadorDefinition,
      imagePath, slug]
   );
   return result.insertId;
+}
+
+// Self-service edit from Profile Settings — only touches the bio, nothing
+// else about the application/approval state.
+async function updateAboutMe(db, email, aboutMe) {
+  await db.execute('UPDATE ambassadors SET about_me=? WHERE LOWER(email)=LOWER(?)', [aboutMe || null, email]);
 }
 
 // Every approved ambassador shows up with their profile photo directly.
@@ -96,7 +102,8 @@ async function findApprovedProfileById(db, idOrSlug) {
   const currentYear = new Date().getFullYear();
   const [rows] = await db.execute(
     `SELECT a.id, a.slug, a.full_name, a.country, a.state, a.city, a.organization, a.\`current_role\`, a.years_experience,
-            a.expertise, a.other_expertise, a.motivation, a.contribution_examples, a.linkedin, a.image AS profile_image,
+            a.expertise, a.other_expertise, a.motivation, a.contribution_examples, a.about_me, a.linkedin, a.image AS profile_image,
+            a.community_contribution,
             a.created_at, a.approved_at,
             CASE WHEN (SELECT COUNT(*) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) > 0 THEN 1 ELSE 0 END AS has_badge,
             (SELECT MAX(h.badge_year) FROM ambassador_badge_history h WHERE h.ambassador_id = a.id AND h.badge_year <= ?) AS badge_year,
@@ -123,5 +130,5 @@ async function findBadgeYearsByAmbassadorId(db, ambassadorId) {
 
 module.exports = {
   findByEmail, updateRejectedApplication, createApplication, findApprovedAmbassadors, findApprovedProfileById,
-  findBadgeYearsByAmbassadorId,
+  findBadgeYearsByAmbassadorId, updateAboutMe,
 };
