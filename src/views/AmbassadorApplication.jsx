@@ -392,7 +392,7 @@ const AmbassadorApplication = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">About Me
-                    <br /><small>A short bio in your own words — shown on your public Ambassador profile. You can update this later from Profile Settings.</small>
+                    <br /><small>A short bio in your own words, shown on your public Ambassador profile. You can update this later from Profile Settings.</small>
                   </label>
                   <textarea
                     className="form-control" name="aboutMe" rows="4" value={formData.aboutMe}
@@ -502,7 +502,7 @@ const AmbassadorApplication = () => {
                 <div className="form-group">
                   <label className="form-label">
                     Please share links to any articles, presentations, podcasts, research, SAP Community contributions or other professional work you have published. *
-                    <br /><small>Minimum 10 active links are needed — one per line.</small>
+                    <br /><small>Minimum 10 active links are needed, one per line.</small>
                   </label>
                   <textarea
                     className="form-control" name="contributionLinks" rows="5" value={formData.contributionLinks}

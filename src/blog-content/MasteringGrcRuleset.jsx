@@ -15,7 +15,7 @@ const MasteringGrcRuleset = () => {
         <>
           <p>
             Managing access risk effectively is one of the toughest challenges
-            in Governance, Risk, and Compliance (GRC) frameworks—especially
+            in Governance, Risk, and Compliance (GRC) frameworks, especially
             within SAP landscapes that span on-premise systems, cloud
             applications, and hybrid architectures. With the release of SAP GRC
             Access Control 12.0 Support Package 25, SAP introduced a powerful
@@ -55,7 +55,7 @@ const MasteringGrcRuleset = () => {
           </p>
           <p>
             Traditionally, configuring, updating, and transporting these
-            rulesets across systems has been cumbersome—requiring multiple
+            rulesets across systems has been cumbersome, requiring multiple
             reports, disparate files, and manual overhead.
           </p>
 
@@ -73,7 +73,7 @@ const MasteringGrcRuleset = () => {
             <li>
               <strong>Enhanced Control Over Risk Definitions:</strong> Rulesets
               can be customized to align with your organization’s unique risk
-              taxonomy—whether standard SoD conflicts or company-specific
+              taxonomy, whether standard SoD conflicts or company-specific
               controls.
             </li>
             <li>
@@ -111,7 +111,7 @@ const MasteringGrcRuleset = () => {
           </ul>
           <p>
             This content is not only informative for users on SAP GRC Access
-            Control 12.0 SP25, but also valuable for teams on older releases—the
+            Control 12.0 SP25, but also valuable for teams on older releases, the
             capability can be back-ported via SAP Notes when needed.
           </p>
 
@@ -125,7 +125,7 @@ const MasteringGrcRuleset = () => {
             access risk governance.
           </p>
           <p>
-            Watching this video will help you get started quickly—and with
+            Watching this video will help you get started quickly, and with
             confidence.
           </p>
         </>

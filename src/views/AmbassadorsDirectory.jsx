@@ -24,7 +24,7 @@ const AmbassadorsDirectory = () => {
         <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#fbbf24", letterSpacing: 1, textTransform: "uppercase" }}>Global Expert Directory</span>
         <h1 style={{ fontSize: "2.1rem", fontWeight: 800, color: "#fff", margin: "10px 0 8px" }}>Country Ambassadors</h1>
         <p style={{ color: "#94a3b8", maxWidth: 560, margin: "0 auto" }}>
-          Local expertise, global community — meet the professionals bringing their region's perspective to SAPSecurityExpert.
+          Local expertise, global community. Meet the professionals bringing their region's perspective to SAPSecurityExpert.
         </p>
       </div>
 

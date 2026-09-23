@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import SEO from "./SEO";
 // next-disabled: import "../css/BecomeContributor.css";
 
 const BecomeContributor = () => {
@@ -150,6 +151,10 @@ const BecomeContributor = () => {
 
   return (
     <div className="become-contributor-page">
+      <SEO
+        title="Become a Contributor | SAP Security Expert"
+        description="Join the SAP Security Expert community as a contributor or volunteer. Share your expertise through articles, tools research, podcasts, and more."
+      />
       {/* HERO SECTION */}
       <section className="contributor-hero">
         <div className="container">
@@ -284,7 +289,7 @@ const BecomeContributor = () => {
             </div>
           </div>
           <p className="closing-note">
-            You don’t need to do everything—even one area of contribution makes
+            You don’t need to do everything, even one area of contribution makes
             a difference.
           </p>
         </div>

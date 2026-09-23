@@ -13,7 +13,6 @@ import {
   LuShieldCheck,
   LuArrowLeft,
   LuCircleCheck,
-  LuStar,
 } from "react-icons/lu";
 
 const EXPERTISE_LABELS = {
@@ -360,21 +359,16 @@ const AmbassadorProfile = () => {
                       background: isCurrent ? "#fffbeb" : "#ffffff",
                     }}
                   >
-                    {isEarned ? (
-                      <div style={{ display: "flex", justifyContent: "center" }}>
-                        <AmbassadorBadge country={ambassador.country} year={tile.year} size={80} />
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          width: 60, height: 60, borderRadius: "50%", margin: "0 auto",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          background: "#f1f5f9",
-                        }}
-                      >
-                        <LuStar size={24} color="#cbd5e1" />
-                      </div>
-                    )}
+                    <div
+                      style={{
+                        display: "flex", justifyContent: "center",
+                        opacity: isEarned ? 1 : 0.35,
+                        filter: isEarned ? "none" : "grayscale(1)",
+                        pointerEvents: isEarned ? "auto" : "none",
+                      }}
+                    >
+                      <AmbassadorBadge country={ambassador.country} year={tile.year} size={80} />
+                    </div>
                     <div style={{ marginTop: 10, fontSize: "1.15rem", fontWeight: 800, color: isEarned ? "#0f172a" : "#cbd5e1" }}>
                       {tile.year}
                     </div>

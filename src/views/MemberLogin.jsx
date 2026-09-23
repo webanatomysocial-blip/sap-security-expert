@@ -81,7 +81,7 @@ const LocationModal = ({ member, onSaved }) => {
           Add your location
         </h3>
         <p style={{ margin: "0 0 24px", color: "#64748b", fontSize: "0.88rem", lineHeight: 1.6, textAlign: "center" }}>
-          Your country, state, and city aren't fully set yet — this shows on your public profile and
+          Your country, state, and city aren't fully set yet. This shows on your public profile and
           keeps your Contributor/Ambassador details in sync.
         </p>
 
@@ -97,7 +97,7 @@ const LocationModal = ({ member, onSaved }) => {
             />
             {(geo.status === "denied" || geo.status === "error" || geo.status === "unsupported") && (
               <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "#94a3b8" }}>
-                Couldn't detect your location automatically — please select it manually.
+                Couldn't detect your location automatically, please select it manually.
               </p>
             )}
           </div>

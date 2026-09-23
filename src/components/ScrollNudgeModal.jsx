@@ -92,7 +92,7 @@ export default function ScrollNudgeModal({ isFreeArticle = true, isExclusiveArti
             <h3 className="sn-title">Enjoying this article?</h3>
             <p className="sn-body">
               Join thousands of SAP Security, GRC &amp; BTP professionals. Get free access to
-              exclusive insights, community discussions, and expert content — just by registering.
+              exclusive insights, community discussions, and expert content, just by registering.
             </p>
             <div className="sn-actions">
               <button

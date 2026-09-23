@@ -14,9 +14,9 @@ const PublicVsPrivateCloud = () => {
       content={
         <>
           <p>
-            SAP's cloud strategy is no longer aspirational—it is directive. With
+            SAP's cloud strategy is no longer aspirational, it is directive. With
             Clean Core, Cloud-First, and continuous innovation as foundational
-            principles, enterprises are being nudged—sometimes pushed—toward
+            principles, enterprises are being nudged, sometimes pushed, toward
             standardized, upgrade-safe SAP landscapes. Programs such as RISE
             with SAP (Private Cloud) and GROW with SAP (Public Cloud) reflect
             this shift, offering differentiated cloud paths based on business
@@ -31,7 +31,7 @@ const PublicVsPrivateCloud = () => {
             SAP.
           </p>
           <p>
-            Understanding this difference is essential — especially in the
+            Understanding this difference is essential, especially in the
             context of Clean Core and regulated enterprise environments.
           </p>
 
@@ -56,8 +56,8 @@ const PublicVsPrivateCloud = () => {
           <p>
             S/4HANA Private Cloud, while still aligned to Clean Core principles,
             offers a controlled transition path. Enterprises can modernize while
-            retaining proven security constructs—custom roles, SAP GRC, and
-            industry-specific controls—especially critical during brownfield
+            retaining proven security constructs, custom roles, SAP GRC, and
+            industry-specific controls, especially critical during brownfield
             conversions under RISE with SAP.
           </p>
 
@@ -192,7 +192,7 @@ const PublicVsPrivateCloud = () => {
             </li>
           </ul>
           <p>
-            Many enterprises choose Private Cloud not to avoid Clean Core—but to
+            Many enterprises choose Private Cloud not to avoid Clean Core, but to
             reach it responsibly, without compromising control during
             transition.
           </p>
@@ -214,7 +214,7 @@ const PublicVsPrivateCloud = () => {
           </ul>
           <p>
             In a Clean Core, Cloud-First world, security is no longer about
-            adding controls—it is about choosing the right control boundary.
+            adding controls, it is about choosing the right control boundary.
           </p>
         </>
       }

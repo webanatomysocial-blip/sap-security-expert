@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getApprovedContributors } from '../services/api';
+import SEO from '../components/SEO';
 // next-disabled: import '../css/About.css';
 
 const TOPICS = [
@@ -39,7 +40,7 @@ const TOPICS = [
 const VALUES = [
   {
     title: 'Practitioner-First',
-    desc: 'Every article is written by professionals actively working in SAP security — not marketers. If it is not useful in a real project, it does not get published.',
+    desc: 'Every article is written by professionals actively working in SAP security, not marketers. If it is not useful in a real project, it does not get published.',
   },
   {
     title: 'Accuracy Over Volume',
@@ -83,6 +84,10 @@ export default function About() {
 
   return (
     <div className="about-wrapper">
+      <SEO
+        title="About Us | SAP Security Expert"
+        description="SAP Security Expert is an independent, community-built knowledge hub for SAP Security, GRC, and BTP practitioners. Learn about our mission, contributors, and coverage."
+      />
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="about-hero">
         <div className="about-hero-inner">
@@ -92,7 +97,7 @@ export default function About() {
             SAP Security Expert is an independent knowledge hub created by and for the professionals
             who design, audit, and protect SAP landscapes every day. We publish in-depth tutorials,
             step-by-step implementation guides, and best-practice frameworks across SAP Security,
-            GRC, BTP, S/4HANA, and Identity — with no vendor bias and no fluff.
+            GRC, BTP, S/4HANA, and Identity, with no vendor bias and no fluff.
           </p>
         </div>
       </section>
@@ -132,7 +137,7 @@ export default function About() {
               </div>
               <p>
                 SAP systems underpin the financial, HR, procurement, and logistics operations of
-                thousands of enterprises worldwide. Securing them correctly is complex — yet
+                thousands of enterprises worldwide. Securing them correctly is complex, yet
                 high-quality, practical guidance has historically been hard to find outside of
                 expensive training courses or locked vendor documentation.
               </p>
@@ -140,7 +145,7 @@ export default function About() {
                 SAP Security Expert was founded to change that. We partner with experienced SAP
                 security architects, GRC consultants, and cloud specialists to produce content
                 that a practitioner can open in the morning and apply in the afternoon. No generic
-                advice, no padded word counts — just the knowledge that helps real projects succeed.
+                advice, no padded word counts, just the knowledge that helps real projects succeed.
               </p>
               <p>
                 We are independent. We do not accept sponsored content that compromises editorial
@@ -174,7 +179,7 @@ export default function About() {
                 </div>
                 <div>
                   <h3>Evergreen Content</h3>
-                  <p>We maintain existing guides rather than letting them go stale — SAP release notes and security advisories are tracked continuously.</p>
+                  <p>We maintain existing guides rather than letting them go stale. SAP release notes and security advisories are tracked continuously.</p>
                 </div>
               </div>
               <div className="about-pillar-card">
@@ -198,7 +203,7 @@ export default function About() {
             <span className="about-section-label">Coverage</span>
             <h2>What We Cover</h2>
             <p className="about-section-intro">
-              We publish across the full breadth of SAP security — from foundational authorisation
+              We publish across the full breadth of SAP security, from foundational authorisation
               design through modern cloud-native identity governance.
             </p>
           </div>

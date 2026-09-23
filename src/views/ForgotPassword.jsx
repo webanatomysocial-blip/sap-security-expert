@@ -105,7 +105,7 @@ const ForgotPassword = () => {
             <h2>Reset Your<br />Password Safely</h2>
             <div className="login-accent-line" />
             <p className="login-info-desc">
-              We use a secure OTP-based verification process to ensure only you can reset your account password — no guessing, no gaps.
+              We use a secure OTP-based verification process to ensure only you can reset your account password, no guessing, no gaps.
             </p>
 
             <div className="login-features-list">
@@ -133,7 +133,7 @@ const ForgotPassword = () => {
                 </div>
                 <div className="login-feature-text">
                   <h4>Encrypted Storage</h4>
-                  <p>Your new password is hashed and stored securely — we never see it in plain text.</p>
+                  <p>Your new password is hashed and stored securely. We never see it in plain text.</p>
                 </div>
               </div>
             </div>
@@ -244,7 +244,7 @@ const ForgotPassword = () => {
                     <i className="bi bi-key-fill" style={{ color: "#16a34a", fontSize: "1.3rem" }} />
                   </div>
                   <h3>Set New Password</h3>
-                  <p className="login-subtitle">Choose a strong password — at least 8 characters with a mix of letters and numbers.</p>
+                  <p className="login-subtitle">Choose a strong password: at least 8 characters with a mix of letters and numbers.</p>
                   <form onSubmit={handleResetPassword}>
                     <div className="login-form-group">
                       <label className="login-label">New Password</label>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getCreditBundles, createCreditOrder, verifyCreditPayment, validateCoupon } from "../services/api";
+import SEO from "../components/SEO";
 
 export default function MembershipPage() {
   const { isLoggedIn, member, creditBalance, onCreditsPurchased, refreshCredits } = useMemberAuth();
@@ -76,7 +77,7 @@ export default function MembershipPage() {
         amount,
         currency,
         name: "SAP Security Expert",
-        description: `${bundle.credits} Credits — ${bundle.name}`,
+        description: `${bundle.credits} Credits: ${bundle.name}`,
         order_id,
         prefill: { name: member?.name || "", email: member?.email || "" },
         theme: { color: "#1e293b" },
@@ -121,11 +122,15 @@ export default function MembershipPage() {
 
   return (
     <div style={s.page}>
+      <SEO
+        title="Membership & Credits | SAP Security Expert"
+        description="Buy credits once and unlock any premium SAP Security, GRC, or BTP article for lifetime access, no subscriptions."
+      />
       <div style={s.hero}>
         <span style={s.badge}>Credit-Based Access</span>
         <h1 style={s.heroTitle}>Unlock Premium SAP Security Insights</h1>
         <p style={s.heroSub}>
-          Buy credits once, spend them to unlock any premium article — lifetime access, no subscriptions.
+          Buy credits once, spend them to unlock any premium article, lifetime access, no subscriptions.
         </p>
         {isLoggedIn && (
           <div style={s.balancePill}>
@@ -194,7 +199,7 @@ export default function MembershipPage() {
                 </div>
                 <ul style={s.featureList}>
                   <li><i className="bi bi-check2" style={{ color: "#16a34a", marginRight: 6 }} />Unlock any {bundle.credits} premium articles</li>
-                  <li><i className="bi bi-check2" style={{ color: "#16a34a", marginRight: 6 }} />Lifetime access — never expires</li>
+                  <li><i className="bi bi-check2" style={{ color: "#16a34a", marginRight: 6 }} />Lifetime access, never expires</li>
                   <li><i className="bi bi-check2" style={{ color: "#16a34a", marginRight: 6 }} />No subscription required</li>
                 </ul>
                 <button
@@ -202,7 +207,7 @@ export default function MembershipPage() {
                   disabled={paying}
                   onClick={(e) => { e.stopPropagation(); handleBuy(bundle); }}
                 >
-                  {paying && isSelected ? "Processing…" : `Buy — ${fmt(finalPaise)}`}
+                  {paying && isSelected ? "Processing…" : `Buy: ${fmt(finalPaise)}`}
                 </button>
                 <p style={s.secureNote}>
                   <i className="bi bi-shield-check" /> Secured by Razorpay
@@ -260,7 +265,7 @@ export default function MembershipPage() {
 }
 
 const PERKS = [
-  { icon: "bi-coin", title: "Buy Credits Once", desc: "Purchase a credit bundle — no recurring charges or subscriptions." },
+  { icon: "bi-coin", title: "Buy Credits Once", desc: "Purchase a credit bundle, no recurring charges or subscriptions." },
   { icon: "bi-unlock-fill", title: "Unlock Any Article", desc: "Spend credits on any premium article for permanent, lifetime access." },
   { icon: "bi-infinity", title: "Never Expires", desc: "Credits and unlocked articles stay with your account forever." },
   { icon: "bi-bell", title: "New Content", desc: "Use credits to access fresh premium articles as they are published." },

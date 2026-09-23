@@ -153,7 +153,7 @@ const MemberSignup = () => {
     3: {
       icon: "bi-person-badge-fill",
       badge: "Complete Profile",
-      headline: "Almost There —\nTell Us About You",
+      headline: "Almost There:\nTell Us About You",
       desc: "A complete profile helps us connect you with the right content and community members in your area of expertise.",
       features: [
         { icon: "bi-coin", theme: "orange", title: "10 Welcome Credits", desc: "Credited instantly once your account is approved." },

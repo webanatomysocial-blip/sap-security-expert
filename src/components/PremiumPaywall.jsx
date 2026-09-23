@@ -95,7 +95,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
         amount,
         currency,
         name: "SAP Security Expert",
-        description: `${selectedBundle.credits} Credits — ${selectedBundle.name}`,
+        description: `${selectedBundle.credits} Credits: ${selectedBundle.name}`,
         order_id,
         prefill: { name: member?.name || "", email: member?.email || "" },
         theme: { color: "#1e293b" },
@@ -276,7 +276,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
                 disabled={unlocking}
                 onClick={handleUnlock}
               >
-                {unlocking ? "Unlocking…" : `Unlock — ${creditsRequired} Credit${creditsRequired !== 1 ? "s" : ""}`}
+                {unlocking ? "Unlocking…" : `Unlock: ${creditsRequired} Credit${creditsRequired !== 1 ? "s" : ""}`}
               </button>
             ) : (
               <>
@@ -300,7 +300,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
           <>
             <h2 className="members-paywall-heading" style={{ marginBottom: 4 }}>Buy Credits</h2>
             <p className="members-paywall-subtext" style={{ marginBottom: 16 }}>
-              Choose a bundle — credits never expire and unlock any premium article.
+              Choose a bundle, credits never expire and unlock any premium article.
             </p>
 
             {/* Bundle cards */}

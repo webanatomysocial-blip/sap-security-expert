@@ -264,7 +264,7 @@ const ContributorApplication = () => {
                   </li>
                   <li>
                     <i className="bi bi-check-circle-fill"></i>
-                    <span><strong>Publish & Go Public:</strong> Submit your first article — once published, your public profile will go live in the Contributors directory automatically!</span>
+                    <span><strong>Publish & Go Public:</strong> Submit your first article. Once published, your public profile will go live in the Contributors directory automatically!</span>
                   </li>
                 </ul>
               </div>

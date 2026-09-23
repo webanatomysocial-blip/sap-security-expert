@@ -11,7 +11,7 @@ const AuditControlsFail = () => {
       date="January 25, 2026"
       author="Raghu Boddu"
       image={featuredImage}
-      description="Why do SAP audit controls fail? Explore the root causes—from bad design to poor execution—and learn how to build controls that actually work."
+      description="Why do SAP audit controls fail? Explore the root causes, from bad design to poor execution, and learn how to build controls that actually work."
       content={
         <>
           <p>

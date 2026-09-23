@@ -6,7 +6,7 @@ const IntegratingOkta = () => {
   return (
     <BlogLayout
       category="SAP Security"
-      title="Integrating Okta with SAP IAS/IPS by Raghu Boddu — Step-by-Step IAM Best Practices"
+      title="Integrating Okta with SAP IAS/IPS by Raghu Boddu: Step-by-Step IAM Best Practices"
       date="January 23, 2026"
       author="Raghu Boddu"
       image={featuredImage}
@@ -73,9 +73,9 @@ const IntegratingOkta = () => {
           <p>
             Enterprises increasingly run heterogeneous IAM architectures where
             corporate identity platforms like Okta serve authentication and
-            provisioning across multiple services. SAP Cloud Identity Services —
+            provisioning across multiple services. SAP Cloud Identity Services,
             particularly Identity Authentication Service (IAS) for SSO and
-            Identity Provisioning Service (IPS) for user lifecycle automation —
+            Identity Provisioning Service (IPS) for user lifecycle automation,
             are frequently used in SAP landscapes. Integrating Okta with these
             services helps unify authentication, streamline user provisioning,
             and enhance security governance across SAP and non-SAP applications.
@@ -98,7 +98,7 @@ const IntegratingOkta = () => {
             updates in cloud systems based on authoritative identity sources
             (such as Okta, HR systems, or directories). By integrating Okta with
             IPS, organizations ensure that user attributes and group assignments
-            flow reliably into SAP IAS and other connected targets —
+            flow reliably into SAP IAS and other connected targets,
             streamlining onboarding, offboarding, and attribute synchronization.
           </p>
 

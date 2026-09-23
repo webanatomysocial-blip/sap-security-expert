@@ -296,7 +296,7 @@ function Overview() {
         <Reveal delay={60} className="rb-overview-text">
           <p>
             He is, by title, CEO of ToggleNow, but heads up product innovation and design. In 2005 he
-            founded <ExtLink href={LINKS.sapSecurityExpert}>SAP Security Expert</ExtLink> — a community
+            founded <ExtLink href={LINKS.sapSecurityExpert}>SAP Security Expert</ExtLink>, a community
             and knowledge platform for practitioners in the fields of SAP Security, GRC, Cybersecurity
             and Audit.
           </p>
@@ -304,7 +304,7 @@ function Overview() {
             Raghu has vast experience in complex SAP environments and a proven track record of helping
             organizations transform from traditional role administration and periodic compliance
             activities to practical, automated and continuously governed SAP security. He has delivered
-            many orchestrated automations in SAP GRC — without even using RPA or AI — published as{" "}
+            many orchestrated automations in SAP GRC, without even using RPA or AI, published as{" "}
             <ExtLink href={LINKS.automationStories}>Automation Stories</ExtLink> and appreciated by the
             SAP Security &amp; GRC community.
           </p>
@@ -320,10 +320,10 @@ function Overview() {
           <ul className="rb-list-plain">
             {[
               "25+ years of SAP Security, GRC, Audit & Automation experience",
-              "SAP PRESS author — SAP Access Control, SAP Process Control and SAP Cloud Identity and Access Governance",
+              "SAP PRESS author: SAP Access Control, SAP Process Control and SAP Cloud Identity and Access Governance",
               "Certifications: CISA, CFE, CDPSE, SAP Certified Security Professional, SAP GRC Associate",
               "Focus: SAP Security, SAP GRC, Access Governance, SAP Cybersecurity, Audit & Compliance, SAP S/4HANA Security, SAP Cloud Security, Security Automation and AI for SAP Security",
-              "Former Microsoft MVP — Microsoft Most Valuable Professional for three years in a row",
+              "Former Microsoft MVP: Microsoft Most Valuable Professional for three years in a row",
             ].map((item) => (
               <li key={item}>
                 <span className="rb-dot" />
@@ -333,7 +333,7 @@ function Overview() {
             <li>
               <span className="rb-dot" />
               <span>
-                Leadership — CEO, <ExtLink href={LINKS.toggleNow}>ToggleNow Global</ExtLink> · Board
+                Leadership: CEO, <ExtLink href={LINKS.toggleNow}>ToggleNow Global</ExtLink> · Board
                 Member, <ExtLink href={LINKS.agInnoLabs}>Access Governance Inno Labs Oy</ExtLink>
               </span>
             </li>
@@ -398,33 +398,128 @@ function AuditRisk() {
 /* --------------------------------------------------------------- Books */
 
 function Books() {
+  const renderBadge = (b) => {
+    if (b.badgeType === "bestseller") {
+      return (
+        <span className="rb-card-badge rb-badge-bestseller">
+          <svg className="rb-badge-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          <span>{b.badge}</span>
+        </span>
+      );
+    }
+    if (b.badgeType === "official") {
+      return (
+        <span className="rb-card-badge rb-badge-official">
+          <svg className="rb-badge-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z" />
+          </svg>
+          <span>{b.badge}</span>
+        </span>
+      );
+    }
+    return (
+      <span className="rb-card-badge rb-badge-cloud">
+        <svg className="rb-badge-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+        </svg>
+        <span>{b.badge}</span>
+      </span>
+    );
+  };
+
   return (
-    <Section id="books" tone="muted">
-      <SectionHeader
-        eyebrow="Published knowledge"
-        title="SAP PRESS Author"
-        intro="Raghu is the author and co-author of several SAP PRESS books focusing on SAP Security, GRC, and Identity Access Governance."
-      />
-      <div className="rb-books-grid">
+    <Section id="books" className="rb-publications-section">
+      <div className="rb-pub-header-wrap">
+        <div>
+          <div className="rb-pub-kicker">
+            <span className="rb-pub-kicker-bar" />
+            <span className="rb-pub-kicker-text">PUBLICATIONS</span>
+          </div>
+          <h2 className="rb-pub-main-title">Books & Guides</h2>
+          <p className="rb-pub-subtitle">
+            In-depth resources to help you master SAP GRC, Process Control, and Cloud Security.
+          </p>
+        </div>
+        <div className="rb-pub-nav-arrows" aria-hidden="true">
+          <button type="button" className="rb-pub-nav-btn" aria-label="Previous">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button type="button" className="rb-pub-nav-btn" aria-label="Next">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="rb-pub-grid">
         {BOOKS.map((b, i) => (
-          <Reveal as="article" key={b.title} delay={i * 80} className="rb-book-card">
-            <div className="rb-book-cover">
-              <p>SAP PRESS</p>
-              <p>{b.title}</p>
+          <Reveal as="article" key={b.title} delay={i * 80} className="rb-pub-card">
+            {/* Card Header */}
+            <div className="rb-pub-card-header">
+              {renderBadge(b)}
+              <div className="rb-pub-publisher-top">
+                <svg className="rb-pub-book-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z" />
+                </svg>
+                <div className="rb-pub-publisher-names">
+                  <span className="rb-pub-pub-primary">Rheinwerk</span>
+                  <span className="rb-pub-pub-sub">SAP PRESS</span>
+                </div>
+              </div>
             </div>
-            <div className="rb-book-body">
-              <p>{b.description}</p>
-              <p className="rb-book-publisher">{b.publisher}</p>
-              <div className="rb-book-cta">
-                <ExtLink href={b.href}>{b.cta}</ExtLink>
+
+            {/* Book Graphic Showcase with organic pastel backdrop blob */}
+            <div className="rb-pub-art-stage">
+              <div
+                className="rb-pub-art-blob"
+                style={{ backgroundColor: b.blobColor }}
+              />
+              <a href={b.href} {...EXT} className="rb-pub-book-link" aria-label={`View ${b.title}`}>
+                <img
+                  src={b.cover}
+                  alt={b.title}
+                  className="rb-pub-cover-img"
+                  loading="lazy"
+                />
+              </a>
+            </div>
+
+            {/* Book Body */}
+            <div className="rb-pub-card-body">
+              <h3 className="rb-pub-book-title">
+                <a href={b.href} {...EXT}>{b.title}</a>
+              </h3>
+              <p className="rb-pub-book-desc">{b.description}</p>
+
+              {/* Card Footer with icon, publisher and link */}
+              <div className="rb-pub-card-footer">
+                <div className="rb-pub-meta-row">
+                  <svg className="rb-pub-meta-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z" />
+                  </svg>
+                  <span className="rb-pub-meta-text">{b.publisher}</span>
+                </div>
+                <a href={b.href} {...EXT} className="rb-pub-action-link">
+                  <span>{b.cta}</span>
+                  <Arrow />
+                </a>
               </div>
             </div>
           </Reveal>
         ))}
       </div>
-      <Reveal delay={120} style={{ marginTop: 32 }}>
-        <ExtLink href={LINKS.sapPressAuthor}>All published works on the SAP PRESS author page</ExtLink>
-      </Reveal>
+
+      <div className="rb-pub-bottom-cta">
+        <a href={LINKS.sapPressAuthor} {...EXT} className="rb-pub-pill-btn">
+          <span>View all publications</span>
+          <Arrow />
+        </a>
+      </div>
     </Section>
   );
 }
@@ -737,8 +832,8 @@ function Speaking() {
 function Interviews() {
   const [activeVideo, setActiveVideo] = useState(null);
   const media = [
-    { source: "Sakshi TV", title: 'Interview — "Is AI a threat?"', href: LINKS.sakshiTv, videoId: "AiGP4hL041s" },
-    { source: "Hybiz TV", title: "Cyber frauds — television discussion", href: LINKS.hybizTv, videoId: "Rhs66vy54OE" },
+    { source: "Sakshi TV", title: 'Interview: "Is AI a threat?"', href: LINKS.sakshiTv, videoId: "AiGP4hL041s" },
+    { source: "Hybiz TV", title: "Cyber frauds: television discussion", href: LINKS.hybizTv, videoId: "Rhs66vy54OE" },
   ];
 
   return (

@@ -12,7 +12,7 @@ const WhatActuallyOptimizes = () => {
       date="January 29, 2026"
       author="Raghu Boddu"
       image={featuredImage}
-      description="What truly drives SAP license optimization? It's not just about tools—it's about understanding business processes, user behavior, and the contractual reality of SAP licensing."
+      description="What truly drives SAP license optimization? It's not just about tools. It's about understanding business processes, user behavior, and the contractual reality of SAP licensing."
       content={
         <>
           <p>
@@ -40,7 +40,7 @@ const WhatActuallyOptimizes = () => {
           <p>
             While these are frequently referenced together, they serve distinct
             and non-interchangeable purposes. Understanding how they work
-            together—and where optimization value truly resides—is essential for
+            together, and where optimization value truly resides, is essential for
             sustainable SAP license governance.
           </p>
 
@@ -174,7 +174,7 @@ const WhatActuallyOptimizes = () => {
           </ul>
           <p>
             Even then, tools are most effective only when anchored to STAR-based
-            intelligence. Automation amplifies insight—it does not replace it.
+            intelligence. Automation amplifies insight, it does not replace it.
           </p>
 
           <h2>Key Takeaway:</h2>
@@ -198,7 +198,7 @@ const WhatActuallyOptimizes = () => {
           <p>
             <strong>
               The most sustainable SAP license optimization strategy does not
-              begin with buying more tools—it begins with fully using what SAP
+              begin with buying more tools, it begins with fully using what SAP
               already provides.
             </strong>
           </p>
