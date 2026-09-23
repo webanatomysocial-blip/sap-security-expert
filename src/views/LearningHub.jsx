@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getLearningCounts } from '../services/api';
+import SEO from '../components/SEO';
 // next-disabled: import '../css/LearningHub.css'; — imported globally via globals.css
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -8,7 +9,7 @@ import { getLearningCounts } from '../services/api';
 const DIAG_QUESTIONS = [
   {
     q: 'How would you describe your SAP background?',
-    helper: 'Be honest — wrong answer here means a wrong starting point.',
+    helper: 'Be honest, a wrong answer here means a wrong starting point.',
     options: [
       { label: "Never used SAP. I'm starting from scratch.", score: 0 },
       { label: 'Used SAP as an end user (e.g. data entry, reports).', score: 1 },
@@ -31,7 +32,7 @@ const DIAG_QUESTIONS = [
     helper: "It's the core of audit and compliance work.",
     options: [
       { label: "Not really.", score: 0 },
-      { label: "Vaguely — I've heard the term.", score: 1 },
+      { label: "Vaguely, I've heard the term.", score: 1 },
       { label: "Yes, I understand the principle.", score: 2 },
       { label: "Yes, and I've analyzed SoD conflicts before.", score: 3 },
     ],
@@ -54,12 +55,12 @@ const MODULES = [
   {
     num: 2, slug: 'user-management',
     title: 'User Management',
-    desc: 'How SAP users actually work — creation, maintenance, lifecycle, and the transactions you\'ll use every day.',
+    desc: 'How SAP users actually work: creation, maintenance, lifecycle, and the transactions you\'ll use every day.',
     topics: [
       { text: 'SU01', gloss: 'SU01 is the primary transaction for creating, editing, and deleting SAP user master records.', after: ' user master records' },
       { text: 'User types & license types' },
       { text: 'Password policies & locks' },
-      { text: 'Mass maintenance (', gloss2: 'SU10', gloss2def: 'SU10 is the mass user maintenance transaction — used to update many users at once.', after2: ')' },
+      { text: 'Mass maintenance (', gloss2: 'SU10', gloss2def: 'SU10 is the mass user maintenance transaction, used to update many users at once.', after2: ')' },
     ],
     lessons: 12, videos: 7, articles: 5, locked: false,
   },
@@ -78,12 +79,12 @@ const MODULES = [
   {
     num: 4, slug: 'authorization-concepts',
     title: 'Authorization Concepts',
-    desc: 'The plumbing underneath roles — auth objects, fields, values, and the runtime check engine.',
+    desc: 'The plumbing underneath roles: auth objects, fields, values, and the runtime check engine.',
     topics: [
       { text: 'Authorization objects & fields' },
       { text: 'SU24', gloss: 'SU24 maintains the default authorization values proposed by PFCG when transactions are added to roles.', after: ' default values' },
       { text: 'Runtime auth checks' },
-      { text: 'Troubleshooting with ', gloss2: 'SU53', gloss2def: 'SU53 displays the last failed authorization check for a user — the analyst\'s first stop for access issues.', after2: '' },
+      { text: 'Troubleshooting with ', gloss2: 'SU53', gloss2def: 'SU53 displays the last failed authorization check for a user, the analyst\'s first stop for access issues.', after2: '' },
     ],
     lessons: 14, videos: 8, articles: 6, locked: true,
   },
@@ -92,8 +93,8 @@ const MODULES = [
     title: 'Audit & Compliance',
     desc: 'Tracking who did what, and proving it for auditors. Logs, reports, and the SoD conversation.',
     topics: [
-      { text: 'Security Audit Log (', gloss2: 'SM20', gloss2def: 'SM20 displays the Security Audit Log — a record of security-relevant system events.', after2: ')' },
-      { text: 'User Information System (', gloss2: 'SUIM', gloss2def: 'SUIM is the User Information System — read-only reporting on users, roles, and authorizations.', after2: ')' },
+      { text: 'Security Audit Log (', gloss2: 'SM20', gloss2def: 'SM20 displays the Security Audit Log, a record of security-relevant system events.', after2: ')' },
+      { text: 'User Information System (', gloss2: 'SUIM', gloss2def: 'SUIM is the User Information System, read-only reporting on users, roles, and authorizations.', after2: ')' },
       { text: 'SoD', gloss: 'Segregation of Duties (SoD) is the principle that no single user should have authorizations enabling fraud, e.g. both creating and approving a payment.', after: ' basics' },
       { text: 'Audit prep checklists' },
     ],
@@ -117,10 +118,10 @@ const TEST_QUESTIONS = [
   {
     q: 'Which transaction code is used to maintain authorization roles in SAP?',
     options: [
-      { text: 'SU01', correct: false, explain: 'SU01 maintains user master records — usernames, passwords, role assignments — but not the roles themselves.' },
+      { text: 'SU01', correct: false, explain: 'SU01 maintains user master records: usernames, passwords, role assignments, but not the roles themselves.' },
       { text: 'PFCG', correct: true, explain: 'PFCG (Profile Generator) is where you create, edit, and generate authorization roles and their underlying profiles.' },
-      { text: 'SM20', correct: false, explain: 'SM20 displays the Security Audit Log — useful for forensics, but not for role maintenance.' },
-      { text: 'SUIM', correct: false, explain: 'SUIM is the User Information System — for analyzing and reporting on users, roles, and authorizations. Read-only.' },
+      { text: 'SM20', correct: false, explain: 'SM20 displays the Security Audit Log, useful for forensics, but not for role maintenance.' },
+      { text: 'SUIM', correct: false, explain: 'SUIM is the User Information System, for analyzing and reporting on users, roles, and authorizations. Read-only.' },
     ],
   },
   {
@@ -129,7 +130,7 @@ const TEST_QUESTIONS = [
       { text: 'To combine multiple single roles into one assignment', correct: false, explain: 'That describes a composite role, not a derived role.' },
       { text: 'To inherit menus and authorizations from a parent role while varying organizational values', correct: true, explain: 'Derived roles inherit the menu and authorizations from a parent (master) role, and only the organizational level values are maintained per derived child. This is how you scale one role across many plants, company codes, or business areas.' },
       { text: 'To grant temporary emergency access', correct: false, explain: 'Emergency access is handled through firefighter roles in GRC, not derived roles.' },
-      { text: 'To replace single roles entirely', correct: false, explain: "Derived roles work alongside single and composite roles — they don't replace them." },
+      { text: 'To replace single roles entirely', correct: false, explain: "Derived roles work alongside single and composite roles, they don't replace them." },
     ],
   },
   {
@@ -144,27 +145,27 @@ const TEST_QUESTIONS = [
   {
     q: 'A user reports they cannot execute a transaction. Which tool shows the most recent failed authorization check for that user?',
     options: [
-      { text: 'SM20 — Security Audit Log', correct: false, explain: "SM20 shows security audit events, but the standard first-stop tool for the user's most recent failed auth check is faster and more targeted." },
-      { text: 'SU53 — Last Failed Authorization Check', correct: true, explain: "SU53 displays the last authorization check that failed for the user, including the exact object, field, and value that was missing. It's the analyst's first stop for \"I can't do X\" tickets." },
-      { text: 'STAD — Workload Monitor', correct: false, explain: 'STAD shows transaction execution statistics, not authorization failures.' },
-      { text: 'ST22 — Runtime Errors', correct: false, explain: 'ST22 captures ABAP runtime errors (dumps), not authorization failures.' },
+      { text: 'SM20: Security Audit Log', correct: false, explain: "SM20 shows security audit events, but the standard first-stop tool for the user's most recent failed auth check is faster and more targeted." },
+      { text: 'SU53: Last Failed Authorization Check', correct: true, explain: "SU53 displays the last authorization check that failed for the user, including the exact object, field, and value that was missing. It's the analyst's first stop for \"I can't do X\" tickets." },
+      { text: 'STAD: Workload Monitor', correct: false, explain: 'STAD shows transaction execution statistics, not authorization failures.' },
+      { text: 'ST22: Runtime Errors', correct: false, explain: 'ST22 captures ABAP runtime errors (dumps), not authorization failures.' },
     ],
   },
   {
     q: 'What is the difference between a composite role and a single role?',
     options: [
-      { text: 'Composite roles contain authorizations directly; single roles only contain menus', correct: false, explain: "It's the other way around — single roles hold authorizations and menus, composite roles are wrappers." },
-      { text: 'A composite role is a container that bundles multiple single roles together', correct: true, explain: 'A composite role holds no authorizations itself — it groups single roles for easier assignment. Useful when many users need the same combination of single roles.' },
-      { text: 'Composite roles can only be assigned to administrators', correct: false, explain: 'Composite roles can be assigned to any user — there are no special role-type restrictions on who can receive them.' },
-      { text: 'There is no functional difference — only naming', correct: false, explain: 'The functional difference is significant: single roles carry authorizations, composite roles bundle single roles.' },
+      { text: 'Composite roles contain authorizations directly; single roles only contain menus', correct: false, explain: "It's the other way around, single roles hold authorizations and menus, composite roles are wrappers." },
+      { text: 'A composite role is a container that bundles multiple single roles together', correct: true, explain: 'A composite role holds no authorizations itself, it groups single roles for easier assignment. Useful when many users need the same combination of single roles.' },
+      { text: 'Composite roles can only be assigned to administrators', correct: false, explain: 'Composite roles can be assigned to any user, there are no special role-type restrictions on who can receive them.' },
+      { text: 'There is no functional difference, only naming', correct: false, explain: 'The functional difference is significant: single roles carry authorizations, composite roles bundle single roles.' },
     ],
   },
   {
     q: 'Which authorization object controls what fields a user can see and edit in PFCG itself?',
     options: [
-      { text: 'S_USER_AGR', correct: true, explain: 'S_USER_AGR is the authorization object that controls administration access to roles (agreements) in PFCG — including activities like create, change, display, and delete.' },
+      { text: 'S_USER_AGR', correct: true, explain: 'S_USER_AGR is the authorization object that controls administration access to roles (agreements) in PFCG, including activities like create, change, display, and delete.' },
       { text: 'S_TCODE', correct: false, explain: 'S_TCODE controls which transaction codes a user can execute. It governs entry to PFCG, but not what they can do once inside.' },
-      { text: 'S_USER_GRP', correct: false, explain: 'S_USER_GRP controls user group administration in SU01 — not role administration in PFCG.' },
+      { text: 'S_USER_GRP', correct: false, explain: 'S_USER_GRP controls user group administration in SU01, not role administration in PFCG.' },
       { text: 'S_DEVELOP', correct: false, explain: 'S_DEVELOP controls ABAP development workbench access, unrelated to PFCG role maintenance.' },
     ],
   },
@@ -173,7 +174,7 @@ const TEST_QUESTIONS = [
 const FAQ_ITEMS = [
   {
     q: 'Do I need prior SAP experience?',
-    a: "No. Module 01 starts with the absolute fundamentals — what SAP is, how it's structured, where security fits in. If you've used any enterprise software before, you'll keep up. The diagnostic will help you find the right starting point regardless of your background.",
+    a: "No. Module 01 starts with the absolute fundamentals: what SAP is, how it's structured, where security fits in. If you've used any enterprise software before, you'll keep up. The diagnostic will help you find the right starting point regardless of your background.",
   },
   {
     q: 'How does the test engine work?',
@@ -185,7 +186,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Is the curriculum locked in order?',
-    a: "The modules are sequenced because each one builds on the last — but you're free to jump ahead. Take the diagnostic and we'll mark your recommended starting point; the capability tests will tell you honestly whether you're ready.",
+    a: "The modules are sequenced because each one builds on the last, but you're free to jump ahead. Take the diagnostic and we'll mark your recommended starting point; the capability tests will tell you honestly whether you're ready.",
   },
   {
     q: 'Is this affiliated with SAP SE?',
@@ -209,7 +210,7 @@ function getResultBand(pct) {
   if (pct >= 90) return { cls: 'expert',      label: 'Expert',      title: 'Strong command of Role Management.', sub: "You're ready to take on real role design work. Consider moving to Authorization Concepts next." };
   if (pct >= 70) return { cls: 'proficient',  label: 'Proficient',  title: 'Solid working knowledge.',           sub: "You've got the core concepts. Brush up on the questions you missed, then move forward." };
   if (pct >= 50) return { cls: 'developing',  label: 'Developing',  title: "You're getting there.",              sub: 'Re-watch the videos and re-read the articles in Module 03, then re-attempt the test.' };
-  return           { cls: 'foundational', label: 'Foundational', title: 'Start with the fundamentals.',        sub: 'Spend time with Module 03 — the videos and articles will fill in the gaps. Come back and re-attempt anytime.' };
+  return           { cls: 'foundational', label: 'Foundational', title: 'Start with the fundamentals.',        sub: 'Spend time with Module 03, the videos and articles will fill in the gaps. Come back and re-attempt anytime.' };
 }
 
 function fireConfetti() {
@@ -509,7 +510,7 @@ function TestEngine() {
         {phase === 'intro' && (
           <div className="lh-test-intro">
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#F59E0B', color: '#FFF', padding: '5px 11px', borderRadius: 4, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 18 }}>Capability Test</div>
-            <h3>Role Management — Live Demo</h3>
+            <h3>Role Management: Live Demo</h3>
             <p>A 6-question demo of the full 25-question test engine. Everything works: timer, flagging, wrong-answer reveals, end-of-test review, and a shareable score card.</p>
             <div className="lh-test-intro-grid">
               <div className="lh-intro-stat"><strong>6</strong><span>Demo Qs</span></div>
@@ -653,7 +654,7 @@ function TestEngine() {
                     <div className="lh-review-q">{q.q}</div>
                     <div className="lh-review-answer">
                       {status === 'correct' && (
-                        <><span className="lh-answer-label">Your answer:</span> {LETTERS[ans.chosen]}. {q.options[ans.chosen].text} — correct.</>
+                        <><span className="lh-answer-label">Your answer:</span> {LETTERS[ans.chosen]}. {q.options[ans.chosen].text}, correct.</>
                       )}
                       {status === 'wrong' && (
                         <><span className="lh-answer-label">Your answer:</span> {LETTERS[ans.chosen]}. {q.options[ans.chosen].text}<br />
@@ -726,6 +727,10 @@ export default function LearningHub() {
 
   return (
     <div className="learning-hub-page">
+      <SEO
+        title="SAP Security Learning Hub | SAP Security Expert"
+        description="Free, structured SAP Security learning paths covering user administration, roles, authorizations, GRC, and BTP, from beginner to advanced."
+      />
 
       {/* ── Hero ── */}
       <section className="lh-hero">
@@ -739,7 +744,7 @@ export default function LearningHub() {
               </h1>
               <p className="lh-hero-sub">
                 Six structured modules, written articles, screen-recorded walkthroughs, and
-                a live test engine — built by working SAP Security professionals, not trainers.
+                a live test engine, built by working SAP Security professionals, not trainers.
               </p>
               <div className="lh-hero-actions">
                 <button className="lh-btn-primary" onClick={() => setDiagOpen(true)}>Find my starting point →</button>
@@ -835,7 +840,7 @@ export default function LearningHub() {
           <div className="lh-section-head lh-reveal">
             <span className="lh-section-eyebrow">Curriculum</span>
             <h2>Six modules. One complete picture.</h2>
-            <p>From "what is SAP" to enterprise GRC — structured so every module builds on the one before it.</p>
+            <p>From "what is SAP" to enterprise GRC, structured so every module builds on the one before it.</p>
           </div>
           <div className="lh-curriculum-grid">
             {MODULES.map(m => {
@@ -911,7 +916,7 @@ export default function LearningHub() {
           <div className="lh-section-head lh-reveal">
             <span className="lh-section-eyebrow">Meet Your Instructors</span>
             <h2>Practitioners, not influencers.</h2>
-            <p>Every lesson is built and reviewed by working SAP Security professionals. No theory-only trainers — people who design roles, run audits, and ship security tickets every week.</p>
+            <p>Every lesson is built and reviewed by working SAP Security professionals. No theory-only trainers, people who design roles, run audits, and ship security tickets every week.</p>
           </div>
           <div className="lh-instructors-grid">
             {[
@@ -943,7 +948,7 @@ export default function LearningHub() {
           <div className="lh-section-head lh-reveal">
             <span className="lh-section-eyebrow">Test Engine</span>
             <h2>25 questions. One at a time. Honest feedback.</h2>
-            <p>Pick a topic, take the test. Timer counts down. Flag tough questions for review. Wrong answers reveal the correct one with an explanation. At the end, see every question you got wrong — and share your capability score if you want.</p>
+            <p>Pick a topic, take the test. Timer counts down. Flag tough questions for review. Wrong answers reveal the correct one with an explanation. At the end, see every question you got wrong, and share your capability score if you want.</p>
           </div>
           <div className="lh-test-wrapper lh-reveal">
             <TestEngine />
@@ -976,7 +981,7 @@ export default function LearningHub() {
       <section className="lh-cta-section">
         <div className="container">
           <h2>Start with the right module.</h2>
-          <p>Take the 90-second diagnostic and we'll personalize the path. Or jump straight in — Module 01 is free either way.</p>
+          <p>Take the 90-second diagnostic and we'll personalize the path. Or jump straight in, Module 01 is free either way.</p>
           <button className="lh-btn-primary" onClick={() => setDiagOpen(true)}>Find my starting point →</button>
         </div>
       </section>

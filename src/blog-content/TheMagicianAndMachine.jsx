@@ -31,7 +31,7 @@ const TheMagicianAndMachine = () => {
             Known across the community as "The Magician with the Hat", Jay is a
             Strategic Advisor to the CSO at SAP and part of the SAP Global
             Security Leadership Team. He brings a rare blend of deep technical
-            security expertise and philosophical insight—shaped by his formative
+            security expertise and philosophical insight, shaped by his formative
             years studying Sanskrit in Kashi (India) during the 1990s.
           </p>
 
@@ -80,7 +80,7 @@ const TheMagicianAndMachine = () => {
           </p>
           <p>
             We are pleased to curate and amplify such high-quality community
-            content for our readers—while full credit and ownership remain with
+            content for our readers, while full credit and ownership remain with
             CyberKriya.
           </p>
 

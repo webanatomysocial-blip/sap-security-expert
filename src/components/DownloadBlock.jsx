@@ -76,7 +76,7 @@ export default function DownloadBlock({ fileUrl, fileName, fileSize, credits, al
       const status = err?.response?.status;
       const msg = err?.response?.data?.message;
       if (!err?.response) {
-        setErrMsg("Network error — check your connection and try again.");
+        setErrMsg("Network error, check your connection and try again.");
       } else if (status === 401) {
         setErrMsg("Please log in as a member to download.");
       } else if (status === 402) {

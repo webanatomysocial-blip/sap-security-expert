@@ -36,7 +36,7 @@ const BecomeCountryAmbassador = () => {
             An Earned Community Recognition
           </span>
           <h1 style={{ fontSize: "2.4rem", fontWeight: 800, color: "#fff", margin: "12px 0 8px" }}>
-            SAP Security Expert — Country Ambassador
+            SAP Security Expert: Country Ambassador
           </h1>
           <p style={{ fontSize: "1.1rem", color: "#cbd5e1", fontWeight: 600, margin: "0 0 20px" }}>
             Local Expertise. Global Community.
@@ -67,7 +67,7 @@ const BecomeCountryAmbassador = () => {
           { label: "Contribute", desc: "Share knowledge through Expert Papers, Expert Insights, articles, case studies, podcasts, discussions or other community initiatives." },
           { label: "Engage", desc: "Participate in community conversations, roundtables, webinars and other SAPSecurityExpert activities." },
           { label: "Represent", desc: "Bring the perspectives, experiences and challenges of their local SAP Security community into the global conversation." },
-          { label: "Encourage", desc: "Support knowledge sharing, mentoring and participation — particularly by helping new professionals become part of the community." },
+          { label: "Encourage", desc: "Support knowledge sharing, mentoring and participation, particularly by helping new professionals become part of the community." },
         ]} />
 
         <Divider />
@@ -80,7 +80,7 @@ const BecomeCountryAmbassador = () => {
             { area: "SAP Security Expertise", desc: "Strong practical experience in areas such as SAP Security, GRC, Access Governance, IAG, S/4HANA Security, BTP Security, SAP Cybersecurity, IAM or related disciplines.", criteria: "Typically 8+ years of relevant experience, with demonstrated depth of expertise." },
             { area: "Professional Credibility", desc: "A respected professional reputation within the SAP ecosystem.", criteria: "Showcase professional credibility" },
             { area: "Community Contribution", desc: "A demonstrated history of sharing knowledge, mentoring, speaking, writing, participating in professional communities or contributing to the SAP ecosystem. Community contribution should demonstrate the individual's own expertise, experience or perspective.", criteria: "Evidence may include published articles, podcasts, authored books, conference presentations, SAP Community contributions, research, mentoring, webinars or other professional contributions." },
-            { area: "Community Mindset", desc: "A willingness to connect people, encourage knowledge sharing and help others — not simply promote themselves or their organization.", criteria: null },
+            { area: "Community Mindset", desc: "A willingness to connect people, encourage knowledge sharing and help others, not simply promote themselves or their organization.", criteria: null },
             { area: "Professional Conduct", desc: "A commitment to respectful, ethical and responsible participation in the community.", criteria: null },
           ].map((row, i) => (
             <div key={i} style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: "18px 22px" }}>
@@ -104,7 +104,7 @@ const BecomeCountryAmbassador = () => {
         {/* How Are Ambassadors Selected */}
         <h2 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#0f172a", margin: "0 0 12px" }}>How Are Ambassadors Selected?</h2>
         <p style={{ color: "#475569", fontSize: "0.92rem", lineHeight: 1.7 }}>
-          Country Ambassador is an earned recognition — not a position that we recruit for. Candidates may be
+          Country Ambassador is an earned recognition, not a position that we recruit for. Candidates may be
           identified through their contributions to SAPSecurityExpert or the wider SAP ecosystem.
         </p>
         <p style={{ color: "#475569", fontSize: "0.92rem", lineHeight: 1.7 }}>
@@ -138,7 +138,7 @@ const BecomeCountryAmbassador = () => {
           <li>Not required to promote products or services</li>
         </ul>
         <p style={{ color: "#475569", fontSize: "0.92rem", lineHeight: 1.7 }}>
-          The role exists to serve the community — not to sell to it.
+          The role exists to serve the community, not to sell to it.
         </p>
 
         <Divider />
@@ -149,7 +149,7 @@ const BecomeCountryAmbassador = () => {
           Each appointed Ambassador receives a dedicated recognition on their SAPSecurityExpert profile.
         </p>
         <div style={{ background: "#0f172a", borderRadius: 14, padding: "22px 26px", margin: "16px 0", textAlign: "center" }}>
-          <div style={{ color: "#fbbf24", fontWeight: 800, fontSize: "1.05rem", letterSpacing: "0.02em" }}>SAP Security Expert — Country Ambassador</div>
+          <div style={{ color: "#fbbf24", fontWeight: 800, fontSize: "1.05rem", letterSpacing: "0.02em" }}>SAP Security Expert: Country Ambassador</div>
           <div style={{ color: "#94a3b8", fontSize: "0.85rem", marginTop: 4 }}>Country · Year</div>
         </div>
         <p style={{ color: "#475569", fontSize: "0.92rem", marginTop: 20, marginBottom: 8 }}>Ambassadors may also be featured in:</p>
@@ -173,7 +173,7 @@ const BecomeCountryAmbassador = () => {
           We want SAPSecurityExpert to bring together SAP Security professionals from every part of the world.
         </p>
         <p style={{ color: "#475569", fontSize: "0.92rem", lineHeight: 1.7 }}>
-          Our Ambassadors help make that possible — not by simply increasing registrations, but by bringing local
+          Our Ambassadors help make that possible, not by simply increasing registrations, but by bringing local
           expertise into a global conversation.
         </p>
         <p style={{ color: "#0f172a", fontWeight: 700, fontSize: "0.98rem", marginTop: 20 }}>

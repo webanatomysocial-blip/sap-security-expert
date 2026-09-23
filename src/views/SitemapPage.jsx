@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import SEO from "../components/SEO";
 
 const sections = [
   {
@@ -6,7 +7,7 @@ const sections = [
     links: [
       { label: "Home", to: "/" },
       { label: "About Us", to: "/about" },
-      { label: "Raghu Boddu — SAP Security Expert", to: "/experts/raghu-boddu" },
+      { label: "Raghu Boddu: SAP Security Expert", to: "/experts/raghu-boddu" },
       { label: "Blogs & Tutorials", to: "/blogs" },
       { label: "Contact Us", to: "/contact-us" },
       { label: "Become a Contributor", to: "/become-a-contributor" },
@@ -94,6 +95,7 @@ const sections = [
 export default function SitemapPage() {
   return (
     <div style={s.page}>
+      <SEO title="Sitemap | SAP Security Expert" description="Browse all pages on SAP Security Expert." />
       <div style={s.hero}>
         <h1 style={s.heroTitle}>Sitemap</h1>
         <p style={s.heroSub}>

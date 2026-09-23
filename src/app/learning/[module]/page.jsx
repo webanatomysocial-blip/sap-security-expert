@@ -18,7 +18,7 @@ const LEARNING_MODULES = {
     num: 2,
     title: 'User Management',
     subtitle: 'Module 02',
-    desc: 'How SAP users actually work — creation, maintenance, lifecycle, and the transactions you\'ll use every day.',
+    desc: 'How SAP users actually work: creation, maintenance, lifecycle, and the transactions you\'ll use every day.',
     color: '#8b5cf6',
     categories: ['sap-security', 'sap-iag', 'sap-access-control'],
   },
@@ -34,7 +34,7 @@ const LEARNING_MODULES = {
     num: 4,
     title: 'Authorization Concepts',
     subtitle: 'Module 04',
-    desc: 'The plumbing underneath roles — auth objects, fields, values, and the runtime check engine.',
+    desc: 'The plumbing underneath roles: auth objects, fields, values, and the runtime check engine.',
     color: '#ef4444',
     categories: ['sap-access-control', 'sap-security', 'sap-btp-security'],
   },
@@ -214,7 +214,7 @@ export default async function LearningModuleSsrPage({ params }) {
           ) : (
             <main>
               <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.7 }}>
-                {mod.title} covers essential SAP Security topics including {mod.categories.join(', ')} — expert tutorials, step-by-step guides, and best practices for SAP Security, GRC, and BTP professionals.
+                {mod.title} covers essential SAP Security topics including {mod.categories.join(', ')}: expert tutorials, step-by-step guides, and best practices for SAP Security, GRC, and BTP professionals.
               </p>
               <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: 1.7 }}>
                 <Link href="/learning-hub" style={{ color: '#3b82f6' }}>Browse the full Learning Hub</Link> to explore all available modules and lessons.

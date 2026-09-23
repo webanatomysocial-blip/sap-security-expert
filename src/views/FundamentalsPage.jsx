@@ -1,9 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 // next-disabled: import '../css/FundamentalsPage.css';
 const FundamentalsPage = () => {
   return (
     <div className="fundamentals-page">
+      <SEO
+        title="SAP Security Fundamentals | SAP Security Expert"
+        description="New to SAP Security? Start with these essential concepts and build a strong foundation in access control, authorization, and compliance."
+      />
       {/* Hero Section */}
       <section className="fundamentals-hero">
         <div className="fundamentals-hero-content">

@@ -51,7 +51,7 @@ const MeetTheCommunity = () => {
                   <span style={{ fontSize: "1.3rem" }}>{countryFlag(c.country)}</span>
                   {c.country}
                 </span>
-                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#ee5e42" }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#ee5e42", whiteSpace: "nowrap", flexShrink: 0, marginLeft: 10 }}>
                   {c.count} expert{c.count === 1 ? "" : "s"}
                 </span>
               </div>
@@ -92,7 +92,7 @@ const MeetTheCommunity = () => {
         </div>
         <div style={{ flex: 1, minWidth: 220 }}>
           <h3 style={{ margin: "0 0 4px", fontSize: "1.05rem", fontWeight: 800, color: "#0f172a" }}>
-            SAP Security Expert — Country Ambassador
+            SAP Security Expert: Country Ambassador
           </h3>
           <p style={{ margin: 0, fontSize: "0.88rem", color: "#78350f", lineHeight: 1.5 }}>
             An earned recognition for outstanding SAP Security professionals who strengthen their local and global community.

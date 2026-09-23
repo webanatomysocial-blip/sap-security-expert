@@ -219,9 +219,9 @@ export default function CommunitySection() {
   return (
     <section className="community-section">
       <div className="container">
-        {/* <div className="community-header">
-          <h1>An exclusive community for SAP Security & GRC professionals</h1>
-        </div> */}
+        <div className="community-header">
+          <h1>The Global Community for SAP Security & ERP Cybersecurity Professionals</h1>
+        </div>
 
 
         <div className="community-grid">

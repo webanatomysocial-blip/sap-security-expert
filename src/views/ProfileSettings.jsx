@@ -421,7 +421,7 @@ export default function ProfileSettings() {
                 {member?.ambassador_badge_years?.length > 1 && (
                   <div style={{ marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0' }}>
                     <h4 style={{ margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Badges — {member.ambassador_badge_years.length} Years as Country Ambassador
+                      Badges: {member.ambassador_badge_years.length} Years as Country Ambassador
                     </h4>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '12px', justifyContent: 'center' }}>
                       {member.ambassador_badge_years.map((y) => (

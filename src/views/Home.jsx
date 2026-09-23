@@ -204,7 +204,7 @@ export default function Home() {
               {isLoggedIn ? (
                 <>
                   <h3>Welcome back, {member?.name || "friend"}!</h3>
-                  <p>You're already a member of the community — enjoy premium articles, expert insights, and the latest SAP security updates.</p>
+                  <p>You're already a member of the community. Enjoy premium articles, expert insights, and the latest SAP security updates.</p>
                   <div className="newsletter-signup-actions">
                     <Link to="/member/achievements" className="btn-newsletter-primary">
                       View My Achievements <i className="bi bi-arrow-right"></i>
@@ -214,7 +214,7 @@ export default function Home() {
               ) : (
                 <>
                   <h3>Join the SAP Security Expert Community</h3>
-                  <p>Get exclusive access to premium articles, expert insights, and the latest SAP security updates — all in one place.</p>
+                  <p>Get exclusive access to premium articles, expert insights, and the latest SAP security updates, all in one place.</p>
                   <div className="newsletter-signup-actions">
                     <Link to="/member/signup" className="btn-newsletter-primary">
                       Create Free Account <i className="bi bi-arrow-right"></i>

@@ -127,7 +127,7 @@ export default async function CatchAll({ params }) {
               <div dangerouslySetInnerHTML={{ __html: article.content || '' }} />
             </article>
           ) : (
-            <p>SAP Security Expert — expert knowledge for SAP Security, GRC, and BTP professionals.</p>
+            <p>SAP Security Expert: expert knowledge for SAP Security, GRC, and BTP professionals.</p>
           )}
         </div>
         <ClientApp />
@@ -182,7 +182,7 @@ export default async function CatchAll({ params }) {
   const nonce = homepageData ? (await headers()).get('x-nonce') || undefined : undefined;
 
   const pageTitle = isCategory
-    ? `${CATEGORY_LABELS[firstSegment]} — Articles & Guides`
+    ? `${CATEGORY_LABELS[firstSegment]}: Articles & Guides`
     : 'SAP Security, GRC & Cybersecurity Community';
   const pageSubtitle = isCategory
     ? `Expert articles, tutorials, and best practices for ${CATEGORY_LABELS[firstSegment]}.`

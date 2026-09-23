@@ -148,7 +148,7 @@ const MemberAchievements = () => {
           }}>
             <i className="bi bi-info-circle-fill" style={{ color: '#ee5e42', fontSize: '1.2rem', flexShrink: 0 }} />
             <span>
-              <strong>Log in to track your achievements.</strong> You&rsquo;re viewing all badges — sign in to see which ones you&rsquo;ve earned.
+              <strong>Log in to track your achievements.</strong> You&rsquo;re viewing all badges, sign in to see which ones you&rsquo;ve earned.
             </span>
             <button
               onClick={() => navigate('/member/login')}

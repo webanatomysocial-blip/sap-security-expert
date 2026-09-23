@@ -399,7 +399,7 @@ const ThreatSenseReview = () => {
                   </td>
                   <td style={{ padding: "10px", border: "1px solid #ddd" }}>
                     <strong>
-                      Targeted, contextual controls—minimal disruption
+                      Targeted, contextual controls, minimal disruption
                     </strong>
                   </td>
                 </tr>

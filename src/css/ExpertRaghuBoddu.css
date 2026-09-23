@@ -1,7 +1,5 @@
-/* Raghu Boddu expert profile — ported design, using the site's own fonts:
-   Source Sans Pro for headlines (already loaded via DeferredStyles.jsx),
-   Inter for body copy (already loaded), system monospace stack for
-   technical labels (no new font added). */
+/* Raghu Boddu expert profile — uses the site's own font, Inter, throughout
+   (headlines, body copy, and labels), matching src/css/index.css. */
 
 .rb-page {
   --rb-primary: #ea5845;
@@ -18,9 +16,9 @@
   --rb-orange-tint-bg: #fff7ed;
   --rb-orange-tint-border: #fed7aa;
 
-  --rb-font-display: "Source Sans Pro", "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --rb-font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
   --rb-font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --rb-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --rb-font-mono: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   background: var(--rb-bg);
   color: var(--rb-text);
@@ -649,77 +647,334 @@ button:hover .rb-arrow {
   color: var(--rb-text);
 }
 
-/* ── Books ────────────────────────────────────────────────────────── */
+/* ── Books & Guides (Publications) ────────────────────────────────── */
 
-.rb-books-grid {
-  margin-top: 28px;
-  display: grid;
+.rb-publications-section {
+  background: #fbfcfe;
+}
+
+.rb-pub-header-wrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
   gap: 20px;
+  margin-bottom: 32px;
+}
+
+.rb-pub-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.rb-pub-kicker-bar {
+  width: 28px;
+  height: 3px;
+  background: #ea5845;
+  border-radius: 2px;
+}
+.rb-pub-kicker-text {
+  font-family: var(--rb-font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #ea5845;
+  text-transform: uppercase;
+}
+
+.rb-pub-main-title {
+  font-family: var(--rb-font-display, inherit);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  line-height: 1.15;
+}
+@media (min-width: 768px) {
+  .rb-pub-main-title {
+    font-size: 36px;
+  }
+}
+
+.rb-pub-subtitle {
+  font-size: 15px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 680px;
+}
+
+.rb-pub-nav-arrows {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.rb-pub-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.rb-pub-nav-btn:hover {
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+}
+
+.rb-pub-grid {
+  display: grid;
+  gap: 24px;
 }
 @media (min-width: 1024px) {
-  .rb-books-grid {
+  .rb-pub-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
-.rb-book-card {
+
+.rb-pub-card {
   display: flex;
   height: 100%;
   flex-direction: column;
-  border-radius: 10px;
-  border: 1px solid var(--rb-border);
-  background: var(--rb-bg);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 20px;
+  padding: 24px 26px 28px;
+  box-shadow: 0 6px 24px -4px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+  position: relative;
   overflow: hidden;
 }
-.rb-book-card:hover {
-  border-color: var(--rb-primary);
-  box-shadow: 0 4px 12px rgba(234, 88, 69, 0.08);
+.rb-pub-card:hover {
+  transform: translateY(-6px);
+  border-color: #e2e8f0;
+  box-shadow: 0 20px 36px -8px rgba(15, 23, 42, 0.09), 0 4px 12px rgba(15, 23, 42, 0.03);
 }
-.rb-book-cover {
+
+/* Card Header Bar */
+.rb-pub-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.rb-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--rb-font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+.rb-badge-icon {
+  flex-shrink: 0;
+}
+.rb-badge-bestseller {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #ffedd5;
+}
+.rb-badge-official {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+}
+.rb-badge-cloud {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #dcfce7;
+}
+
+.rb-pub-publisher-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+}
+.rb-pub-book-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+.rb-pub-publisher-names {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--rb-border-light);
-  background: linear-gradient(135deg, #ea5845 0%, #d94835 100%);
-  padding: 20px 24px;
-  min-height: 110px;
+  line-height: 1.15;
 }
-.rb-book-cover p:first-child {
-  font-family: var(--rb-font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.85);
-  margin: 0;
-}
-.rb-book-cover p:last-child {
-  font-family: var(--rb-font-display);
-  font-size: 18px;
+.rb-pub-pub-primary {
+  font-size: 12px;
   font-weight: 600;
-  line-height: 1.3;
-  color: #fff;
-  margin: 8px 0 0;
+  color: #475569;
 }
-.rb-book-body {
+.rb-pub-pub-sub {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Art Stage with Organic Blob */
+.rb-pub-art-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px 28px;
+  min-height: 290px;
+}
+
+.rb-pub-art-blob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  height: 80%;
+  border-radius: 54% 46% 48% 52% / 45% 53% 47% 55%;
+  pointer-events: none;
+  z-index: 1;
+  filter: blur(0.5px);
+  transition: transform 0.4s ease;
+}
+.rb-pub-card:hover .rb-pub-art-blob {
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+.rb-pub-book-link {
+  position: relative;
+  z-index: 2;
+  display: block;
+  text-decoration: none;
+}
+
+.rb-pub-cover-img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 245px;
+  object-fit: contain;
+  border-radius: 0;
+  box-shadow: none;
+  filter: none;
+  transition: transform 0.25s ease;
+}
+.rb-pub-card:hover .rb-pub-cover-img {
+  transform: translateY(-4px) scale(1.02);
+}
+
+/* Book Body */
+.rb-pub-card-body {
   display: flex;
   flex: 1;
   flex-direction: column;
-  padding: 24px;
 }
-.rb-book-body p:first-child {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--rb-text-secondary);
-  margin: 0;
+
+.rb-pub-book-title {
+  font-family: var(--rb-font-display, inherit);
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+  margin: 0 0 12px 0;
 }
-.rb-book-publisher {
+.rb-pub-book-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.rb-pub-book-title a:hover {
+  color: #ea5845;
+}
+
+.rb-pub-book-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.62;
+  margin: 0 0 24px 0;
+}
+
+/* Card Footer */
+.rb-pub-card-footer {
   margin-top: auto;
-  padding-top: 16px;
-  font-size: 13px;
-  color: var(--rb-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.rb-book-cta {
-  margin-top: 12px;
+
+.rb-pub-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+}
+.rb-pub-meta-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+.rb-pub-meta-text {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.rb-pub-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ea5845;
+  text-decoration: none;
+  transition: gap 0.2s ease, color 0.2s ease;
+}
+.rb-pub-action-link:hover {
+  gap: 10px;
+  color: #c5301f;
+}
+
+/* Bottom Center View all publications Pill */
+.rb-pub-bottom-cta {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+.rb-pub-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 9999px;
+  border: 1.5px solid #fed7aa;
+  background: #ffffff;
+  color: #ea5845;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(234, 88, 69, 0.06);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.rb-pub-pill-btn:hover {
+  background: #fff7ed;
+  border-color: #ea5845;
+  color: #c5301f;
+  box-shadow: 0 4px 12px rgba(234, 88, 69, 0.12);
+  transform: translateY(-2px);
 }
 
 /* ── Two-column split (training/togglenow) ───────────────────────── */

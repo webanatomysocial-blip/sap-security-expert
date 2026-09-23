@@ -15,7 +15,7 @@ const CybersecurityInsights = () => {
         <>
           <p>
             Sharing Episode 2 of the Cyber Kriya Podcast, featuring Juan
-            Perez-Etchegoyen (JP) and Gaurav Singh—authors of the SAP PRESS
+            Perez-Etchegoyen (JP) and Gaurav Singh, authors of the SAP PRESS
             bestseller <em>Cybersecurity for SAP</em>.
           </p>
 

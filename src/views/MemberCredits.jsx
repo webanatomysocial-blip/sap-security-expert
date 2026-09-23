@@ -86,7 +86,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
         amount: final_price_paise,
         currency: "INR",
         name: "SAP Security Expert",
-        description: `${selected.credits} Credits — ${selected.name}`,
+        description: `${selected.credits} Credits: ${selected.name}`,
         order_id: razorpay_order_id,
         handler: async (response) => {
           try {

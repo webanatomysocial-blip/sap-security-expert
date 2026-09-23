@@ -10,7 +10,7 @@ export const LINKS = {
   sapPressAuthor: "https://blog.sap-press.com/author/raghu-boddu",
   bookProcessControl: "https://www.sap-press.com/sap-process-control_5799/",
   bookIag: "https://www.sap-press.com/introducing-sap-cloud-identity-access-governance-iag_5985/",
-  bookAccessControl: "https://www.sap-press.com/en/sap-access-control-5636/",
+  bookAccessControl: "https://www.sap-press.com/sap-access-control_5636/",
   training: "https://www.sap-press.com/online-courses/authorizations-and-security-for-sap-s4hana/",
   linkedin: "https://www.linkedin.com/in/raghuboddu",
   sapCommunity: "https://community.sap.com/t5/user/viewprofilepage/user-id/600573",
@@ -123,14 +123,22 @@ export const AUDIT_MATRIX = [
 export const BOOKS = [
   {
     title: "SAP Access Control – Comprehensive Guide",
+    badge: "BESTSELLER",
+    badgeType: "bestseller",
+    cover: "/assets/book_sap_access_control.png",
+    blobColor: "rgba(254, 237, 222, 0.75)",
     description:
-      "A comprehensive guide to SAP Access Control covering installation, configuration, Access Risk Analysis, Emergency Access Management, Access Request Management, Business Role Management, User Access Reviews, Segregation of Duties, BRFplus, MSMP workflows, Fiori and extensions.",
+      "A comprehensive guide to SAP Access Control covering installation, configuration, Access Risk Analysis, Emergency Access Management, Business Role Management, User Access Reviews, SoD, BRFplus, MSMP workflows, Fiori and extensions.",
     publisher: "SAP PRESS / Rheinwerk Publishing",
     cta: "View book at SAP PRESS",
     href: LINKS.bookAccessControl,
   },
   {
     title: "SAP Process Control 12.0 – Comprehensive Guide",
+    badge: "OFFICIAL GUIDE",
+    badgeType: "official",
+    cover: "/assets/book_sap_process_control.png",
+    blobColor: "rgba(224, 242, 254, 0.75)",
     description:
       "A practical guide to SAP Process Control covering governance, configuration, master data, control evaluation, continuous controls monitoring, policy lifecycle, reporting, SAP Fiori and Financial Compliance Management.",
     publisher: "SAP PRESS / Rheinwerk Publishing",
@@ -139,6 +147,10 @@ export const BOOKS = [
   },
   {
     title: "SAP Cloud Identity Access Governance (IAG)",
+    badge: "E-BITE / CLOUD GUIDE",
+    badgeType: "cloud",
+    cover: "/assets/book_sap_iag.png",
+    blobColor: "rgba(236, 253, 243, 0.75)",
     description:
       "An eBite introducing SAP Cloud Identity Access Governance (IAG) and its modules — access analysis, privileged access management, access requests, role design and integration with on-premise SAP environments.",
     publisher: "SAP PRESS / Rheinwerk Publishing",

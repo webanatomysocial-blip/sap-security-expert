@@ -12,7 +12,7 @@ const SafetyMovement = () => {
         <h3>A Commitment to Safety</h3>
         <p>
           At SAP Security Expert, we believe innovation can only thrive in an
-          environment where people feel safe, valued, and supported — both
+          environment where people feel safe, valued, and supported, both
           physically and emotionally. Our Safety Movement is a community-wide
           commitment to creating a secure, inclusive, and respectful workplace
           for every team member and professional.
@@ -20,7 +20,7 @@ const SafetyMovement = () => {
       </section>
 
       <section>
-        <h3>Safety isn’t a protocol — it’s a promise.</h3>
+        <h3>Safety isn’t a protocol: it’s a promise.</h3>
         <p>
           As your trusted partner for SAP Security and GRC, we help enterprises
           modernize with confidence. We build for scalability, compliance, and
