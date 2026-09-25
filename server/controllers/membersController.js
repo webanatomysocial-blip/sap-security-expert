@@ -231,7 +231,9 @@ const signup = async (req, res) => {
 
     const mailService = MailService.getInstance();
     const notifier = new NotificationService(mailService, db);
-    notifier.notifyMemberSignupSubmitted(email, name).catch(() => {});
+    notifier.notifyMemberSignupSubmitted(email, name).catch((err) => {
+      console.error('[member_signup] Notification error:', err.message);
+    });
 
     return res.json({
       status: 'success',

@@ -31,7 +31,9 @@ const performAction = asyncHandler(async (req, res) => {
 
   if (action === 'approve') {
     await repo.approve(db, id);
-    notifier.notifyMemberApproved(member.email, member.name).catch(() => {});
+    notifier.notifyMemberApproved(member.email, member.name).catch((err) => {
+      console.error('[member_approved] Notification error:', err.message);
+    });
     audit.logReq('member_approved', 'member', id, `Approved member: ${member.name} (${member.email})`).catch(() => {});
 
     // Grant registration welcome credits (amount from credit_activities table)

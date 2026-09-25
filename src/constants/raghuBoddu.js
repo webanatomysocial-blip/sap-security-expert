@@ -152,7 +152,7 @@ export const BOOKS = [
     cover: "/assets/book_sap_iag.png",
     blobColor: "rgba(236, 253, 243, 0.75)",
     description:
-      "An eBite introducing SAP Cloud Identity Access Governance (IAG) and its modules — access analysis, privileged access management, access requests, role design and integration with on-premise SAP environments.",
+      "An eBite introducing SAP Cloud Identity Access Governance (IAG) and its modules: access analysis, privileged access management, access requests, role design, and integration with on-premise SAP environments.",
     publisher: "SAP PRESS / Rheinwerk Publishing",
     cta: "Read publication",
     href: LINKS.bookIag,

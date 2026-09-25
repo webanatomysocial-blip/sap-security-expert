@@ -16,7 +16,7 @@ import {
 } from "../services/api";
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
-const fmtAmount = (p) => p ? `₹${(p / 100).toLocaleString("en-IN")}` : "—";
+const fmtAmount = (p) => (typeof p === "number" && !isNaN(p)) ? `₹${(p / 100).toLocaleString("en-IN")}` : "—";
 
 /* ── Buy Credits Modal ─────────────────────────────────────────────────────── */
 function BuyCreditsModal({ onClose, onSuccess }) {
@@ -273,7 +273,7 @@ export default function MemberCredits() {
   const paidPurchases  = allTx.filter((t) => t.type === "purchase" && t.amount_paise > 0);
   const bonusCredits   = allTx.filter((t) => t.type === "bonus" || (t.credits_delta > 0 && t.amount_paise === 0 && t.type !== "spend"));
   const unlocks        = data?.unlocks || [];
-  const totalSpent     = allTx.reduce((s, t) => s + (t.amount_paise || 0), 0);
+  const totalSpent     = allTx.reduce((s, t) => s + (Number(t.amount_paise) || 0), 0);
 
   if (loadError) {
     return (
@@ -312,7 +312,7 @@ export default function MemberCredits() {
         </div>
         <div style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14, padding: "20px 24px" }}>
           <p style={{ margin: "0 0 6px", fontSize: "0.72rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Spent</p>
-          <p style={{ margin: 0, fontSize: "2rem", fontWeight: 700, color: "#10b981" }}>{loading ? "—" : fmtAmount(totalSpent)}</p>
+          <p style={{ margin: 0, fontSize: "2rem", fontWeight: 700, color: "#10b981" }}>{loading ? "—" : (typeof totalSpent === "number" ? `₹${(totalSpent / 100).toLocaleString("en-IN")}` : "₹0")}</p>
         </div>
         <div style={{ background: "linear-gradient(135deg,#e85d2f,#f97316)", borderRadius: 14, padding: "20px 24px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <p style={{ margin: "0 0 10px", fontSize: "0.85rem", fontWeight: 600, color: "rgba(255,255,255,0.9)" }}>Need more credits?</p>
@@ -539,53 +539,55 @@ export default function MemberCredits() {
               <p style={{ color: "#94a3b8", fontSize: "0.85rem", marginTop: 6 }}>Files you download from blog posts will appear here.</p>
             </div>
           ) : (
-            <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.88rem" }}>
-              <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
-                  <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600, width: "40%" }}>File</th>
-                  <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600, width: "20%" }}>Credits Spent</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "20%" }}>Downloaded</th>
-                  <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "20%" }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {downloads.map((d, i) => {
-                  const displayName = d.original_name || d.file_url.split("/").pop();
-                  const ext = displayName.split(".").pop().toUpperCase();
-                  return (
-                    <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "14px 16px", overflow: "hidden" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <i className="bi bi-file-earmark-fill" style={{ color: "#2563eb", fontSize: 16 }}></i>
+            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <table style={{ width: "100%", minWidth: 560, tableLayout: "fixed", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+                    <th style={{ padding: "12px 16px", textAlign: "left", color: "#64748b", fontWeight: 600, width: "40%" }}>File</th>
+                    <th style={{ padding: "12px 16px", textAlign: "center", color: "#64748b", fontWeight: 600, width: "20%" }}>Credits Spent</th>
+                    <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "20%" }}>Downloaded</th>
+                    <th style={{ padding: "12px 16px", textAlign: "right", color: "#64748b", fontWeight: 600, width: "20%" }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {downloads.map((d, i) => {
+                    const displayName = d.original_name || d.file_url.split("/").pop();
+                    const ext = displayName.split(".").pop().toUpperCase();
+                    return (
+                      <tr key={i} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "14px 16px", overflow: "hidden" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <i className="bi bi-file-earmark-fill" style={{ color: "#2563eb", fontSize: 16 }}></i>
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <span style={{ fontWeight: 600, color: "#334155", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={displayName}>{displayName}</span>
+                              <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{ext}</span>
+                            </div>
                           </div>
-                          <div style={{ minWidth: 0 }}>
-                            <span style={{ fontWeight: 600, color: "#334155", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={displayName}>{displayName}</span>
-                            <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{ext}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                        {d.credits_spent === 0 ? (
-                          <span style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>Free</span>
-                        ) : (
-                          <span style={{ background: "#fefce8", color: "#854d0e", border: "1px solid #fde68a", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>🪙 {d.credits_spent}</span>
-                        )}
-                      </td>
-                      <td style={{ padding: "14px 16px", textAlign: "right", color: "#94a3b8", whiteSpace: "nowrap" }}>{fmt(d.downloaded_at)}</td>
-                      <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                        <button
-                          onClick={() => getDownloadToken(d.file_url).then((r) => { window.location.href = `/api/downloads/stream?token=${r.data.token}`; }).catch(() => alert("Download failed. Please try again."))}
-                          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
-                        >
-                          <i className="bi bi-download"></i> Download
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                          {d.credits_spent === 0 ? (
+                            <span style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>Free</span>
+                          ) : (
+                            <span style={{ background: "#fefce8", color: "#854d0e", border: "1px solid #fde68a", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>🪙 {d.credits_spent}</span>
+                          )}
+                        </td>
+                        <td style={{ padding: "14px 16px", textAlign: "right", color: "#94a3b8", whiteSpace: "nowrap" }}>{fmt(d.downloaded_at)}</td>
+                        <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                          <button
+                            onClick={() => getDownloadToken(d.file_url).then((r) => { window.location.href = `/api/downloads/stream?token=${r.data.token}`; }).catch(() => alert("Download failed. Please try again."))}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                          >
+                            <i className="bi bi-download"></i> Download
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

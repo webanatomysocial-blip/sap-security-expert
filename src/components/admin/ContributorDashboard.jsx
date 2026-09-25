@@ -17,7 +17,6 @@ import { Link, useNavigate } from "react-router-dom";
 // next-disabled: import "../../css/AdminDashboard.css";
 import { getContributorStats } from "../../services/api";
 import ResetPasswordModal from "./ResetPasswordModal";
-import AmbassadorBadge from "../AmbassadorBadge";
 
 /**
  * ContributorDashboard
@@ -74,7 +73,7 @@ const ContributorDashboard = () => {
       <div className="page-header">
         <div>
           <h2 style={{ margin: 0 }}>
-            Welcome, {user?.username || (stats.is_ambassador ? "Ambassador" : "Contributor")}
+            Welcome, {user?.username || "Contributor"}
           </h2>
           <p
             style={{
@@ -83,14 +82,9 @@ const ContributorDashboard = () => {
               fontSize: "0.875rem",
             }}
           >
-            {stats.is_ambassador ? "Your Country Ambassador dashboard" : "Your contributor dashboard"}
+            Your contributor dashboard
           </p>
         </div>
-        {stats.ambassador_has_badge && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <AmbassadorBadge country={stats.ambassador_country} year={stats.ambassador_badge_year} size={180} />
-          </div>
-        )}
       </div>
 
       {!hasAnyPermission ? (
