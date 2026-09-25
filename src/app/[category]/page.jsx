@@ -5,7 +5,17 @@ import ClientApp from '../[[...slug]]/ClientApp';
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
-const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next', 'experts', 'contributor', 'ambassador', 'become-a-country-ambassador', 'apply-ambassador']);
+const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next', 'experts', 'contributor', 'ambassador', 'become-a-country-ambassador', 'apply-ambassador', 'apply-contributor', 'forgot-password', 'reset-password']);
+
+// Public pages rendered by the client app (src/App.jsx). Without this list they fell
+// through to notFound() and were served with an HTTP 404 status even though the page
+// displayed, which stops search engines indexing them.
+const SPA_PAGES = new Set([
+  'accessibility-statement', 'ambassadors', 'announcements', 'blog', 'blogs', 'community', 'downloads',
+  'leaderboard', 'learning-hub', 'learnings', 'membership', 'news', 'paid-articles', 'privacy-policy',
+  'responsible-ai-automation-statement', 'safety-movement', 'sap-security-fundamentals',
+  'security-compliance-overview', 'sitemap', 'terms-conditions', 'expert-papers', 'sap-licensing',
+]);
 
 const CATEGORY_LABELS = {
   'sap-security': 'SAP Security',
@@ -197,6 +207,10 @@ export default async function CategoryPage({ params }) {
   }
 
   if (SKIP_CATEGORIES.has(category)) {
+    return <ClientApp />;
+  }
+
+  if (SPA_PAGES.has(category) && !CATEGORY_LABELS[category]) {
     return <ClientApp />;
   }
 

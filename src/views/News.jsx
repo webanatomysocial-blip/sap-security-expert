@@ -35,7 +35,7 @@ const News = () => {
     <div className="category-page-wrapper">
 
       {/* Header */}
-      <div className="cat-hero-light" style={{ backgroundImage: "url(/assets/images/hero-news-updates.png)" }}>
+      <div className="cat-hero-light" style={{ backgroundImage: "url(/assets/images/hero-news-updates.webp)" }}>
         <div className="container">
           <nav className="blog-breadcrumb cat-hero-breadcrumb" aria-label="Breadcrumb">
             <Link to="/" className="breadcrumb-link">Home</Link>

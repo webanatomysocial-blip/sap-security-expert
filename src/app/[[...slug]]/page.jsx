@@ -75,7 +75,7 @@ export default async function CatchAll({ params }) {
         : `${INTERNAL_API}/api/posts/${encodeURIComponent(detailSlug)}`;
       try {
         const res = await fetch(fetchUrl, {
-          next: { revalidate: 3600 },
+          next: { revalidate: 300 },
           headers: SSR_SECRET ? { 'X-SSR-Internal': SSR_SECRET } : {},
         });
         if (res.status === 404) {
@@ -311,7 +311,7 @@ function buildMeta(d) {
 
 function defaultMeta(path) {
   const url = `${SITE_URL}${path}`;
-  const title = 'SAP Security, GRC & Cybersecurity Community - Tutorials & Best Practices | SAP Security Expert';
+  const title = path === '/' ? 'The Global Community for SAP Security & ERP Cybersecurity Professionals' : 'SAP Security, GRC & Cybersecurity Community - Tutorials & Best Practices | SAP Security Expert';
   const description = 'Join 10,000+ SAP Security, GRC, and BTP professionals. Access expert tutorials, best practices, and guides to protect your SAP landscape and advance your career.';
   const image = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
 

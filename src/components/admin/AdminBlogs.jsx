@@ -6,6 +6,7 @@ import { useConfirm } from "../../context/ConfirmationContext";
 import { useAuth } from "../../context/AuthContext";
 import {
   getBlogs,
+  getBlogBody,
   saveBlog,
   deleteBlog,
   uploadBlogImage,
@@ -106,7 +107,7 @@ const AdminBlogs = () => {
 
   const fetchBlogs = async () => {
     try {
-      const res = await getBlogs(role === "contributor" ? { author_only: 1 } : {});
+      const res = await getBlogs(role === "contributor" ? { author_only: 1, lite: 1 } : { lite: 1 });
       if (res.data) {
         const parsedData = res.data.map((blog) => ({
           ...blog,
@@ -230,7 +231,17 @@ const AdminBlogs = () => {
     }
   };
 
-  const handleEdit = (blog) => {
+  const handleEdit = async (listBlog) => {
+    let blog = listBlog;
+    if (blog.content === undefined) {
+      try {
+        const r = await getBlogBody(blog.id);
+        blog = { ...blog, content: r.data.content, draft_content: r.data.draft_content };
+      } catch {
+        addToast("Couldn't open this blog. Please try again.", "error");
+        return;
+      }
+    }
     const isEdited = blog.submission_status === "edited";
     const faqsSource =
       isEdited && blog.draft_faqs ? blog.draft_faqs : blog.faqs;
@@ -286,7 +297,7 @@ const AdminBlogs = () => {
     });
   };
 
-  const handleSave = async (status = "approved") => {
+  const handleSave = async (status = "approved", scheduledAt = null) => {
     if (saving) return;
     if (
       !formData.title ||
@@ -311,7 +322,7 @@ const AdminBlogs = () => {
       payload.date = now.toISOString().slice(0, 19).replace("T", " ");
     }
 
-    const finalPayload = { ...payload, status };
+    const finalPayload = { ...payload, status, scheduled_at: scheduledAt };
 
     setSaving(true);
     try {
@@ -395,6 +406,12 @@ const AdminBlogs = () => {
               Pending
             </button>
             <button
+              className={activeTab === "scheduled" ? "active" : ""}
+              onClick={() => setActiveTab("scheduled")}
+            >
+              Scheduled
+            </button>
+            <button
               className={activeTab === "rejected" ? "active" : ""}
               onClick={() => setActiveTab("rejected")}
             >
@@ -471,6 +488,7 @@ const AdminBlogs = () => {
                   b.submission_status !== "rejected"
                 );
               if (activeTab === "drafts") return b.status === "draft";
+              if (activeTab === "scheduled") return b.status === "scheduled";
               if (activeTab === "pending")
                 return (
                   b.submission_status === "submitted" ||
@@ -511,6 +529,7 @@ const AdminBlogs = () => {
           saving={saving}
           onSave={() => handleSave("approved")}
           onSaveDraft={() => handleSave("draft")}
+          onSchedule={(iso) => handleSave("approved", iso)}
         >
           <SeoSettings
             formData={formData}

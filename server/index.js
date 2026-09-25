@@ -50,6 +50,9 @@ app.set('trust proxy', 1);
 // Gzip/deflate all responses
 app.use(compression());
 
+// Short cache for logged-out GETs of public data; cleared on any write.
+app.use('/api', require('./middleware/microCache').microCache);
+
 // CORS — allow the production domain + optional extra origin for split-server setups.
 // FRONTEND_URL can be set when the frontend runs on a different domain (e.g. Vercel).
 const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');

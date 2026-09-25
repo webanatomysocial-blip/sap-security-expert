@@ -6,6 +6,7 @@ import useScrollLock from "../../hooks/useScrollLock";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { getAds, saveAd, getAdminBlogAds, saveBlogAd, deleteBlogAd, toggleBlogAd, getAdminBlogSelectList } from "../../services/api";
+import { compressImage } from "../../utils/compressImage";
 
 const ZONE_ADS = [
   { id: "community_left",  label: "Community Page – Left Ad",  dimensions: "300×300 px" },
@@ -99,7 +100,7 @@ export default function AdminAds() {
   const handleZoneImageUpload = async (zone, file) => {
     setZoneUploading(zone);
     const fd = new FormData();
-    fd.append("image", file);
+    fd.append("image", await compressImage(file, { maxWidth: 1400, maxHeight: 1400 }));
     fd.append("zone", zone);
     // Use native fetch — axios interceptors can corrupt multipart/form-data boundaries
     try {
@@ -154,7 +155,7 @@ export default function AdminAds() {
   const handleBlogAdImageUpload = async (file) => {
     setBlogAdUploading(true);
     const fd = new FormData();
-    fd.append("image", file);
+    fd.append("image", await compressImage(file, { maxWidth: 1400, maxHeight: 1400 }));
     fd.append("zone", "blog_inline");
     // Use native fetch — axios interceptors can corrupt multipart/form-data boundaries
     try {

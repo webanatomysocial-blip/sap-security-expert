@@ -256,7 +256,7 @@ function Hero() {
 
           <Reveal delay={120}>
             <figure className="rb-hero-photo">
-              <img src="/assets/raghu_boddu_hero.png" alt="Raghu Boddu" loading="eager" decoding="async" />
+              <img src="/assets/raghu_boddu_hero.webp" alt="Raghu Boddu" loading="eager" decoding="async" />
             </figure>
           </Reveal>
         </div>

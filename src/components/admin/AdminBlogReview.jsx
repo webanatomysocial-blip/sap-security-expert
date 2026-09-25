@@ -9,6 +9,8 @@ import { getPendingBlogs, reviewBlog } from "../../services/api";
 import BlogPreviewModal from "./BlogPreviewModal";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
+import usePagination from "./usePagination";
+import Pagination from "./Pagination";
 import ColumnToggle from "./ColumnToggle.jsx";
 
 const REVIEW_COLS = [
@@ -185,6 +187,15 @@ const AdminBlogReview = () => {
   const cap = (s) =>
     s ? s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—";
 
+  const filteredBlogs = blogs.filter((b) => {
+    const matchesSearch =
+      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (b.author_name || "").toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = filterCategory === "All" || b.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+  const pg = usePagination(filteredBlogs);
+
   return (
     <div className="admin-page-wrapper">
       <div className="page-header">
@@ -267,6 +278,7 @@ const AdminBlogReview = () => {
             <div className="admin-table-controls">
               <ColumnToggle columns={REVIEW_COLS} visible={visibleCols} onChange={handleColChange} />
             </div>
+          <Pagination {...pg.bar} top />
           <TableScrollContainer>
             <table
               className="admin-table"
@@ -283,16 +295,7 @@ const AdminBlogReview = () => {
                 </tr>
               </thead>
               <tbody>
-                {blogs
-                  .filter((b) => {
-                    const matchesSearch =
-                      b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      (b.author_name || "").toLowerCase().includes(searchQuery.toLowerCase());
-                    const matchesCategory =
-                      filterCategory === "All" || b.category === filterCategory;
-                    return matchesSearch && matchesCategory;
-                  })
-                  .map((blog) => (
+                {pg.pageItems.map((blog) => (
                   <tr key={blog.id}>
                     <td className="col-xxl text-left wrap-text">
                       <strong className="truncate-2" style={{ fontSize: "0.85rem" }}>{blog.title}</strong>
@@ -394,6 +397,7 @@ const AdminBlogReview = () => {
               </tbody>
             </table>
           </TableScrollContainer>
+          <Pagination {...pg.bar} />
           </>
         )}
 

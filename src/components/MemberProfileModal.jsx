@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,7 +18,7 @@ import { updateMemberProfile, getMemberAchievements, memberChangePassword } from
 import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import ProfilePictureCropModal from "./ProfilePictureCropModal";
-import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
+import { COUNTRIES, useGeoOptions } from "../constants/countries";
 import SearchableSelect from "./SearchableSelect";
 import AmbassadorBadge from "./AmbassadorBadge";
 import useGeoCountryLock from "../hooks/useGeoCountryLock";
@@ -89,8 +89,7 @@ const MemberProfileModal = ({ isOpen, onClose, initialTab = "profile" }) => {
     job_role: "",
     receive_blog_emails: true,
   });
-  const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
-  const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
+  const { stateOptions, cityOptions } = useGeoOptions(formData.country, formData.state);
 
   const geo = useGeoCountryLock();
   useEffect(() => {

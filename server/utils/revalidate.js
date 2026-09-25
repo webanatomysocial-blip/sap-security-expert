@@ -18,7 +18,7 @@ async function revalidateBlog(category, slug) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ secret: SECRET, category, slug }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(20000), // next dev compiles this route on first use
     });
   } catch {
     // Non-fatal — page will revalidate on its own after TTL

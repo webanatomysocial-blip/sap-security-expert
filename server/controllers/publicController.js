@@ -510,7 +510,7 @@ const postsSitemap = async (req, res) => {
 // GET /api/seo-meta?path=/articles/some-slug
 const SEO_STATIC = {
   '/': {
-    title: 'SAP Security, GRC & Cybersecurity Community | SAP Security Expert',
+    title: 'The Global Community for SAP Security & ERP Cybersecurity Professionals',
     description: 'Discover SAP Security Expert for SAP Security, GRC, Cybersecurity, SAP BTP, SAP IAG, S/4HANA Security, tutorials, best practices, expert insights, and community resources to strengthen your SAP landscape.',
   },
   '/blogs': { title: 'Blogs & Tutorials | SAP Security Expert', description: 'Read our latest blogs, tutorials, and step-by-step guides on SAP Security, GRC, and cloud compliance.' },

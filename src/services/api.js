@@ -81,8 +81,18 @@ export const getHomepageData = () => api.get('/homepage');
 export const getCategories = () => api.get('/categories');
 
 // ── Blog Management (Admin) ──────────────────────────────────────────────────
-export const getBlogs = (params = {}) => api.get('/posts', { params });
+// Several components ask for the same list while a page loads; share the
+// in-flight request (each caller gets its own copy so nobody's edits leak).
+const blogsInFlight = new Map();
+export const getBlogs = (params = {}) => {
+  const key = JSON.stringify(params);
+  if (!blogsInFlight.has(key)) {
+    blogsInFlight.set(key, api.get('/posts', { params }).finally(() => blogsInFlight.delete(key)));
+  }
+  return blogsInFlight.get(key).then((res) => ({ ...res, data: structuredClone(res.data) }));
+};
 export const saveBlog = (data) => api.post('/posts', data);
+export const getBlogBody = (id) => api.get(`/admin/blogs/${id}/body`);
 export const deleteBlog = (id) => api.delete(`/posts/${id}`);
 export const toggleExclusiveContent = (data) => api.post('/admin/blogs/toggle-exclusive', data);
 export const togglePremiumContent = (data) => api.post('/admin/blogs/toggle-premium', data);
@@ -248,6 +258,7 @@ export const deleteAchievementType = (id) => api.delete(`/admin/achievement-type
 export const getAdminSettings = () => api.get('/admin/settings');
 export const saveAdminSetting = (key, value) => api.post('/admin/settings', { key, value });
 export const getPublicSettings = () => api.get('/admin/settings/public');
+export const getHomeModal = () => api.get('/admin/settings/home-modal');
 
 // Email templates
 export const getEmailTemplates = () => api.get('/admin/email-templates');

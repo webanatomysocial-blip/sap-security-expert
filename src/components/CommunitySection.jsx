@@ -219,10 +219,6 @@ export default function CommunitySection() {
   return (
     <section className="community-section">
       <div className="container">
-        <div className="community-header">
-          <h1>The Global Community for SAP Security & ERP Cybersecurity Professionals</h1>
-        </div>
-
 
         <div className="community-grid">
           {/* LEFT COLUMN */}
@@ -709,6 +705,9 @@ export default function CommunitySection() {
               </div>
               <Link to="/community" className="widget-leaderboard-link" style={{ marginTop: 12 }}>
                 Meet the Community →
+              </Link>
+              <Link to="/ambassadors" className="widget-leaderboard-link" style={{ marginTop: 12 }}>
+                Meet the Country Ambassadors →
               </Link>
             </div>
 

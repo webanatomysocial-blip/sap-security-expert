@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import NotFound from "./NotFound";
 import { useParams, Link } from "react-router-dom";
 import Image from "next/image";
 import SEO from "../components/SEO";
@@ -91,18 +92,7 @@ const AmbassadorProfile = () => {
   }
 
   if (error || !ambassador) {
-    return (
-      <div style={{ textAlign: "center", padding: "100px 20px" }}>
-        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fee2e2", color: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-          <LuShieldCheck size={32} />
-        </div>
-        <h2 style={{ color: "#1e293b", fontSize: "1.6rem", fontWeight: 800 }}>{error || "Ambassador not found"}</h2>
-        <p style={{ color: "#64748b", marginTop: 8 }}>The requested profile might be private or does not exist.</p>
-        <Link to="/ambassadors" className="btn-read-insight" style={{ marginTop: 24, display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <LuArrowLeft size={16} /> Back to Ambassadors
-        </Link>
-      </div>
-    );
+    return <NotFound message="This ambassador profile does not exist or is private." />;
   }
 
   const expertiseEntries = ambassador.expertise

@@ -1,14 +1,28 @@
 async function findByStatus(db, status) {
   let sql = `SELECT m.id, m.name, m.email, m.username, m.phone, m.location, m.country, m.company_name, m.job_role,
     m.status, m.profile_image, m.created_at, m.is_deleted, m.last_login, m.login_count,
-    (SELECT COUNT(*) FROM blogs b JOIN users u ON u.id = b.author_id WHERE LOWER(u.email) = LOWER(m.email)) AS articles_published,
-    (SELECT MAX(b.date) FROM blogs b JOIN users u ON u.id = b.author_id WHERE LOWER(u.email) = LOWER(m.email)) AS last_contribution,
-    (SELECT COUNT(*) FROM blogs b JOIN users u ON u.id = b.author_id WHERE LOWER(u.email) = LOWER(m.email) AND b.category = 'expert-papers') AS expert_papers_count,
-    (SELECT COALESCE(SUM(credits_delta), 0) FROM credit_transactions WHERE member_id = m.id AND credits_delta > 0) AS credits_earned,
-    (SELECT COUNT(*) FROM members r WHERE r.referred_by_code = m.referral_code AND m.referral_code IS NOT NULL) AS referrals,
+    COALESCE(art.cnt, 0) AS articles_published,
+    art.last_date AS last_contribution,
+    COALESCE(art.papers, 0) AS expert_papers_count,
+    COALESCE(cr.earned, 0) AS credits_earned,
+    COALESCE(rf.cnt, 0) AS referrals,
     (SELECT c.status FROM contributors c WHERE LOWER(c.email) = LOWER(m.email) AND (c.is_deleted = 0 OR c.is_deleted IS NULL) ORDER BY c.created_at DESC LIMIT 1) AS contributor_status,
     (SELECT a.status FROM ambassadors a WHERE LOWER(a.email) = LOWER(m.email) AND (a.is_deleted = 0 OR a.is_deleted IS NULL) ORDER BY a.created_at DESC LIMIT 1) AS ambassador_status
-    FROM members m`;
+    FROM members m
+    LEFT JOIN (
+      SELECT LOWER(u.email) AS email, COUNT(*) AS cnt, MAX(b.date) AS last_date,
+             SUM(CASE WHEN b.category = 'expert-papers' THEN 1 ELSE 0 END) AS papers
+      FROM blogs b JOIN users u ON u.id = b.author_id
+      GROUP BY LOWER(u.email)
+    ) art ON art.email = LOWER(m.email)
+    LEFT JOIN (
+      SELECT member_id, SUM(credits_delta) AS earned
+      FROM credit_transactions WHERE credits_delta > 0 GROUP BY member_id
+    ) cr ON cr.member_id = m.id
+    LEFT JOIN (
+      SELECT referred_by_code, COUNT(*) AS cnt
+      FROM members WHERE referred_by_code IS NOT NULL GROUP BY referred_by_code
+    ) rf ON rf.referred_by_code = m.referral_code`;
   const params = [];
   if (status === 'deleted') {
     // 'deleted' tab shows deactivated/soft-deleted accounts

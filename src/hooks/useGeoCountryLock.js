@@ -25,9 +25,9 @@ function matchCountryName(name) {
   return partial ? partial.name : "";
 }
 
-function matchStateName(countryName, stateName) {
+async function matchStateName(countryName, stateName) {
   if (!countryName || !stateName) return "";
-  const states = statesForCountry(countryName);
+  const states = await statesForCountry(countryName);
   if (!states.length) return stateName;
   const sLower = stateName.toLowerCase();
   const direct = states.find((s) => s.name.toLowerCase() === sLower);
@@ -38,9 +38,9 @@ function matchStateName(countryName, stateName) {
   return partial ? partial.name : stateName;
 }
 
-function matchCityName(countryName, stateName, cityName) {
+async function matchCityName(countryName, stateName, cityName) {
   if (!countryName || !cityName) return "";
-  const cities = citiesForCountry(countryName, stateName);
+  const cities = await citiesForCountry(countryName, stateName);
   if (!cities.length) return cityName;
   const cLower = cityName.toLowerCase();
   const direct = cities.find((c) => (typeof c === "string" ? c : c.name).toLowerCase() === cLower);
@@ -68,9 +68,9 @@ async function reverseGeocodeCoords(latitude, longitude) {
       if (data?.address) {
         const country = matchCountryName(data.address.country);
         const rawState = data.address.state || data.address.state_district || data.address.region || "";
-        const matchedState = matchStateName(country, rawState);
+        const matchedState = await matchStateName(country, rawState);
         const rawCity = data.address.city || data.address.town || data.address.village || data.address.county || "";
-        const matchedCity = matchCityName(country, matchedState, rawCity);
+        const matchedCity = await matchCityName(country, matchedState, rawCity);
         if (country) {
           return { country, state: matchedState, city: matchedCity };
         }
@@ -89,9 +89,9 @@ async function reverseGeocodeCoords(latitude, longitude) {
       const data = await res.json();
       const country = matchCountryName(data.countryName);
       const rawState = data.principalSubdivision || "";
-      const matchedState = matchStateName(country, rawState);
+      const matchedState = await matchStateName(country, rawState);
       const rawCity = data.city || data.locality || "";
-      const matchedCity = matchCityName(country, matchedState, rawCity);
+      const matchedCity = await matchCityName(country, matchedState, rawCity);
       if (country) {
         return { country, state: matchedState, city: matchedCity };
       }
@@ -112,9 +112,9 @@ async function fetchLocationByIP() {
       if (data?.status === "success" && data.country) {
         const country = matchCountryName(data.country);
         const rawState = data.state || "";
-        const matchedState = matchStateName(country, rawState);
+        const matchedState = await matchStateName(country, rawState);
         const rawCity = data.city || "";
-        const matchedCity = matchCityName(country, matchedState, rawCity);
+        const matchedCity = await matchCityName(country, matchedState, rawCity);
         if (country) {
           return { country, state: matchedState, city: matchedCity };
         }
@@ -132,9 +132,9 @@ async function fetchLocationByIP() {
       if (data?.success) {
         const country = matchCountryName(data.country);
         const rawState = data.region || "";
-        const matchedState = matchStateName(country, rawState);
+        const matchedState = await matchStateName(country, rawState);
         const rawCity = data.city || "";
-        const matchedCity = matchCityName(country, matchedState, rawCity);
+        const matchedCity = await matchCityName(country, matchedState, rawCity);
         if (country) {
           return { country, state: matchedState, city: matchedCity };
         }

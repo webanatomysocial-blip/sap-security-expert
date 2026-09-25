@@ -8,6 +8,8 @@ import useScrollLock from "../../hooks/useScrollLock";
 // import { API_BASE_URL } from "../../config";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
+import usePagination from "./usePagination";
+import Pagination from "./Pagination";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
 import { getComments, updateComment } from "../../services/api";
@@ -192,6 +194,8 @@ const AdminComments = () => {
     return matchesFilter && matchesSearch;
   });
 
+  const pg = usePagination(filteredComments);
+
   const submitRejection = () => {
     if (!rejectReason.trim()) {
       setRejectError("Rejection reason is mandatory.");
@@ -265,6 +269,7 @@ const AdminComments = () => {
         <div className="admin-table-controls">
           <ColumnToggle columns={COMMENT_COLS} visible={visibleCols} onChange={handleColChange} />
         </div>
+        <Pagination {...pg.bar} top />
         <TableScrollContainer style={loading ? { display: "none" } : {}}>
           <table className="admin-table">
             <thead>
@@ -284,7 +289,7 @@ const AdminComments = () => {
                   </td>
                 </tr>
               ) : (
-                filteredComments.map((comment) => (
+                pg.pageItems.map((comment) => (
                    <tr key={comment.id}>
                      <td className="col-md text-left wrap-text">
                        <div className="author-info" style={{ lineBreak: "anywhere" }}>
@@ -440,6 +445,7 @@ const AdminComments = () => {
             </tbody>
           </table>
         </TableScrollContainer>
+        <Pagination {...pg.bar} />
       </div>
 
       {/* View Modal */}

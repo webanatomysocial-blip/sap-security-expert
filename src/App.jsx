@@ -10,6 +10,7 @@ import SapSecurity from "./views/categories/SapSecurity";
 
 // ── Lazy-loaded category pages ────────────────────────────────────────────────
 const FundamentalsPage         = lazy(() => import("./views/FundamentalsPage"));
+const NotFound                 = lazy(() => import("./views/NotFound"));
 const Blogs                    = lazy(() => import("./components/Blog"));
 const SapS4Hana                = lazy(() => import("./views/categories/SapS4Hana"));
 const SapFiori                 = lazy(() => import("./views/categories/SapFiori"));
@@ -82,6 +83,7 @@ const AdminTeam                = lazy(() => import("./components/admin/AdminTeam
 const AdminAnnouncements       = lazy(() => import("./components/admin/AdminAnnouncements"));
 const AdminComments            = lazy(() => import("./components/admin/AdminComments"));
 const AdminAds                 = lazy(() => import("./components/admin/AdminAds"));
+const AdminHomeModal           = lazy(() => import("./components/admin/AdminHomeModal"));
 const AdminBlogs               = lazy(() => import("./components/admin/AdminBlogs"));
 const AdminBlogReview          = lazy(() => import("./components/admin/AdminBlogReview"));
 const AdminNews                = lazy(() => import("./components/admin/AdminNews"));
@@ -223,6 +225,9 @@ function App() {
           <Route path="security-compliance-overview" element={<SecurityCompliance />} />
           <Route path="responsible-ai-automation-statement" element={<ResponsibleAi />} />
           <Route path="sitemap" element={<SitemapPage />} />
+
+          {/* Any URL nothing above matches */}
+          <Route path="*" element={<NotFound />} />
         </Route>
 
         <Route path="/admin-dashboard" element={<Navigate to="/admin" replace />} />
@@ -240,6 +245,7 @@ function App() {
           <Route path="announcements" element={<ProtectedRoute><AdminAnnouncements /></ProtectedRoute>} />
           <Route path="comments" element={<ProtectedRoute><AdminComments /></ProtectedRoute>} />
           <Route path="ads" element={<ProtectedRoute><AdminAds /></ProtectedRoute>} />
+          <Route path="home-modal" element={<ProtectedRoute adminOnly><AdminHomeModal /></ProtectedRoute>} />
           <Route path="news" element={<ProtectedRoute><AdminNews /></ProtectedRoute>} />
           <Route path="learnings" element={<ProtectedRoute><AdminLearnings /></ProtectedRoute>} />
           <Route path="members" element={<ProtectedRoute adminOnly><AdminManageUsers /></ProtectedRoute>} />

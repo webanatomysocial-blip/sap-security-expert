@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import SEO from "../components/SEO";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
-import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
+import { COUNTRIES, useGeoOptions } from "../constants/countries";
 import SearchableSelect from "../components/SearchableSelect";
 import useGeoCountryLock from "../hooks/useGeoCountryLock";
 
@@ -56,8 +56,7 @@ const MemberSignup = () => {
   const { addToast } = useToast();
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-  const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
-  const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
+  const { stateOptions, cityOptions } = useGeoOptions(formData.country, formData.state);
 
   // Locks the Country field to wherever the browser says the user actually
   // is, the way "use my location" works on maps sites — auto-syncs country,

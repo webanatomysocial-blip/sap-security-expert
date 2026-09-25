@@ -10,6 +10,8 @@ import {
 } from "../../../services/api";
 import { useToast } from "../../../context/ToastContext";
 import TableScrollContainer from "../TableScrollContainer";
+import usePagination from "../usePagination";
+import Pagination from "../Pagination";
 import { downloadCSV } from "../../../services/exportUtils";
 
 const BlogList = ({
@@ -227,6 +229,8 @@ const BlogList = ({
     downloadCSV(blogs, headers, "blogs_list");
   };
 
+  const pg = usePagination(blogs);
+
   return (
     <>
     <div className="admin-card">
@@ -236,6 +240,7 @@ const BlogList = ({
         </button>
         <ColumnToggle columns={COL_DEFS} visible={visibleCols} onChange={handleColChange} />
       </div>
+      <Pagination {...pg.bar} top />
       <TableScrollContainer>
         <table className="admin-table">
           <thead>
@@ -262,7 +267,7 @@ const BlogList = ({
                 <td colSpan="7">No custom blogs found.</td>
               </tr>
             ) : (
-              blogs.map((blog) => (
+              pg.pageItems.map((blog) => (
                 <tr key={blog.id}>
                   <td className="col-xxl text-left wrap-text">
                     <strong className="truncate-2" style={{ fontSize: "0.85rem" }}>{blog.title}</strong>
@@ -351,6 +356,8 @@ const BlogList = ({
                     {blog.status === "approved" ||
                     blog.status === "published" ? (
                       <span className="status-badge status-live" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Live</span>
+                    ) : blog.status === "scheduled" ? (
+                      <span className="status-badge status-pending" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Sch</span>
                     ) : blog.submission_status === "submitted" ||
                       blog.submission_status === "edited" ? (
                       <span className="status-badge status-pending" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Pnd</span>
@@ -517,6 +524,7 @@ const BlogList = ({
           </tbody>
         </table>
       </TableScrollContainer>
+      <Pagination {...pg.bar} />
     </div>
 
     {/* ── Preview paragraphs modal for enabling exclusive ─────────────── */}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import NotFound from "./NotFound";
 import { useParams, Link } from "react-router-dom";
 import Image from "next/image";
 import { getMemberPublicProfile } from "../services/api";
@@ -84,14 +85,7 @@ const MemberPublicProfile = () => {
   }
 
   if (error || !member) {
-    return (
-      <div style={{ textAlign: "center", padding: "80px 20px" }}>
-        <h2 style={{ color: "#6b7280" }}>{error || "Member not found"}</h2>
-        <Link to="/" className="btn-read-insight" style={{ marginTop: 20, display: "inline-block" }}>
-          Back to Home
-        </Link>
-      </div>
-    );
+    return <NotFound message="This member profile does not exist or is private." />;
   }
 
   const joinedDate = member.joined

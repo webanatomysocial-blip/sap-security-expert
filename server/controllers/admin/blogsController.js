@@ -167,6 +167,20 @@ const toggleExpertPick = asyncHandler(async (req, res) => {
 });
 
 // GET /api/admin/blogs/select-list — lightweight list for selectors
+// GET /api/admin/blogs/:id/body — full article body for the editor, fetched
+// on open so the admin lists don't have to carry every article's HTML.
+const getBody = asyncHandler(async (req, res) => {
+  const [rows] = await req.db.execute(
+    'SELECT author_id, content, draft_content FROM blogs WHERE id = ? LIMIT 1', [req.params.id]
+  );
+  const b = rows[0];
+  if (!b) return sendError(res, 'Not found', 404);
+  if (req.session.role !== 'admin' && String(b.author_id) !== String(req.session.admin_id)) {
+    return sendError(res, 'Unauthorized', 403);
+  }
+  return res.json({ status: 'success', content: b.content, draft_content: b.draft_content });
+});
+
 const selectList = asyncHandler(async (req, res) => {
   const blogs = await repo.findSelectList(req.db);
   return sendSuccess(res, { blogs });
@@ -174,5 +188,5 @@ const selectList = asyncHandler(async (req, res) => {
 
 module.exports = {
   listPending, review, recalculatePlagiarism, bulkRecalculatePlagiarism,
-  toggleExclusive, togglePremium, toggleExpertPick, selectList,
+  toggleExclusive, togglePremium, toggleExpertPick, selectList, getBody,
 };

@@ -136,6 +136,7 @@ if (isSQLite) {
     { name: 'difficulty_level',            def: "TEXT DEFAULT NULL" },
     { name: 'content_version',             def: "TEXT NOT NULL DEFAULT '1.0'" },
     { name: 'preview_paragraphs',          def: "INTEGER DEFAULT NULL" },
+    { name: 'preview_unit',                def: "TEXT DEFAULT 'blocks'" },
     { name: 'video_url',                   def: "TEXT DEFAULT NULL" },
   ];
   const existing = sqliteDb.prepare("PRAGMA table_info(blogs)").all().map(r => r.name);
@@ -689,6 +690,16 @@ if (isSQLite) {
     )
   `).run();
   sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_el_recipient ON email_logs(recipient)').run();
+  for (const [name, tbl, cols] of [
+    ['idx_blogs_author', 'blogs', 'author_id'],
+    ['idx_blogs_status_date', 'blogs', 'status, date'],
+    ['idx_members_status', 'members', 'status'],
+    ['idx_members_referred', 'members', 'referred_by_code'],
+    ['idx_members_referral_code', 'members', 'referral_code'],
+    ['idx_comments_post', 'comments', 'post_id, status'],
+  ]) {
+    try { sqliteDb.prepare(`CREATE INDEX IF NOT EXISTS ${name} ON ${tbl}(${cols})`).run(); } catch { /* table/column not present */ }
+  }
 
   sqliteDb.prepare(`
     CREATE TABLE IF NOT EXISTS email_queue (
@@ -945,6 +956,30 @@ if (isSQLite) {
       async function addCol(table, col, def) {
         await conn.execute(`ALTER TABLE \`${table}\` ADD COLUMN \`${col}\` ${def}`).catch(() => {});
       }
+      // Speeds up the admin members list, post lists and comment counts.
+      // Skipped when an index that already starts with the same columns exists
+      // (under any name), so databases don't collect duplicate indexes.
+      for (const [name, tbl, cols] of [
+        ['idx_blogs_author', 'blogs', ['author_id']],
+        ['idx_blogs_status_date', 'blogs', ['status', 'date']],
+        ['idx_members_status', 'members', ['status']],
+        ['idx_members_referred', 'members', ['referred_by_code']],
+        ['idx_members_referral_code', 'members', ['referral_code']],
+        ['idx_ctx_member', 'credit_transactions', ['member_id']],
+        ['idx_comments_post', 'comments', ['post_id', 'status']],
+      ]) {
+        try {
+          const [rows] = await conn.execute(
+            `SELECT index_name, column_name, seq_in_index FROM information_schema.statistics
+             WHERE table_schema = DATABASE() AND table_name = ? ORDER BY index_name, seq_in_index`,
+            [tbl]
+          );
+          const byIndex = {};
+          for (const r of rows) (byIndex[r.index_name || r.INDEX_NAME] ||= []).push(r.column_name || r.COLUMN_NAME);
+          const covered = Object.values(byIndex).some((ic) => cols.every((c, i) => ic[i] === c));
+          if (!covered) await conn.execute(`CREATE INDEX ${name} ON \`${tbl}\` (${cols.map((c) => `\`${c}\``).join(', ')})`);
+        } catch { /* table/column missing or index already exists: nothing to do */ }
+      }
 
       // ── audit_logs: add actor, ip, created_at (old schema only had timestamp) ──
       const auditCols = await getColumns('audit_logs');
@@ -993,6 +1028,7 @@ if (isSQLite) {
       if (!blogCols.includes('is_queued_for_members'))      await addCol('blogs', 'is_queued_for_members',      "TINYINT(1) DEFAULT 0");
       if (!blogCols.includes('credits_required'))           await addCol('blogs', 'credits_required',           "INT NOT NULL DEFAULT 0");
       if (!blogCols.includes('preview_paragraphs'))         await addCol('blogs', 'preview_paragraphs',         "INT DEFAULT NULL");
+      if (!blogCols.includes('preview_unit'))               await addCol('blogs', 'preview_unit',               "VARCHAR(10) DEFAULT 'blocks'");
       if (!blogCols.includes('schema_type'))                await addCol('blogs', 'schema_type',                "VARCHAR(100) DEFAULT 'Article'");
       if (!blogCols.includes('article_section'))            await addCol('blogs', 'article_section',            "VARCHAR(255) DEFAULT NULL");
       if (!blogCols.includes('send_notification_email'))    await addCol('blogs', 'send_notification_email',    "TINYINT(1) DEFAULT 0");
@@ -1263,14 +1299,31 @@ async function runAutoPublish() {
   // shared adapter (no pool exists).
   const exec = isSQLite ? sqliteAdapter : pool;
   try {
+    const [due] = await exec.execute(
+      "SELECT id, category, slug, send_notification_email FROM blogs WHERE status = 'scheduled' AND publish_date <= ?",
+      [nowUtc]
+    );
     const [blogResult] = await exec.execute(
       "UPDATE blogs SET status = 'published' WHERE status = 'scheduled' AND publish_date <= ?",
       [nowUtc]
     );
-    await exec.execute(
+    if (due.length) {
+      const { grantArticlePublishedCredits } = require('./services/CreditHelper');
+      const { revalidateBlog } = require('./utils/revalidate');
+      for (const b of due) {
+        revalidateBlog(b.category, b.slug).catch(() => {});
+        await grantArticlePublishedCredits(exec, b.id).catch(() => {});
+      }
+      if (due.some(b => b.send_notification_email)) {
+        require('./services/MailService').getInstance().queuePendingBlogNotifications().catch(() => {});
+      }
+      new (require('./services/CacheService'))().invalidate('learning_counts');
+    }
+    const [annResult] = await exec.execute(
       "UPDATE announcements SET status = 'active' WHERE status = 'scheduled' AND publish_date <= ?",
       [nowUtc]
     );
+    if (due.length || annResult?.affectedRows > 0) require('./middleware/microCache').clear();
     // Bust homepage cache whenever a scheduled article goes live
     if (blogResult?.affectedRows > 0) {
       const CacheService = require('./services/CacheService');

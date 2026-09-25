@@ -11,5 +11,6 @@ router.post('/toggle-exclusive', requireAdmin, controller.toggleExclusive);
 router.post('/toggle-premium', requireAdmin, controller.togglePremium);
 router.post('/toggle-expert-pick', requireAdmin, controller.toggleExpertPick);
 router.get('/select-list', requireAdmin, controller.selectList);
+router.get('/:id/body', requireAuth(), controller.getBody);
 
 module.exports = router;

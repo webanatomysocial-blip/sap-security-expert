@@ -10,6 +10,9 @@ function safeCompare(a, b) {
   } catch { return false; }
 }
 
+const accessCache = new Map();
+const ACCESS_TTL_MS = 15000;
+
 function requireAuth(options = {}) {
   const allowPublic = options.allowPublic || false;
 
@@ -42,13 +45,19 @@ function requireAuth(options = {}) {
     // contributor mid-session elsewhere — without this, that stale session
     // keeps dashboard access until it naturally expires.
     if (sess.admin_logged_in) {
-      const current = await authRepo.findCurrentAccessState(req.db, sess.admin_id);
-      let stillHasDashboardAccess = current && current.is_active == 1 && (current.role === 'admin' || current.role === 'contributor');
-      if (stillHasDashboardAccess && current.role === 'contributor') {
-        const approvedContributor = await authRepo.findContributorByEmail(req.db, current.email);
-        if (!approvedContributor) stillHasDashboardAccess = false;
+      // Cached briefly: this ran 1-2 extra queries on every admin request.
+      // Revoking an account now takes effect within ACCESS_TTL_MS.
+      let state = accessCache.get(sess.admin_id);
+      if (!state || Date.now() - state.at > ACCESS_TTL_MS) {
+        const current = await authRepo.findCurrentAccessState(req.db, sess.admin_id);
+        let ok = !!current && current.is_active == 1 && (current.role === 'admin' || current.role === 'contributor');
+        if (ok && current.role === 'contributor') {
+          ok = !!(await authRepo.findContributorByEmail(req.db, current.email));
+        }
+        state = { at: Date.now(), ok, role: current?.role };
+        if (ok) accessCache.set(sess.admin_id, state); else accessCache.delete(sess.admin_id);
       }
-      if (!stillHasDashboardAccess) {
+      if (!state.ok) {
         req.session.destroy(() => {});
         return res.status(403).json({
           status: 'error',
@@ -59,7 +68,7 @@ function requireAuth(options = {}) {
       // admin who gets demoted to contributor mid-session keeps full admin
       // access (requireAdmin and checkPermission both trust sess.role
       // directly) until they happen to log out and back in.
-      if (sess.role !== current.role) sess.role = current.role;
+      if (sess.role !== state.role) sess.role = state.role;
     }
 
     // 3. CSRF validation for mutating methods (timing-safe comparison)

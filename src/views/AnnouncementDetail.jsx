@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import Image from "next/image";
 import { getAnnouncementBySlug } from "../services/api";
 import BlogSidebar from "../components/BlogSidebar";
+import NotFound from "./NotFound";
 
 const formatDate = (str) => {
   if (!str) return "";
@@ -29,14 +30,7 @@ const AnnouncementDetail = () => {
     </div>
   );
 
-  if (error || !item) return (
-    <div style={{ padding: "80px", textAlign: "center" }}>
-      <h2>Announcement not found</h2>
-      <Link to="/announcements" className="btn-primary" style={{ marginTop: "16px", display: "inline-block" }}>
-        Back to Announcements
-      </Link>
-    </div>
-  );
+  if (error || !item) return <NotFound message="This announcement does not exist or is no longer available." />;
 
   return (
     <div className="category-page-wrapper">

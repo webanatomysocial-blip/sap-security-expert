@@ -68,6 +68,7 @@ const AdminSidebar = ({
     { label: "News & Updates", path: "/admin/news", icon: "bi-newspaper" },
     { label: "Learning Hub", path: "/admin/learnings", icon: "bi-journal-bookmark-fill" },
     { label: "Manage Ads & Promos", path: "/admin/ads", icon: "bi-images" },
+    { label: "Home Modal", path: "/admin/home-modal", icon: "bi-window-stack" },
     {
       label: "Manage Comments",
       path: "/admin/comments",

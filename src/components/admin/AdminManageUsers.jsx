@@ -11,6 +11,8 @@ import { useConfirm } from "../../context/ConfirmationContext";
 import ActionMenu from "./ActionMenu";
 import ManageMemberModal from "./ManageMemberModal";
 import TableScrollContainer from "./TableScrollContainer";
+import usePagination from "./usePagination";
+import Pagination from "./Pagination";
 import useScrollLock from "../../hooks/useScrollLock";
 import { downloadCSV } from "../../services/exportUtils";
 import "../../css/AdminDashboard.css"; // Ensure standard admin CSS is used
@@ -74,8 +76,8 @@ const AdminManageUsers = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus]);
 
-  const fetchMembers = async () => {
-    setLoading(true);
+  const fetchMembers = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const res = await getAdminMembers(filterStatus);
       if (res.data?.status === "success") {
@@ -110,7 +112,7 @@ const AdminManageUsers = () => {
             const res = await manageAdminMember({ id, action: "reactivate" });
             if (res.data?.status === "success") {
               addToast("Member account reactivated successfully.", "success");
-              fetchMembers();
+              fetchMembers({ silent: true });
             } else {
               addToast(res.data?.message || "Failed to reactivate member.", "error");
             }
@@ -138,7 +140,7 @@ const AdminManageUsers = () => {
               if (res.data?.status === "success") {
                 addToast("Member account permanently deleted.", "success");
                 if (selectedMember?.id === id) setSelectedMember(null);
-                fetchMembers();
+                fetchMembers({ silent: true });
               } else {
                 addToast(res.data?.message || "Failed to delete account.", "error");
               }
@@ -161,7 +163,7 @@ const AdminManageUsers = () => {
             if (res.data?.status === "success") {
               addToast("Member account deactivated.", "success");
               if (selectedMember?.id === id) setSelectedMember(null);
-              fetchMembers();
+              fetchMembers({ silent: true });
             } else {
               addToast(res.data?.message || "Failed to delete account.", "error");
             }
@@ -189,7 +191,9 @@ const AdminManageUsers = () => {
                 status: action === "approve" ? "approved" : "rejected",
               });
             }
-            fetchMembers();
+            const next = { approve: "approved", reactivate: "approved", suspend: "suspended" }[action];
+            if (next) setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, status: next } : m)));
+            fetchMembers({ silent: true });
             fetchBadges?.();
           } else {
             addToast(res.data?.message || `Failed to ${action} member.`, "error");
@@ -226,7 +230,8 @@ const AdminManageUsers = () => {
         setRejectingId(null);
         setRejectReason("");
         setRejectError("");
-        fetchMembers(); // refresh list
+        setMembers((prev) => prev.map((m) => (m.id === rejectingId ? { ...m, status: "rejected" } : m)));
+        fetchMembers({ silent: true });
       } else {
         addToast(res.data?.message || "Failed to reject member.", "error");
       }
@@ -270,6 +275,8 @@ const AdminManageUsers = () => {
     ];
     downloadCSV(filteredMembers, headers, "members_list");
   };
+
+  const pg = usePagination(filteredMembers);
 
   if (role !== "admin") {
     return (
@@ -321,6 +328,7 @@ const AdminManageUsers = () => {
             <div className="admin-table-controls">
               <ColumnToggle columns={USER_COLS} visible={visibleCols} onChange={handleColChange} />
             </div>
+          <Pagination {...pg.bar} top />
           <TableScrollContainer>
             <table className="admin-table">
               <thead>
@@ -362,7 +370,7 @@ const AdminManageUsers = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredMembers.map((m) => (
+                  pg.pageItems.map((m) => (
                     <tr key={m.id}>
                       <td className="col-lg text-left wrap-text">
                         <strong style={{ fontSize: "0.875rem" }}>{m.name}</strong>
@@ -484,6 +492,7 @@ const AdminManageUsers = () => {
               </tbody>
             </table>
           </TableScrollContainer>
+          <Pagination {...pg.bar} />
         </div>
       )}
 

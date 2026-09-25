@@ -3,13 +3,16 @@ import { TableSkeleton } from "./AdminSkeletons.jsx";
 // next-disabled: import "../../css/AdminDashboard.css";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
-import { getAdminNews, saveNews, deleteNews, uploadBlogImage } from "../../services/api";
+import { getAdminNews, saveNews, deleteNews, uploadBlogImage, getBlogBody } from "../../services/api";
 
 import BlogEditor from "./blogs/BlogEditor";
 import SeoSettings from "./blogs/SeoSettings";
 import CtaSettings from "./blogs/CtaSettings";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
+import usePagination from "./usePagination";
+import Pagination from "./Pagination";
+import SchedulePicker from "./SchedulePicker";
 import ColumnToggle from "./ColumnToggle.jsx";
 
 const NEWS_COLS = [
@@ -121,11 +124,14 @@ const AdminNews = () => {
 
   // Filtered lists
   const liveItems = items.filter((i) => ["approved", "published"].includes(i.status));
-  const draftItems = items.filter((i) => !["approved", "published"].includes(i.status));
+  const scheduledItems = items.filter((i) => i.status === "scheduled");
+  const draftItems = items.filter((i) => !["approved", "published", "scheduled"].includes(i.status));
 
-  const visibleItems = (activeTab === "live" ? liveItems : draftItems).filter((i) =>
+  const visibleItems = (activeTab === "live" ? liveItems : activeTab === "scheduled" ? scheduledItems : draftItems).filter((i) =>
     !searchQuery || i.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const pg = usePagination(visibleItems);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -168,7 +174,16 @@ const AdminNews = () => {
     finally { setUploading(false); }
   };
 
-  const handleEdit = (item) => {
+  const handleEdit = async (listItem) => {
+    let item = listItem;
+    if (item.content === undefined) {
+      try {
+        item = { ...item, content: (await getBlogBody(item.id)).data.content };
+      } catch {
+        addToast("Couldn't open this item. Please try again.", "error");
+        return;
+      }
+    }
     setFormData({
       ...initialFormState,
       ...item,
@@ -196,13 +211,14 @@ const AdminNews = () => {
     });
   };
 
-  const handleSave = async (status = "approved") => {
+  const handleSave = async (status = "approved", scheduledAt = null) => {
     if (!formData.title) { addToast("Title is required", "error"); return; }
 
     const payload = {
       ...formData,
       category: "news",
       status,
+      scheduled_at: scheduledAt,
       date: formData.date || new Date().toISOString().slice(0, 10),
     };
     delete payload.author;
@@ -230,6 +246,9 @@ const AdminNews = () => {
             </button>
             <button className={activeTab === "drafts" ? "active" : ""} onClick={() => setActiveTab("drafts")}>
               Drafts {draftItems.length > 0 && <span className="badge-count" style={{ background: "#d97706", color: "#fff", borderRadius: "12px", padding: "1px 7px", fontSize: "0.72rem", marginLeft: "4px" }}>{draftItems.length}</span>}
+            </button>
+            <button className={activeTab === "scheduled" ? "active" : ""} onClick={() => setActiveTab("scheduled")}>
+              Scheduled {scheduledItems.length > 0 && <span className="badge-count" style={{ background: "#3b82f6", color: "#fff", borderRadius: "12px", padding: "1px 7px", fontSize: "0.72rem", marginLeft: "4px" }}>{scheduledItems.length}</span>}
             </button>
           </div>
         )}
@@ -277,6 +296,7 @@ const AdminNews = () => {
               <div className="admin-table-controls">
                 <ColumnToggle columns={NEWS_COLS} visible={visibleCols} onChange={handleColChange} />
               </div>
+              <Pagination {...pg.bar} top />
               <TableScrollContainer>
                 <table className="admin-table">
                   <thead>
@@ -289,7 +309,7 @@ const AdminNews = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {visibleItems.map((item) => {
+                    {pg.pageItems.map((item) => {
                       const isLive = ["approved", "published"].includes(item.status);
                       return (
                         <tr key={item.id}>
@@ -302,8 +322,8 @@ const AdminNews = () => {
                             )}
                           </td>
                           <td className="col-sm text-center">
-                            <span className={`status-badge ${isLive ? "status-live" : "status-draft"}`} style={{ fontSize: "0.7rem", padding: "2px 6px" }}>
-                              {isLive ? "Live" : "Draft"}
+                            <span className={`status-badge ${isLive ? "status-live" : item.status === "scheduled" ? "status-pending" : "status-draft"}`} style={{ fontSize: "0.7rem", padding: "2px 6px" }}>
+                              {isLive ? "Live" : item.status === "scheduled" ? "Scheduled" : "Draft"}
                             </span>
                           </td>
                           {show("date") && (
@@ -336,6 +356,7 @@ const AdminNews = () => {
                   </tbody>
                 </table>
               </TableScrollContainer>
+              <Pagination {...pg.bar} />
             </div>
           )}
         </>
@@ -385,6 +406,10 @@ const AdminNews = () => {
                 <button className="btn-secondary" style={{ width: "100%" }} onClick={() => handleSave("draft")}>
                   <i className="bi bi-floppy"></i> Save as Draft
                 </button>
+                <SchedulePicker
+                  scheduledAt={formData.status === "scheduled" ? formData.publish_date : ""}
+                  onSchedule={(iso) => handleSave("approved", iso)}
+                />
               </div>
             </div>
           </div>

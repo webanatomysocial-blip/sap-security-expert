@@ -15,12 +15,14 @@ import { HiArrowRight } from "react-icons/hi";
 import FeaturedInsights from "../components/FeaturedInsights";
 import CommunitySection from "../components/CommunitySection";
 import TrendingStrip from "../components/TrendingStrip";
+import HomeModal from "../components/HomeModal";
 // next-disabled: import "../css/Home.css";
 // Dummy data for visual layout
 export default function Home() {
   const { isLoggedIn, member } = useMemberAuth();
   return (
     <div className="home-wrapper">
+      <HomeModal />
 
       <TrendingStrip />
 
