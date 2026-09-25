@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import NotFound from "./NotFound";
 import { useParams, Link } from "react-router-dom";
 import { getContributorProfile } from "../services/api";
 import Image from "next/image";
@@ -71,29 +72,7 @@ export default function ContributorProfile() {
   }
 
   if (error || !contributor) {
-    return (
-      <div style={{ background: "#f8fafc", minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
-        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0", boxShadow: "0 4px 24px rgba(0,0,0,0.06)", maxWidth: 480, width: "100%", padding: "48px 40px", textAlign: "center" }}>
-          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#fff0ec", border: "2px solid #fecdb5", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-            <i className="bi bi-person-x-fill" style={{ fontSize: "1.8rem", color: "#ee5e42" }} />
-          </div>
-          <h2 style={{ margin: "0 0 10px", fontSize: "1.3rem", fontWeight: 800, color: "#0f172a" }}>
-            This contributor is no longer active
-          </h2>
-          <p style={{ margin: "0 0 28px", color: "#64748b", fontSize: "0.92rem", lineHeight: 1.7 }}>
-            This profile is no longer available. The contributor may have left the platform or their account may have been deactivated.
-          </p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link to="/leaderboard" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#ee5e42", color: "#fff", padding: "10px 22px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: "0.88rem" }}>
-              <i className="bi bi-people-fill" /> View All Contributors
-            </Link>
-            <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f1f5f9", color: "#475569", padding: "10px 22px", borderRadius: 10, textDecoration: "none", fontWeight: 600, fontSize: "0.88rem" }}>
-              <i className="bi bi-house-fill" /> Back to Home
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <NotFound message="This contributor profile is no longer available. The contributor may have left the platform or their account may have been deactivated." />;
   }
 
   const expertiseEntries = contributor.expertise

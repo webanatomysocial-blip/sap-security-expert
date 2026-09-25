@@ -1,10 +1,10 @@
 async function findAllNews(db) {
   const [rows] = await db.execute(
-    `SELECT id, title, slug, excerpt, content, image, image_alt, status, date,
+    `SELECT id, title, slug, excerpt, image, image_alt, status, date,
             created_at, updated_at, view_count,
             tags, faqs,
             cta_title, cta_description, cta_button_text, cta_button_link,
-            meta_title, meta_description, meta_keywords
+            meta_title, meta_description, meta_keywords, publish_date
      FROM blogs
      WHERE \`type\` = 'news'
      ORDER BY created_at DESC`
@@ -18,7 +18,7 @@ async function slugExists(db, slug, excludeId) {
 }
 
 async function findNewsById(db, id) {
-  const [rows] = await db.execute('SELECT id, image FROM blogs WHERE id = ? AND `type` = ?', [id, 'news']);
+  const [rows] = await db.execute('SELECT id, image, status FROM blogs WHERE id = ? AND `type` = ?', [id, 'news']);
   return rows[0] || null;
 }
 

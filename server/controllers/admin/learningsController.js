@@ -4,6 +4,7 @@ const { deleteImage } = require('../../utils/helpers');
 const { sanitizeBlogHtml } = require('../../utils/sanitize');
 const CacheService = require('../../services/CacheService');
 const repo = require('../../repositories/admin/learningsRepository');
+const { parseSchedule, applySchedule } = require('../../utils/schedule');
 
 const cache = new CacheService(1800);
 
@@ -74,7 +75,8 @@ const save = asyncHandler(async (req, res) => {
     }
   }
 
-  const targetStatus = requestedStatus || 'approved';
+  const sched = parseSchedule(data.scheduled_at);
+  const targetStatus = sched ? 'scheduled' : (requestedStatus || 'approved');
   const faqsJson = JSON.stringify((Array.isArray(faqs) ? faqs : []).map(f => ({
     question: typeof f.question === 'string' ? sanitizeBlogHtml(f.question) : '',
     answer: typeof f.answer === 'string' ? sanitizeBlogHtml(f.answer) : '',
@@ -92,6 +94,7 @@ const save = asyncHandler(async (req, res) => {
       meta_title, meta_description, meta_keywords, schema_type, article_section,
       coAuthorsJson, relatedBlogsJson, seo_score, is_members_only, send_notification_email, targetStatus,
     });
+    await applySchedule(db, 'blogs', id, sched, targetStatus, existing.status === 'scheduled');
     cache.invalidate('learning_counts');
     return sendSuccess(res, { message: 'Learning updated' });
   } else {
@@ -107,6 +110,7 @@ const save = asyncHandler(async (req, res) => {
       schema_type, article_section, coAuthorsJson, relatedBlogsJson,
       seo_score, targetStatus, is_members_only, send_notification_email, publishDate,
     });
+    await applySchedule(db, 'blogs', newId, sched, targetStatus, false);
     cache.invalidate('learning_counts');
     return sendSuccess(res, { message: 'Learning created', id: newId });
   }

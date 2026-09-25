@@ -45,7 +45,7 @@ const Announcements = () => {
     <div className="category-page-wrapper">
 
       {/* Header */}
-      <div className="cat-hero-light" style={{ backgroundImage: "url(/assets/images/hero-announcements.png)" }}>
+      <div className="cat-hero-light" style={{ backgroundImage: "url(/assets/images/hero-announcements.webp)" }}>
         <div className="container">
           <nav className="blog-breadcrumb cat-hero-breadcrumb" aria-label="Breadcrumb">
             <Link to="/" className="breadcrumb-link">Home</Link>

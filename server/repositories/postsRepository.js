@@ -107,7 +107,7 @@ async function findSingleBySlugOrId(db, idOrSlug, { isContributor, authorOnly, c
     FROM blogs b
     LEFT JOIN users u ON b.author_id = u.id
     LEFT JOIN contributors c ON u.contributor_id = c.id
-    WHERE (b.slug = ? OR b.id = ?)`;
+    WHERE (b.slug = ? OR b.id = ?) AND b.status != 'scheduled'`;
   const params = [idOrSlug, idOrSlug];
 
   if (isContributor && authorOnly) {
@@ -377,7 +377,7 @@ async function insertBlog(db, f) {
 }
 
 async function findForDelete(db, id) {
-  const [rows] = await db.execute('SELECT author_id, image, content FROM blogs WHERE id = ? OR slug = ?', [id, id]);
+  const [rows] = await db.execute('SELECT author_id, image, content, category, slug FROM blogs WHERE id = ? OR slug = ?', [id, id]);
   return rows[0] || null;
 }
 

@@ -14,7 +14,7 @@ async function findAll(db, { isAdmin }) {
 
 async function findBySlug(db, slug, { isAdmin }) {
   const cols = isAdmin ? '*' : PUBLIC_COLS;
-  const statusFilter = isAdmin ? '' : " AND status IN ('approved','active','published')";
+  const statusFilter = isAdmin ? " AND status != 'scheduled'" : " AND status IN ('approved','active','published')";
   const [rows] = await db.execute(
     `SELECT ${cols} FROM announcements WHERE (slug=? OR id=?)${statusFilter} LIMIT 1`,
     [slug, slug]
@@ -35,20 +35,20 @@ async function saveDraft(db, id, { title, date, link }) {
 }
 
 async function update(db, id, fields) {
-  const { title, slug, date, link, status, content, excerpt, image, image_alt } = fields;
+  const { title, slug, date, link, status, content, excerpt, image, image_alt, publishDate } = fields;
   await db.execute(
-    `UPDATE announcements SET title=?, slug=?, date=?, link=?, status=?, content=?, excerpt=?, image=?, image_alt=?,
+    `UPDATE announcements SET title=?, slug=?, date=?, link=?, status=?, content=?, excerpt=?, image=?, image_alt=?, publish_date=?,
      submission_status='approved', updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-    [title, slug, date, link, status, content, excerpt, image, image_alt, id]
+    [title, slug, date, link, status, content, excerpt, image, image_alt, publishDate, id]
   );
 }
 
 async function create(db, fields) {
-  const { title, slug, date, link, status, content, excerpt, image, image_alt, submissionStatus } = fields;
+  const { title, slug, date, link, status, content, excerpt, image, image_alt, submissionStatus, publishDate } = fields;
   await db.execute(
-    `INSERT INTO announcements (title, slug, date, link, status, content, excerpt, image, image_alt, views, comments, submission_status)
-     VALUES (?,?,?,?,?,?,?,?,?,0,0,?)`,
-    [title, slug, date, link, status, content, excerpt, image, image_alt, submissionStatus]
+    `INSERT INTO announcements (title, slug, date, link, status, content, excerpt, image, image_alt, views, comments, submission_status, publish_date)
+     VALUES (?,?,?,?,?,?,?,?,?,0,0,?,?)`,
+    [title, slug, date, link, status, content, excerpt, image, image_alt, submissionStatus, publishDate]
   );
 }
 

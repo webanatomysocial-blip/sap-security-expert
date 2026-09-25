@@ -1,12 +1,12 @@
 async function findAllLearnings(db) {
   const [rows] = await db.execute(
-    `SELECT id, title, slug, excerpt, content, image, image_alt, category,
+    `SELECT id, title, slug, excerpt, image, image_alt, category,
             secondary_categories, tags, faqs, status, submission_status,
             date, created_at, updated_at, view_count, seo_score, plagiarism_score,
             co_authors, related_blogs, schema_type, article_section,
             meta_title, meta_description, meta_keywords,
             cta_title, cta_description, cta_button_text, cta_button_link,
-            is_members_only, send_notification_email,
+            is_members_only, send_notification_email, publish_date,
             author, author_id
      FROM blogs
      WHERE \`type\` = 'learning'
@@ -21,7 +21,7 @@ async function slugExists(db, slug, excludeId) {
 }
 
 async function findLearningById(db, id) {
-  const [rows] = await db.execute("SELECT id FROM blogs WHERE id = ? AND `type` = 'learning'", [id]);
+  const [rows] = await db.execute("SELECT id, status FROM blogs WHERE id = ? AND `type` = 'learning'", [id]);
   return rows[0] || null;
 }
 

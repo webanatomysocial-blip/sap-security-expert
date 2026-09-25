@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import SEO from "../components/SEO";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -6,7 +6,7 @@ import { useMemberAuth } from "../context/MemberAuthContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { updateMemberProfile } from "../services/api";
-import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
+import { COUNTRIES, useGeoOptions } from "../constants/countries";
 import SearchableSelect from "../components/SearchableSelect";
 import useGeoCountryLock from "../hooks/useGeoCountryLock";
 import "../css/ContactForm.css";
@@ -28,8 +28,7 @@ const LocationModal = ({ member, onSaved }) => {
   const [saving, setSaving] = useState(false);
   const { addToast } = useToast();
 
-  const stateOptions = useMemo(() => statesForCountry(country), [country]);
-  const cityOptions = useMemo(() => citiesForCountry(country, state), [country, state]);
+  const { stateOptions, cityOptions } = useGeoOptions(country, state);
 
   const geo = useGeoCountryLock();
   useEffect(() => {

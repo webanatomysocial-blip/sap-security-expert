@@ -8,6 +8,8 @@ import ColumnToggle from "./ColumnToggle.jsx";
 import ActionMenu from "./ActionMenu";
 import ManageContributorModal from "./ManageContributorModal";
 import TableScrollContainer from "./TableScrollContainer";
+import usePagination from "./usePagination";
+import Pagination from "./Pagination";
 import useScrollLock from "../../hooks/useScrollLock";
 import { useToast } from "../../context/ToastContext";
 import { useConfirm } from "../../context/ConfirmationContext";
@@ -221,6 +223,8 @@ const AdminContributors = () => {
         (app.email || "").toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
+  const pg = usePagination(filteredApps);
+
   const handleExport = () => {
     const headers = [
       { label: "Name", key: "name" },
@@ -302,6 +306,7 @@ const AdminContributors = () => {
           <div className="admin-table-controls">
             <ColumnToggle columns={CONTRIB_COLS} visible={visibleCols} onChange={handleColChange} />
           </div>
+          <Pagination {...pg.bar} top />
           <TableScrollContainer>
             <table className="admin-table">
               <thead>
@@ -336,7 +341,7 @@ const AdminContributors = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredApps.map((app) => (
+                  pg.pageItems.map((app) => (
                      <tr key={app.id}>
                       <td className="col-lg text-left wrap-text">
                         <strong className="truncate-2" style={{ fontSize: "0.85rem" }}>{app.name}</strong>
@@ -481,6 +486,7 @@ const AdminContributors = () => {
               </tbody>
             </table>
           </TableScrollContainer>
+          <Pagination {...pg.bar} />
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import NotFound from "./NotFound";
 import { useParams, Link } from "react-router-dom";
 import Image from "next/image";
 import BlogSidebar from "../components/BlogSidebar";
@@ -98,14 +99,7 @@ const LearningModulePage = () => {
 
   // Module not found — shouldn't happen with our routes but guard anyway
   if (!module) {
-    return (
-      <div style={{ padding: "80px", textAlign: "center" }}>
-        <h2>Module not found</h2>
-        <Link to="/learning-hub" className="btn-primary" style={{ marginTop: "16px", display: "inline-block" }}>
-          Back to Learning Hub
-        </Link>
-      </div>
-    );
+    return <NotFound message="This learning module does not exist." />;
   }
 
   return (

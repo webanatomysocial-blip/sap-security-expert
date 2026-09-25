@@ -12,4 +12,10 @@ router.get('/public', async (req, res) => {
   res.json({ paywall_default_preview_paragraphs: val != null ? parseInt(val) : 3 });
 });
 
+router.get('/home-modal', async (req, res) => {
+  let m = {};
+  try { m = JSON.parse(await repo.getSetting(req.db, 'home_modal') || '{}'); } catch { /* fall through to disabled */ }
+  res.json({ enabled: !!(m.enabled && m.image), image: m.image || '', button_text: m.button_text || '', button_link: m.button_link || '' });
+});
+
 module.exports = router;

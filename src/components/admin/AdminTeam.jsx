@@ -3,6 +3,8 @@ import SEO from "../SEO";
 import { createPortal } from "react-dom";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
+import usePagination from "./usePagination";
+import Pagination from "./Pagination";
 import { TableSkeleton } from "./AdminSkeletons.jsx";
 import useScrollLock from "../../hooks/useScrollLock";
 import { useToast } from "../../context/ToastContext";
@@ -157,6 +159,8 @@ export default function AdminTeam() {
     });
   };
 
+  const pg = usePagination(admins);
+
   return (
     <div className="admin-page-wrapper">
       <SEO title="Manage Admins - Admin" />
@@ -172,6 +176,7 @@ export default function AdminTeam() {
         <div className="admin-card"><TableSkeleton cols={5} rows={5} /></div>
       ) : (
         <div className="admin-card">
+          <Pagination {...pg.bar} top />
           <TableScrollContainer>
             <table className="admin-table">
               <thead>
@@ -187,7 +192,7 @@ export default function AdminTeam() {
                 {admins.length === 0 ? (
                   <tr><td colSpan="5" className="text-center">No admin accounts found.</td></tr>
                 ) : (
-                  admins.map((admin) => (
+                  pg.pageItems.map((admin) => (
                     <tr key={admin.id}>
                       <td className="col-lg text-left wrap-text">
                         <strong style={{ fontSize: "0.85rem" }}>{admin.full_name}</strong>
@@ -224,6 +229,7 @@ export default function AdminTeam() {
               </tbody>
             </table>
           </TableScrollContainer>
+          <Pagination {...pg.bar} />
         </div>
       )}
 

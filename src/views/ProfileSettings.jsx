@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   LuUser,
@@ -15,7 +15,7 @@ import { updateMemberProfile, getMemberAchievements, memberChangePassword, getAm
 import { useToast } from "../context/ToastContext";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import ProfilePictureCropModal from "../components/ProfilePictureCropModal";
-import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
+import { COUNTRIES, useGeoOptions } from "../constants/countries";
 import SearchableSelect from "../components/SearchableSelect";
 import AmbassadorBadge from "../components/AmbassadorBadge";
 import useGeoCountryLock from "../hooks/useGeoCountryLock";
@@ -91,8 +91,7 @@ export default function ProfileSettings() {
     job_role: "",
     receive_blog_emails: true,
   });
-  const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
-  const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
+  const { stateOptions, cityOptions } = useGeoOptions(formData.country, formData.state);
 
   // Automatically updates country, state, and city to wherever the browser detects the user
   // is currently located (e.g. India, Telangana, Hyderabad) and locks the country.
@@ -316,7 +315,7 @@ export default function ProfileSettings() {
   return (
     <div className="category-page-wrapper">
       {/* Header */}
-      <div className="cat-hero-light" style={{ backgroundImage: "url('/assets/images/hero-sap-access-control.png')" }}>
+      <div className="cat-hero-light" style={{ backgroundImage: "url('/assets/images/hero-sap-access-control.webp')" }}>
         <div className="container">
           <nav className="blog-breadcrumb cat-hero-breadcrumb" aria-label="Breadcrumb">
             <Link to="/" className="breadcrumb-link">Home</Link>

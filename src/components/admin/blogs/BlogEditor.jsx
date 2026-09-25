@@ -2,6 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import SimpleRTE from "../SimpleRTE.jsx";
 import { uploadDownloadAsset } from "../../../services/api";
+import SchedulePicker from "../SchedulePicker.jsx";
 
 const ALL_CATEGORIES = [
   { value: "sap-security", label: "SAP Security" },
@@ -44,6 +45,7 @@ const BlogEditor = ({
   children,
   onSave,
   onSaveDraft,
+  onSchedule,
   saving = false,
 }) => {
   const ACTIVE_CATEGORIES = customCategories || ALL_CATEGORIES;
@@ -429,6 +431,14 @@ const BlogEditor = ({
             ></i>{" "}
             Save as Draft
           </button>
+
+          {onSchedule && isAdmin && (
+            <SchedulePicker
+              scheduledAt={formData.status === "scheduled" ? formData.publish_date : ""}
+              onSchedule={onSchedule}
+              disabled={saving}
+            />
+          )}
 
           <div className="form-group" style={{ marginBottom: "20px" }}>
             <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "normal" }}>

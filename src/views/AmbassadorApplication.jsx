@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 // next-disabled: import "../css/BecomeContributor.css";
 import { applyAmbassador } from "../services/api";
 import { useToast } from "../context/ToastContext";
-import { COUNTRIES, statesForCountry, citiesForCountry } from "../constants/countries";
+import { COUNTRIES, useGeoOptions } from "../constants/countries";
 import SearchableSelect from "../components/SearchableSelect";
 
 import useScrollLock from "../hooks/useScrollLock";
@@ -101,8 +101,7 @@ const AmbassadorApplication = () => {
     profilePhoto: null,
   });
 
-  const stateOptions = useMemo(() => statesForCountry(formData.country), [formData.country]);
-  const cityOptions = useMemo(() => citiesForCountry(formData.country, formData.state), [formData.country, formData.state]);
+  const { stateOptions, cityOptions } = useGeoOptions(formData.country, formData.state);
 
   const geo = useGeoCountryLock();
   useEffect(() => {

@@ -7,6 +7,7 @@ import {
   saveLearning,
   deleteLearning,
   uploadBlogImage,
+  getBlogBody,
 } from "../../services/api";
 
 import BlogList from "./blogs/BlogList";
@@ -165,7 +166,16 @@ const AdminLearnings = () => {
     finally { setUploading(false); }
   };
 
-  const handleEdit = (item) => {
+  const handleEdit = async (listItem) => {
+    let item = listItem;
+    if (item.content === undefined) {
+      try {
+        item = { ...item, content: (await getBlogBody(item.id)).data.content };
+      } catch {
+        addToast("Couldn't open this item. Please try again.", "error");
+        return;
+      }
+    }
     setFormData({
       ...initialFormState,
       ...item,
@@ -196,7 +206,7 @@ const AdminLearnings = () => {
     });
   };
 
-  const handleSave = async (status = "approved") => {
+  const handleSave = async (status = "approved", scheduledAt = null) => {
     if (!formData.title || !formData.category) {
       addToast(!formData.title ? "Title is required" : "Please select a module", "error");
       return;
@@ -206,6 +216,7 @@ const AdminLearnings = () => {
       related_blogs: JSON.stringify(formData.related_blogs || []),
       seo_score: getSeoScore(formData),
       status,
+      scheduled_at: scheduledAt,
     };
     delete payload.author;
     if (!payload.date) payload.date = new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -231,6 +242,7 @@ const AdminLearnings = () => {
     .filter(i => {
       if (activeTab === "live")     return i.status === "approved" || i.status === "published";
       if (activeTab === "drafts")   return i.status === "draft";
+      if (activeTab === "scheduled") return i.status === "scheduled";
       if (activeTab === "pending")  return i.submission_status === "submitted" || i.submission_status === "edited";
       if (activeTab === "rejected") return i.submission_status === "rejected";
       return true;
@@ -254,6 +266,9 @@ const AdminLearnings = () => {
             </button>
             <button className={activeTab === "pending" ? "active" : ""} onClick={() => setActiveTab("pending")}>
               Pending{pendingItems.length > 0 && <span className="badge-count" style={{ background: "#3b82f6", color: "#fff", borderRadius: "12px", padding: "1px 7px", fontSize: "0.72rem", marginLeft: "4px" }}>{pendingItems.length}</span>}
+            </button>
+            <button className={activeTab === "scheduled" ? "active" : ""} onClick={() => setActiveTab("scheduled")}>
+              Scheduled
             </button>
             <button className={activeTab === "rejected" ? "active" : ""} onClick={() => setActiveTab("rejected")}>
               Rejected{rejectedItems.length > 0 && <span className="badge-count" style={{ background: "#ef4444", color: "#fff", borderRadius: "12px", padding: "1px 7px", fontSize: "0.72rem", marginLeft: "4px" }}>{rejectedItems.length}</span>}
@@ -325,6 +340,7 @@ const AdminLearnings = () => {
           categoryHint={`Learning article URL: /learning/${formData.category || "module"}/${formData.slug || "slug"}`}
           onSave={() => handleSave("approved")}
           onSaveDraft={() => handleSave("draft")}
+          onSchedule={(iso) => handleSave("approved", iso)}
         >
           <SeoSettings
             formData={formData}

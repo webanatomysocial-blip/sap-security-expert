@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import NotFound from "../views/NotFound";
 import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 import BlogLayout from "./BlogLayout";
 import ScrollNudgeModal from "./ScrollNudgeModal";
@@ -119,6 +120,7 @@ export default function DynamicBlog() {
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [missing, setMissing] = useState(false);
   const [commentsCount, setCommentsCount] = useState(0);
   const [relatedBlogs, setRelatedBlogs] = useState([]);
   const [suggestedArticles, setSuggestedArticles] = useState([]);
@@ -162,13 +164,13 @@ export default function DynamicBlog() {
 
         if (!postData || (!postData.title && !postData.id)) {
           console.error("DEBUG: Blog postData invalid", postData);
-          throw new Error("Blog not found");
+          throw Object.assign(new Error("Blog not found"), { notFound: true });
         }
 
         // DRAFT PROTECTION: If the post is a draft, do not show it publicly
         if (postData.status === 'draft') {
           console.warn("DEBUG: Attempted access to draft blog. Blocking.");
-          throw new Error("Blog not found");
+          throw Object.assign(new Error("Blog not found"), { notFound: true });
         }
 
         // ROUTING VALIDATION
@@ -230,6 +232,12 @@ export default function DynamicBlog() {
       })
       .catch((err) => {
         console.error("Error loading blog details from API", err);
+        // A definite "doesn't exist" (404 / unpublished / scheduled) must replace any
+        // server-rendered copy left over from a cached page; other failures keep it.
+        if (err?.response?.status === 404 || err?.notFound) {
+          window.__removeSsrContent?.();
+          setMissing(true);
+        }
         setError("Blog not found");
         setBlog(null);
         setLoading(false);
@@ -343,32 +351,10 @@ export default function DynamicBlog() {
   if (error || !blog) {
     // SSR content is still in the DOM (API failed but SSR has the article) —
     // return null so the SSR article stays visible rather than showing 404.
-    if (document.getElementById('ssr-blog-content')) {
+    if (!missing && document.getElementById('ssr-blog-content')) {
       return null;
     }
-    return (
-      <div style={{ padding: "100px", textAlign: "center" }}>
-        <h1>404 - Blog Not Found</h1>
-        <p>
-          The article you are looking for does not exist or has been removed.
-        </p>
-        <Link
-          to="/"
-          style={{
-            display: "inline-block",
-            marginTop: "20px",
-            padding: "12px 30px",
-            background: "#1e293b",
-            color: "white",
-            borderRadius: "8px",
-            textDecoration: "none",
-            fontWeight: "600",
-          }}
-        >
-          Go Back Home
-        </Link>
-      </div>
-    );
+    return <NotFound message="The article you are looking for does not exist or has been removed." />;
   }
 
   const isExclusive = Number(blog.is_members_only) === 1;

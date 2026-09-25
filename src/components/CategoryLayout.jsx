@@ -9,83 +9,83 @@ import { getBlogs, getCommunityStats } from "../services/api";
 const CATEGORY_METADATA = {
   'sap-security': {
     intro: 'SAP Security is the foundation of enterprise trust, ensuring only authorised users can execute specific business activities. This pillar covers role design (PFCG), authorization objects, Segregation of Duties, system auditing, and secure configuration of RFC and gateway destinations.',
-    banner: '/assets/images/hero-sap-security.png',
+    banner: '/assets/images/hero-sap-security.webp',
   },
   'sap-grc': {
     intro: 'SAP GRC is the industry-standard suite for managing business risks, ensuring regulatory compliance, and automating control monitoring across SAP landscapes. This hub covers Access Risk Analysis (ARA) ruleset optimization, Access Request Management (ARM) workflows, Emergency Access Management (EAM) firefighter logs, and Business Role Management (BRM).',
-    banner: '/assets/images/hero-sap-grc.png',
+    banner: '/assets/images/hero-sap-grc.webp',
   },
   'sap-btp-security': {
     intro: 'SAP Business Technology Platform (BTP) is the integration and extension core of modern SAP architectures. Securing BTP demands deep knowledge of Cloud Identity Services (IAS/IPS), Role Collections, API security, and security monitoring.',
-    banner: '/assets/images/hero-sap-btp-security.png',
+    banner: '/assets/images/hero-sap-btp-security.webp',
   },
   'sap-public-cloud': {
     intro: 'SAP S/4HANA Cloud Public Edition shifts infrastructure responsibility to SAP while customers secure user access, integrations, and configurations. This hub covers IAM with IAS/IPS, business catalog permissions, communication arrangements, and audit strategies specific to the public cloud model.',
-    banner: '/assets/images/hero-sap-public-cloud.png',
+    banner: '/assets/images/hero-sap-public-cloud.webp',
   },
   'sap-cybersecurity': {
     intro: 'Stay ahead of evolving threats and protect your SAP ecosystem. Get expert insights, best practices, and tools to strengthen your cybersecurity posture.',
-    banner: '/assets/images/hero-sap-cybersecurity.png',
+    banner: '/assets/images/hero-sap-cybersecurity.webp',
   },
   'sap-iag': {
     intro: 'SAP Identity Access Governance (IAG) is a cloud-native SaaS solution for governing identities across hybrid environments. This hub covers intelligent access analysis, SoD checks, automated provisioning, and machine-learning-powered risk analysis.',
-    banner: '/assets/images/hero-sap-iag.png',
+    banner: '/assets/images/hero-sap-iag.webp',
   },
   'sap-s4hana-security': {
     intro: 'SAP S/4HANA introduces HANA database security, Fiori UX authorizations, and a modern role design model. This pillar covers HANA user permission design, business catalog and spaces mapping, role migration from ECC, and securing S/4HANA.',
-    banner: '/assets/images/hero-sap-s4hana-security.png',
+    banner: '/assets/images/hero-sap-s4hana-security.webp',
   },
   'sap-fiori-security': {
     intro: 'SAP Fiori is the web-based UX gateway to SAP applications. Securing it requires tight alignment between launchpad catalogs, OData service authorizations, and back-end role design.',
-    banner: '/assets/images/hero-sap-fiori-security.png',
+    banner: '/assets/images/hero-sap-fiori-security.webp',
   },
   'sap-access-control': {
     intro: 'SAP GRC Access Control prevents, detects, and mitigates authorization risks across enterprise landscapes. This hub provides practical tutorials on ARA ruleset maintenance, ARM workflow design, EAM firefighter monitoring, and BRM role governance.',
-    banner: '/assets/images/hero-sap-access-control.png',
+    banner: '/assets/images/hero-sap-access-control.webp',
   },
   'sap-process-control': {
     intro: 'SAP GRC Process Control automates internal control design, testing, and continuous monitoring. This hub covers CCM script configuration, manual control assessments, risk frameworks, and audit-readiness strategies.',
-    banner: '/assets/images/hero-sap-process-control.png',
+    banner: '/assets/images/hero-sap-process-control.webp',
   },
   'sap-sac-security': {
     intro: 'SAP Analytics Cloud (SAC) holds sensitive financial and operational data. This pillar covers folder-level permission architecture, row-level security, SSO via SAML 2.0, team and role governance, and secure live data connections.',
-    banner: '/assets/images/hero-sap-sac-security.png',
+    banner: '/assets/images/hero-sap-sac-security.webp',
   },
   'sap-successfactors-security': {
     intro: 'SAP SuccessFactors contains confidential HR and compensation data. This hub covers Role-Based Permissions (RBP) design, target population rules, SSO via IAS/IPS, and GDPR-compliant data privacy configurations.',
-    banner: '/assets/images/hero-sap-successfactors-security.png',
+    banner: '/assets/images/hero-sap-successfactors-security.webp',
   },
   'sap-cis': {
     intro: 'SAP CIS covers infrastructure-level hardening: HANA and OS security, CIS benchmarks, network layer controls, Security Audit Log configuration, and regular patch management.',
-    banner: '/assets/images/hero-sap-cis.png',
+    banner: '/assets/images/hero-sap-cis.webp',
   },
   'sap-security-other': {
     intro: 'SAP Security covers a vast landscape of core systems, integration touchpoints, and custom developments. This pillar explores ABAP secure coding standards, interface security (RFC/ALE/IDoc), legacy application hardening, and custom authorization design.',
-    banner: '/assets/images/hero-sap-security-other.png',
+    banner: '/assets/images/hero-sap-security-other.webp',
   },
   'product-reviews': {
     intro: 'Get unbiased, technical reviews of SAP security products, GRC tools, cybersecurity solutions, and third-party add-ons to help you make informed software selection decisions.',
-    banner: '/assets/images/hero-podcasts.png',
+    banner: '/assets/images/hero-podcasts.webp',
   },
   'podcasts': {
     intro: 'Listen to expert voices and podcasts discussing the latest trends, challenges, and solutions in SAP security, governance, risk, compliance, and cybersecurity.',
-    banner: '/assets/images/hero-product-reviews.png',
+    banner: '/assets/images/hero-product-reviews.webp',
   },
   'videos': {
     intro: 'Two-minute perspectives from SAP Security professionals around the world.',
-    banner: '/assets/images/hero-videos.png',
+    banner: '/assets/images/hero-videos.webp',
   },
   'expert-recommendations': {
     intro: 'Handpicked books, courses, toolkits, and study materials recommended by SAP security experts to accelerate your learning and career growth.',
-    banner: '/assets/images/hero-expert-recommendations.png',
+    banner: '/assets/images/hero-expert-recommendations.webp',
   },
   'expert-papers': {
     intro: 'In-depth papers authored by SAP security experts covering research, frameworks, and best practices across SAP Security, GRC, and cybersecurity.',
-    banner: '/assets/images/hero-expert-recommendations.png',
+    banner: '/assets/images/hero-expert-recommendations.webp',
   },
   'sap-licensing': {
     intro: 'SAP Licensing covers user type classification, indirect access rules, contract optimization, and audit defence strategies. This hub helps organisations understand SAP license metrics, avoid compliance risk, and manage costs across S/4HANA, ECC, BTP, and cloud solutions.',
-    banner: '/assets/images/hero-sap-security.png',
+    banner: '/assets/images/hero-sap-security.webp',
   },
 };
 
@@ -187,7 +187,7 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
 
   const metadata = CATEGORY_METADATA[categorySlug] || {
     intro: `Explore resources, guidelines, and articles on ${displayName}.`,
-    banner: '/assets/images/hero-sap-security.png',
+    banner: '/assets/images/hero-sap-security.webp',
   };
 
   const contributorCount = useMemo(() => {

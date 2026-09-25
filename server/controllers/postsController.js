@@ -7,6 +7,7 @@ const MailService = require('../services/MailService');
 const CacheService = require('../services/CacheService');
 const { revalidateBlog } = require('../utils/revalidate');
 const repo = require('../repositories/postsRepository');
+const { parseSchedule, applySchedule } = require('../utils/schedule');
 
 const cache = new CacheService(1800);
 
@@ -598,6 +599,14 @@ const list = asyncHandler(async (req, res) => {
     // list, not just their own posts — the single-post endpoint already
     // gates this correctly on `hasAdminAccess`.
     if (!hasAdminAccess) stripInternalFields(b);
+
+    // No public list page renders article bodies, and they made this response
+    // several MB. Staff (the editor reads content from this list) and the
+    // internal SSR fetch still get it.
+    // ?lite=1 (admin lists) also drops the article bodies; they are fetched
+    // per post via /api/admin/blogs/:id/body when an item is opened.
+    if ((!sess.admin_logged_in && !isInternalSSR) || req.query.lite === '1') delete b.content;
+    if (req.query.lite === '1') delete b.draft_content;
   });
 
   return res.json(rows);
@@ -630,6 +639,8 @@ const save = asyncHandler(async (req, res) => {
           schema_type = 'BlogPosting', article_section = null, co_authors = [],
           difficulty_level: rawDifficultyLevel = null, preview_paragraphs: rawPreviewParagraphs = null,
           preview_unit: rawPreviewUnit = 'blocks', video_url = null } = data;
+
+  const sched = isAdmin ? parseSchedule(data.scheduled_at) : null;
 
   // Badges, is_premium, and credits_required are admin-only fields — contributors
   // submitting these in the request body must be silently ignored so they cannot
@@ -729,8 +740,8 @@ const save = asyncHandler(async (req, res) => {
       if (!newDownloads.has(url)) deleteUploadedFile(url);
     }
 
-    const targetStatus = isAdmin ? (requestedStatus || 'approved') : 'draft';
-    const subStatus = isAdmin ? targetStatus : 'submitted';
+    const targetStatus = sched ? 'scheduled' : isAdmin ? (requestedStatus || 'approved') : 'draft';
+    const subStatus = sched ? 'approved' : isAdmin ? targetStatus : 'submitted';
     const plagRes = await checkPlagiarismScore(content, id, db);
     const finalPlag = plagRes.score === -1 ? existingPlag : plagRes.score;
 
@@ -746,6 +757,7 @@ const save = asyncHandler(async (req, res) => {
       preview_paragraphs, preview_unit, video_url,
       setPublishDate,
     });
+    await applySchedule(db, 'blogs', id, sched, targetStatus, ex.status === 'scheduled');
     cache.invalidate('homepage_data_public');
     revalidateBlog(category, slug).catch(() => {});
 
@@ -764,8 +776,8 @@ const save = asyncHandler(async (req, res) => {
   } else {
     // INSERT
     const newId = data.id || `blog_${Date.now()}`;
-    const targetStatus = isAdmin ? (requestedStatus || 'approved') : 'draft';
-    const subStatus = isAdmin ? targetStatus : 'submitted';
+    const targetStatus = sched ? 'scheduled' : isAdmin ? (requestedStatus || 'approved') : 'draft';
+    const subStatus = sched ? 'approved' : isAdmin ? targetStatus : 'submitted';
     const publishDateVal = ['approved','published'].includes(targetStatus)
       ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
 
@@ -783,6 +795,7 @@ const save = asyncHandler(async (req, res) => {
       preview_paragraphs, preview_unit, video_url,
       publishDateVal,
     });
+    await applySchedule(db, 'blogs', newId, sched, targetStatus, false);
     cache.invalidate('homepage_data_public');
     if (['approved','published'].includes(targetStatus)) {
       revalidateBlog(category, slug).catch(() => {});
@@ -818,6 +831,7 @@ const remove = asyncHandler(async (req, res) => {
   for (const url of extractDownloadUrls(blog.content)) deleteUploadedFile(url);
   await repo.deleteBlogById(db, id);
   new CacheService().invalidate('homepage_data_public');
+  revalidateBlog(blog.category, blog.slug).catch(() => {});
 
   return res.json({ status: 'success', message: 'Blog deleted' });
 });

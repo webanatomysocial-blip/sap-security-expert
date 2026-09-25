@@ -24,6 +24,7 @@ const getBySlug = asyncHandler(async (req, res) => {
   return res.json(row);
 });
 
+const { parseSchedule } = require('../../utils/schedule');
 const VALID_ANN_STATUSES = ['approved', 'draft', 'pending'];
 
 // POST /api/admin/announcements
@@ -33,7 +34,7 @@ const save = asyncHandler(async (req, res) => {
   const {
     id, title: rawTitle = '', date, link: rawLink = '',
     content: rawContent = '', excerpt: rawExcerpt = '', image = '', image_alt: rawImageAlt = '',
-    status: reqStatus,
+    status: reqStatus, scheduled_at,
   } = req.body || {};
 
   // Sanitize all text fields that render as HTML or appear in the admin UI
@@ -59,6 +60,9 @@ const save = asyncHandler(async (req, res) => {
   // Allowlist status values — reject arbitrary strings from the request body
   const requestedStatus = reqStatus && VALID_ANN_STATUSES.includes(reqStatus) ? reqStatus : null;
 
+  const sched = isAdmin ? parseSchedule(scheduled_at) : null;
+  if (sched) mysqlDate = sched;
+
   const slug = generateSlug(title);
 
   if (id) {
@@ -71,12 +75,12 @@ const save = asyncHandler(async (req, res) => {
       return sendSuccess(res, { message: 'Changes saved for review.' });
     }
 
-    const status = isAdmin ? (requestedStatus || 'approved') : 'draft';
-    await repo.update(db, id, { title, slug, date: mysqlDate, link, status, content, excerpt, image, image_alt });
+    const status = sched ? 'scheduled' : isAdmin ? (requestedStatus || 'approved') : 'draft';
+    await repo.update(db, id, { title, slug, date: mysqlDate, link, status, content, excerpt, image, image_alt, publishDate: sched });
   } else {
-    const status = isAdmin ? (requestedStatus || 'approved') : 'draft';
+    const status = sched ? 'scheduled' : isAdmin ? (requestedStatus || 'approved') : 'draft';
     const submissionStatus = isAdmin ? 'approved' : 'pending';
-    await repo.create(db, { title, slug, date: mysqlDate, link, status, content, excerpt, image, image_alt, submissionStatus });
+    await repo.create(db, { title, slug, date: mysqlDate, link, status, content, excerpt, image, image_alt, submissionStatus, publishDate: sched });
   }
 
   cache.invalidate('homepage_data_public');

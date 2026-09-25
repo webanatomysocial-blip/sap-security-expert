@@ -12,7 +12,10 @@ import api from "../../services/api";
 import SimpleRTE from "./SimpleRTE.jsx";
 import ActionMenu from "./ActionMenu";
 import TableScrollContainer from "./TableScrollContainer";
+import usePagination from "./usePagination";
+import Pagination from "./Pagination";
 import ColumnToggle from "./ColumnToggle.jsx";
+import SchedulePicker from "./SchedulePicker.jsx";
 
 const ANNC_COLS = [
   { key: "title",   label: "Title" },
@@ -124,12 +127,12 @@ const AdminAnnouncements = () => {
     } catch { addToast("Action failed", "error"); }
   };
 
-  const handleSave = async (status = "approved") => {
+  const handleSave = async (status = "approved", scheduledAt = null) => {
     if (saving) return;
     if (!formData.title) { addToast("Title is required", "error"); return; }
     setSaving(true);
     try {
-      const res = await saveAnnouncement({ ...formData, status });
+      const res = await saveAnnouncement({ ...formData, status, scheduled_at: scheduledAt });
       if (res.data.status === "success") {
         fetchItems();
         setView("list");
@@ -146,6 +149,7 @@ const AdminAnnouncements = () => {
   // Tab-filtered + search-filtered items
   const tabFiltered = items.filter((a) => {
     if (activeTab === "review") return isPendingReview(a);
+    if (activeTab === "scheduled") return a.status === "scheduled";
     if (activeTab === "draft") return a.status === "draft" && !isPendingReview(a);
     return isLive(a); // "published"
   });
@@ -153,6 +157,8 @@ const AdminAnnouncements = () => {
   const filtered = tabFiltered.filter((a) =>
     !searchQuery || a.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const pg = usePagination(filtered);
 
   // Badge counts for tabs
   const reviewCount = items.filter(isPendingReview).length;
@@ -250,6 +256,13 @@ const AdminAnnouncements = () => {
                   </select>
                 </div>
               )}
+              {isAdmin && (
+                <SchedulePicker
+                  scheduledAt={formData.status === "scheduled" ? formData.publish_date : ""}
+                  onSchedule={(iso) => handleSave("approved", iso)}
+                  disabled={saving}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -273,6 +286,12 @@ const AdminAnnouncements = () => {
             onClick={() => setActiveTab("draft")}
           >
             Drafts
+          </button>
+          <button
+            className={activeTab === "scheduled" ? "active" : ""}
+            onClick={() => setActiveTab("scheduled")}
+          >
+            Scheduled
           </button>
           <button
             className={activeTab === "review" ? "active" : ""}
@@ -326,6 +345,7 @@ const AdminAnnouncements = () => {
         <div className="admin-table-controls">
           <ColumnToggle columns={ANNC_COLS} visible={visibleCols} onChange={handleColChange} />
         </div>
+        <Pagination {...pg.bar} top />
         <TableScrollContainer style={loading ? { display: "none" } : {}}>
           <table className="admin-table">
             <thead>
@@ -346,7 +366,7 @@ const AdminAnnouncements = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => (
+                pg.pageItems.map((item) => (
                   <tr key={item.id}>
                     <td className="col-xxl text-left wrap-text">
                       <strong className="truncate-2" style={{ fontSize: "0.85rem" }}>{item.title}</strong>
@@ -369,6 +389,8 @@ const AdminAnnouncements = () => {
                     <td className="col-sm text-center">
                       {isLive(item) ? (
                         <span className="status-badge status-live" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Live</span>
+                      ) : item.status === "scheduled" ? (
+                        <span className="status-badge status-pending" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Scheduled</span>
                       ) : (
                         <span className="status-badge status-draft" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>Draft</span>
                       )}
@@ -419,6 +441,7 @@ const AdminAnnouncements = () => {
             </tbody>
           </table>
         </TableScrollContainer>
+        <Pagination {...pg.bar} />
         {filtered.length > 0 && (
           <div style={{ padding: "14px 20px", borderTop: "1px solid #f1f5f9", fontSize: "0.8rem", color: "#94a3b8" }}>
             {filtered.length} announcement{filtered.length !== 1 ? "s" : ""}
