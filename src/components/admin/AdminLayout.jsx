@@ -270,7 +270,6 @@ const AdminLayout = () => {
         role={role}
         permissions={permissions}
         badges={badges}
-        isAmbassador={badges.isAmbassador}
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
         isMobileOpen={isMobileOpen}
@@ -316,7 +315,7 @@ const AdminLayout = () => {
               <div className="user-name">
                 {adminData.full_name || adminData.username}
               </div>
-              <div className="user-role">{role === "contributor" && badges.isAmbassador ? "Country Ambassador" : role}</div>
+              <div className="user-role">{role}</div>
             </div>
 
             <LuChevronDown
