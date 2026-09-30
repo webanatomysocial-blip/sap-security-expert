@@ -43,14 +43,22 @@ function StripAd({ ad }) {
 // Split HTML on download block markers, preserving their data attributes.
 function splitOnDownloadBlocks(html) {
   const parts = [];
-  const re = /<div[^>]*data-sap-download="1"[^>]*>([\s\S]*?)<\/div>/gi;
+  // Download blocks and accordion <details> blocks must both stay intact —
+  // the paragraph-chunking below (for inline-ad interleaving) splits at every
+  // </p>, and a </p> inside an accordion's answer div would get cut off from
+  // its <details>, leaking the rest of the transcript out as plain paragraphs.
+  const re = /<div[^>]*data-sap-download="1"[^>]*>([\s\S]*?)<\/div>|<details\b[^>]*class="[^"]*rte-accordion-item[^"]*"[^>]*>[\s\S]*?<\/details>/gi;
   let last = 0;
   let m;
   while ((m = re.exec(html)) !== null) {
     if (m.index > last) parts.push({ type: "html", html: html.slice(last, m.index) });
     const tag = m[0];
-    const get = (attr) => { const r = new RegExp(`${attr}="([^"]*)"`, 'i'); const x = r.exec(tag); return x ? x[1] : ""; };
-    parts.push({ type: "download", fileUrl: get("data-file-url"), fileName: get("data-file-name"), fileSize: get("data-file-size"), credits: get("data-credits") });
+    if (/^<details/i.test(tag)) {
+      parts.push({ type: "raw", html: tag });
+    } else {
+      const get = (attr) => { const r = new RegExp(`${attr}="([^"]*)"`, 'i'); const x = r.exec(tag); return x ? x[1] : ""; };
+      parts.push({ type: "download", fileUrl: get("data-file-url"), fileName: get("data-file-name"), fileSize: get("data-file-size"), credits: get("data-credits") });
+    }
     last = m.index + m[0].length;
   }
   if (last < html.length) parts.push({ type: "html", html: html.slice(last) });
@@ -65,6 +73,10 @@ function buildContentWithAds(html, inlineAds, unlockedFileUrls = new Set()) {
   let key = 0;
 
   for (const seg of segments) {
+    if (seg.type === "raw") {
+      nodes.push(<div key={key++} dangerouslySetInnerHTML={{ __html: seg.html }} />);
+      continue;
+    }
     if (seg.type === "download") {
       nodes.push(
         <DownloadBlock
