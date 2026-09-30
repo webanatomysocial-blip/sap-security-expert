@@ -492,6 +492,27 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
     input.click();
   };
 
+  // Browsers don't toggle <details> natively when it sits inside a
+  // contentEditable region — a click on <summary> just places the text
+  // cursor instead. Toggle it manually so accordions preview correctly
+  // while editing.
+  const handleAccordionClick = (e) => {
+    const summary = e.target.closest(".rte-accordion-question");
+    if (!summary || !editorRef.current?.contains(summary)) return;
+    e.preventDefault();
+    const details = summary.closest(".rte-accordion-item");
+    if (!details) return;
+    const wasOpen = details.hasAttribute("open");
+    // Respect the shared `name` group: close siblings when opening one.
+    const groupName = details.getAttribute("name");
+    if (!wasOpen && groupName) {
+      editorRef.current
+        .querySelectorAll(`.rte-accordion-item[name="${groupName}"]`)
+        .forEach((d) => d.removeAttribute("open"));
+    }
+    details.toggleAttribute("open", !wasOpen);
+  };
+
   const handleDoubleClick = (e) => {
     if (isSourceView) return;
     if (e.target.tagName === "IMG") {
@@ -901,6 +922,7 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
           onMouseUp={saveSelection}
           onKeyUp={saveSelection}
           onPaste={handlePaste}
+          onClick={handleAccordionClick}
           onDoubleClick={handleDoubleClick}
           style={{ minHeight, maxHeight }}
         />

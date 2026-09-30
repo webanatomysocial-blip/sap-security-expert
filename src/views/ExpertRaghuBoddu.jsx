@@ -249,8 +249,8 @@ function Hero() {
               enterprise cybersecurity.
             </p>
             <div className="rb-hero-actions">
-              <a href="#expertise" className="rb-btn-primary">Explore Expertise <Arrow className="rb-arrow-white" /></a>
-              <a href="#connect" className="rb-btn-outline">Connect</a>
+              <a href={LINKS.personalSite} {...EXT} className="rb-btn-primary">Explore Expertise <Arrow className="rb-arrow-white" /></a>
+              <a href={LINKS.linkedin} {...EXT} className="rb-btn-outline">Connect</a>
             </div>
           </Reveal>
 

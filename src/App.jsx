@@ -67,6 +67,7 @@ const ResetPassword            = lazy(() => import("./views/ResetPassword"));
 
 // ── Lazy-loaded legal pages ───────────────────────────────────────────────────
 const PrivacyPolicy            = lazy(() => import("./views/legal/PrivacyPolicy"));
+const PrivacyDataProtection    = lazy(() => import("./views/legal/PrivacyDataProtection"));
 const TermsConditions          = lazy(() => import("./views/legal/TermsConditions"));
 const AccessibilityStatement   = lazy(() => import("./views/legal/AccessibilityStatement"));
 const SafetyMovement           = lazy(() => import("./views/legal/SafetyMovement"));
@@ -196,6 +197,7 @@ function App() {
           <Route path="ambassador/:id" element={<AmbassadorProfile />} />
           <Route path="contributor/:id" element={<ContributorProfile />} />
           <Route path="leaderboard" element={<ContributorsLeaderboard />} />
+          <Route path="contributors" element={<Navigate to="/leaderboard" replace />} />
           <Route path="about" element={<About />} />
           <Route path="experts/raghu-boddu" element={<ExpertRaghuBoddu />} />
           <Route path="contact-us" element={<ContactUs />} />
@@ -219,6 +221,7 @@ function App() {
 
           {/* Legal Routes */}
           <Route path="privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="privacy-and-data-protection" element={<PrivacyDataProtection />} />
           <Route path="terms-conditions" element={<TermsConditions />} />
           <Route path="accessibility-statement" element={<AccessibilityStatement />} />
           <Route path="safety-movement" element={<SafetyMovement />} />

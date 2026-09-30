@@ -12,7 +12,7 @@ export const LINKS = {
   bookIag: "https://www.sap-press.com/introducing-sap-cloud-identity-access-governance-iag_5985/",
   bookAccessControl: "https://www.sap-press.com/sap-access-control_5636/",
   training: "https://www.sap-press.com/online-courses/authorizations-and-security-for-sap-s4hana/",
-  linkedin: "https://www.linkedin.com/in/raghuboddu",
+  linkedin: "https://www.linkedin.com/in/bodduraghu/",
   sapCommunity: "https://community.sap.com/t5/user/viewprofilepage/user-id/600573",
   personalSite: "https://www.raghuboddu.com",
   agInnoLabs: "https://aginnolabs.com/",
