@@ -286,6 +286,8 @@ function TrustStrip() {
   );
 }
 
+
+
 /* ------------------------------------------------------------ Overview */
 
 function Overview() {
@@ -719,10 +721,9 @@ function Research() {
           <ul className="rb-link-list" key={ci}>
             {col.map((t, i) => (
               <Reveal as="li" key={t} delay={(i + ci * mid) * 30}>
-                <a href={LINKS.sseRecommendations} {...EXT}>
+                <div className="rb-link-row">
                   <span>{t}</span>
-                  <Arrow />
-                </a>
+                </div>
               </Reveal>
             ))}
           </ul>
@@ -756,7 +757,6 @@ function Articles() {
           <Reveal as="article" key={a.category} delay={i * 60} className="rb-article-card">
             <p>{a.category}</p>
             <p>{a.description}</p>
-            <ExtLink href={LINKS.sapSecurityExpert}>Read articles</ExtLink>
           </Reveal>
         ))}
       </div>
@@ -784,13 +784,12 @@ function Podcasts() {
           <ul className="rb-link-list rb-podcast-list" key={ci}>
             {col.map((p, i) => (
               <Reveal as="li" key={p} delay={(i + ci * mid) * 40}>
-                <a href={LINKS.ssePodcasts} {...EXT}>
+                <div className="rb-link-row">
                   <span>
                     <span className="rb-podcast-kicker"><span className="rb-dot" />Podcast / Discussion</span>
                     <span className="rb-podcast-title">{p}</span>
                   </span>
-                  <Arrow />
-                </a>
+                </div>
               </Reveal>
             ))}
           </ul>
@@ -901,10 +900,81 @@ function Interviews() {
   );
 }
 
+/* -------------------------------------------------------- Exec Card */
+
+function ExecLeadershipCard() {
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <div className="rb-exec-leadership-card">
+      {/* Top badge */}
+      <div className="rb-exec-badge-row">
+        <span className="rb-exec-badge">
+          <span className="rb-exec-badge-dot" />
+          EXECUTIVE LEADERSHIP
+        </span>
+      </div>
+
+      {/* Profile header */}
+      <div className="rb-exec-profile-header">
+        <div className="rb-exec-avatar-wrap">
+          {!imgError ? (
+            <img
+              src="/assets/raghu_boddu.jpg"
+              alt="Raghu Boddu"
+              className="rb-exec-avatar-img"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="rb-exec-avatar-initials">RB</div>
+          )}
+        </div>
+        <div className="rb-exec-profile-info">
+          <h3 className="rb-exec-name">Raghu Boddu</h3>
+          <p className="rb-exec-role">Founder &amp; CEO · Product Innovation</p>
+        </div>
+      </div>
+
+      {/* Bio quote */}
+      <blockquote className="rb-exec-quote">
+        Turns years of SAP Security and GRC experience into practical technology, automation and
+        managed capabilities.
+      </blockquote>
+
+      <hr className="rb-exec-divider" />
+
+      {/* Expertise */}
+      <div className="rb-exec-meta-row">
+        <span className="rb-exec-section-label">EXPERTISE</span>
+        <div className="rb-exec-tags-group">
+          {["SAP Security", "GRC", "Cybersecurity"].map((item) => (
+            <span key={item} className="rb-exec-expertise-tag">
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <hr className="rb-exec-divider" />
+
+      {/* Leads */}
+      <div className="rb-exec-meta-row">
+        <span className="rb-exec-section-label">LEADS</span>
+        <div className="rb-exec-tags-group">
+          {["Product innovation", "Automation", "AI-driven security operations"].map((lead) => (
+            <span key={lead} className="rb-exec-lead-chip">
+              {lead}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ----------------------------------------------------------- ToggleNow */
 
 function ToggleNow() {
-  const chain = ["SAP Security", "GRC", "Cybersecurity", "Automation", "AI-driven Security Operations"];
   return (
     <Section id="togglenow">
       <div className="rb-split-grid">
@@ -927,17 +997,8 @@ function ToggleNow() {
             </div>
           </Reveal>
         </div>
-        <Reveal delay={100} className="rb-card">
-          <EyebrowPill text="Executive Leadership" />
-          <p className="rb-exec-label">CEO / Product Innovation</p>
-          <ol className="rb-chain-list">
-            {chain.map((c, i) => (
-              <li key={c}>
-                <p className="rb-chain-step">{c}</p>
-                {i < chain.length - 1 && <p className="rb-chain-arrow">&#8595;</p>}
-              </li>
-            ))}
-          </ol>
+        <Reveal delay={100} className="rb-card rb-exec-card">
+          <ExecLeadershipCard />
         </Reveal>
       </div>
     </Section>
