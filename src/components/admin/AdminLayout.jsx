@@ -191,6 +191,7 @@ const AdminLayout = () => {
     if (path.includes("blogs")) return "Manage Blogs";
     if (path.includes("contributors")) return "Manage Contributors";
     if (path.includes("ambassadors")) return "Manage Ambassadors";
+    if (path.includes("admins")) return "Manage Admins";
     if (path.includes("comments")) return "Manage Comments";
     if (path.includes("announcements")) return "Manage Announcements";
     if (path.includes("ads")) return "Manage Ads & Promos";
@@ -201,6 +202,10 @@ const AdminLayout = () => {
     if (path.includes("featured-insights")) return "Featured Insights";
     return "Admin Dashboard";
   };
+
+  useEffect(() => {
+    document.title = `${getPageTitle()} | SAP Security Expert Admin`;
+  }, [location.pathname]);
 
   // ── Login Screen ────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
