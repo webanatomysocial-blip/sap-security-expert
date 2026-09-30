@@ -355,11 +355,49 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
       });
       const cleanedHTML = tempDiv.innerHTML;
 
-      // Use execCommand('insertHTML') so the browser correctly handles
-      // block-level elements (p, ul, h2 etc.) at the cursor position.
-      // range.insertNode() would nest blocks inside the current paragraph,
-      // causing the browser to reorganize the DOM and wipe previous content.
-      document.execCommand("insertHTML", false, cleanedHTML);
+      // Chrome's execCommand('insertHTML') decides where to split the DOM by
+      // walking up to the nearest block ancestor it considers "splittable" —
+      // and it doesn't treat <details> as one, so pasting multiple paragraphs
+      // while the cursor sits inside an accordion answer pushes everything
+      // past the first line out after the </details>, escaping the accordion.
+      // Insert directly via Range instead whenever we're inside one, so the
+      // content stays nested where the cursor actually is.
+      const sel = window.getSelection();
+      const anchorEl = sel?.anchorNode
+        ? (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement)
+        : null;
+      const accordionAnswer = anchorEl?.closest?.(".rte-accordion-answer");
+
+      if (accordionAnswer && sel.rangeCount > 0) {
+        // Insert as a sibling of the answer's own top-level block (the <p>
+        // the cursor is in), not at the raw range endpoint — inserting
+        // block-level nodes mid-text would nest a <p> inside that <p>.
+        let anchorChild = anchorEl;
+        while (anchorChild && anchorChild.parentElement !== accordionAnswer) {
+          anchorChild = anchorChild.parentElement;
+        }
+        const frag = document.createDocumentFragment();
+        Array.from(tempDiv.childNodes).forEach((n) => frag.appendChild(n));
+        const lastNode = frag.lastChild;
+        if (anchorChild) {
+          anchorChild.after(frag);
+        } else {
+          accordionAnswer.appendChild(frag);
+        }
+        if (lastNode) {
+          const range = document.createRange();
+          range.selectNodeContents(lastNode);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      } else {
+        // Use execCommand('insertHTML') so the browser correctly handles
+        // block-level elements (p, ul, h2 etc.) at the cursor position.
+        // range.insertNode() would nest blocks inside the current paragraph,
+        // causing the browser to reorganize the DOM and wipe previous content.
+        document.execCommand("insertHTML", false, cleanedHTML);
+      }
 
       cleanAndDispatch();
     } else if (plainText) {
