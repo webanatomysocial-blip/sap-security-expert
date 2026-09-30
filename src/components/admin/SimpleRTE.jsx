@@ -1377,12 +1377,25 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
         }
         .rte-accordion-answer {
             padding: 0 0 20px;
+            font-size: 19px;
+            line-height: 1.8;
+            color: #2a2a2a;
         }
-        .rte-accordion-answer p {
-            margin: 0;
-            font-size: 16px;
-            line-height: 1.6;
-            color: #334155;
+        .rte-accordion-answer p,
+        .rte-accordion-answer ul,
+        .rte-accordion-answer ol {
+            margin: 0 0 1.25em;
+            font-size: inherit;
+            line-height: inherit;
+            color: inherit;
+        }
+        .rte-accordion-answer p:last-child,
+        .rte-accordion-answer ul:last-child,
+        .rte-accordion-answer ol:last-child {
+            margin-bottom: 0;
+        }
+        .rte-accordion-answer li {
+            margin-bottom: 8px;
         }
 
         /* ── Download Block in editor ─────────────────────────────── */
