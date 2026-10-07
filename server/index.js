@@ -386,7 +386,7 @@ app.get('/sitemap.xml', (req, _res, next) => {
   next('router');
 });
 
-// All HTML is served by Next.js (port 3000). Express has no HTML catch-all.
+// All HTML is served by Next.js (port 3000). Express has no HTML catch-all. .
 
 // ── In-process email cron (production) ─────────────────────────────────────────
 // Runs inside the Express process — no separate cron.js process needed on Railway.
