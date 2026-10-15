@@ -7,8 +7,15 @@ const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 const SSR_SECRET = process.env.REVALIDATE_SECRET || '';
 
-// Skip SSR meta for admin/member/SPA-only routes
+// Skip SSR *content* (render via the client SPA shell instead of fetching
+// blog/news data) for these routes — they're not article pages.
 const SKIP_SEO = new Set(['admin', 'member', 'experts', 'contributor', 'ambassador']);
+// Of those, only admin/member/contributor/ambassador should also be
+// noindexed — 'experts' (the Raghu Boddu author page) is public, real
+// content and the site's main E-E-A-T/author-identity signal; it still
+// renders via the client shell but needs real, indexable SSR metadata,
+// not the generic noindexed fallback the other SPA-only routes get.
+const SKIP_SEO_META = new Set(['admin', 'member', 'contributor', 'ambassador']);
 
 const CATEGORY_LABELS = {
   'sap-security': 'SAP Security',
@@ -35,7 +42,7 @@ const CATEGORY_LABELS = {
 
 export async function generateMetadata({ params }) {
   const slug = (await params)?.slug || [];
-  if (SKIP_SEO.has(slug[0])) return { title: 'SAP Security Expert', robots: { index: false, follow: false } };
+  if (SKIP_SEO_META.has(slug[0])) return { title: 'SAP Security Expert', robots: { index: false, follow: false } };
 
   const path = slug.length ? '/' + slug.join('/') : '/';
 

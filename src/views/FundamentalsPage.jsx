@@ -1,13 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/SEO';
+import { VITE_SITE_URL } from '../utils/env';
 // next-disabled: import '../css/FundamentalsPage.css';
 const FundamentalsPage = () => {
   return (
     <div className="fundamentals-page">
+      {/* This same component is also mounted at /transactions — both URLs
+          canonicalize to /sap-security-fundamentals (the primary one) so
+          Google doesn't see two separate pages with identical content. */}
       <SEO
         title="SAP Security Fundamentals | SAP Security Expert"
         description="New to SAP Security? Start with these essential concepts and build a strong foundation in access control, authorization, and compliance."
+        url={`${VITE_SITE_URL}/sap-security-fundamentals`}
       />
       {/* Hero Section */}
       <section className="fundamentals-hero">
