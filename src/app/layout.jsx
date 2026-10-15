@@ -17,6 +17,12 @@ function safeJsonLd(value) {
     .replace(/&/g, '\\u0026');
 }
 
+// Stable @id for the founder entity — referenced here and matched by the
+// Person schema on /experts/raghu-boddu (see ExpertRaghuBoddu.jsx) so search
+// engines and AI answer engines resolve both to the same entity instead of
+// treating "SAP Security Expert" and "Raghu Boddu" as unrelated.
+const FOUNDER_ID = `${SITE_URL}/experts/raghu-boddu/#person`;
+
 const orgSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
@@ -27,6 +33,7 @@ const orgSchema = {
   sameAs: [
     'https://www.linkedin.com/company/sap-security-expert',
   ],
+  founder: { '@type': 'Person', '@id': FOUNDER_ID, name: 'Raghu Boddu' },
 };
 
 const websiteSchema = {

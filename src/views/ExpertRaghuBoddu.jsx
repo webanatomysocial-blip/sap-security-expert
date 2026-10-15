@@ -182,16 +182,20 @@ export default function ExpertRaghuBoddu() {
         schemaData={{
           "@context": "https://schema.org",
           "@type": "Person",
+          "@id": `${pageUrl}#person`,
           name: "Raghu Boddu",
           jobTitle: "SAP Security Expert",
           description: DESCRIPTION,
           url: LINKS.personalSite,
+          image: `${VITE_SITE_URL}/assets/raghu_boddu_hero.png`,
+          mainEntityOfPage: pageUrl,
           sameAs: [LINKS.linkedin, LINKS.sapPressAuthor, LINKS.sapCommunity, LINKS.sapSecurityExpert, LINKS.toggleNow],
           knowsAbout: [
             "SAP Security", "SAP GRC", "Cyber Security", "Access Governance", "SAP S/4HANA Security",
             "SAP Cloud Security", "Security Automation", "AI for SAP Security", "SAP SecOps", "Audit & Compliance",
           ],
           worksFor: { "@type": "Organization", name: "ToggleNow", url: LINKS.toggleNow },
+          founderOf: { "@type": "Organization", name: "SAP Security Expert", url: LINKS.sapSecurityExpert },
         }}
       />
 

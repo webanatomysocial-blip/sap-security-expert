@@ -27,7 +27,10 @@ const SEO = ({
   const metaTitle       = title || "SAP Security Expert";
   const metaDescription = description || "The leading community for SAP Security, GRC, and BTP professionals.";
   const metaImage       = getAbsoluteUrl(image);
-  const metaUrl         = url || domain;
+  // Fall back to this page's own URL, not the homepage — a caller that
+  // forgets to pass `url` would otherwise silently tell crawlers every such
+  // page is canonically the homepage (duplicate-content/deindex risk).
+  const metaUrl         = url || (typeof window !== "undefined" ? `${domain}${window.location.pathname}` : domain);
   const metaKeywords    = keywords || "SAP Security, SAP GRC, SAP BTP, SAP Licensing, SAP Cybersecurity";
   const metaAuthor      = author || "SAP Security Expert";
 

@@ -35,6 +35,25 @@ const nextConfig = {
   //    EXPRESS_API_URL to the Railway/Render service URL in Vercel env vars.
   //    Next.js rewrites proxy /api/* and /uploads/* to that URL.
   //
+  // ── 301 redirects for known dead/renamed URLs ───────────────────────────────
+  // Server-side (not a client-side React Router <Navigate>), so search engines
+  // and old bookmarks/links get a real 301 instead of a 200 that then redirects.
+  async redirects() {
+    return [
+      // /contributors was removed; the directory lives at /leaderboard now.
+      { source: '/contributors', destination: '/leaderboard', permanent: true },
+      // Learning Hub module pages live under /learning/:slug. Links/bookmarks
+      // to the bare slug (e.g. from a breadcrumb bug — see BlogLayout.jsx)
+      // 404'd instead of reaching the module page.
+      { source: '/security-fundamentals', destination: '/learning/security-fundamentals', permanent: true },
+      { source: '/user-management', destination: '/learning/user-management', permanent: true },
+      { source: '/role-management', destination: '/learning/role-management', permanent: true },
+      { source: '/authorization-concepts', destination: '/learning/authorization-concepts', permanent: true },
+      { source: '/audit-compliance', destination: '/learning/audit-compliance', permanent: true },
+      { source: '/grc-advanced', destination: '/learning/grc-advanced', permanent: true },
+    ];
+  },
+
   async rewrites() {
     // Unified mode: no rewrites needed.
     if (process.env.UNIFIED_SERVER === 'true') return [];

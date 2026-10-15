@@ -50,6 +50,15 @@ const CATEGORY_LABELS = {
   "downloads": "Downloads",
 };
 
+// Learning-module slugs live under /learning/:slug, not /:slug like the
+// regular blog categories above — same CATEGORY_LABELS map, different route.
+const LEARNING_MODULE_SLUGS = new Set([
+  "security-fundamentals", "user-management", "role-management",
+  "authorization-concepts", "audit-compliance", "grc-advanced",
+]);
+const categoryPath = (category) =>
+  LEARNING_MODULE_SLUGS.has(category) ? `/learning/${category}` : `/${category}`;
+
 function extractTOC(html) {
   if (!html) return [];
   const re = /<h([23])[^>]*>([\s\S]*?)<\/h\1>/gi;
@@ -305,7 +314,7 @@ const BlogLayout = ({
                   "@type": "ListItem",
                   position: 2,
                   name: CATEGORY_LABELS[category] || category,
-                  item: `${domain}/${category}`,
+                  item: `${domain}${categoryPath(category)}`,
                 },
                 {
                   "@type": "ListItem",
@@ -416,7 +425,7 @@ const BlogLayout = ({
             <span className="breadcrumb-sep"><i className="bi bi-chevron-right"></i></span>
             {category && (
               <>
-                <Link to={`/${category}`} className="breadcrumb-link">{categoryLabel}</Link>
+                <Link to={categoryPath(category)} className="breadcrumb-link">{categoryLabel}</Link>
                 <span className="breadcrumb-sep"><i className="bi bi-chevron-right"></i></span>
               </>
             )}
@@ -464,7 +473,7 @@ const BlogLayout = ({
               <span className="breadcrumb-sep">
                 <i className="bi bi-chevron-right"></i>
               </span>
-              <Link to={`/${category}`} className="breadcrumb-link">
+              <Link to={categoryPath(category)} className="breadcrumb-link">
                 {CATEGORY_LABELS[category] || category}
               </Link>
               <span className="breadcrumb-sep">

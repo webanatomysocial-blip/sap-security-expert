@@ -89,8 +89,20 @@ const LearningModulePage = () => {
     setLoading(true);
     getLearnings(module.slug)
       .then((res) => {
+        // Lessons are a sequence, not a feed — order by the "Lesson N" number
+        // in the title (newest-first by date put Lesson 2 before Lesson 1
+        // whenever it was published more recently). Articles without a
+        // "Lesson N" prefix fall back to oldest-first.
+        const lessonNum = (title) => {
+          const m = /^lesson\s+(\d+)/i.exec((title || "").trim());
+          return m ? parseInt(m[1], 10) : Infinity;
+        };
         const items = (Array.isArray(res.data) ? res.data : [])
-          .sort((a, b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at));
+          .sort((a, b) => {
+            const diff = lessonNum(a.title) - lessonNum(b.title);
+            if (diff !== 0) return diff;
+            return new Date(a.date || a.created_at) - new Date(b.date || b.created_at);
+          });
         setArticles(items);
       })
       .catch((err) => setError(err.message))
