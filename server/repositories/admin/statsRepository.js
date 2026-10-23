@@ -56,6 +56,27 @@ async function getContributorStats(db, userId) {
     [userId]
   ).catch(() => [[null]]);
 
+  // Earned achievement badges — look up linked member account via user email
+  let badges = [];
+  try {
+    const membersRepo = require('../membersRepository');
+    const [[userRow]] = await db.execute('SELECT email FROM users WHERE id = ? LIMIT 1', [userId]);
+    if (userRow?.email) {
+      await membersRepo.ensureAchievementTables(db);
+      const memberRow = await membersRepo.findMemberByEmailExact(db, userRow.email);
+      if (memberRow) {
+        const [types, earned] = await Promise.all([
+          membersRepo.findAllAchievementTypes(db),
+          membersRepo.findEarnedAchievements(db, memberRow.id),
+        ]);
+        const earnedSet = new Set(earned.map(e => e.achievement_id));
+        badges = types
+          .filter(t => earnedSet.has(t.id))
+          .map(t => ({ id: t.id, label: t.label, icon: t.icon, color: t.color }));
+      }
+    }
+  } catch { badges = []; }
+
   return {
     total: total.c,
     drafts: drafts.c,
@@ -74,6 +95,7 @@ async function getContributorStats(db, userId) {
     ambassador_has_badge: !!(ambassador && ambassador.has_badge),
     ambassador_badge_year: ambassador ? ambassador.badge_year : null,
     ambassador_country: ambassador ? ambassador.country : null,
+    badges,
   };
 }
 

@@ -1,9 +1,16 @@
 import React from "react";
+import SEO from "../../components/SEO";
+import { VITE_SITE_URL } from "../../utils/env";
 import LegalLayout from "../../components/LegalLayout";
 
 const SecurityCompliance = () => {
   return (
     <LegalLayout title="Security & Compliance Overview">
+      <SEO
+        title="Security & Compliance Overview — How SAP Security Expert Protects the Platform"
+        description="An overview of the security controls, data protection practices, and compliance standards in place at SAP Security Expert to keep the platform and its users safe."
+        url={`${VITE_SITE_URL}/security-compliance-overview`}
+      />
       <p style={{ color: "#666", marginBottom: "40px" }}>
         Security and compliance are foundational to how we design, build, and
         operate.

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Image from "next/image";
+import SEO from "./SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import BlogSidebar from "./BlogSidebar";
 import { getBlogs } from "../services/api";
 
@@ -56,7 +58,9 @@ const Blogs = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [visibleCount, setVisibleCount] = useState(12);
 
-  useEffect(() => {
+  const loadBlogs = () => {
+    setLoading(true);
+    setError(null);
     getBlogs()
       .then((res) => {
         const sorted = (Array.isArray(res.data) ? res.data : [])
@@ -72,9 +76,11 @@ const Blogs = () => {
           .sort((a, b) => new Date(b.date) - new Date(a.date));
         setBlogs(sorted);
       })
-      .catch((err) => setError(err.message))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadBlogs(); }, []);
 
   const filtered = useMemo(() => {
     return blogs.filter((b) => {
@@ -98,6 +104,11 @@ const Blogs = () => {
 
   return (
     <div className="category-page-wrapper">
+      <SEO
+        title="SAP Security Blogs & Articles — Expert Tutorials, Guides & Best Practices"
+        description="Browse all SAP Security, GRC, BTP, and cybersecurity articles written by practitioners. Filter by category, search by topic, and find the expert knowledge you need."
+        url={`${VITE_SITE_URL}/blogs`}
+      />
 
       {/* ── Hero header ── */}
       <div className="blogs-all-header">
@@ -188,8 +199,8 @@ const Blogs = () => {
               </div>
             ) : error ? (
               <div className="error-state">
-                <p>Error loading blogs: {error}</p>
-                <Link to="/" className="btn-primary">Go Home</Link>
+                <p>Unable to load articles right now. Please try again.</p>
+                <button className="btn-primary" onClick={loadBlogs}>Retry</button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="no-posts">

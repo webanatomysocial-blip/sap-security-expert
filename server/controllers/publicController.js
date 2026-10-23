@@ -120,8 +120,10 @@ const publicMemberProfile = asyncHandler(async (req, res) => {
   if (!m) return res.status(404).json({ status: 'error', message: 'Member not found' });
 
   const membersRepo = require('../repositories/membersRepository');
-  const isContributor = await membersRepo.findContributorByEmail(db, m.email);
-  const ambassadorBadge = await membersRepo.findAmbassadorBadgeByEmail(db, m.email);
+  const [isContributor, ambassadorBadge] = await Promise.all([
+    membersRepo.findContributorByEmail(db, m.email),
+    membersRepo.findAmbassadorBadgeByEmail(db, m.email),
+  ]);
 
   const vis = (() => {
     try { return m.profile_visibility ? JSON.parse(m.profile_visibility) : {}; } catch { return {}; }
@@ -129,6 +131,22 @@ const publicMemberProfile = asyncHandler(async (req, res) => {
   const defaults = { show_name: true, show_picture: true, show_company: false, show_email: false, show_country: true, show_in_directory: true, show_stats: true, show_badges: true };
   const v = { ...defaults, ...vis };
   const comment_count = await repo.countApprovedCommentsByMember(db, m.id);
+
+  // Earned achievement badges — only included when the member allows it
+  let badges = [];
+  if (v.show_badges) {
+    try {
+      await membersRepo.ensureAchievementTables(db);
+      const [types, earned] = await Promise.all([
+        membersRepo.findAllAchievementTypes(db),
+        membersRepo.findEarnedAchievements(db, m.id),
+      ]);
+      const earnedSet = new Set(earned.map(e => e.achievement_id));
+      badges = types
+        .filter(t => earnedSet.has(t.id))
+        .map(t => ({ id: t.id, label: t.label, icon: t.icon, color: t.color }));
+    } catch { badges = []; }
+  }
 
   return res.json({
     id: m.id,
@@ -145,6 +163,7 @@ const publicMemberProfile = asyncHandler(async (req, res) => {
     ambassador_badge_country: ambassadorBadge ? ambassadorBadge.country : null,
     ambassador_badge_year: ambassadorBadge ? ambassadorBadge.badge_year : null,
     ambassador_badge_years: ambassadorBadge ? ambassadorBadge.badge_years : [],
+    badges,
   });
 });
 
@@ -513,43 +532,44 @@ const SEO_STATIC = {
     title: 'The Global Community for SAP Security & ERP Cybersecurity Professionals',
     description: 'Discover SAP Security Expert for SAP Security, GRC, Cybersecurity, SAP BTP, SAP IAG, S/4HANA Security, tutorials, best practices, expert insights, and community resources to strengthen your SAP landscape.',
   },
-  '/blogs': { title: 'Blogs & Tutorials | SAP Security Expert', description: 'Read our latest blogs, tutorials, and step-by-step guides on SAP Security, GRC, and cloud compliance.' },
-  '/about': { title: 'About Us | SAP Security Expert', description: 'Learn more about SAP Security Expert, our mission, and our team of enterprise security specialists.' },
-  '/contact-us': { title: 'Contact SAP Security Expert', description: 'Contact SAP Security Expert for enquiries, partnerships, or support. Connect with SAP security professionals today.' },
-  '/podcasts': { title: 'SAP Security Podcasts & Expert Insights | SAP Security Expert', description: 'Listen to SAP security podcasts for expert insights, industry trends, and strategies.' },
-  '/reviews': { title: 'Product Reviews | SAP Security Expert', description: 'Unbiased reviews of the latest SAP Security and GRC compliance tools and automation platforms.' },
-  '/expert-recommendations': { title: 'SAP Security Recommendations & Resources | SAP Security Expert', description: 'SAP security expert recommendations, utilities, and resources to improve protection and simplify GRC workflows.' },
-  '/expert-papers': { title: 'Expert Papers | SAP Security Expert', description: 'In-depth papers authored by SAP Security experts covering GRC, access risk, and enterprise security strategy.' },
-  '/news': { title: 'News & Updates | SAP Security Expert', description: 'The latest announcements, feature releases, and platform news from SAP Security Expert — straight from the team.' },
-  '/learning-hub': { title: 'SAP Security Learning Hub — Free Courses & Tutorials | SAP Security Expert', description: 'Learn SAP Security from scratch with structured modules covering fundamentals, user management, role design, GRC, and more. Free hands-on tutorials for all levels.' },
+  '/blogs': { title: 'SAP Security Blogs & Articles — Expert Tutorials, Guides & Best Practices', description: 'Browse all SAP Security, GRC, BTP, and cybersecurity articles written by practitioners. Filter by category, search by topic, and find the expert knowledge you need.' },
+  '/about': { title: 'About SAP Security Expert — Independent Platform for SAP Security & GRC Practitioners', description: 'SAP Security Expert is a practitioner-built, independent knowledge platform for SAP Security, GRC, and BTP professionals. Learn about our mission, editorial standards, and the experts behind the content.' },
+  '/contact-us': { title: 'Contact SAP Security Expert — Questions, Partnerships & Content Enquiries', description: 'Reach the SAP Security Expert team for content partnerships, contributor questions, advertiser enquiries, or general feedback. We reply to every genuine enquiry.' },
+  '/podcasts': { title: 'SAP Security Podcast — Expert Interviews & Practitioner Conversations', description: 'Listen to SAP security practitioners discuss access risk, GRC implementation, BTP security, and enterprise compliance challenges. Real conversations from the field.' },
+  '/reviews': { title: 'SAP GRC & Security Product Reviews — Independent Practitioner Analysis', description: 'Read honest, practitioner-written reviews of SAP GRC, IAG, access risk, and cybersecurity tools. Technical analysis to help you evaluate and select the right SAP security products.' },
+  '/expert-recommendations': { title: 'SAP Security Expert Picks — Curated Resources Recommended by Practitioners', description: 'Articles, tools, and resources hand-picked by SAP Security practitioners. The best practical guidance on authorization, GRC, compliance, and SAP security operations — vetted by the community.' },
+  '/expert-papers': { title: 'SAP Security Expert Papers — In-Depth Research & Technical Deep Dives', description: 'Read practitioner-authored papers on SAP GRC strategy, access risk frameworks, BTP security architecture, and enterprise security programme design. Detailed technical analysis, not vendor content.' },
+  '/news': { title: 'SAP Security News — Threat Intelligence, Patches & Industry Updates', description: 'The latest SAP security news: vulnerability advisories, SAP patch releases, regulatory changes, GRC product updates, and cybersecurity threat intelligence for SAP landscapes.' },
+  '/learning-hub': { title: 'SAP Security Learning Hub — Free Structured Courses & Guided Learning Paths', description: 'Learn SAP Security step-by-step with free structured modules covering authorizations, user administration, role design, GRC, and BTP security. Practical tutorials from beginner to advanced.' },
   '/become-a-contributor': { title: 'Write for SAP Security Expert | Become a Contributor', description: 'Share your SAP Security expertise. Join our contributor programme and publish guides, tutorials, and best practices to the SAP security community.' },
   '/experts/raghu-boddu': { title: 'Raghu Boddu — SAP Security & GRC Expert, Founder of SAP Security Expert', description: 'Raghu Boddu is an SAP Security and GRC expert with 25+ years of experience, SAP PRESS author, and founder of SAP Security Expert and CEO of ToggleNow Global.' },
-  '/videos': { title: 'Global Voices in SAP Security | SAP Security Expert', description: 'Two-minute perspectives from SAP Security professionals around the world.' },
-  '/product-reviews': { title: 'SAP Security Product Reviews | SAP Security Expert', description: 'Unbiased technical reviews of SAP security products, GRC tools, and third-party add-ons to help you make informed software selection decisions.' },
-  '/contributors': { title: 'SAP Security Expert Contributors | SAP Security Expert', description: 'Meet the SAP Security Expert contributors — experienced practitioners sharing their expertise in SAP Security, GRC, BTP, and identity management.' },
-  '/leaderboard': { title: 'Top SAP Security Contributors Leaderboard | SAP Security Expert', description: 'Discover the top contributors in the SAP Security Expert community — ranked by published articles, expertise, and community impact.' },
-  '/ambassadors': { title: 'Country Ambassadors | SAP Security Expert', description: 'Meet the SAP Security Expert Country Ambassadors — local community leaders championing SAP Security and GRC best practices worldwide.' },
-  '/community': { title: 'Meet the Community | SAP Security Expert', description: 'Meet the SAP Security, GRC, and BTP practitioners, contributors, and ambassadors behind the SAP Security Expert community.' },
+  '/videos': { title: 'SAP Security Video Library — Short Insights from Global Practitioners', description: 'Watch two-minute perspectives from SAP Security professionals on authorization design, GRC tools, BTP security, and real-world implementation challenges.' },
+  '/product-reviews': { title: 'SAP GRC & Security Product Reviews — Independent Practitioner Analysis', description: 'Read honest, practitioner-written reviews of SAP GRC, IAG, access risk, and cybersecurity tools. Technical analysis to help you evaluate and select the right SAP security products.' },
+  '/contributors': { title: 'SAP Security Contributors Leaderboard — Top-Ranked SAP & GRC Experts', description: 'Discover the most active contributors to the SAP Security Expert community, ranked by published articles, expertise, and community impact.' },
+  '/leaderboard': { title: 'SAP Security Contributors Leaderboard — Top-Ranked SAP & GRC Experts', description: 'Discover the most active contributors to the SAP Security Expert community, ranked by published articles, expertise, and community impact.' },
+  '/ambassadors': { title: 'SAP Security Country Ambassadors — Local Community Leaders Worldwide', description: 'Meet the SAP Security Expert Country Ambassadors leading local SAP Security and GRC communities across Europe, Asia-Pacific, the Americas, and the Middle East.' },
+  '/community': { title: 'SAP Security Community — Practitioners, Contributors & Global Experts', description: 'Connect with SAP Security, GRC, and BTP professionals worldwide. Browse contributor profiles, find country ambassadors, and explore the community behind SAP Security Expert.' },
   '/transactions': { title: 'SAP Security Transactions Reference Guide | SAP Security Expert', description: 'A complete reference guide to important SAP security transactions — PFCG, SU01, SM20, RSECADMIN, and more, with practical usage tips for each.' },
   '/sap-licensing': { title: 'SAP Licensing Guide & Compliance | SAP Security Expert', description: 'Understand SAP licensing metrics, user types, indirect access rules, and contract optimisation strategies to manage costs and avoid audit risk.' },
-  '/announcements': { title: 'SAP Security Expert Announcements | SAP Security Expert', description: 'Platform announcements, feature releases, and community updates from the SAP Security Expert team.' },
+  '/announcements': { title: 'SAP Security Expert Announcements — Platform News & Community Updates', description: 'Platform announcements, new feature releases, community milestones, and updates from the SAP Security Expert team.' },
   '/sitemap': { title: 'Sitemap | SAP Security Expert', description: 'A complete directory of all pages on SAP Security Expert — SAP Security, GRC, BTP, Learning Hub, and more.' },
-  '/downloads': { title: 'SAP Security Downloads — Templates, Tools & Checklists | SAP Security Expert', description: 'Download free SAP security templates, audit checklists, GRC configuration guides, and tools curated by SAP security professionals.' },
-  '/privacy-policy': { title: 'Privacy Policy | SAP Security Expert', description: 'Read the SAP Security Expert privacy policy to understand how we collect, use, and protect your personal data.' },
-  '/terms-conditions': { title: 'Terms & Conditions | SAP Security Expert', description: 'Review the terms and conditions governing your use of the SAP Security Expert platform and its content.' },
-  '/accessibility-statement': { title: 'Accessibility Statement | SAP Security Expert', description: 'SAP Security Expert is committed to making our platform accessible to all users. Read our accessibility statement.' },
-  '/safety-movement': { title: 'Safety Movement | SAP Security Expert', description: 'Learn about the SAP Security Expert Safety Movement and our commitment to a safe, inclusive, and respectful community.' },
-  '/security-compliance-overview': { title: 'Security & Compliance Overview | SAP Security Expert', description: 'An overview of the security controls and compliance practices in place at SAP Security Expert to protect our platform and users.' },
-  '/responsible-ai-automation-statement': { title: 'Responsible AI & Automation Statement | SAP Security Expert', description: 'Read how SAP Security Expert approaches AI and automation responsibly in our content creation and platform operations.' },
+  '/downloads': { title: 'Free SAP Security Downloads — Templates, Checklists & Audit Tools', description: 'Download practitioner-curated SAP security resources: role design templates, SoD conflict matrices, GRC configuration guides, security audit checklists, and ABAP security frameworks.' },
+  '/privacy-policy': { title: 'Privacy & Cookie Policy — How SAP Security Expert Handles Your Data', description: 'Read the SAP Security Expert privacy and cookie policy. Understand how we collect, use, store, and protect your personal data when you use our platform.' },
+  '/terms-conditions': { title: 'Terms & Conditions — SAP Security Expert Platform Rules & Usage', description: 'Review the terms and conditions governing your use of the SAP Security Expert platform, its content, contributor programme, and credit-based article access.' },
+  '/accessibility-statement': { title: 'Accessibility Statement — SAP Security Expert\'s Commitment to Inclusive Access', description: 'SAP Security Expert is committed to making our platform accessible to all users. Read our accessibility statement and learn how we meet WCAG standards.' },
+  '/safety-movement': { title: 'SAP Security Expert Safety Movement — Our Commitment to a Safe, Inclusive Community', description: 'Learn about the SAP Security Expert Safety Movement and our commitment to creating a safe, respectful, and inclusive environment for SAP Security practitioners worldwide.' },
+  '/security-compliance-overview': { title: 'Security & Compliance Overview — How SAP Security Expert Protects the Platform', description: 'An overview of the security controls, data protection practices, and compliance standards in place at SAP Security Expert to keep the platform and its users safe.' },
+  '/responsible-ai-automation-statement': { title: 'Responsible AI & Automation Statement — SAP Security Expert\'s Approach to AI', description: 'Read how SAP Security Expert uses AI and automation responsibly in content creation, moderation, and platform operations — with human editorial oversight at every step.' },
   '/apply-contributor': { title: 'Contributor Application | SAP Security Expert', description: 'Apply to become a contributor at SAP Security Expert. Share your SAP security expertise with a global community of professionals.' },
-  '/sap-security-fundamentals': { title: 'SAP Security Fundamentals Guide | SAP Security Expert', description: 'Master SAP Security fundamentals — authorization concepts, user management, role design, audit compliance, and GRC essentials for all levels.' },
-  '/membership': { title: 'Membership & Credits | SAP Security Expert', description: 'Purchase credits to unlock premium SAP Security Expert articles. Lifetime access with no subscription required.' },
-  '/learning/security-fundamentals': { title: 'SAP Security Fundamentals | SAP Security Learning Hub', description: 'Start learning SAP Security. Discover foundational concepts, architecture, and threat vectors in SAP environments.' },
-  '/learning/user-management': { title: 'SAP User Management & SU01 | SAP Security Learning Hub', description: 'Master SAP user administration: SU01 user maintenance, user types, security parameters, and validity periods.' },
-  '/learning/role-management': { title: 'SAP Role Design & PFCG | SAP Security Learning Hub', description: 'Learn SAP PFCG role maintenance: single roles, composite roles, derived roles, and role transport strategies.' },
-  '/learning/authorization-concepts': { title: 'SAP Authorization Concepts & Fields | SAP Security Learning Hub', description: 'Understand SAP authorization objects, fields, profiles, and user buffers for granular access control.' },
-  '/learning/audit-compliance': { title: 'SAP Security Audit & Compliance Checklist | SAP Security Learning Hub', description: 'Prepare for SAP audits. Learn Security Audit Log (SAL), system profiling, and vulnerability scans.' },
-  '/learning/grc-advanced': { title: 'SAP GRC & Advanced Topics | SAP Security Learning Hub', description: 'Explore advanced SAP security topics: Access Control, Process Control, IAG, BTP Cloud security, and identity integration.' },
+  '/privacy-and-data-protection': { title: 'Your Rights & Data Privacy — SAP Security Expert', description: 'Understand your data privacy rights at SAP Security Expert: access, correction, deletion, and how we handle personal data under GDPR and applicable data protection law.' },
+  '/sap-security-fundamentals': { title: 'SAP Security Fundamentals — Beginner\'s Guide to Access Control & Authorizations', description: 'New to SAP Security? Start here. Learn the core concepts of SAP authorization, role design, user types, and compliance basics with step-by-step guides built for practitioners.' },
+  '/membership': { title: 'Unlock Premium SAP Security Articles — Credits & Access Plans', description: 'Buy credits once to unlock any premium SAP Security, GRC, or BTP article. Lifetime access, no subscription required. Keep every article you unlock, forever.' },
+  '/learning/security-fundamentals': { title: 'SAP Security Fundamentals — Module 01 of the SAP Security Learning Hub', description: 'Start learning SAP Security from the ground up. Foundational concepts, system architecture, and the mental model every SAP Security practitioner needs first.' },
+  '/learning/user-management': { title: 'SAP User Management & SU01 — Module 02 of the SAP Security Learning Hub', description: 'Master SAP user administration: SU01 maintenance, user types, validity periods, logon parameters, and the lifecycle transactions you will use every day.' },
+  '/learning/role-management': { title: 'SAP Role Design & PFCG — Module 03 of the SAP Security Learning Hub', description: 'Build, derive, and maintain SAP roles in PFCG. Single roles, composite roles, derived roles, and the transport strategies that keep them consistent across landscapes.' },
+  '/learning/authorization-concepts': { title: 'SAP Authorization Concepts — Module 04 of the SAP Security Learning Hub', description: 'Understand the authorization plumbing under SAP roles: auth objects, field values, profiles, and the runtime check engine that grants or denies every transaction.' },
+  '/learning/audit-compliance': { title: 'SAP Audit & Compliance — Module 05 of the SAP Security Learning Hub', description: 'Learn how to track who did what in SAP and prove it to auditors. Security Audit Log, system profiling, SoD reporting, and audit-readiness strategies.' },
+  '/learning/grc-advanced': { title: 'SAP GRC & Advanced Topics — Module 06 of the SAP Security Learning Hub', description: 'Go beyond the basics with SAP GRC Access Control, IAG, Process Control, BTP security, and the enterprise governance layer that ties it all together.' },
 };
 
 const SEO_CATEGORIES = {

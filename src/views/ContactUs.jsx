@@ -14,6 +14,7 @@ import { useToast } from "../context/ToastContext";
 import { getCaptcha } from "../services/api";
 import logo from "../assets/sapsecurityexpert-black.png";
 import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import "../css/ContactForm.css";
 
 const ContactUs = () => {
@@ -92,8 +93,9 @@ const ContactUs = () => {
   return (
     <div className="contact-page">
       <SEO
-        title="Contact Us | SAP Security Expert"
-        description="Get in touch with the SAP Security Expert team for questions, feedback, or partnership opportunities."
+        title="Contact SAP Security Expert — Questions, Partnerships & Content Enquiries"
+        description="Reach the SAP Security Expert team for content partnerships, contributor questions, advertiser enquiries, or general feedback. We reply to every genuine enquiry."
+        url={`${VITE_SITE_URL}/contact-us`}
       />
       <div className="contact-hero">
         <div className="contact-hero-left">

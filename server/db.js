@@ -556,6 +556,10 @@ if (isSQLite) {
     )
   `).run();
   sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_ctx_member ON credit_transactions(member_id)').run();
+  // Add order_currency / order_amount_foreign for international payment reconciliation
+  try { sqliteDb.prepare("ALTER TABLE payment_orders ADD COLUMN order_currency TEXT NOT NULL DEFAULT 'INR'").run(); } catch { /* column already exists */ }
+  try { sqliteDb.prepare('ALTER TABLE payment_orders ADD COLUMN order_amount_foreign INTEGER DEFAULT NULL').run(); } catch { /* column already exists */ }
+
   // Add razorpay_order_id for replay prevention (ignore if column already exists)
   try { sqliteDb.prepare('ALTER TABLE credit_transactions ADD COLUMN razorpay_order_id TEXT').run(); } catch { /* column already exists */ }
   try { sqliteDb.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_ctx_order ON credit_transactions(razorpay_order_id) WHERE razorpay_order_id IS NOT NULL').run(); } catch { /* index already exists */ }
@@ -573,6 +577,8 @@ if (isSQLite) {
       bundle_price_paise INTEGER NOT NULL,
       coupon_id INTEGER DEFAULT NULL,
       final_price_paise INTEGER NOT NULL,
+      order_currency TEXT NOT NULL DEFAULT 'INR',
+      order_amount_foreign INTEGER DEFAULT NULL,
       fulfilled INTEGER NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -604,6 +610,21 @@ if (isSQLite) {
   sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_dld_member ON member_file_downloads(member_id)').run();
   const dldCols = sqliteDb.prepare('PRAGMA table_info(member_file_downloads)').all().map(r => r.name);
   if (!dldCols.includes('original_name')) sqliteDb.prepare('ALTER TABLE member_file_downloads ADD COLUMN original_name TEXT DEFAULT NULL').run();
+
+  sqliteDb.prepare(`
+    CREATE TABLE IF NOT EXISTS document_access_log (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      member_id   INTEGER NOT NULL,
+      file_url    TEXT    NOT NULL,
+      action      TEXT    NOT NULL DEFAULT 'download',
+      ip_address  TEXT    DEFAULT NULL,
+      user_agent  TEXT    DEFAULT NULL,
+      success     INTEGER NOT NULL DEFAULT 1,
+      requested_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+  sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_dal_member ON document_access_log(member_id)').run();
+  sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_dal_file ON document_access_log(file_url)').run();
 
   sqliteDb.prepare(`
     CREATE TABLE IF NOT EXISTS post_views (
@@ -897,6 +918,22 @@ if (isSQLite) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `));
 
+      await step('create document_access_log', () => conn.execute(`
+        CREATE TABLE IF NOT EXISTS document_access_log (
+          id           INT          NOT NULL AUTO_INCREMENT,
+          member_id    INT          NOT NULL,
+          file_url     VARCHAR(500) NOT NULL,
+          action       VARCHAR(20)  NOT NULL DEFAULT 'download',
+          ip_address   VARCHAR(45)  DEFAULT NULL,
+          user_agent   VARCHAR(500) DEFAULT NULL,
+          success      TINYINT(1)   NOT NULL DEFAULT 1,
+          requested_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          KEY idx_dal_member (member_id),
+          KEY idx_dal_file   (file_url(191))
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `));
+
       await step('create email_logs', () => conn.execute(`
         CREATE TABLE IF NOT EXISTS email_logs (
           id            INT          NOT NULL AUTO_INCREMENT,
@@ -1150,6 +1187,10 @@ if (isSQLite) {
       // ── payment_orders: payment_id column ────────────────────────────────────
       const poCols = await getColumns('payment_orders');
       if (!poCols.includes('razorpay_payment_id')) await addCol('payment_orders', 'razorpay_payment_id', "VARCHAR(255) DEFAULT NULL");
+      if (!poCols.includes('zoho_invoice_id'))    await addCol('payment_orders', 'zoho_invoice_id',    "VARCHAR(255) DEFAULT NULL");
+      // ── payment_orders: international currency columns ────────────────────────
+      if (!poCols.includes('order_currency'))       await addCol('payment_orders', 'order_currency',       "VARCHAR(10) NOT NULL DEFAULT 'INR'");
+      if (!poCols.includes('order_amount_foreign')) await addCol('payment_orders', 'order_amount_foreign', "BIGINT DEFAULT NULL");
 
       // ── member_file_downloads: original_name column ───────────────────────────
       const dldCols = await getColumns('member_file_downloads');

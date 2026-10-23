@@ -1,9 +1,16 @@
 import React from "react";
+import SEO from "../../components/SEO";
+import { VITE_SITE_URL } from "../../utils/env";
 import LegalLayout from "../../components/LegalLayout";
 
 const PrivacyPolicy = () => {
   return (
     <LegalLayout title="Privacy & Cookie Policy">
+      <SEO
+        title="Privacy & Cookie Policy — How SAP Security Expert Handles Your Data"
+        description="Read the SAP Security Expert privacy and cookie policy. Understand how we collect, use, store, and protect your personal data when you use our platform."
+        url={`${VITE_SITE_URL}/privacy-policy`}
+      />
       <p style={{ color: "#666", marginBottom: "40px" }}>
         Last Updated:{" "}
         {new Date().toLocaleDateString("en-US", {

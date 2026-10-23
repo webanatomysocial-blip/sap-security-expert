@@ -5,7 +5,8 @@ const axios = require('axios');
 const ROOT = path.join(__dirname, '../..');
 
 /**
- * Extract all /uploads/downloads/* file URLs embedded in blog content HTML.
+ * Extract all download file URLs embedded in blog content HTML.
+ * Handles both public (/uploads/downloads/) and private (private://) PDFs.
  */
 function extractDownloadUrls(html) {
   if (!html) return [];
@@ -13,16 +14,25 @@ function extractDownloadUrls(html) {
   const re = /data-file-url="([^"]+)"/g;
   let m;
   while ((m = re.exec(html)) !== null) {
-    if (m[1].startsWith('/uploads/downloads/')) urls.push(m[1]);
+    if (m[1].startsWith('/uploads/downloads/') || m[1].startsWith('private://')) urls.push(m[1]);
   }
   return urls;
 }
 
 /**
- * Delete a file from the filesystem (same safety rules as deleteImage).
+ * Delete a download file from the filesystem.
+ * Handles both public (/uploads/downloads/) and private (private://) paths.
  */
 function deleteUploadedFile(filePath) {
-  return deleteImage(filePath); // reuses the same path-resolution + safety logic
+  if (typeof filePath === 'string' && filePath.startsWith('private://')) {
+    const PRIVATE_DIR = path.join(ROOT, 'server/private-downloads');
+    const filename = path.basename(filePath.slice('private://'.length));
+    const abs = path.join(PRIVATE_DIR, filename);
+    // Safety: must stay inside private-downloads
+    if (!abs.startsWith(PRIVATE_DIR + path.sep)) return false;
+    try { fs.unlinkSync(abs); return true; } catch { return false; }
+  }
+  return deleteImage(filePath);
 }
 
 /**

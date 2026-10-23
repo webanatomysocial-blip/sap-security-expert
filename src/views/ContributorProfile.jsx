@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import NotFound from "./NotFound";
 import { useParams, Link } from "react-router-dom";
+import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import { getContributorProfile } from "../services/api";
 import Image from "next/image";
+import AchievementBadgeStrip from "../components/AchievementBadgeStrip";
 
 const expertiseLabels = {
   sapSecurity: "SAP Security",
@@ -87,8 +90,14 @@ export default function ContributorProfile() {
   const avatarUrl = imgError || !contributor.profile_image ? null : contributor.profile_image;
   const isRaghu = id === "raghu-boddu" || contributor.slug === "raghu-boddu" || (contributor.full_name && contributor.full_name.toLowerCase().includes("raghu"));
 
+  const designation = contributor.designation || contributor.role || "SAP Security Contributor";
   return (
     <div style={{ background: "#f1f5f9", minHeight: "100vh", paddingBottom: 60 }}>
+      <SEO
+        title={`${contributor.full_name} — ${designation} | SAP Security Expert`}
+        description={contributor.bio ? contributor.bio.substring(0, 160) : `${contributor.full_name} is an SAP Security contributor at SAP Security Expert.`}
+        url={`${VITE_SITE_URL}/contributor/${id}`}
+      />
 
       {/* ── Hero banner ── */}
       <div style={{
@@ -291,6 +300,19 @@ export default function ContributorProfile() {
                   <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#0f172a" }}>About</h2>
                 </div>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.8, fontSize: "0.95rem" }}>{contributor.short_bio}</p>
+              </div>
+            )}
+
+            {/* Achievement badges */}
+            {contributor.badges?.length > 0 && (
+              <div style={{ background: "#fff", borderRadius: 16, padding: "20px 28px", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className="bi bi-award-fill" style={{ color: "#d97706" }} />
+                  </div>
+                  <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#0f172a" }}>Achievements</h2>
+                </div>
+                <AchievementBadgeStrip badges={contributor.badges} size={40} />
               </div>
             )}
 

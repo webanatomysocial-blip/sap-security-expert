@@ -58,28 +58,28 @@ const LEARNING_MODULES = {
 
 const SEO_META = {
   'security-fundamentals': {
-    title: 'SAP Security Fundamentals | SAP Security Learning Hub',
-    description: 'Start learning SAP Security. Discover foundational concepts, architecture, and threat vectors in SAP environments.',
+    title: 'SAP Security Fundamentals — Module 01 of the SAP Security Learning Hub',
+    description: 'Start learning SAP Security from the ground up. Foundational concepts, system architecture, and the mental model every SAP Security practitioner needs first.',
   },
   'user-management': {
-    title: 'SAP User Management & SU01 | SAP Security Learning Hub',
-    description: 'Master SAP user administration: SU01 user maintenance, user types, security parameters, and validity periods.',
+    title: 'SAP User Management & SU01 — Module 02 of the SAP Security Learning Hub',
+    description: 'Master SAP user administration: SU01 maintenance, user types, validity periods, logon parameters, and the lifecycle transactions you will use every day.',
   },
   'role-management': {
-    title: 'SAP Role Design & PFCG | SAP Security Learning Hub',
-    description: 'Learn SAP PFCG role maintenance: single roles, composite roles, derived roles, and role transport strategies.',
+    title: 'SAP Role Design & PFCG — Module 03 of the SAP Security Learning Hub',
+    description: 'Build, derive, and maintain SAP roles in PFCG. Single roles, composite roles, derived roles, and the transport strategies that keep them consistent across landscapes.',
   },
   'authorization-concepts': {
-    title: 'SAP Authorization Concepts & Fields | SAP Security Learning Hub',
-    description: 'Understand SAP authorization objects, fields, profiles, and user buffers for granular access control.',
+    title: 'SAP Authorization Concepts — Module 04 of the SAP Security Learning Hub',
+    description: 'Understand the authorization plumbing under SAP roles: auth objects, field values, profiles, and the runtime check engine that grants or denies every transaction.',
   },
   'audit-compliance': {
-    title: 'SAP Security Audit & Compliance Checklist | SAP Security Learning Hub',
-    description: 'Prepare for SAP audits. Learn Security Audit Log (SAL), system profiling, and vulnerability scans.',
+    title: 'SAP Audit & Compliance — Module 05 of the SAP Security Learning Hub',
+    description: 'Learn how to track who did what in SAP and prove it to auditors. Security Audit Log, system profiling, SoD reporting, and audit-readiness strategies.',
   },
   'grc-advanced': {
-    title: 'SAP GRC & Advanced Topics | SAP Security Learning Hub',
-    description: 'Explore advanced SAP security topics: Access Control, Process Control, IAG, BTP Cloud security, and identity integration.',
+    title: 'SAP GRC & Advanced Topics — Module 06 of the SAP Security Learning Hub',
+    description: 'Go beyond the basics with SAP GRC Access Control, IAG, Process Control, BTP security, and the enterprise governance layer that ties it all together.',
   },
 };
 

@@ -1,9 +1,16 @@
 import React from "react";
+import SEO from "../../components/SEO";
+import { VITE_SITE_URL } from "../../utils/env";
 import LegalLayout from "../../components/LegalLayout";
 
 const AccessibilityStatement = () => {
   return (
     <LegalLayout title="Accessibility Statement">
+      <SEO
+        title="Accessibility Statement — SAP Security Expert's Commitment to Inclusive Access"
+        description="SAP Security Expert is committed to making our platform accessible to all users. Read our accessibility statement and learn how we meet WCAG standards."
+        url={`${VITE_SITE_URL}/accessibility-statement`}
+      />
       <p style={{ color: "#666", marginBottom: "40px" }}>Introduction</p>
 
       <section>

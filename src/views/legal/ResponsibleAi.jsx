@@ -1,9 +1,16 @@
 import React from "react";
+import SEO from "../../components/SEO";
+import { VITE_SITE_URL } from "../../utils/env";
 import LegalLayout from "../../components/LegalLayout";
 
 const ResponsibleAi = () => {
   return (
     <LegalLayout title="Responsible AI & Automation Statement">
+      <SEO
+        title="Responsible AI & Automation Statement — SAP Security Expert's Approach to AI"
+        description="Read how SAP Security Expert uses AI and automation responsibly in content creation, moderation, and platform operations — with human editorial oversight at every step."
+        url={`${VITE_SITE_URL}/responsible-ai-automation-statement`}
+      />
       <p style={{ color: "#666", marginBottom: "40px" }}>
         Last updated:{" "}
         {new Date().toLocaleDateString("en-US", {

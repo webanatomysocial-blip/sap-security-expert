@@ -1,9 +1,16 @@
 import React from "react";
+import SEO from "../../components/SEO";
+import { VITE_SITE_URL } from "../../utils/env";
 import LegalLayout from "../../components/LegalLayout";
 
 const TermsConditions = () => {
   return (
     <LegalLayout title="Terms & Conditions">
+      <SEO
+        title="Terms & Conditions — SAP Security Expert Platform Rules & Usage"
+        description="Review the terms and conditions governing your use of the SAP Security Expert platform, its content, contributor programme, and credit-based article access."
+        url={`${VITE_SITE_URL}/terms-conditions`}
+      />
       <p style={{ color: "#666", marginBottom: "40px" }}>
         Last Updated:{" "}
         {new Date().toLocaleDateString("en-US", {

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Image from "next/image";
+import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import { getAnnouncementBySlug } from "../services/api";
 import BlogSidebar from "../components/BlogSidebar";
 import NotFound from "./NotFound";
@@ -34,6 +36,11 @@ const AnnouncementDetail = () => {
 
   return (
     <div className="category-page-wrapper">
+      <SEO
+        title={`${item.title} | SAP Security Expert`}
+        description={item.excerpt || item.title}
+        url={`${VITE_SITE_URL}/announcements/${slug}`}
+      />
       {/* Hero banner */}
       <div className="ann-detail-hero">
         <div className="container">

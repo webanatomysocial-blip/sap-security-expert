@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import NotFound from "./NotFound";
 import { useParams, Link } from "react-router-dom";
 import Image from "next/image";
+import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import { getMemberPublicProfile } from "../services/api";
 import AmbassadorBadge from "../components/AmbassadorBadge";
+import AchievementBadgeStrip from "../components/AchievementBadgeStrip";
 
 const REPUTATION_CONFIG = {
   Contributor: {
@@ -92,8 +95,14 @@ const MemberPublicProfile = () => {
     ? new Date(member.joined).toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : null;
 
+  const displayName = member.full_name || member.username || "SAP Security Expert Member";
   return (
     <div className="contributor-profile-page">
+      <SEO
+        title={`${displayName} — SAP Security Expert Member Profile`}
+        description={`View the SAP Security Expert profile for ${displayName}. Explore their contributions, expertise, and community activity.`}
+        url={`${VITE_SITE_URL}/member/${id}`}
+      />
       <div className="profile-container">
         <nav className="blog-breadcrumb" style={{ marginBottom: 24 }}>
           <Link to="/" className="breadcrumb-link" style={{ color: "#64748b" }}>Home</Link>
@@ -175,6 +184,16 @@ const MemberPublicProfile = () => {
                 <AmbassadorBadge country={member.ambassador_badge_country} year={member.ambassador_badge_year} size={150} />
               )}
             </div>
+
+            {/* Achievement badge strip */}
+            {member.badges?.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#94a3b8", marginBottom: 8 }}>
+                  Achievements
+                </div>
+                <AchievementBadgeStrip badges={member.badges} />
+              </div>
+            )}
           </div>
         </div>
       </div>

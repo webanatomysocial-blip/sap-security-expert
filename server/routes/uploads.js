@@ -97,8 +97,16 @@ const DOWNLOAD_ALLOWED_TYPES = new Set([
   'text/plain', 'text/csv',
 ]);
 
+const PRIVATE_DOWNLOADS_DIR = path.join(__dirname, '../private-downloads');
+if (!require('fs').existsSync(PRIVATE_DOWNLOADS_DIR)) require('fs').mkdirSync(PRIVATE_DOWNLOADS_DIR, { recursive: true });
+
 const downloadStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, getUploadDir('downloads')),
+  destination: (req, file, cb) => {
+    // PDFs go to private-downloads (outside public/) — never directly web-accessible.
+    // All other types go to public/uploads/downloads/ as before.
+    const isPdf = file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname);
+    cb(null, isPdf ? PRIVATE_DOWNLOADS_DIR : getUploadDir('downloads'));
+  },
   filename: (req, file, cb) => {
     const ext = file.originalname.split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
     cb(null, `dl_${crypto.randomBytes(10).toString('hex')}.${ext}`);
@@ -128,7 +136,12 @@ router.post(
   },
   (req, res) => {
     if (!req.file) return res.json({ status: 'error', message: 'No file received.' });
-    const fileUrl = `/uploads/downloads/${req.file.filename}`;
+    const isPdf = req.file.mimetype === 'application/pdf' || /\.pdf$/i.test(req.file.filename);
+    // PDFs use private:// prefix — the /api/downloads/stream endpoint resolves this to
+    // server/private-downloads/ (outside public/) so they are never directly accessible.
+    const fileUrl = isPdf
+      ? `private://${req.file.filename}`
+      : `/uploads/downloads/${req.file.filename}`;
     const sizeKb = req.file.size;
     const sizeLabel = sizeKb >= 1024 * 1024
       ? `${(sizeKb / 1024 / 1024).toFixed(1)} MB`

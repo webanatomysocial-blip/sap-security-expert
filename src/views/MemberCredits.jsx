@@ -13,10 +13,22 @@ import {
   getMemberReferral,
   getMyDownloads,
   getDownloadToken,
+  detectPaymentCurrency,
 } from "../services/api";
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
 const fmtAmount = (p) => (typeof p === "number" && !isNaN(p)) ? `₹${(p / 100).toLocaleString("en-IN")}` : "—";
+
+function fmtCurrency(paise, fxCurrency, fxRate, decimals = 2) {
+  if (!fxCurrency || fxCurrency === "INR" || !fxRate) {
+    return `₹${(paise / 100).toLocaleString("en-IN")}`;
+  }
+  let amount = (paise / 100) * fxRate;
+  if (decimals === 3) {
+    amount = Math.floor(Math.round(amount * 1000) / 10) * 10 / 1000;
+  }
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: fxCurrency, minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(amount);
+}
 
 /* ── Buy Credits Modal ─────────────────────────────────────────────────────── */
 function BuyCreditsModal({ onClose, onSuccess }) {
@@ -27,7 +39,20 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   const [couponError, setCouponError] = useState("");
   const [validating, setValidating] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [fxCurrency, setFxCurrency] = useState("INR");
+  const [fxRate, setFxRate] = useState(1);
+  const [fxDecimals, setFxDecimals] = useState(2);
   const { addToast } = useToast();
+
+  useEffect(() => {
+    detectPaymentCurrency().then((r) => {
+      if (r.data?.currency && r.data.currency !== "INR") {
+        setFxCurrency(r.data.currency);
+        setFxRate(r.data.rate);
+        setFxDecimals(r.data.decimals ?? 2);
+      }
+    }).catch(() => {});
+  }, []);
   const { onCreditsPurchased } = useMemberAuth();
 
   useEffect(() => {
@@ -78,13 +103,13 @@ function BuyCreditsModal({ onClose, onSuccess }) {
         return;
       }
 
-      const orderRes = await createCreditOrder(selected.id, couponData ? couponCode : undefined);
-      const { order_id: razorpay_order_id, final_price_paise, key_id } = orderRes.data;
+      const orderRes = await createCreditOrder(selected.id, couponData ? couponCode : undefined, fxCurrency !== "INR" ? fxCurrency : undefined);
+      const { order_id: razorpay_order_id, amount, currency: orderCurrency, key_id } = orderRes.data;
 
       const options = {
         key: key_id,
-        amount: final_price_paise,
-        currency: "INR",
+        amount,
+        currency: orderCurrency || "INR",
         name: "SAP Security Expert",
         description: `${selected.credits} Credits: ${selected.name}`,
         order_id: razorpay_order_id,
@@ -144,7 +169,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
                 </div>
               </div>
               <div style={{ fontWeight: 700, fontSize: "1.05rem", color: selected?.id === b.id ? "#e85d2f" : "#334155" }}>
-                {fmtAmount(b.price_paise)}
+                {fmtCurrency(b.price_paise, fxCurrency, fxRate, fxDecimals)}
               </div>
             </div>
           ))}
@@ -178,16 +203,21 @@ function BuyCreditsModal({ onClose, onSuccess }) {
         {selected && (
           <div style={{ background: "#f8fafc", borderRadius: 10, padding: "14px 16px", marginBottom: 20, marginTop: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", color: "#64748b", marginBottom: 6 }}>
-              <span>{selected.name}</span><span>{fmtAmount(selected.price_paise)}</span>
+              <span>{selected.name}</span><span>{fmtCurrency(selected.price_paise, fxCurrency, fxRate, fxDecimals)}</span>
             </div>
             {couponData && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", color: "#16a34a", marginBottom: 6 }}>
-                <span>Discount</span><span>−{fmtAmount(couponData.discount_paise)}</span>
+                <span>Discount</span><span>−{fmtCurrency(couponData.discount_paise, fxCurrency, fxRate, fxDecimals)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: "1rem", color: "#1e293b", borderTop: "1px solid #e2e8f0", paddingTop: 8, marginTop: 4 }}>
-              <span>Total</span><span>{fmtAmount(finalPaise)}</span>
+              <span>Total</span><span>{fmtCurrency(finalPaise, fxCurrency, fxRate, fxDecimals)}</span>
             </div>
+            {fxCurrency !== "INR" && (
+              <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 6, textAlign: "right" }}>
+                ≈ {fmtAmount(finalPaise)} INR · Rate: 1 INR = {fxRate.toFixed(4)} {fxCurrency}
+              </div>
+            )}
           </div>
         )}
 
@@ -200,7 +230,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
             cursor: "pointer", fontFamily: "inherit", opacity: paying || !selected ? 0.6 : 1,
           }}
         >
-          {paying ? "Processing…" : `Pay ${fmtAmount(finalPaise)}`}
+          {paying ? "Processing…" : `Pay ${fmtCurrency(finalPaise, fxCurrency, fxRate, fxDecimals)}`}
         </button>
       </div>
     </div>,

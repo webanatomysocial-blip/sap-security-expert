@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 
 const SectionTable = ({ rows }) => (
   <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
@@ -23,7 +24,11 @@ const Divider = () => <hr style={{ border: "none", borderTop: "1px solid #e2e8f0
 const BecomeCountryAmbassador = () => {
   return (
     <div style={{ background: "#fff" }}>
-      <SEO title="Country Ambassador | SAP Security Expert" />
+      <SEO
+        title="Become an SAP Security Country Ambassador — Apply to Lead Your Local Community"
+        description="Apply to become a Country Ambassador for SAP Security Expert. Lead local SAP Security and GRC community initiatives, represent your country, and connect with practitioners worldwide."
+        url={`${VITE_SITE_URL}/become-a-country-ambassador`}
+      />
 
       {/* Hero */}
       <div style={{

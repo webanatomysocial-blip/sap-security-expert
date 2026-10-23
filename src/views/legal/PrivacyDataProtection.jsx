@@ -1,10 +1,17 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import SEO from "../../components/SEO";
+import { VITE_SITE_URL } from "../../utils/env";
 import LegalLayout from "../../components/LegalLayout";
 
 const PrivacyDataProtection = () => {
   return (
     <LegalLayout title="Your Rights &amp; Data Privacy">
+      <SEO
+        title="Your Rights & Data Privacy — SAP Security Expert"
+        description="Understand your data privacy rights at SAP Security Expert: access, correction, deletion, and how we handle personal data under GDPR and applicable data protection law."
+        url={`${VITE_SITE_URL}/privacy-and-data-protection`}
+      />
       <p style={{ color: "#666", marginBottom: "40px" }}>Last Updated: 28 Aug 2026</p>
 
       <section>

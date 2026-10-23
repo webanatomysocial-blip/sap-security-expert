@@ -40,17 +40,33 @@ const nextConfig = {
   // and old bookmarks/links get a real 301 instead of a 200 that then redirects.
   async redirects() {
     return [
-      // /contributors was removed; the directory lives at /leaderboard now.
-      { source: '/contributors', destination: '/leaderboard', permanent: true },
-      // Learning Hub module pages live under /learning/:slug. Links/bookmarks
-      // to the bare slug (e.g. from a breadcrumb bug — see BlogLayout.jsx)
-      // 404'd instead of reaching the module page.
-      { source: '/security-fundamentals', destination: '/learning/security-fundamentals', permanent: true },
-      { source: '/user-management', destination: '/learning/user-management', permanent: true },
-      { source: '/role-management', destination: '/learning/role-management', permanent: true },
-      { source: '/authorization-concepts', destination: '/learning/authorization-concepts', permanent: true },
-      { source: '/audit-compliance', destination: '/learning/audit-compliance', permanent: true },
-      { source: '/grc-advanced', destination: '/learning/grc-advanced', permanent: true },
+      // ── Renamed/removed pages ─────────────────────────────────────────────
+      { source: '/contributors',  destination: '/leaderboard', permanent: true },
+      { source: '/contact',       destination: '/contact-us',  permanent: true },
+      { source: '/about-us',      destination: '/about',       permanent: true },
+      { source: '/admin-dashboard', destination: '/admin',     permanent: true },
+      { source: '/learnings',     destination: '/learning-hub', permanent: true },
+      { source: '/learn',         destination: '/learning-hub', permanent: true },
+
+      // ── /author/* — old author profile URLs (no route exists) ────────────
+      // /author/admin and /author/raghu-boddu both pointed to the founder.
+      { source: '/author/admin',        destination: '/experts/raghu-boddu', permanent: true },
+      { source: '/author/raghu-boddu',  destination: '/experts/raghu-boddu', permanent: true },
+      { source: '/author/raghu',        destination: '/experts/raghu-boddu', permanent: true },
+      // Generic catch-all: any other /author/* goes to the blogs listing.
+      { source: '/author/:path*',       destination: '/blogs', permanent: true },
+
+      // ── /basics/* — FundamentalsPage linked here but no category exists ──
+      { source: '/basics',        destination: '/sap-security-fundamentals', permanent: true },
+      { source: '/basics/:slug*', destination: '/sap-security/:slug*',       permanent: true },
+
+      // ── Learning Hub bare slugs — breadcrumb/external links without /learning/ prefix ──
+      { source: '/security-fundamentals',  destination: '/learning/security-fundamentals',  permanent: true },
+      { source: '/user-management',        destination: '/learning/user-management',         permanent: true },
+      { source: '/role-management',        destination: '/learning/role-management',         permanent: true },
+      { source: '/authorization-concepts', destination: '/learning/authorization-concepts',  permanent: true },
+      { source: '/audit-compliance',       destination: '/learning/audit-compliance',        permanent: true },
+      { source: '/grc-advanced',           destination: '/learning/grc-advanced',            permanent: true },
     ];
   },
 

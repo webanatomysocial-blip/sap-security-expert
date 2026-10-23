@@ -14,6 +14,7 @@ import {
 } from "react-icons/lu";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import AchievementBadgeStrip from "../AchievementBadgeStrip";
 // next-disabled: import "../../css/AdminDashboard.css";
 import { getContributorStats } from "../../services/api";
 import ResetPasswordModal from "./ResetPasswordModal";
@@ -86,6 +87,16 @@ const ContributorDashboard = () => {
           </p>
         </div>
       </div>
+
+      {/* Achievement badge strip */}
+      {!loading && stats.badges?.length > 0 && (
+        <div className="admin-card" style={{ padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#94a3b8", flexShrink: 0 }}>
+            Your Achievements
+          </span>
+          <AchievementBadgeStrip badges={stats.badges} linkTo="/member/achievements" />
+        </div>
+      )}
 
       {!hasAnyPermission ? (
         <div
