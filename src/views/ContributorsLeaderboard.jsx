@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Image from "next/image";
+import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import { getContributorsLeaderboard } from "../services/api";
 import { countryFlag } from "../constants/countries";
 
@@ -23,6 +25,11 @@ const ContributorsLeaderboard = () => {
 
   return (
     <div className="category-page-wrapper">
+      <SEO
+        title="SAP Security Contributors Leaderboard — Top-Ranked SAP & GRC Experts"
+        description="Discover the most active contributors to the SAP Security Expert community, ranked by published articles, expertise, and community impact. Meet the practitioners writing the knowledge base."
+        url={`${VITE_SITE_URL}/leaderboard`}
+      />
       <div className="blogs-all-header">
         <div className="container">
           <nav className="blog-breadcrumb" aria-label="Breadcrumb">

@@ -255,12 +255,15 @@ const AdminManageUsers = () => {
 
   const handleExport = () => {
     const headers = [
+      { label: "ID", key: "id" },
       { label: "Name", key: "name" },
+      { label: "Username", key: "username" },
       { label: "Email", key: "email" },
       { label: "Phone", key: "phone" },
       { label: "Company", key: "company_name" },
       { label: "Position", key: "job_role" },
       { label: "Location", key: "location" },
+      { label: "Country", key: "country" },
       { label: "Status", key: "status" },
       { label: "Reg. Date", key: "created_at" },
       { label: "Last Login", key: "last_login" },

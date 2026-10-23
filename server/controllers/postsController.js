@@ -736,8 +736,25 @@ const save = asyncHandler(async (req, res) => {
     }
     const oldDownloads = extractDownloadUrls(ex.content);
     const newDownloads = new Set(extractDownloadUrls(content));
+    // For each removed file URL: if a new PDF replaced it (same position in
+    // the block), migrate member_file_downloads records so members who already
+    // paid keep re-download access. If nothing replaced it, delete the file.
+    // We detect "replaced" as: old URL removed AND exactly one new URL added
+    // with the same extension — covers the common "admin swaps the PDF" case.
+    const addedDownloads = [...newDownloads].filter(u => !oldDownloads.includes(u));
     for (const url of oldDownloads) {
-      if (!newDownloads.has(url)) deleteUploadedFile(url);
+      if (newDownloads.has(url)) continue; // still present — nothing to do
+      const sameExt = addedDownloads.find(u => u.split('.').pop() === url.split('.').pop());
+      if (sameExt) {
+        // Migrate: update existing member download records to point at the new file
+        req.db.execute(
+          'UPDATE member_file_downloads SET file_url = ? WHERE file_url = ?',
+          [sameExt, url]
+        ).catch(() => {});
+        addedDownloads.splice(addedDownloads.indexOf(sameExt), 1);
+      } else {
+        deleteUploadedFile(url);
+      }
     }
 
     const targetStatus = sched ? 'scheduled' : isAdmin ? (requestedStatus || 'approved') : 'draft';
@@ -828,7 +845,11 @@ const remove = asyncHandler(async (req, res) => {
   }
 
   if (blog.image) deleteImage(blog.image);
-  for (const url of extractDownloadUrls(blog.content)) deleteUploadedFile(url);
+  for (const url of extractDownloadUrls(blog.content)) {
+    deleteUploadedFile(url);
+    // Clean up member download records for this file too
+    req.db.execute('DELETE FROM member_file_downloads WHERE file_url = ?', [url]).catch(() => {});
+  }
   await repo.deleteBlogById(db, id);
   new CacheService().invalidate('homepage_data_public');
   revalidateBlog(blog.category, blog.slug).catch(() => {});

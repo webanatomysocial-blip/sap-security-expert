@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Image from "next/image";
 import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import { getApprovedAmbassadors } from "../services/api";
 import { countryFlag } from "../constants/countries";
 
@@ -18,7 +19,11 @@ const AmbassadorsDirectory = () => {
 
   return (
     <div style={{ background: "#f8fafc", minHeight: "100vh" }}>
-      <SEO title="Country Ambassadors | SAP Security Expert" />
+      <SEO
+        title="SAP Security Country Ambassadors — Local Community Leaders Worldwide"
+        description="Meet the SAP Security Expert Country Ambassadors leading local SAP Security and GRC communities across Europe, Asia-Pacific, the Americas, and the Middle East."
+        url={`${VITE_SITE_URL}/ambassadors`}
+      />
 
       <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)", padding: "56px 24px", textAlign: "center" }}>
         <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#fbbf24", letterSpacing: 1, textTransform: "uppercase" }}>Global Expert Directory</span>

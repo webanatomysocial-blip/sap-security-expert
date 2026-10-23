@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Image from "next/image";
+import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import BlogSidebar from "../components/BlogSidebar";
 import { getNewsList, getCommunityStats } from "../services/api";
 
@@ -33,6 +35,11 @@ const News = () => {
 
   return (
     <div className="category-page-wrapper">
+      <SEO
+        title="SAP Security News — Threat Intelligence, Patches & Industry Updates"
+        description="The latest SAP security news: vulnerability advisories, SAP patch releases, regulatory changes, GRC product updates, and cybersecurity threat intelligence for SAP landscapes."
+        url={`${VITE_SITE_URL}/news`}
+      />
 
       {/* Header */}
       <div className="cat-hero-light" style={{ backgroundImage: "url(/assets/images/hero-news-updates.webp)" }}>

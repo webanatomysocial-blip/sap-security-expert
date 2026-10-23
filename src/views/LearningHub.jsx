@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getLearningCounts } from '../services/api';
 import SEO from '../components/SEO';
+import { VITE_SITE_URL } from '../utils/env';
 // next-disabled: import '../css/LearningHub.css'; — imported globally via globals.css
 
 // ── Data ─────────────────────────────────────────────────────────────────────
@@ -728,8 +729,9 @@ export default function LearningHub() {
   return (
     <div className="learning-hub-page">
       <SEO
-        title="SAP Security Learning Hub | SAP Security Expert"
-        description="Free, structured SAP Security learning paths covering user administration, roles, authorizations, GRC, and BTP, from beginner to advanced."
+        title="SAP Security Learning Hub — Free Structured Courses & Guided Learning Paths"
+        description="Learn SAP Security step-by-step with free structured modules covering authorizations, user administration, role design, GRC, and BTP security. Practical tutorials from beginner to advanced."
+        url={`${VITE_SITE_URL}/learning-hub`}
       />
 
       {/* ── Hero ── */}

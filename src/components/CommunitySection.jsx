@@ -60,13 +60,14 @@ export default function CommunitySection() {
 
   const [popularTags, setPopularTags] = useState([]);
   const [contributorCount, setContributorCount] = useState(() => ssrSeed?.contributors?.length || 0);
-  const [memberCount, setMemberCount] = useState(0);
-  const [articleCount, setArticleCount] = useState(0);
-  const [commentCount, setCommentCount] = useState(0);
+  const [memberCount, setMemberCount] = useState(null);
+  const [articleCount, setArticleCount] = useState(null);
+  const [commentCount, setCommentCount] = useState(null);
   const [contributors, setContributors] = useState(() => ssrSeed?.contributors || []);
 
   // State for announcements
   const [announcements, setAnnouncements] = useState([]);
+  const [announcementsLoaded, setAnnouncementsLoaded] = useState(false);
 
   // State for Ads
   const [adsConfig, setAdsConfig] = useState({
@@ -135,7 +136,8 @@ export default function CommunitySection() {
       })
       .catch((err) => {
         console.warn("Announcement Fetch Failed", err);
-      });
+      })
+      .finally(() => setAnnouncementsLoaded(true));
 
     // Fetch Ads
     getPublicAds()
@@ -600,7 +602,7 @@ export default function CommunitySection() {
                 <Link to="/announcements" className="widget-view-all">View all</Link>
               </div>
               <div className="announcements-list" data-lenis-prevent>
-                {!Array.isArray(announcements) || announcements.length === 0 ? (
+                {!announcementsLoaded ? null : !Array.isArray(announcements) || announcements.length === 0 ? (
                   <p style={{ fontSize: "0.9rem", color: "#666" }}>No announcements yet.</p>
                 ) : (
                   announcements.map((announcement, i) => {
@@ -675,28 +677,28 @@ export default function CommunitySection() {
                   <div className="cag-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>
                     <i className="bi bi-people-fill"></i>
                   </div>
-                  <div className="cag-number">{(memberCount).toLocaleString()}</div>
+                  <div className="cag-number">{memberCount !== null ? memberCount.toLocaleString() : "—"}</div>
                   <div className="cag-label">Members</div>
                 </div>
                 <div className="cag-stat">
                   <div className="cag-icon" style={{ background: "#fef2f2", color: "#e84a3d" }}>
                     <i className="bi bi-file-earmark-text-fill"></i>
                   </div>
-                  <div className="cag-number">{(articleCount).toLocaleString()}</div>
+                  <div className="cag-number">{articleCount !== null ? articleCount.toLocaleString() : "—"}</div>
                   <div className="cag-label">Articles</div>
                 </div>
                 <div className="cag-stat">
                   <div className="cag-icon" style={{ background: "#f0fdf4", color: "#16a34a" }}>
                     <i className="bi bi-chat-dots-fill"></i>
                   </div>
-                  <div className="cag-number">{(commentCount).toLocaleString()}</div>
+                  <div className="cag-number">{commentCount !== null ? commentCount.toLocaleString() : "—"}</div>
                   <div className="cag-label">Comments</div>
                 </div>
                 <div className="cag-stat">
                   <div className="cag-icon" style={{ background: "#fff7ed", color: "#ea580c" }}>
                     <i className="bi bi-person-check-fill"></i>
                   </div>
-                  <div className="cag-number">{(contributorCount).toLocaleString()}</div>
+                  <div className="cag-number">{contributorCount ? contributorCount.toLocaleString() : "—"}</div>
                   <div className="cag-label">Contributors</div>
                 </div>
               </div>

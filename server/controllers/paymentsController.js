@@ -3,6 +3,9 @@ const Razorpay = require('razorpay');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { grantBonus, getActivityCredits } = require('../services/CreditHelper');
 const repo = require('../repositories/paymentsRepository');
+const membersRepo = require('../repositories/membersRepository');
+const zoho = require('../services/zoho');
+const currency = require('../services/currency');
 
 function getRazorpay() {
   return new Razorpay({
@@ -30,6 +33,20 @@ function findAuthoritativeDownloadCredits(blogRows, fileUrl) {
   }
   return null;
 }
+
+// GET /api/payments/detect-currency — detects user's currency from IP, returns rate
+const detectCurrency = asyncHandler(async (req, res) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+  const detected = await currency.detectCurrencyFromIp(ip);
+  // If detected and supported, fetch rate; otherwise default to INR
+  if (detected) {
+    const converted = await currency.convertFromINR(100_00, detected); // dummy ₹100 to get rate
+    if (converted) {
+      return res.json({ status: 'success', currency: detected, rate: converted.rate, decimals: converted.decimals });
+    }
+  }
+  return res.json({ status: 'success', currency: 'INR', rate: 1, decimals: 2 });
+});
 
 // GET /api/payments/bundles — public
 const bundles = async (req, res) => {
@@ -147,7 +164,7 @@ const createOrder = async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Please log in to purchase credits' });
   }
-  const { bundle_id, coupon_code } = req.body || {};
+  const { bundle_id, coupon_code, preferred_currency } = req.body || {};
   if (!bundle_id) return res.status(400).json({ status: 'error', message: 'bundle_id required' });
 
   try {
@@ -175,10 +192,31 @@ const createOrder = async (req, res) => {
       return res.status(503).json({ status: 'error', message: 'Payment gateway not configured.' });
     }
 
+    // Currency conversion — always store finalPricePaise in INR server-side (authoritative)
+    // but charge the Razorpay order in the user's preferred currency
+    let orderAmount = finalPricePaise;
+    let orderCurrency = 'INR';
+    let fxRate = 1;
+
+    if (preferred_currency && preferred_currency !== 'INR') {
+      const sanitizedCurrency = typeof preferred_currency === 'string' ? preferred_currency.trim().toUpperCase() : '';
+      // Validate against allowlist before attempting conversion (prevent prototype traversal)
+      if (!sanitizedCurrency || !Object.prototype.hasOwnProperty.call(currency.SUPPORTED, sanitizedCurrency)) {
+        return res.status(400).json({ status: 'error', message: 'Unsupported currency.' });
+      }
+      const converted = await currency.convertFromINR(finalPricePaise, sanitizedCurrency);
+      if (!converted || converted.amount <= 0) {
+        return res.status(400).json({ status: 'error', message: 'Unable to convert amount to the requested currency. Please retry or pay in INR.' });
+      }
+      orderAmount = converted.amount;
+      orderCurrency = converted.currency;
+      fxRate = converted.rate;
+    }
+
     const rzp = getRazorpay();
     const order = await rzp.orders.create({
-      amount: finalPricePaise,
-      currency: 'INR',
+      amount: orderAmount,
+      currency: orderCurrency,
       receipt: `credits_${req.session.member_id}_${Date.now()}`,
       notes: {
         member_id: String(req.session.member_id),
@@ -186,11 +224,13 @@ const createOrder = async (req, res) => {
       },
     });
 
-    // Store authoritative order record server-side — used in /verify to prevent bundle swapping
+    // Store authoritative order record server-side (always in INR paise for credit accounting)
+    // Also persist the Razorpay order currency/amount for post-payment reconciliation
     await repo.insertPaymentOrder(req.db, {
       orderId: order.id, memberId: req.session.member_id, bundleId: bundle.id,
       bundleCredits: bundle.credits, bundlePricePaise: bundle.price_paise,
       couponId, finalPricePaise,
+      orderCurrency, orderAmountForeign: orderAmount,
     });
 
     return res.json({
@@ -202,6 +242,7 @@ const createOrder = async (req, res) => {
       bundle,
       final_price_paise: finalPricePaise,
       discount_paise: discountPaise,
+      fx_rate: fxRate,
     });
   } catch (err) {
     console.error('[POST /payments/create-order]', err.message);
@@ -269,6 +310,22 @@ const verify = async (req, res) => {
     if (paymentOrder.coupon_id) {
       await repo.incrementCouponUsage(req.db, paymentOrder.coupon_id);
     }
+
+    // 6. Zoho Books invoice — fire-and-forget; never blocks the payment response
+    membersRepo.findMemberProfileById(req.db, req.session.member_id).then((member) => {
+      if (!member) return;
+      return zoho.createAndSendInvoice({
+        orderId:     razorpay_order_id,
+        paymentId:   razorpay_payment_id,
+        member:      { name: member.name, email: member.email },
+        bundle,
+        amountPaise: paymentOrder.final_price_paise,
+      });
+    }).then((result) => {
+      if (result?.invoiceId) repo.saveZohoInvoiceId(req.db, razorpay_order_id, result.invoiceId, result.invoiceUrl);
+    }).catch((err) => {
+      console.error('[zoho/verify] invoice error:', err.message);
+    });
 
     const newBalance = await repo.getMemberBalance(req.db, req.session.member_id);
 
@@ -408,6 +465,17 @@ const webhook = async (req, res) => {
       if (orderId) {
         const paymentOrder = await repo.findOrderById(req.db, orderId);
         if (paymentOrder && !paymentOrder.fulfilled) {
+          // Security check: Verify paid amount and currency match the authoritative order record
+          const expectedCurrency = (paymentOrder.order_currency || 'INR').toUpperCase();
+          const expectedAmount = paymentOrder.order_amount_foreign != null ? paymentOrder.order_amount_foreign : paymentOrder.final_price_paise;
+          const paidCurrency = (payment?.currency || '').toUpperCase();
+          const paidAmount = Number(payment?.amount);
+
+          if (paidCurrency !== expectedCurrency || paidAmount !== expectedAmount) {
+            console.error(`[webhook] payment amount/currency mismatch for order ${orderId}: expected ${expectedAmount} ${expectedCurrency}, got ${paidAmount} ${paidCurrency}`);
+            return res.status(200).json({ status: 'mismatch_ignored' });
+          }
+
           const bundle = await repo.findBundleById(req.db, paymentOrder.bundle_id);
           if (bundle) {
             const credited = await repo.addCredits(
@@ -421,6 +489,21 @@ const webhook = async (req, res) => {
               if (paymentOrder.coupon_id) {
                 await repo.incrementCouponUsage(req.db, paymentOrder.coupon_id);
               }
+              // Zoho Books invoice — fire-and-forget
+              membersRepo.findMemberProfileById(req.db, paymentOrder.member_id).then((member) => {
+                if (!member) return;
+                return zoho.createAndSendInvoice({
+                  orderId,
+                  paymentId:   payment?.id,
+                  member:      { name: member.name, email: member.email },
+                  bundle,
+                  amountPaise: paymentOrder.final_price_paise,
+                });
+              }).then((result) => {
+                if (result?.invoiceId) repo.saveZohoInvoiceId(req.db, orderId, result.invoiceId, result.invoiceUrl);
+              }).catch((err) => {
+                console.error('[zoho/webhook] invoice error:', err.message);
+              });
             }
           }
         }
@@ -539,7 +622,9 @@ const downloadFile = async (req, res) => {
   }
   const { file_url, file_name } = req.body || {};
   const originalName = (file_name && typeof file_name === 'string') ? file_name.trim().slice(0, 500) : null;
-  if (!file_url || typeof file_url !== 'string' || !file_url.startsWith('/uploads/downloads/')) {
+  const validUrl = typeof file_url === 'string' &&
+    (file_url.startsWith('/uploads/downloads/') || file_url.startsWith('private://'));
+  if (!file_url || !validUrl) {
     return res.status(400).json({ status: 'error', message: 'Invalid file URL.' });
   }
 
@@ -570,7 +655,7 @@ const downloadFile = async (req, res) => {
       await db.commit();
       const token = require('crypto').randomBytes(24).toString('hex');
       if (!req.session.dl_tokens) req.session.dl_tokens = {};
-      req.session.dl_tokens[token] = { url: file_url, expires: Date.now() + 60_000 };
+      req.session.dl_tokens[token] = { url: file_url, action: 'download', expires: Date.now() + 10 * 60_000 };
       return res.json({ status: 'success', download_url: file_url, token, already_downloaded: true });
     }
 
@@ -629,7 +714,7 @@ const downloadFile = async (req, res) => {
     const newBalance = await repo.getMemberBalance(db, memberId);
     const token = require('crypto').randomBytes(24).toString('hex');
     if (!req.session.dl_tokens) req.session.dl_tokens = {};
-    req.session.dl_tokens[token] = { url: file_url, expires: Date.now() + 60_000 };
+    req.session.dl_tokens[token] = { url: file_url, action: 'download', expires: Date.now() + 10 * 60_000 };
     return res.json({ status: 'success', download_url: file_url, token, credits_spent: creditsNeeded, new_balance: newBalance });
   } catch (err) {
     await db.rollback().catch(() => {});
@@ -650,7 +735,34 @@ const myDownloads = async (req, res) => {
   }
 };
 
+// GET /api/payments/invoice/:txId/pdf — stream the Zoho PDF for a member's purchase
+const invoicePdf = asyncHandler(async (req, res) => {
+  if (!req.session.member_logged_in) {
+    return res.status(401).json({ status: 'error', message: 'Unauthorized' });
+  }
+  const data = await repo.findInvoiceData(req.db, req.params.txId, req.session.member_id);
+  if (!data) return res.status(404).json({ status: 'error', message: 'Invoice not found' });
+  if (!data.zoho_invoice_id) return res.status(404).json({ status: 'error', message: 'No Zoho invoice for this purchase' });
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="invoice-${data.zoho_invoice_id}.pdf"`);
+  await zoho.getInvoicePdf(data.zoho_invoice_id, res);
+});
+
+// Admin-only: test Zoho connection with a dummy invoice (never persisted)
+const testZohoConnection = asyncHandler(async (req, res) => {
+  const result = await zoho.createAndSendInvoice({
+    orderId:     'TEST-ORDER-001',
+    paymentId:   'TEST-PAY-001',
+    member:      { name: req.body.name || 'Test User', email: req.body.email },
+    bundle:      { name: 'Test Bundle', credits: 10 },
+    amountPaise: 99900, // ₹999
+  });
+  return res.json({ status: result ? 'success' : 'skipped', invoice_id: result });
+});
+
 module.exports = {
   bundles, myCredits, myUnlocks, myTransactions, invoice, validateCoupon, createOrder, verify, unlockBlog, webhook,
   linkedinBonus, completeProfileBonus, reportError, productReviewBonus, downloadFile, myDownloads,
+  testZohoConnection, invoicePdf, detectCurrency,
 };

@@ -1,9 +1,16 @@
 import React from "react";
+import SEO from "../../components/SEO";
+import { VITE_SITE_URL } from "../../utils/env";
 import LegalLayout from "../../components/LegalLayout";
 
 const SafetyMovement = () => {
   return (
     <LegalLayout title="Safety Movement">
+      <SEO
+        title="SAP Security Expert Safety Movement — Our Commitment to a Safe, Inclusive Community"
+        description="Learn about the SAP Security Expert Safety Movement and our commitment to creating a safe, respectful, and inclusive environment for SAP Security practitioners worldwide."
+        url={`${VITE_SITE_URL}/safety-movement`}
+      />
       <p style={{ color: "#666", marginBottom: "40px" }}>
         Because a safe workplace is a strong workplace.
       </p>

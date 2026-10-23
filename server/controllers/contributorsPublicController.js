@@ -128,6 +128,26 @@ const getProfile = asyncHandler(async (req, res) => {
   contributor.blogs = blogs;
   contributor.blog_count = blogs.length;
 
+  // Earned achievement badges (via linked member account)
+  contributor.badges = [];
+  if (contributor.email) {
+    try {
+      const membersRepo = require('../repositories/membersRepository');
+      await membersRepo.ensureAchievementTables(db);
+      const memberRow = await membersRepo.findMemberByEmailExact(db, contributor.email);
+      if (memberRow) {
+        const [types, earned] = await Promise.all([
+          membersRepo.findAllAchievementTypes(db),
+          membersRepo.findEarnedAchievements(db, memberRow.id),
+        ]);
+        const earnedSet = new Set(earned.map(e => e.achievement_id));
+        contributor.badges = types
+          .filter(t => earnedSet.has(t.id))
+          .map(t => ({ id: t.id, label: t.label, icon: t.icon, color: t.color }));
+      }
+    } catch { contributor.badges = []; }
+  }
+
   return sendSuccess(res, { contributor });
 });
 

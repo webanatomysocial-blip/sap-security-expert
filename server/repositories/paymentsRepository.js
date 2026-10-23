@@ -150,7 +150,8 @@ async function findInvoiceData(db, txId, memberId) {
             cb.name AS bundle_name,
             m.name AS member_name, m.email AS member_email,
             po.final_price_paise, po.bundle_price_paise, co.code AS coupon_code,
-            co.discount_type, co.discount_value
+            co.discount_type, co.discount_value,
+            po.zoho_invoice_id, po.zoho_invoice_url
      FROM credit_transactions ct
      JOIN members m ON m.id = ct.member_id
      LEFT JOIN payment_orders po ON po.razorpay_order_id = ct.razorpay_order_id
@@ -186,9 +187,11 @@ async function findBundleById(db, bundleId) {
 
 async function insertPaymentOrder(db, f) {
   await db.execute(
-    `INSERT INTO payment_orders (razorpay_order_id, member_id, bundle_id, bundle_credits, bundle_price_paise, coupon_id, final_price_paise)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [f.orderId, f.memberId, f.bundleId, f.bundleCredits, f.bundlePricePaise, f.couponId, f.finalPricePaise]
+    `INSERT INTO payment_orders
+       (razorpay_order_id, member_id, bundle_id, bundle_credits, bundle_price_paise, coupon_id, final_price_paise, order_currency, order_amount_foreign)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [f.orderId, f.memberId, f.bundleId, f.bundleCredits, f.bundlePricePaise, f.couponId, f.finalPricePaise,
+     f.orderCurrency || 'INR', f.orderAmountForeign != null ? f.orderAmountForeign : f.finalPricePaise]
   );
 }
 
@@ -212,6 +215,13 @@ async function markOrderFulfilled(db, orderId, razorpayPaymentId) {
     'UPDATE payment_orders SET fulfilled = 1, razorpay_payment_id = ? WHERE razorpay_order_id = ?',
     [razorpayPaymentId || null, orderId]
   );
+}
+
+async function saveZohoInvoiceId(db, orderId, zohoInvoiceId, zohoInvoiceUrl = null) {
+  await db.execute(
+    'UPDATE payment_orders SET zoho_invoice_id = ?, zoho_invoice_url = ? WHERE razorpay_order_id = ?',
+    [zohoInvoiceId, zohoInvoiceUrl, orderId]
+  ).catch(() => {});
 }
 
 async function incrementCouponUsage(db, couponId) {
@@ -297,7 +307,7 @@ module.exports = {
   isDuplicateKeyError, getMemberBalance, addCredits, reverseRefund,
   findActiveBundles, findMemberUnlocks, findTransactionHistory, findUnlockHistory, findInvoiceData,
   findActiveCouponByCode, findActiveBundleById, findBundleById, insertPaymentOrder,
-  findOrderByIdAndMember, findOrderById, markOrderFulfilled, incrementCouponUsage,
+  findOrderByIdAndMember, findOrderById, markOrderFulfilled, saveZohoInvoiceId, incrementCouponUsage,
   findExistingUnlock, findPremiumBlogBySlug, deductCreditsIfSufficient, insertSpendTransaction, insertBlogUnlock,
   findApprovedBlogBySlug, findMemberProfileForBonus, countProductReviews, findBlogsReferencingFile,
 };

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Image from "next/image";
+import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import BlogSidebar from "../components/BlogSidebar";
 import { getPublicAnnouncements, getCommunityStats } from "../services/api";
 
@@ -43,6 +45,11 @@ const Announcements = () => {
 
   return (
     <div className="category-page-wrapper">
+      <SEO
+        title="SAP Security Expert Announcements — Platform News & Community Updates"
+        description="Platform announcements, new feature releases, community milestones, and updates from the SAP Security Expert team."
+        url={`${VITE_SITE_URL}/announcements`}
+      />
 
       {/* Header */}
       <div className="cat-hero-light" style={{ backgroundImage: "url(/assets/images/hero-announcements.webp)" }}>

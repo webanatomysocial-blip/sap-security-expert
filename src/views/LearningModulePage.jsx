@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import NotFound from "./NotFound";
 import { useParams, Link } from "react-router-dom";
 import Image from "next/image";
+import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import BlogSidebar from "../components/BlogSidebar";
 import { getLearnings } from "../services/api";
 
@@ -76,6 +78,15 @@ const formatDate = (str) => {
   return isNaN(d.getTime()) ? str : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
+const MODULE_SEO = {
+  'security-fundamentals': { title: 'SAP Security Fundamentals — Module 01 of the SAP Security Learning Hub', description: 'Start learning SAP Security from the ground up. Foundational concepts, system architecture, and the mental model every SAP Security practitioner needs first.' },
+  'user-management':       { title: 'SAP User Management & SU01 — Module 02 of the SAP Security Learning Hub', description: 'Master SAP user administration: SU01 maintenance, user types, validity periods, logon parameters, and the lifecycle transactions you will use every day.' },
+  'role-management':       { title: 'SAP Role Design & PFCG — Module 03 of the SAP Security Learning Hub', description: 'Build, derive, and maintain SAP roles in PFCG. Single roles, composite roles, derived roles, and the transport strategies that keep them consistent across landscapes.' },
+  'authorization-concepts':{ title: 'SAP Authorization Concepts — Module 04 of the SAP Security Learning Hub', description: 'Understand the authorization plumbing under SAP roles: auth objects, field values, profiles, and the runtime check engine that grants or denies every transaction.' },
+  'audit-compliance':      { title: 'SAP Audit & Compliance — Module 05 of the SAP Security Learning Hub', description: 'Learn how to track who did what in SAP and prove it to auditors. Security Audit Log, system profiling, SoD reporting, and audit-readiness strategies.' },
+  'grc-advanced':          { title: 'SAP GRC & Advanced Topics — Module 06 of the SAP Security Learning Hub', description: 'Go beyond the basics with SAP GRC Access Control, IAG, Process Control, BTP security, and the enterprise governance layer that ties it all together.' },
+};
+
 const LearningModulePage = () => {
   const { moduleSlug } = useParams();
   const module = LEARNING_MODULES.find((m) => m.slug === moduleSlug);
@@ -114,8 +125,16 @@ const LearningModulePage = () => {
     return <NotFound message="This learning module does not exist." />;
   }
 
+  const seo = MODULE_SEO[moduleSlug] || {};
   return (
     <div className="category-page-wrapper">
+      {seo.title && (
+        <SEO
+          title={seo.title}
+          description={seo.description}
+          url={`${VITE_SITE_URL}/learning/${moduleSlug}`}
+        />
+      )}
 
       {/* ── Module hero header ── */}
       <div className="lm-hero" style={{ "--lm-color": module.color }}>

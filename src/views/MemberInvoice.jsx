@@ -9,7 +9,14 @@ export default function MemberInvoice() {
 
   useEffect(() => {
     getInvoice(txId)
-      .then((r) => setInvoice(r.data.invoice))
+      .then((r) => {
+        const inv = r.data.invoice;
+        if (inv?.zoho_invoice_id) {
+          window.location.replace(`/api/payments/invoice/${txId}/pdf`);
+        } else {
+          setInvoice(inv);
+        }
+      })
       .catch((e) => setError(e.response?.data?.message || "Invoice not found"));
   }, [txId]);
 
@@ -35,12 +42,24 @@ export default function MemberInvoice() {
       {/* Print button */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <Link to="/member/credits" style={{ color: "#64748b", fontSize: 14, textDecoration: "none" }}>← Back to Credits</Link>
-        <button
-          onClick={() => window.print()}
-          style={{ padding: "8px 18px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
-        >
-          <i className="bi bi-printer"></i> Print / Save PDF
-        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          {invoice.zoho_invoice_url && (
+            <a
+              href={invoice.zoho_invoice_url}
+              target="_blank"
+              rel="noreferrer"
+              style={{ padding: "8px 18px", borderRadius: 8, border: "1.5px solid #e85d2f", background: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: "#e85d2f", textDecoration: "none" }}
+            >
+              <i className="bi bi-file-earmark-pdf"></i> Download PDF
+            </a>
+          )}
+          <button
+            onClick={() => window.print()}
+            style={{ padding: "8px 18px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <i className="bi bi-printer"></i> Print
+          </button>
+        </div>
       </div>
 
       {/* Invoice card */}

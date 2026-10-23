@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
-import { getCreditBundles, createCreditOrder, verifyCreditPayment, validateCoupon } from "../services/api";
+import { getCreditBundles, createCreditOrder, verifyCreditPayment, validateCoupon, detectPaymentCurrency } from "../services/api";
 import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 
 export default function MembershipPage() {
   const { isLoggedIn, member, creditBalance, onCreditsPurchased, refreshCredits } = useMemberAuth();
@@ -16,6 +17,9 @@ export default function MembershipPage() {
   const [paying, setPaying] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [fxCurrency, setFxCurrency] = useState("INR");
+  const [fxRate, setFxRate] = useState(1);
+  const [fxDecimals, setFxDecimals] = useState(2);
 
   useEffect(() => {
     if (isLoggedIn) refreshCredits();
@@ -26,6 +30,13 @@ export default function MembershipPage() {
         if (b.length) setSelectedBundle(b[0]);
       })
       .catch(() => {});
+    detectPaymentCurrency().then((r) => {
+      if (r.data?.currency && r.data.currency !== "INR") {
+        setFxCurrency(r.data.currency);
+        setFxRate(r.data.rate);
+        setFxDecimals(r.data.decimals ?? 2);
+      }
+    }).catch(() => {});
   }, [isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadRazorpay = () =>
@@ -69,13 +80,13 @@ export default function MembershipPage() {
         return;
       }
 
-      const orderRes = await createCreditOrder(bundle.id, couponData ? couponCode : undefined);
-      const { order_id, amount, currency, key_id } = orderRes.data;
+      const orderRes = await createCreditOrder(bundle.id, couponData ? couponCode : undefined, fxCurrency !== "INR" ? fxCurrency : undefined);
+      const { order_id, amount, currency: orderCurrency, key_id } = orderRes.data;
 
       const options = {
         key: key_id,
         amount,
-        currency,
+        currency: orderCurrency || "INR",
         name: "SAP Security Expert",
         description: `${bundle.credits} Credits: ${bundle.name}`,
         order_id,
@@ -114,7 +125,17 @@ export default function MembershipPage() {
     }
   };
 
-  const fmt = (paise) => `₹${(paise / 100).toFixed(0)}`;
+  const fmt = (paise) => {
+    if (fxCurrency && fxCurrency !== "INR" && fxRate) {
+      let amount = (paise / 100) * fxRate;
+      if (fxDecimals === 3) {
+        // Razorpay 3-decimal currency rule: trailing decimal digit is always 0
+        amount = Math.floor(Math.round(amount * 1000) / 10) * 10 / 1000;
+      }
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: fxCurrency, minimumFractionDigits: fxDecimals, maximumFractionDigits: fxDecimals }).format(amount);
+    }
+    return `₹${(paise / 100).toFixed(0)}`;
+  };
   const discountedPaise = (bundle) => {
     if (!couponData || selectedBundle?.id !== bundle.id) return bundle.price_paise;
     return Math.max(bundle.price_paise - (couponData.discount_paise || 0), 100);
@@ -123,8 +144,9 @@ export default function MembershipPage() {
   return (
     <div style={s.page}>
       <SEO
-        title="Membership & Credits | SAP Security Expert"
-        description="Buy credits once and unlock any premium SAP Security, GRC, or BTP article for lifetime access, no subscriptions."
+        title="Unlock Premium SAP Security Articles — Credits & Access Plans"
+        description="Buy credits once to unlock any premium SAP Security, GRC, or BTP article. Lifetime access, no subscription required. Keep every article you unlock, forever."
+        url={`${VITE_SITE_URL}/membership`}
       />
       <div style={s.hero}>
         <span style={s.badge}>Credit-Based Access</span>

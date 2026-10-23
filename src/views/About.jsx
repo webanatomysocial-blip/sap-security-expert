@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getApprovedContributors } from '../services/api';
 import SEO from '../components/SEO';
+import { VITE_SITE_URL } from '../utils/env';
 // next-disabled: import '../css/About.css';
 
 const TOPICS = [
@@ -85,8 +86,9 @@ export default function About() {
   return (
     <div className="about-wrapper">
       <SEO
-        title="About Us | SAP Security Expert"
-        description="SAP Security Expert is an independent, community-built knowledge hub for SAP Security, GRC, and BTP practitioners. Learn about our mission, contributors, and coverage."
+        title="About SAP Security Expert — Independent Platform for SAP Security & GRC Practitioners"
+        description="SAP Security Expert is a practitioner-built, independent knowledge platform for SAP Security, GRC, and BTP professionals. Learn about our mission, editorial standards, and the experts behind the content."
+        url={`${VITE_SITE_URL}/about`}
       />
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="about-hero">

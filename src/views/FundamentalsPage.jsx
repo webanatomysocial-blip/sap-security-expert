@@ -10,8 +10,8 @@ const FundamentalsPage = () => {
           canonicalize to /sap-security-fundamentals (the primary one) so
           Google doesn't see two separate pages with identical content. */}
       <SEO
-        title="SAP Security Fundamentals | SAP Security Expert"
-        description="New to SAP Security? Start with these essential concepts and build a strong foundation in access control, authorization, and compliance."
+        title="SAP Security Fundamentals — Beginner's Guide to Access Control & Authorizations"
+        description="New to SAP Security? Start here. Learn the core concepts of SAP authorization, role design, user types, and compliance basics with step-by-step guides built for practitioners."
         url={`${VITE_SITE_URL}/sap-security-fundamentals`}
       />
       {/* Hero Section */}
@@ -48,9 +48,9 @@ const FundamentalsPage = () => {
                 <h3>Understanding SAP Security</h3>
               </div>
               <div className="step-content">
-                <Link to="/basics/what-is-sap-security">What is SAP Security? &rarr;</Link>
-                <Link to="/basics/sap-security-architecture">SAP Security Architecture &rarr;</Link>
-                <Link to="/basics/sap-security-landscape">SAP Security Landscape &rarr;</Link>
+                <Link to="/sap-security/what-is-sap-security">What is SAP Security? &rarr;</Link>
+                <Link to="/sap-security/sap-security-architecture">SAP Security Architecture &rarr;</Link>
+                <Link to="/sap-security/sap-security-landscape">SAP Security Landscape &rarr;</Link>
               </div>
             </div>
 
@@ -63,8 +63,8 @@ const FundamentalsPage = () => {
                   <h3>Authorization Basics</h3>
                 </div>
                 <div className="step-content-v">
-                  <Link to="/basics/sap-authorization-concept">SAP Authorization Concept &rarr;</Link>
-                  <Link to="/basics/authorization-objects-explained">Authorization Objects Explained &rarr;</Link>
+                  <Link to="/sap-security/sap-authorization-concept">SAP Authorization Concept &rarr;</Link>
+                  <Link to="/sap-security/authorization-objects-explained">Authorization Objects Explained &rarr;</Link>
                 </div>
               </div>
 
@@ -75,9 +75,9 @@ const FundamentalsPage = () => {
                   <h3>Users and Roles</h3>
                 </div>
                 <div className="step-content-v">
-                  <Link to="/basics/sap-user-types">SAP User Types &rarr;</Link>
-                  <Link to="/basics/sap-roles-vs-profiles">SAP Roles vs Profiles &rarr;</Link>
-                  <Link to="/basics/sap-pfcg-role-design">SAP PFCG Role Design &rarr;</Link>
+                  <Link to="/sap-security/sap-user-types">SAP User Types &rarr;</Link>
+                  <Link to="/sap-security/sap-roles-vs-profiles">SAP Roles vs Profiles &rarr;</Link>
+                  <Link to="/sap-security/sap-pfcg-role-design">SAP PFCG Role Design &rarr;</Link>
                 </div>
               </div>
 
@@ -88,8 +88,8 @@ const FundamentalsPage = () => {
                   <h3>Compliance Basics</h3>
                 </div>
                 <div className="step-content-v">
-                  <Link to="/basics/sod-explained">Segregation of Duties Explained &rarr;</Link>
-                  <Link to="/basics/sap-security-audit-basics">SAP Security Audit Basics &rarr;</Link>
+                  <Link to="/sap-security/sod-explained">Segregation of Duties Explained &rarr;</Link>
+                  <Link to="/sap-security/sap-security-audit-basics">SAP Security Audit Basics &rarr;</Link>
                 </div>
               </div>
 
@@ -100,8 +100,8 @@ const FundamentalsPage = () => {
                   <h3>Compliance Basics</h3>
                 </div>
                 <div className="step-content-v">
-                  <Link to="/basics/sod-explained">Segregation of Duties Explained &rarr;</Link>
-                  <Link to="/basics/sap-security-audit-basics">SAP Security Audit Basics &rarr;</Link>
+                  <Link to="/sap-security/sod-explained">Segregation of Duties Explained &rarr;</Link>
+                  <Link to="/sap-security/sap-security-audit-basics">SAP Security Audit Basics &rarr;</Link>
                 </div>
               </div>
             </div>
@@ -125,7 +125,7 @@ const FundamentalsPage = () => {
               <h4>SAP Authorization Concept Explained</h4>
               <span className="read-time">5 min read</span>
               <p>Learn about SAP's key authorization concepts including organizational levels, authorization objects, and fields.</p>
-              <Link to="/basics/sap-authorization-concept" className="btn-read-article">
+              <Link to="/sap-security/sap-authorization-concept" className="btn-read-article">
                 Read Article &rarr;
               </Link>
             </div>
@@ -135,7 +135,7 @@ const FundamentalsPage = () => {
               <h4>SAP PFCG Role Design Basics</h4>
               <span className="read-time">6 min read</span>
               <p>A step-by-step guide to creating robust and scalable roles using the PFCG transaction in SAP.</p>
-              <Link to="/basics/sap-pfcg-role-design" className="btn-read-article">
+              <Link to="/sap-security/sap-pfcg-role-design" className="btn-read-article">
                 Read Article &rarr;
               </Link>
             </div>
@@ -145,7 +145,7 @@ const FundamentalsPage = () => {
               <h4>Overview of SAP Security Architecture</h4>
               <span className="read-time">4 min read</span>
               <p>Understand the various layers of SAP security architecture from network to application levels.</p>
-              <Link to="/basics/sap-security-architecture" className="btn-read-article">
+              <Link to="/sap-security/sap-security-architecture" className="btn-read-article">
                 Read Article &rarr;
               </Link>
             </div>

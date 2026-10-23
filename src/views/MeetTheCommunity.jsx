@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import SEO from "../components/SEO";
+import { VITE_SITE_URL } from "../utils/env";
 import { getCommunityCountries } from "../services/api";
 import { countryFlag } from "../constants/countries";
 
@@ -17,7 +18,11 @@ const MeetTheCommunity = () => {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "60px 24px 80px" }}>
-      <SEO title="Meet the SAP Security Community | SAP Security Expert" />
+      <SEO
+        title="SAP Security Community — Practitioners, Contributors & Global Experts"
+        description="Connect with SAP Security, GRC, and BTP professionals worldwide. Browse contributor profiles, find country ambassadors, and explore the community behind SAP Security Expert."
+        url={`${VITE_SITE_URL}/community`}
+      />
 
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#ee5e42", letterSpacing: 1, textTransform: "uppercase" }}>Our Global Reach</span>
