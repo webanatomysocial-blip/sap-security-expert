@@ -7,8 +7,9 @@ const Podcasts = () => {
   return (
     <>
       <SEO
-        title="SAP Security Podcast — Expert Interviews & Practitioner Conversations"
-        description="Listen to SAP security practitioners discuss access risk, GRC implementation, BTP security, and enterprise compliance challenges. Real conversations from the field."
+        title="SAP Security Podcast: Expert Insights & Real Conversations"
+        description="Listen to SAP security experts discuss access risk, BTP, GRC implementation, and enterprise compliance through practical insights and real-world experience."
+        keywords="SAP Security Podcasts, SAP Security Expert Interviews, SAP Access Risk Management, SAP BTP Security, SAP Cybersecurity"
         url={`${VITE_SITE_URL}/podcasts`}
       />
       <CategoryLayout categorySlug="podcasts" displayName="Expert Voices/Podcasts" />

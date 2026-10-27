@@ -7,8 +7,9 @@ const ProductReviews = () => {
   return (
     <>
       <SEO
-        title="SAP GRC & Security Product Reviews — Independent Practitioner Analysis"
-        description="Read honest, practitioner-written reviews of SAP GRC, IAG, access risk, and cybersecurity tools. Technical analysis to help you evaluate and select the right SAP security products."
+        title="SAP Security Product Reviews: Expert Insights & Analysis"
+        description="Explore independent SAP GRC and security product reviews with expert analysis of IAG, access risk and cybersecurity tools to help you make informed choices."
+        keywords="SAP GRC Product Reviews, SAP Security Tools, SAP IAG Tools, SAP Access Risk Analysis, SAP Cybersecurity Tools, SAP GRC Solutions"
         url={`${VITE_SITE_URL}/product-reviews`}
       />
       <CategoryLayout

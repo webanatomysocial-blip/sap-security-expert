@@ -7,8 +7,8 @@ const ExpertRecommendations = () => {
   return (
     <>
       <SEO
-        title="SAP Security Expert Picks — Curated Resources Recommended by Practitioners"
-        description="Articles, tools, and resources hand-picked by SAP Security practitioners. The best practical guidance on authorization, GRC, compliance, and SAP security operations — vetted by the community."
+        title="SAP Security Expert Picks: Top Resources & Best Practices"
+        description="Find practitioner-recommended SAP security articles, tools and guides covering access controls, GRC, compliance and practical security management."
         url={`${VITE_SITE_URL}/expert-recommendations`}
       />
       <CategoryLayout categorySlug="expert-recommendations" displayName="Expert Articles" />

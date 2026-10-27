@@ -280,6 +280,15 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
         <div className="category-layout-grid">
           {/* Main Content: Blog Grid */}
           <div className="category-main-column">
+            <div className="cat-section-header">
+              <h2 className="cat-section-title">
+                Featured Guides &amp; Tutorials
+              </h2>
+              <p className="cat-section-subtitle">
+                Explore in-depth articles, security blueprints, and step-by-step walkthroughs for {displayName}.
+              </p>
+            </div>
+
             {loading ? (
               <div className="blog-grid-2-col">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -418,6 +427,40 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
                 ))}
               </div>
             )}
+
+            {/* Explore Related Resources (H2) */}
+            <div className="cat-explore-section">
+              <div className="cat-section-header">
+                <h2 className="cat-section-title">
+                  Explore Related Domains &amp; Resources
+                </h2>
+                <p className="cat-section-subtitle">
+                  Connect across related SAP authorization, governance, and cloud security topics.
+                </p>
+              </div>
+              <div className="cat-explore-cards">
+                <Link to="/sap-security" className="cat-explore-card">
+                  <h3>SAP Security &amp; Authorizations</h3>
+                  <p>Core role design, PFCG best practices, authorization checks, and audit trails.</p>
+                  <span className="cat-explore-link">Explore Guides &rarr;</span>
+                </Link>
+                <Link to="/sap-grc" className="cat-explore-card">
+                  <h3>SAP GRC &amp; Access Governance</h3>
+                  <p>Segregation of Duties (SoD), firefighter logs, and risk analysis workflows.</p>
+                  <span className="cat-explore-link">Explore GRC &rarr;</span>
+                </Link>
+                <Link to="/sap-btp-security" className="cat-explore-card">
+                  <h3>SAP BTP &amp; Cloud Security</h3>
+                  <p>Role collections, IAS/IPS provisioning, and modern cloud architecture.</p>
+                  <span className="cat-explore-link">Explore BTP &rarr;</span>
+                </Link>
+                <Link to="/downloads" className="cat-explore-card">
+                  <h3>Templates &amp; Audit Downloads</h3>
+                  <p>Free practitioner-curated templates, checklists, and configuration cheat sheets.</p>
+                  <span className="cat-explore-link">View Downloads &rarr;</span>
+                </Link>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}

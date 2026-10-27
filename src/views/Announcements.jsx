@@ -46,8 +46,8 @@ const Announcements = () => {
   return (
     <div className="category-page-wrapper">
       <SEO
-        title="SAP Security Expert Announcements — Platform News & Community Updates"
-        description="Platform announcements, new feature releases, community milestones, and updates from the SAP Security Expert team."
+        title="SAP Security Expert Announcements: News & Updates"
+        description="Discover the latest SAP Security Expert announcements, including platform updates, new features, community milestones and important developments for members."
         url={`${VITE_SITE_URL}/announcements`}
       />
 

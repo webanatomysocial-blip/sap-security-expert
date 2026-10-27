@@ -25,8 +25,8 @@ const BecomeCountryAmbassador = () => {
   return (
     <div style={{ background: "#fff" }}>
       <SEO
-        title="Become an SAP Security Country Ambassador — Apply to Lead Your Local Community"
-        description="Apply to become a Country Ambassador for SAP Security Expert. Lead local SAP Security and GRC community initiatives, represent your country, and connect with practitioners worldwide."
+        title="Become an SAP Security Country Ambassador | Join Us"
+        description="Become an SAP Security Country Ambassador and connect with local professionals, grow the SAP security community, share expertise and promote knowledge worldwide"
         url={`${VITE_SITE_URL}/become-a-country-ambassador`}
       />
 

@@ -7,8 +7,8 @@ const PrivacyPolicy = () => {
   return (
     <LegalLayout title="Privacy & Cookie Policy">
       <SEO
-        title="Privacy & Cookie Policy — How SAP Security Expert Handles Your Data"
-        description="Read the SAP Security Expert privacy and cookie policy. Understand how we collect, use, store, and protect your personal data when you use our platform."
+        title="Privacy Policy | SAP Security Expert"
+        description="Read the SAP Security Expert Privacy Policy to learn how personal information is collected, used, stored and protected when you visit our website and platform."
         url={`${VITE_SITE_URL}/privacy-policy`}
       />
       <p style={{ color: "#666", marginBottom: "40px" }}>

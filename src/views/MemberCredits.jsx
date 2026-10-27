@@ -42,17 +42,39 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   const [fxCurrency, setFxCurrency] = useState("INR");
   const [fxRate, setFxRate] = useState(1);
   const [fxDecimals, setFxDecimals] = useState(2);
+  const [fxLoading, setFxLoading] = useState(false);
   const { addToast } = useToast();
 
+  const CURRENCIES = [
+    "INR","USD","EUR","GBP","SGD","AED","CAD","AUD","MYR","HKD",
+    "CHF","SEK","NOK","DKK","NZD","ZAR","THB","MXN","QAR",
+    "KWD","BHD","OMR","JPY","KRW","IDR",
+  ];
+
+  const applyFx = (data) => {
+    if (data?.currency && data.currency !== "INR") {
+      setFxCurrency(data.currency);
+      setFxRate(data.rate);
+      setFxDecimals(data.decimals ?? 2);
+    } else {
+      setFxCurrency("INR"); setFxRate(1); setFxDecimals(2);
+    }
+  };
+
   useEffect(() => {
-    detectPaymentCurrency().then((r) => {
-      if (r.data?.currency && r.data.currency !== "INR") {
-        setFxCurrency(r.data.currency);
-        setFxRate(r.data.rate);
-        setFxDecimals(r.data.decimals ?? 2);
-      }
-    }).catch(() => {});
+    detectPaymentCurrency().then((r) => applyFx(r.data)).catch(() => {});
   }, []);
+
+  const handleCurrencyChange = async (cur) => {
+    if (cur === fxCurrency) return;
+    if (cur === "INR") { setFxCurrency("INR"); setFxRate(1); setFxDecimals(2); return; }
+    setFxLoading(true);
+    try {
+      const r = await detectPaymentCurrency(cur);
+      applyFx(r.data);
+    } catch { addToast("Could not load exchange rate. Try again.", "error"); }
+    finally { setFxLoading(false); }
+  };
   const { onCreditsPurchased } = useMemberAuth();
 
   useEffect(() => {
@@ -145,6 +167,26 @@ function BuyCreditsModal({ onClose, onSuccess }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#1e293b" }}>Buy Credits</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#94a3b8", lineHeight: 1 }}>✕</button>
+        </div>
+
+        {/* Currency selector */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#64748b", whiteSpace: "nowrap" }}>Pay in</label>
+          <select
+            value={fxCurrency}
+            onChange={(e) => handleCurrencyChange(e.target.value)}
+            disabled={fxLoading}
+            style={{
+              flex: 1, padding: "8px 12px", border: "1.5px solid #e2e8f0", borderRadius: 8,
+              fontSize: "0.88rem", fontFamily: "inherit", background: "#fff", cursor: "pointer",
+              color: "#1e293b", outline: "none", opacity: fxLoading ? 0.6 : 1,
+            }}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>{c}{c === "INR" ? " (Default)" : ""}</option>
+            ))}
+          </select>
+          {fxLoading && <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>Loading…</span>}
         </div>
 
         {/* Bundle selection */}

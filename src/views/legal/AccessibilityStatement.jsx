@@ -7,8 +7,8 @@ const AccessibilityStatement = () => {
   return (
     <LegalLayout title="Accessibility Statement">
       <SEO
-        title="Accessibility Statement — SAP Security Expert's Commitment to Inclusive Access"
-        description="SAP Security Expert is committed to making our platform accessible to all users. Read our accessibility statement and learn how we meet WCAG standards."
+        title="Accessibility Statement | SAP Security Expert"
+        description="Read the SAP Security Expert accessibility statement and learn about our efforts to make website content and features more accessible to all users online."
         url={`${VITE_SITE_URL}/accessibility-statement`}
       />
       <p style={{ color: "#666", marginBottom: "40px" }}>Introduction</p>

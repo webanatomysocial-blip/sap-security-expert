@@ -108,6 +108,7 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
+    ...(d?.keywords ? { keywords: d.keywords } : {}),
     robots: {
       index: true,
       follow: true,

@@ -20,7 +20,7 @@ const AmbassadorsDirectory = () => {
   return (
     <div style={{ background: "#f8fafc", minHeight: "100vh" }}>
       <SEO
-        title="SAP Security Country Ambassadors — Local Community Leaders Worldwide"
+        title="SAP Security Ambassadors: Meet Experts & Community Leaders"
         description="Meet the SAP Security Expert Country Ambassadors leading local SAP Security and GRC communities across Europe, Asia-Pacific, the Americas, and the Middle East."
         url={`${VITE_SITE_URL}/ambassadors`}
       />

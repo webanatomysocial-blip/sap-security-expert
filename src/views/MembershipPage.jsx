@@ -20,6 +20,20 @@ export default function MembershipPage() {
   const [fxCurrency, setFxCurrency] = useState("INR");
   const [fxRate, setFxRate] = useState(1);
   const [fxDecimals, setFxDecimals] = useState(2);
+  const [fxLoading, setFxLoading] = useState(false);
+
+  const CURRENCIES = ["INR","USD","EUR","GBP","AED","SGD","AUD","CAD","CHF","JPY","MYR","SAR","QAR","KWD","BHD","OMR","HKD","NZD","SEK","NOK","DKK","ZAR","THB","IDR","PHP"];
+
+  const handleCurrencyChange = async (cur) => {
+    setFxCurrency(cur);
+    if (cur === "INR") { setFxRate(1); setFxDecimals(2); return; }
+    setFxLoading(true);
+    try {
+      const r = await detectPaymentCurrency(cur);
+      if (r.data?.rate) { setFxRate(r.data.rate); setFxDecimals(r.data.decimals ?? 2); }
+    } catch { setFxRate(1); setFxDecimals(2); setFxCurrency("INR"); }
+    finally { setFxLoading(false); }
+  };
 
   useEffect(() => {
     if (isLoggedIn) refreshCredits();
@@ -182,6 +196,22 @@ export default function MembershipPage() {
           </div>
         )}
         {errorMsg && <div style={s.errorBox}>{errorMsg}</div>}
+
+        {/* Currency selector */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, justifyContent: "flex-end" }}>
+          <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#64748b", whiteSpace: "nowrap" }}>Pay in</label>
+          <select
+            value={fxCurrency}
+            onChange={(e) => handleCurrencyChange(e.target.value)}
+            disabled={fxLoading}
+            style={{ padding: "6px 10px", borderRadius: 6, border: "1.5px solid #e2e8f0", fontSize: "0.85rem", color: "#1e293b", background: "#fff", cursor: "pointer", opacity: fxLoading ? 0.6 : 1 }}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>{c}{c === "INR" ? " (Default)" : ""}</option>
+            ))}
+          </select>
+          {fxLoading && <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>Loading…</span>}
+        </div>
 
         {/* Bundle cards */}
         <h2 style={s.plansHeading}>Choose a Credit Bundle</h2>

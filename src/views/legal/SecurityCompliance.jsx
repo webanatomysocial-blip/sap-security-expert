@@ -7,8 +7,8 @@ const SecurityCompliance = () => {
   return (
     <LegalLayout title="Security & Compliance Overview">
       <SEO
-        title="Security & Compliance Overview — How SAP Security Expert Protects the Platform"
-        description="An overview of the security controls, data protection practices, and compliance standards in place at SAP Security Expert to keep the platform and its users safe."
+        title="Security & Compliance Overview | SAP Security Expert"
+        description="Explore SAP Security Expert's security and compliance approach, including key practices for responsible operations, data handling, transparency and trust."
         url={`${VITE_SITE_URL}/security-compliance-overview`}
       />
       <p style={{ color: "#666", marginBottom: "40px" }}>

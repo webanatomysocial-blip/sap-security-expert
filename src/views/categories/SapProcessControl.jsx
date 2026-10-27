@@ -7,8 +7,9 @@ const SapProcessControl = () => {
   return (
     <>
       <SEO
-        title="SAP Process Control — Compliance, Internal Controls & Audit"
-        description="Explore SAP Process Control for compliance management, internal controls, risk monitoring, control automation, and audit readiness with expert SAP insights."
+        title="SAP Process Control | Automate Controls & Reduce Risks"
+        description="Explore SAP Process Control guides on control monitoring, risk assessment, compliance testing, automated controls and audit readiness to strengthen governance."
+        keywords="SAP Process Control, SAP GRC Process Control, SAP Internal Controls, SAP Control Monitoring, SAP Risk Assessment, SAP Compliance Testing"
         url={`${VITE_SITE_URL}/sap-process-control`}
       />
       <CategoryLayout categorySlug="sap-process-control" displayName="SAP Process Control" />

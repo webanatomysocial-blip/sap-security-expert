@@ -36,8 +36,8 @@ const News = () => {
   return (
     <div className="category-page-wrapper">
       <SEO
-        title="SAP Security News — Threat Intelligence, Patches & Industry Updates"
-        description="The latest SAP security news: vulnerability advisories, SAP patch releases, regulatory changes, GRC product updates, and cybersecurity threat intelligence for SAP landscapes."
+        title="SAP Security News: Threat Alerts, Patches & Major Updates"
+        description="Get the latest SAP security news on vulnerability alerts, security patches, GRC updates, regulatory changes and emerging threats affecting SAP environments."
         url={`${VITE_SITE_URL}/news`}
       />
 

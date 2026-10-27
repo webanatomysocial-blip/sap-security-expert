@@ -428,6 +428,108 @@ export default function CommunitySection() {
 
 
 
+            {/* Explore the community */}
+            <div className="explore-community-section">
+              <div className="explore-community-header">
+                <h2 className="explore-community-title">Explore the community</h2>
+                <p className="explore-community-subtitle">Find the right path to learn, practice, connect, and grow.</p>
+              </div>
+
+              <div className="explore-community-grid">
+                {/* Learn Card */}
+                <div className="explore-card">
+                  <h3 className="explore-card-title">Learn</h3>
+                  <ul className="explore-card-list">
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="/blogs">Articles</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="/videos">Videos</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="/podcasts">Podcasts</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="/learning-hub">Learning Paths</Link>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Practice Card */}
+                <div className="explore-card">
+                  <h3 className="explore-card-title">Practice</h3>
+                  <ul className="explore-card-list">
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="#">Labs</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="#">Challenges</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="#">Assessments</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="#">Tests</Link>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Connect Card */}
+                <div className="explore-card">
+                  <h3 className="explore-card-title">Connect</h3>
+                  <ul className="explore-card-list">
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="/community">Experts</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="/community">Discussions</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="/ambassadors">Chapters</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="#">Meetups</Link>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Grow Card */}
+                <div className="explore-card">
+                  <h3 className="explore-card-title">Grow</h3>
+                  <ul className="explore-card-list">
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="#">Jobs</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="#">Certifications</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="/member/achievements">Badges</Link>
+                    </li>
+                    <li>
+                      <span className="explore-bullet" />
+                      <Link to="/ambassadors">Local Chapters</Link>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             {/* Recent Activity — tabbed */}
             <div className="widget">
               <div className="widget-header">
@@ -499,7 +601,7 @@ export default function CommunitySection() {
 
                 return (
                   <div className="activity-list">
-                    {tabData.slice(0, 5).map((activity) => (
+                    {tabData.slice(0, 4).map((activity) => (
                       <Link
                         key={activity.slug || activity.id}
                         to={
@@ -703,10 +805,10 @@ export default function CommunitySection() {
                 </div>
               </div>
               <Link to="/community" className="widget-leaderboard-link" style={{ marginTop: 12 }}>
-                Meet the Community →
+                Meet the Community&nbsp;→
               </Link>
               <Link to="/ambassadors" className="widget-leaderboard-link" style={{ marginTop: 12 }}>
-                Meet the Country Ambassadors →
+                Meet the Country Ambassadors&nbsp;→
               </Link>
             </div>
 

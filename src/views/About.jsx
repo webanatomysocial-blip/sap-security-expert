@@ -86,8 +86,8 @@ export default function About() {
   return (
     <div className="about-wrapper">
       <SEO
-        title="About SAP Security Expert — Independent Platform for SAP Security & GRC Practitioners"
-        description="SAP Security Expert is a practitioner-built, independent knowledge platform for SAP Security, GRC, and BTP professionals. Learn about our mission, editorial standards, and the experts behind the content."
+        title="About SAP Security Expert | SAP Security & GRC Community"
+        description="Learn about SAP Security Expert, an independent community for SAP Security, GRC and BTP professionals, built around expert insights and practical knowledge."
         url={`${VITE_SITE_URL}/about`}
       />
       {/* ── Hero ──────────────────────────────────────────────────────────── */}

@@ -6,6 +6,20 @@ import { VITE_SITE_URL } from "../utils/env";
 import { getContributorProfile } from "../services/api";
 import Image from "next/image";
 import AchievementBadgeStrip from "../components/AchievementBadgeStrip";
+import { 
+  LuUser, 
+  LuLayers, 
+  LuStar, 
+  LuFileText, 
+  LuMapPin, 
+  LuBriefcase, 
+  LuCalendar, 
+  LuLinkedin,
+  LuChevronRight,
+  LuChevronLeft,
+  LuShieldCheck,
+  LuArrowLeft
+} from "react-icons/lu";
 
 const expertiseLabels = {
   sapSecurity: "SAP Security",
@@ -15,35 +29,19 @@ const expertiseLabels = {
   sapCyber: "Cybersecurity",
 };
 
-const EXPERTISE_COLORS = {
-  sapSecurity: { bg: "#fff0ec", color: "#c2410c", border: "#fed7aa" },
-  sapGrc:      { bg: "#faf5ff", color: "#7c3aed", border: "#e9d5ff" },
-  sapIag:      { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
-  sapBtp:      { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-  sapCyber:    { bg: "#fff7ed", color: "#b45309", border: "#fde68a" },
-};
-
-function StatCard({ value, label, color, bg, border, icon }) {
-  return (
-    <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 14, padding: "18px 16px", textAlign: "center" }}>
-      <div style={{ fontSize: "2rem", marginBottom: 2 }}>{icon}</div>
-      <div style={{ fontSize: "1.6rem", fontWeight: 800, color, lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: "0.7rem", color, fontWeight: 600, marginTop: 5, textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.8 }}>{label}</div>
-    </div>
-  );
-}
-
 export default function ContributorProfile() {
   const { id } = useParams();
   const [contributor, setContributor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imgError, setImgError] = useState(false);
-  const [showAllArticles, setShowAllArticles] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 5;
 
   useEffect(() => {
     window.scrollTo(0, 0);
     setLoading(true);
+    setCurrentPage(1);
     getContributorProfile(id)
       .then((res) => {
         if (res.data.status === "success") {
@@ -68,7 +66,7 @@ export default function ContributorProfile() {
   if (loading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: 16 }}>
-        <div style={{ width: 40, height: 40, border: "4px solid #f1f5f9", borderTop: "4px solid #ee5e42", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <div style={{ width: 40, height: 40, border: "4px solid #f1f5f9", borderTop: "4px solid #eb5437", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
         <p style={{ color: "#94a3b8", fontSize: "0.9rem" }}>Loading profile…</p>
       </div>
     );
@@ -82,496 +80,360 @@ export default function ContributorProfile() {
     ? Object.entries(contributor.expertise).filter(([, v]) => v === true)
     : [];
 
-  const hasReputation = contributor.experience_years || contributor.implementations_count ||
-    contributor.peer_rating ||
-    (contributor.sap_certifications && contributor.sap_certifications.length) ||
-    (contributor.sap_press_books && contributor.sap_press_books.length);
-
   const avatarUrl = imgError || !contributor.profile_image ? null : contributor.profile_image;
   const isRaghu = id === "raghu-boddu" || contributor.slug === "raghu-boddu" || (contributor.full_name && contributor.full_name.toLowerCase().includes("raghu"));
 
   const designation = contributor.designation || contributor.role || "SAP Security Contributor";
+
+  // Pagination for articles
+  const allBlogs = contributor.blogs || [];
+  const totalArticles = allBlogs.length;
+  const totalPages = Math.ceil(totalArticles / PAGE_SIZE) || 1;
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const currentArticles = allBlogs.slice(startIndex, startIndex + PAGE_SIZE);
+
+  const certifications = (contributor.sap_certifications && contributor.sap_certifications.length > 0)
+    ? contributor.sap_certifications
+    : [];
+
+  const experienceYears = contributor.experience_years ? Number(contributor.experience_years) : null;
+  const implementationsCount = contributor.implementations_count ? Number(contributor.implementations_count) : null;
+  const peerRating = contributor.peer_rating ? parseFloat(contributor.peer_rating).toFixed(1) : null;
+  const peerRatingCount = contributor.peer_rating_count || 0;
+  const articlesCount = contributor.blog_count !== undefined && contributor.blog_count !== null 
+    ? contributor.blog_count 
+    : totalArticles;
+
+  const hasStats = (experienceYears !== null && experienceYears > 0) || 
+                   (implementationsCount !== null && implementationsCount > 0) || 
+                   (peerRating !== null) || 
+                   (articlesCount > 0);
+
   return (
-    <div style={{ background: "#f1f5f9", minHeight: "100vh", paddingBottom: 60 }}>
+    <div className="auth-profile-wrap">
       <SEO
         title={`${contributor.full_name} — ${designation} | SAP Security Expert`}
-        description={contributor.bio ? contributor.bio.substring(0, 160) : `${contributor.full_name} is an SAP Security contributor at SAP Security Expert.`}
+        description={contributor.short_bio || contributor.bio ? (contributor.short_bio || contributor.bio).substring(0, 160) : `${contributor.full_name} is an SAP Security contributor at SAP Security Expert.`}
         url={`${VITE_SITE_URL}/contributor/${id}`}
       />
 
-      {/* ── Hero banner ── */}
-      <div style={{
-        background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)",
-        position: "relative", overflow: "hidden",
-      }}>
-        {/* decorative dots */}
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-        <div style={{ maxWidth: 860, margin: "0 auto", padding: "48px 24px 100px", position: "relative" }}>
-          <Link to="/leaderboard" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(255,255,255,0.55)", fontSize: "0.8rem", textDecoration: "none", marginBottom: 28, fontWeight: 500 }}>
-            <i className="bi bi-arrow-left" /> All Contributors
+      <div className="auth-profile-container">
+        {/* Navigation Breadcrumb / Back Bar */}
+        <div className="auth-nav-bar">
+          <Link to="/leaderboard" className="auth-nav-back">
+            <LuArrowLeft /> All Contributors
           </Link>
-          <div className="cp-hero-flex" style={{ display: "flex", alignItems: "flex-end", gap: 28, flexWrap: "wrap" }}>
-            {/* Avatar */}
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              <div style={{
-                width: 110, height: 110, borderRadius: 20,
-                border: "4px solid rgba(255,255,255,0.2)",
-                background: "#1e293b", overflow: "hidden",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                {avatarUrl ? (
-                  <Image src={avatarUrl} alt={contributor.full_name} width={110} height={110}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    onError={() => setImgError(true)} />
-                ) : (
-                  <span style={{ fontSize: "2.8rem", fontWeight: 800, color: "#ee5e42" }}>
-                    {contributor.full_name?.charAt(0)}
-                  </span>
-                )}
-              </div>
-              {contributor.is_founder && (
-                <div style={{ position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)", background: "#ee5e42", color: "#fff", fontSize: "0.6rem", fontWeight: 800, padding: "2px 10px", borderRadius: 20, whiteSpace: "nowrap", letterSpacing: "0.06em" }}>
-                  FOUNDER
-                </div>
-              )}
-            </div>
-
-            {/* Name + role */}
-            <div className="cp-hero-name-container" style={{ flex: 1, minWidth: 200 }}>
-              <h1 style={{ margin: "0 0 6px", fontSize: "2rem", fontWeight: 800, color: "#fff", lineHeight: 1.2 }}>
-                {contributor.full_name}
-              </h1>
-              <p style={{ margin: "0 0 14px", color: "rgba(255,255,255,0.6)", fontSize: "0.95rem" }}>
-                {contributor.role}
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                {contributor.organization && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.75)", borderRadius: 8, padding: "4px 12px", fontSize: "0.78rem", fontWeight: 500 }}>
-                    <i className="bi bi-building" /> {contributor.organization}
-                  </span>
-                )}
-                {contributor.country && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.75)", borderRadius: 8, padding: "4px 12px", fontSize: "0.78rem", fontWeight: 500 }}>
-                    <i className="bi bi-geo-alt" /> {contributor.country}
-                  </span>
-                )}
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(238,94,66,0.2)", border: "1px solid rgba(238,94,66,0.4)", color: "#fda58a", borderRadius: 8, padding: "4px 12px", fontSize: "0.78rem", fontWeight: 600 }}>
-                  <i className="bi bi-patch-check-fill" /> Verified Contributor
-                </span>
-                {isRaghu && (
-                  <Link
-                    to="/experts/raghu-boddu"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      background: "linear-gradient(135deg, #ee5e42 0%, #d94835 100%)",
-                      color: "#ffffff",
-                      borderRadius: 8,
-                      padding: "4px 14px",
-                      fontSize: "0.78rem",
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      boxShadow: "0 2px 10px rgba(238,94,66,0.35)",
-                    }}
-                  >
-                    <i className="bi bi-person-badge-fill" /> Read Full Expert Profile
-                  </Link>
-                )}
-              </div>
-            </div>
-
-            {/* Social links */}
-            <div className="cp-hero-socials" style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              {contributor.linkedin && (
-                <a href={contributor.linkedin} target="_blank" rel="noopener noreferrer"
-                  style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "1rem", textDecoration: "none" }}>
-                  <i className="bi bi-linkedin" />
-                </a>
-              )}
-              {contributor.twitter_handle && (
-                <a href={`https://twitter.com/${contributor.twitter_handle}`} target="_blank" rel="noopener noreferrer"
-                  style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "1rem", textDecoration: "none" }}>
-                  <i className="bi bi-twitter-x" />
-                </a>
-              )}
-              {contributor.personal_website && (
-                <a href={contributor.personal_website} target="_blank" rel="noopener noreferrer"
-                  style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "1rem", textDecoration: "none" }}>
-                  <i className="bi bi-globe" />
-                </a>
-              )}
-            </div>
-          </div>
+          {isRaghu && (
+            <Link to="/experts/raghu-boddu" className="auth-nav-back" style={{ color: "#eb5437", borderColor: "#fed7aa" }}>
+              View Dedicated Expert Page →
+            </Link>
+          )}
         </div>
-      </div>
 
-      {/* ── Body ── */}
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 16px" }}>
-
-        {/* Pull-up stats strip */}
-        {hasReputation && (Number(contributor.experience_years) > 0 || Number(contributor.implementations_count) > 0 || Number(contributor.peer_rating) > 0 || (contributor.sap_press_books && contributor.sap_press_books.length > 0) || Number(contributor.blog_count) > 0) && (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-            gap: 12, marginTop: -36,
-            marginBottom: 24, position: "relative", zIndex: 2,
-          }}>
-            {Number(contributor.experience_years) > 0 && (
-              <StatCard value={`${contributor.experience_years}+`} label="Yrs Experience" icon="🗓️" color="#0369a1" bg="#f0f9ff" border="#bae6fd" />
-            )}
-            {Number(contributor.implementations_count) > 0 && (
-              <StatCard value={`${contributor.implementations_count}+`} label="Implementations" icon="🏗️" color="#15803d" bg="#f0fdf4" border="#86efac" />
-            )}
-            {Number(contributor.peer_rating) > 0 && (
-              <StatCard value={parseFloat(contributor.peer_rating).toFixed(1)} label={`Peer Rating${contributor.peer_rating_count > 0 ? ` (${contributor.peer_rating_count})` : ""}`} icon="⭐" color="#b45309" bg="#fffbeb" border="#fcd34d" />
-            )}
-            {contributor.sap_press_books && contributor.sap_press_books.length > 0 && (
-              <StatCard value={contributor.sap_press_books.length} label="SAP PRESS Books" icon="📚" color="#7c3aed" bg="#faf5ff" border="#c4b5fd" />
-            )}
-            {Number(contributor.blog_count) > 0 && (
-              <StatCard value={contributor.blog_count} label="Articles" icon="✍️" color="#ee5e42" bg="#fff8f6" border="#fecdb5" />
-            )}
-          </div>
-        )}
-
-        <div className="cp-grid" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20, alignItems: "start", marginTop: hasReputation ? 0 : 20, paddingBottom: 48 }}>
-
-          {/* ── Left column ── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-            {/* Raghu Boddu Expert Banner */}
-            {isRaghu && (
-              <div style={{
-                background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
-                borderRadius: 16,
-                padding: "20px 24px",
-                border: "1px solid #fed7aa",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 16,
-                flexWrap: "wrap",
-                boxShadow: "0 2px 8px rgba(249, 115, 22, 0.08)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 12, background: "#ea5845", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", flexShrink: 0 }}>
-                    <i className="bi bi-star-fill" />
+        {/* Outer Two-Column Card matching design */}
+        <div className="auth-profile-card">
+          
+          {/* Left Column: Author Card with Pattern Header */}
+          <aside className="auth-sidebar">
+            <div className="auth-banner">
+              <div className="auth-avatar-holder">
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt={contributor.full_name}
+                    width={100}
+                    height={100}
+                    className="auth-avatar-img"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className="auth-avatar-fallback">
+                    {contributor.full_name?.charAt(0)}
                   </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#9a3412" }}>
-                      Featured SAP Security & GRC Expert
-                    </h3>
-                    <p style={{ margin: "2px 0 0", fontSize: "0.82rem", color: "#c2410c" }}>
-                      Explore Raghu Boddu's publications, training courses, SecOps frameworks & research.
-                    </p>
-                  </div>
+                )}
+                <div className="auth-verified-badge" title="Verified Contributor">
+                  <LuShieldCheck style={{ color: "#eb5437", fontSize: 14 }} />
                 </div>
-                <Link
-                  to="/experts/raghu-boddu"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    background: "#ea5845",
-                    color: "#ffffff",
-                    padding: "9px 18px",
-                    borderRadius: 10,
-                    fontSize: "0.82rem",
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    whiteSpace: "nowrap",
-                    boxShadow: "0 4px 12px rgba(234, 88, 69, 0.25)",
-                  }}
-                >
-                  Read More About Raghu Boddu <i className="bi bi-arrow-right" />
-                </Link>
               </div>
-            )}
+            </div>
 
-            {/* About */}
-            {contributor.short_bio && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "24px 28px", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fff0ec", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <i className="bi bi-person-lines-fill" style={{ color: "#ee5e42" }} />
-                  </div>
-                  <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#0f172a" }}>About</h2>
-                </div>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.8, fontSize: "0.95rem" }}>{contributor.short_bio}</p>
+            <div className="auth-sidebar-body">
+              <div className="auth-name-group">
+                <h1 className="auth-name">{contributor.full_name}</h1>
+                <p className="auth-role">{contributor.role || designation}</p>
               </div>
-            )}
 
-            {/* Achievement badges */}
-            {contributor.badges?.length > 0 && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "20px 28px", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <i className="bi bi-award-fill" style={{ color: "#d97706" }} />
-                  </div>
-                  <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#0f172a" }}>Achievements</h2>
-                </div>
-                <AchievementBadgeStrip badges={contributor.badges} size={40} />
-              </div>
-            )}
-
-            {/* SAP Certifications */}
-            {contributor.sap_certifications && contributor.sap_certifications.length > 0 && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "24px 28px", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <i className="bi bi-patch-check-fill" style={{ color: "#1d4ed8" }} />
-                  </div>
-                  <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#0f172a" }}>SAP Certifications</h2>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {contributor.sap_certifications.map((cert, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#f8faff", border: "1px solid #dbeafe", borderRadius: 10 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <i className="bi bi-check-lg" style={{ color: "#1d4ed8", fontSize: "0.85rem" }} />
-                      </div>
-                      <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e3a8a" }}>{cert}</span>
+              {(contributor.organization || contributor.country || contributor.created_at) && (
+                <div className="auth-details-list">
+                  {contributor.organization && (
+                    <div className="auth-detail-item">
+                      <LuBriefcase />
+                      <span>{contributor.organization}</span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* SAP PRESS Books */}
-            {contributor.sap_press_books && contributor.sap_press_books.length > 0 && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "24px 28px", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: "#faf5ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <i className="bi bi-book-fill" style={{ color: "#7c3aed" }} />
-                  </div>
-                  <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#0f172a" }}>SAP PRESS Books</h2>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {contributor.sap_press_books.map((book, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "#faf5ff", border: "1px solid #ddd6fe", borderRadius: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <i className="bi bi-journal-richtext" style={{ color: "#7c3aed" }} />
-                      </div>
-                      <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#3b0764" }}>
-                        {typeof book === "object"
-                          ? book.url
-                            ? <a href={book.url} target="_blank" rel="noopener noreferrer" style={{ color: "#7c3aed", textDecoration: "none" }}>{book.title}</a>
-                            : book.title
-                          : book}
+                  )}
+                  {contributor.country && (
+                    <div className="auth-detail-item">
+                      <LuMapPin />
+                      <span>{contributor.country}</span>
+                    </div>
+                  )}
+                  {contributor.created_at && (
+                    <div className="auth-detail-item">
+                      <LuCalendar />
+                      <span>
+                        Member since {new Date(contributor.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
                       </span>
                     </div>
-                  ))}
+                  )}
                 </div>
+              )}
+
+              {/* About section */}
+              {(contributor.short_bio || contributor.bio) && (
+                <div>
+                  <h3 className="auth-section-heading">About</h3>
+                  <p className="auth-about-text">
+                    {contributor.short_bio || contributor.bio}
+                  </p>
+                </div>
+              )}
+
+              {/* View Public Profile Button - Only show if there is an alternate dedicated page (e.g. Raghu Boddu's dedicated expert page) */}
+              {isRaghu && (
+                <Link to="/experts/raghu-boddu" className="auth-btn-profile">
+                  View Public Profile
+                </Link>
+              )}
+
+              {/* Connect */}
+              {contributor.linkedin && (
+                <div>
+                  <h3 className="auth-section-heading">Connect</h3>
+                  <a href={contributor.linkedin} target="_blank" rel="noopener noreferrer" className="auth-connect-btn">
+                    <LuLinkedin /> LinkedIn Profile
+                  </a>
+                </div>
+              )}
+
+              {/* Expertise */}
+              {expertiseEntries.length > 0 && (
+                <div>
+                  <h3 className="auth-section-heading">Expertise</h3>
+                  <div className="auth-expertise-tags">
+                    {expertiseEntries.map(([key]) => (
+                      <span key={key} className="auth-tag">
+                        {expertiseLabels[key] || key}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Achievements Badges */}
+              {contributor.badges && contributor.badges.length > 0 && (
+                <div>
+                  <h3 className="auth-section-heading">Achievements</h3>
+                  <AchievementBadgeStrip badges={contributor.badges} size={36} />
+                </div>
+              )}
+            </div>
+          </aside>
+
+          {/* Right Column: Top Stats, Articles with Pagination, SAP Certifications */}
+          <main className="auth-main">
+            
+            {/* Top 4 Stats Strip - Only render stats if present in data */}
+            {hasStats && (
+              <div className="auth-stats-grid">
+                {experienceYears !== null && experienceYears > 0 && (
+                  <div className="auth-stat-box">
+                    <div className="auth-stat-icon">
+                      <LuUser />
+                    </div>
+                    <div className="auth-stat-info">
+                      <div className="auth-stat-num">{experienceYears}+</div>
+                      <div className="auth-stat-label">Years Experience</div>
+                      <div className="auth-stat-sub">In SAP Security & GRC</div>
+                    </div>
+                  </div>
+                )}
+
+                {implementationsCount !== null && implementationsCount > 0 && (
+                  <div className="auth-stat-box">
+                    <div className="auth-stat-icon">
+                      <LuLayers />
+                    </div>
+                    <div className="auth-stat-info">
+                      <div className="auth-stat-num">{implementationsCount}+</div>
+                      <div className="auth-stat-label">Implementations</div>
+                      <div className="auth-stat-sub">Across enterprises</div>
+                    </div>
+                  </div>
+                )}
+
+                {peerRating !== null && (
+                  <div className="auth-stat-box">
+                    <div className="auth-stat-icon">
+                      <LuStar style={{ color: "#d97706" }} />
+                    </div>
+                    <div className="auth-stat-info">
+                      <div className="auth-stat-num">
+                        {peerRating} {peerRatingCount > 0 && <span>({peerRatingCount})</span>}
+                      </div>
+                      <div className="auth-stat-label">Peer Rating</div>
+                      <div className="auth-stat-sub">From community members</div>
+                    </div>
+                  </div>
+                )}
+
+                {articlesCount > 0 && (
+                  <div className="auth-stat-box">
+                    <div className="auth-stat-icon">
+                      <LuFileText />
+                    </div>
+                    <div className="auth-stat-info">
+                      <div className="auth-stat-num">{articlesCount}</div>
+                      <div className="auth-stat-label">Articles</div>
+                      <div className="auth-stat-sub">Knowledge resources</div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Contributions */}
-            <div style={{ background: "#fff", borderRadius: 16, padding: "24px 28px", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fff0ec", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <i className="bi bi-file-earmark-text-fill" style={{ color: "#ee5e42" }} />
-                </div>
-                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#0f172a" }}>
-                  Articles
-                  {contributor.blog_count > 0 && (
-                    <span style={{ marginLeft: 8, background: "#fff0ec", color: "#ee5e42", border: "1px solid #fecdb5", borderRadius: 20, padding: "1px 10px", fontSize: "0.75rem", fontWeight: 700 }}>
-                      {contributor.blog_count}
-                    </span>
-                  )}
-                </h2>
+            {/* Articles Section */}
+            <section className="auth-articles-section">
+              <div className="auth-articles-header">
+                <h2 className="auth-block-title">Articles</h2>
+                {totalArticles > 0 && (
+                  <span style={{ fontSize: "0.82rem", color: "#94a3b8" }}>
+                    Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, totalArticles)} of {totalArticles}
+                  </span>
+                )}
               </div>
 
-              {!contributor.blogs || contributor.blogs.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "32px 0", color: "#94a3b8" }}>
-                  <i className="bi bi-file-earmark" style={{ fontSize: "2rem", display: "block", marginBottom: 8 }} />
+              {currentArticles.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "36px 0", color: "#94a3b8" }}>
                   <p style={{ margin: 0, fontSize: "0.88rem" }}>No published articles yet.</p>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {(showAllArticles ? contributor.blogs : contributor.blogs.slice(0, 5)).map((blog) => (
-                    <Link key={blog.id} to={`/${blog.category}/${blog.slug}`} style={{ textDecoration: "none" }}>
-                      <div style={{
-                        display: "flex", gap: 14, alignItems: "flex-start",
-                        padding: "14px", borderRadius: 12, border: "1px solid #f1f5f9",
-                        background: "#fafafa", transition: "all 0.18s",
-                      }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = "#fecdb5"; e.currentTarget.style.background = "#fff8f6"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(238,94,66,0.08)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#f1f5f9"; e.currentTarget.style.background = "#fafafa"; e.currentTarget.style.boxShadow = "none"; }}
-                      >
-                        {blog.image && (
-                          <img src={blog.image} alt={blog.title}
-                            style={{ width: 72, height: 52, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: "1px solid #e2e8f0" }}
-                            onError={e => { e.currentTarget.style.display = "none"; }} />
+                <div className="auth-articles-list">
+                  {currentArticles.map((article) => {
+                    const articleLink = article.category
+                      ? `/${article.category}/${article.slug}`
+                      : `/blogs/${article.slug || article.id}`;
+                    const categoryDisplay = article.category
+                      ? article.category.replace(/-/g, " ")
+                      : "SECURITY FUNDAMENTALS";
+
+                    return (
+                      <Link key={article.id} to={articleLink} className="auth-article-row">
+                        {article.image ? (
+                          <img
+                            src={article.image}
+                            alt={article.title}
+                            className="auth-article-thumb"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div className="auth-article-thumb-placeholder">
+                            <LuFileText />
+                          </div>
                         )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "#ee5e42", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
-                            {blog.category?.replace(/-/g, " ")}
-                          </div>
-                          <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.92rem", lineHeight: 1.35, marginBottom: 4 }}>
-                            {blog.title}
-                          </div>
-                          <div style={{ fontSize: "0.75rem", color: "#94a3b8", display: "flex", gap: 12, alignItems: "center" }}>
-                            {blog.date && <span><i className="bi bi-calendar3" style={{ marginRight: 3 }} />{new Date(blog.date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</span>}
-                            {blog.view_count > 0 && <span><i className="bi bi-eye" style={{ marginRight: 3 }} />{blog.view_count}</span>}
+
+                        <div className="auth-article-content">
+                          <span className="auth-article-badge">{categoryDisplay}</span>
+                          <h3 className="auth-article-title">{article.title}</h3>
+                          <div className="auth-article-meta">
+                            {article.date && (
+                              <span>
+                                <LuCalendar style={{ fontSize: 12 }} />
+                                {new Date(article.date).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            )}
+                            {article.view_count !== undefined && (
+                              <span>
+                                <i className="bi bi-eye" style={{ fontSize: 11 }} />
+                                {article.view_count}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <i className="bi bi-arrow-right" style={{ color: "#cbd5e1", fontSize: "0.9rem", flexShrink: 0, alignSelf: "center" }} />
-                      </div>
-                    </Link>
-                  ))}
-                  {contributor.blogs.length > 5 && (
-                    <button
-                      onClick={() => setShowAllArticles((v) => !v)}
-                      style={{
-                        marginTop: 4, padding: "10px", background: "none", border: "1px solid #e2e8f0",
-                        borderRadius: 10, color: "#ee5e42", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer",
-                      }}
-                    >
-                      {showAllArticles ? "Show Less" : `View All (${contributor.blogs.length})`}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* ── Right sidebar ── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-            {/* Quick info card */}
-            <div style={{ background: "#fff", borderRadius: 16, padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-              <h3 style={{ margin: "0 0 16px", fontSize: "0.82rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Details</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {contributor.designation && (
-                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <i className="bi bi-briefcase-fill" style={{ color: "#ee5e42", fontSize: "0.9rem", marginTop: 2, flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Designation</div>
-                      <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e293b" }}>{contributor.designation}</div>
-                    </div>
-                  </div>
-                )}
-                {contributor.organization && (
-                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <i className="bi bi-building-fill" style={{ color: "#ee5e42", fontSize: "0.9rem", marginTop: 2, flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Organization</div>
-                      <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e293b" }}>{contributor.organization}</div>
-                    </div>
-                  </div>
-                )}
-                {contributor.country && (
-                  <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <i className="bi bi-geo-alt-fill" style={{ color: "#ee5e42", fontSize: "0.9rem", marginTop: 2, flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Location</div>
-                      <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e293b" }}>{contributor.country}</div>
-                    </div>
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <i className="bi bi-calendar-check-fill" style={{ color: "#ee5e42", fontSize: "0.9rem", marginTop: 2, flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>Member Since</div>
-                    <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e293b" }}>
-                      {new Date(contributor.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Expertise */}
-            {expertiseEntries.length > 0 && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: "0.82rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Expertise</h3>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {expertiseEntries.map(([key]) => {
-                    const c = EXPERTISE_COLORS[key] || { bg: "#f8fafc", color: "#475569", border: "#e2e8f0" };
-                    return (
-                      <span key={key} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: c.bg, border: `1.5px solid ${c.border}`, color: c.color, borderRadius: 20, padding: "4px 12px", fontSize: "0.75rem", fontWeight: 600 }}>
-                        <i className="bi bi-check-circle-fill" style={{ fontSize: "0.65rem" }} />
-                        {expertiseLabels[key] || key}
-                      </span>
+                        <div className="auth-article-arrow">
+                          <LuChevronRight />
+                        </div>
+                      </Link>
                     );
                   })}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Verified badge */}
-            <div style={{ background: "linear-gradient(135deg, #fff8f6 0%, #fff 100%)", borderRadius: 16, padding: "20px", border: "1.5px solid #fecdb5", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: "#fff0ec", border: "1.5px solid #fecdb5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <i className="bi bi-patch-check-fill" style={{ color: "#ee5e42", fontSize: "1.2rem" }} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "#ee5e42" }}>Verified Expert</div>
-                  <div style={{ fontSize: "0.72rem", color: "#94a3b8", lineHeight: 1.4, marginTop: 2 }}>Vetted SAP Security community contributor</div>
-                </div>
-              </div>
-            </div>
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="auth-pagination">
+                  <button
+                    className="auth-page-btn"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    aria-label="Previous page"
+                  >
+                    <LuChevronLeft />
+                  </button>
 
-            {/* Connect */}
-            {(contributor.linkedin || contributor.twitter_handle || contributor.personal_website) && (
-              <div style={{ background: "#fff", borderRadius: 16, padding: "20px", border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: "0.82rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Connect</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {contributor.linkedin && (
-                    <a href={contributor.linkedin} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, textDecoration: "none", color: "#0369a1", fontSize: "0.82rem", fontWeight: 600 }}>
-                      <i className="bi bi-linkedin" style={{ fontSize: "1rem" }} /> LinkedIn Profile
-                    </a>
-                  )}
-                  {contributor.twitter_handle && (
-                    <a href={`https://twitter.com/${contributor.twitter_handle}`} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, textDecoration: "none", color: "#0f172a", fontSize: "0.82rem", fontWeight: 600 }}>
-                      <i className="bi bi-twitter-x" style={{ fontSize: "1rem" }} /> @{contributor.twitter_handle}
-                    </a>
-                  )}
-                  {contributor.personal_website && (
-                    <a href={contributor.personal_website} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, textDecoration: "none", color: "#0f172a", fontSize: "0.82rem", fontWeight: 600 }}>
-                      <i className="bi bi-globe" style={{ fontSize: "1rem" }} /> Website
-                    </a>
-                  )}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      className={`auth-page-btn ${pageNum === currentPage ? "active" : ""}`}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+
+                  <button
+                    className="auth-page-btn"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    aria-label="Next page"
+                  >
+                    <LuChevronRight />
+                  </button>
                 </div>
-              </div>
+              )}
+            </section>
+
+            {/* SAP Certifications - Only render if contributor has certifications */}
+            {certifications.length > 0 && (
+              <section className="auth-cert-section">
+                <div className="auth-cert-header">
+                  <h2 className="auth-block-title">SAP Certifications</h2>
+                  <LuChevronRight style={{ color: "#94a3b8" }} />
+                </div>
+
+                <div className="auth-cert-cards-grid">
+                  {certifications.map((cert, idx) => (
+                    <div key={idx} className="auth-cert-box">
+                      <div className="auth-cert-icon">
+                        <LuShieldCheck />
+                      </div>
+                      <p className="auth-cert-title">
+                        {typeof cert === "object" ? cert.name || cert.title : cert}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
             )}
-          </div>
+          </main>
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 700px) {
-          .cp-grid { grid-template-columns: 1fr !important; }
-        }
-        @media (max-width: 600px) {
-          .cp-hero-flex {
-            flex-direction: column !important;
-            align-items: center !important;
-            text-align: center !important;
-            gap: 16px !important;
-          }
-          .cp-hero-name-container {
-            min-width: 0 !important;
-            width: 100% !important;
-          }
-          .cp-hero-name-container h1 {
-            font-size: 1.6rem !important;
-          }
-          .cp-hero-name-container div {
-            justify-content: center !important;
-          }
-          .cp-hero-socials {
-            justify-content: center !important;
-            margin-top: 8px !important;
-            width: 100% !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
