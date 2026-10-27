@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
-import { getCreditBundles, createCreditOrder, verifyCreditPayment, unlockBlog, validateCoupon } from "../services/api";
+import { getCreditBundles, createCreditOrder, verifyCreditPayment, unlockBlog, validateCoupon, detectPaymentCurrency } from "../services/api";
 
 /**
  * PremiumPaywall — credit-based article unlock.
@@ -24,6 +24,23 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
   const [unlocking, setUnlocking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [tab, setTab] = useState("unlock"); // "unlock" | "buy"
+  const [fxCurrency, setFxCurrency] = useState("INR");
+  const [fxRate, setFxRate] = useState(1);
+  const [fxDecimals, setFxDecimals] = useState(2);
+  const [fxLoading, setFxLoading] = useState(false);
+
+  const CURRENCIES = ["INR","USD","EUR","GBP","AED","SGD","AUD","CAD","CHF","JPY","MYR","SAR","QAR","KWD","BHD","OMR","HKD","NZD","SEK","NOK","DKK","ZAR","THB","IDR","PHP"];
+
+  const handleCurrencyChange = async (cur) => {
+    setFxCurrency(cur);
+    if (cur === "INR") { setFxRate(1); setFxDecimals(2); return; }
+    setFxLoading(true);
+    try {
+      const r = await detectPaymentCurrency(cur);
+      if (r.data?.rate) { setFxRate(r.data.rate); setFxDecimals(r.data.decimals ?? 2); }
+    } catch { setFxRate(1); setFxDecimals(2); setFxCurrency("INR"); }
+    finally { setFxLoading(false); }
+  };
 
   const hasSufficientCredits = creditBalance >= creditsRequired;
 
@@ -87,7 +104,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
         return;
       }
 
-      const orderRes = await createCreditOrder(selectedBundle.id, couponData ? couponCode : undefined);
+      const orderRes = await createCreditOrder(selectedBundle.id, couponData ? couponCode : undefined, fxCurrency !== "INR" ? fxCurrency : undefined);
       const { order_id, amount, currency, key_id } = orderRes.data;
 
       const options = {
@@ -156,7 +173,14 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
   };
 
   // ── Compute display prices ────────────────────────────────────────────────
-  const displayPrice = (paise) => `₹${(paise / 100).toFixed(0)}`;
+  const displayPrice = (paise) => {
+    if (fxCurrency !== "INR" && fxRate) {
+      let amount = (paise / 100) * fxRate;
+      if (fxDecimals === 3) amount = Math.floor(Math.round(amount * 1000) / 10) * 10 / 1000;
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: fxCurrency, minimumFractionDigits: fxDecimals, maximumFractionDigits: fxDecimals }).format(amount);
+    }
+    return `₹${(paise / 100).toFixed(0)}`;
+  };
   const discountedPaise = selectedBundle && couponData
     ? Math.max(selectedBundle.price_paise - (couponData.discount_paise || 0), 100)
     : selectedBundle?.price_paise;
@@ -303,6 +327,22 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
               Choose a bundle, credits never expire and unlock any premium article.
             </p>
 
+            {/* Currency selector */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", whiteSpace: "nowrap" }}>Pay in</label>
+              <select
+                value={fxCurrency}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+                disabled={fxLoading}
+                style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1.5px solid #e2e8f0", fontSize: "0.82rem", color: "#1e293b", background: "#fff", cursor: "pointer", opacity: fxLoading ? 0.6 : 1 }}
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>{c}{c === "INR" ? " (Default)" : ""}</option>
+                ))}
+              </select>
+              {fxLoading && <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>…</span>}
+            </div>
+
             {/* Bundle cards */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
               {bundles.map((b) => (
@@ -363,9 +403,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
                 {couponData && (
                   <p style={{ fontSize: 12, color: "#16a34a", marginTop: 4 }}>
                     <i className="bi bi-check-circle-fill" style={{ marginRight: 4 }}></i>
-                    {couponData.discount_type === "percentage"
-                      ? `₹${(couponData.discount_paise / 100).toFixed(0)} off applied`
-                      : `₹${(couponData.discount_paise / 100).toFixed(0)} off applied`}
+                    {displayPrice(couponData.discount_paise)} off applied
                   </p>
                 )}
               </div>

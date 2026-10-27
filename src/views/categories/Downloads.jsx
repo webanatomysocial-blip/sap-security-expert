@@ -7,8 +7,8 @@ const Downloads = () => {
   return (
     <>
       <SEO
-        title="Free SAP Security Downloads — Templates, Checklists & Audit Tools"
-        description="Download practitioner-curated SAP security resources: role design templates, SoD conflict matrices, GRC configuration guides, security audit checklists, and ABAP security frameworks."
+        title="SAP Security Downloads: Free Resources, Guides & Tools"
+        description="Explore downloadable SAP security resources, from role design templates and SoD conflict matrices to audit tools and practical GRC configuration guides."
         url={`${VITE_SITE_URL}/downloads`}
       />
       <CategoryLayout

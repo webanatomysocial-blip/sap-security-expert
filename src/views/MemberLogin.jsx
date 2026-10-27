@@ -327,7 +327,10 @@ const MemberLogin = () => {
       <LocationModal member={pendingMember} onSaved={handleLocationSaved} />
     )}
     <div className="login-page-wrapper">
-      <SEO title="Member Login | SAP Security Expert" />
+      <SEO
+        title="SAP Security Expert Login | Access Your Member Account"
+        description="Log in to SAP Security Expert to access member resources, expert insights, exclusive content, security guides and community updates for SAP professionals."
+      />
 
       <div className="login-page-container">
         <div className="login-split-grid">

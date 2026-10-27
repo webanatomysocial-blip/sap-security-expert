@@ -34,13 +34,21 @@ function findAuthoritativeDownloadCredits(blogRows, fileUrl) {
   return null;
 }
 
-// GET /api/payments/detect-currency — detects user's currency from IP, returns rate
+// GET /api/payments/detect-currency?currency=USD — detects or accepts explicit currency, returns rate
 const detectCurrency = asyncHandler(async (req, res) => {
+  // If caller passes ?currency=USD, use that directly (manual selector override)
+  const requested = typeof req.query.currency === 'string' ? req.query.currency.toUpperCase() : null;
+  if (requested && requested !== 'INR') {
+    const converted = await currency.convertFromINR(100_00, requested);
+    if (converted) {
+      return res.json({ status: 'success', currency: requested, rate: converted.rate, decimals: converted.decimals });
+    }
+    return res.status(400).json({ status: 'error', message: 'Unsupported currency.' });
+  }
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress;
   const detected = await currency.detectCurrencyFromIp(ip);
-  // If detected and supported, fetch rate; otherwise default to INR
   if (detected) {
-    const converted = await currency.convertFromINR(100_00, detected); // dummy ₹100 to get rate
+    const converted = await currency.convertFromINR(100_00, detected);
     if (converted) {
       return res.json({ status: 'success', currency: detected, rate: converted.rate, decimals: converted.decimals });
     }

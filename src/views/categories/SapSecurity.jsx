@@ -9,6 +9,7 @@ const SapSecurity = () => {
       <SEO
         title="SAP Security Guide: Roles, Authorizations & Best Practices"
         description="Explore SAP Security tutorials, role management, authorizations, auditing, compliance, and best practices to secure your SAP landscape with expert insights."
+        keywords="SAP Security Guides, SAP Roles and Authorizations, SAP PFCG, SAP Access Control, SAP Security Best Practices, SAP Security Audit"
         url={`${VITE_SITE_URL}/sap-security`}
       />
       <CategoryLayout categorySlug="sap-security" displayName="SAP Security" />

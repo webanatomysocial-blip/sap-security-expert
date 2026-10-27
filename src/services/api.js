@@ -232,7 +232,7 @@ export const getMyUnlocks = () => api.get('/payments/my-unlocks');
 export const getMyTransactions = () => api.get('/payments/my-transactions');
 export const validateCoupon = (code, bundle_id) => api.post('/payments/validate-coupon', { code, bundle_id });
 export const createCreditOrder = (bundle_id, coupon_code, preferred_currency) => api.post('/payments/create-order', { bundle_id, coupon_code, preferred_currency });
-export const detectPaymentCurrency = () => api.get('/payments/detect-currency');
+export const detectPaymentCurrency = (currency) => api.get('/payments/detect-currency' + (currency ? `?currency=${encodeURIComponent(currency)}` : ''));
 export const verifyCreditPayment = (data) => api.post('/payments/verify', data);
 export const unlockBlog = (blog_slug) => api.post('/payments/unlock-blog', { blog_slug });
 

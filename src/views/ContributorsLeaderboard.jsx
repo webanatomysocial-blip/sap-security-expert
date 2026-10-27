@@ -26,8 +26,8 @@ const ContributorsLeaderboard = () => {
   return (
     <div className="category-page-wrapper">
       <SEO
-        title="SAP Security Contributors Leaderboard — Top-Ranked SAP & GRC Experts"
-        description="Discover the most active contributors to the SAP Security Expert community, ranked by published articles, expertise, and community impact. Meet the practitioners writing the knowledge base."
+        title="SAP Security Leaderboard: Top Contributors & Experts"
+        description="Discover leading contributors in the SAP Security Expert community, ranked by articles and community impact. Explore insights from SAP and GRC practitioners."
         url={`${VITE_SITE_URL}/leaderboard`}
       />
       <div className="blogs-all-header">

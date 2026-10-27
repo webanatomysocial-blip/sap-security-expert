@@ -7,8 +7,8 @@ const ExpertPapers = () => {
   return (
     <>
       <SEO
-        title="SAP Security Expert Papers — In-Depth Research & Technical Deep Dives"
-        description="Read practitioner-authored papers on SAP GRC strategy, access risk frameworks, BTP security architecture, and enterprise security programme design. Detailed technical analysis, not vendor content."
+        title="SAP Security Research Papers: Expert Insights & Analysis"
+        description="Explore in-depth SAP security research on GRC strategy, access risk frameworks, BTP security architecture and enterprise security design from practitioners."
         url={`${VITE_SITE_URL}/expert-papers`}
       />
       <CategoryLayout categorySlug="expert-papers" displayName="Expert Papers" />

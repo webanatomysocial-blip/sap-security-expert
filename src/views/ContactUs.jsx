@@ -93,8 +93,8 @@ const ContactUs = () => {
   return (
     <div className="contact-page">
       <SEO
-        title="Contact SAP Security Expert — Questions, Partnerships & Content Enquiries"
-        description="Reach the SAP Security Expert team for content partnerships, contributor questions, advertiser enquiries, or general feedback. We reply to every genuine enquiry."
+        title="Contact SAP Security Expert | Connect with Our Community"
+        description="Contact SAP Security Expert for questions, community support, collaboration opportunities and enquiries about SAP security, GRC, access governance and resources."
         url={`${VITE_SITE_URL}/contact-us`}
       />
       <div className="contact-hero">

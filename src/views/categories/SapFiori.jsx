@@ -9,6 +9,7 @@ const SapFiori = () => {
       <SEO
         title="SAP Fiori Security: Roles, Authorization & Best Practices"
         description="Learn SAP Fiori Security with expert guides on roles, authorizations, authentication, Launchpad security, and best practices to secure your SAP Fiori environment."
+        keywords="SAP Fiori Security, SAP Fiori Authorization, SAP Fiori Roles and Catalogs, SAP Fiori Access Control, SAP Fiori Security Best Practices"
         url={`${VITE_SITE_URL}/sap-fiori-security`}
       />
       <CategoryLayout categorySlug="sap-fiori-security" displayName="SAP Fiori Security" />

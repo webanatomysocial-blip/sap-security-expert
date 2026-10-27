@@ -12,6 +12,7 @@ import {
 } from "react-icons/lu";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { HiArrowRight } from "react-icons/hi";
+import SEO from "../components/SEO";
 import FeaturedInsights from "../components/FeaturedInsights";
 import CommunitySection from "../components/CommunitySection";
 import TrendingStrip from "../components/TrendingStrip";
@@ -22,6 +23,26 @@ export default function Home() {
   const { isLoggedIn, member } = useMemberAuth();
   return (
     <div className="home-wrapper">
+      <SEO
+        title="SAP Security Expert | Global Community for SAP Professionals"
+        description="Explore SAP Security with expert guides on SAP Fiori Security, GRC controls, BTP security, authorizations, audit, risk management and compliance best practices."
+        keywords="SAP Security Expert, SAP Fiori Security, SAP GRC Controls, SAP BTP Security, SAP Authorizations, SAP Audit, SAP Risk Management, SAP Compliance"
+      />
+      <h1
+        style={{
+          position: "absolute",
+          width: "1px",
+          height: "1px",
+          padding: 0,
+          margin: "-1px",
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
+        SAP Security Expert | Global Community for SAP Professionals
+      </h1>
       <HomeModal />
 
       <TrendingStrip />

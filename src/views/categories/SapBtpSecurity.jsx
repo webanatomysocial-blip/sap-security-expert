@@ -7,8 +7,9 @@ const SapBtpSecurity = () => {
   return (
     <>
       <SEO
-        title="SAP BTP Security: Best Practices & Expert Guides"
-        description="Explore SAP BTP Security with expert guides on identity and access management, authentication, authorization, cloud security, and best practices."
+        title="SAP BTP Security | Access Control & Security Guides"
+        description="Learn SAP BTP Security through practical guides on identity management, role collections, authorizations, cloud application security and secure integrations."
+        keywords="SAP BTP Access Control, SAP BTP Identity Management, SAP BTP Role Collections, SAP BTP Authorization, SAP BTP"
         url={`${VITE_SITE_URL}/sap-btp-security`}
       />
       <CategoryLayout categorySlug="sap-btp-security" displayName="SAP BTP Security" />

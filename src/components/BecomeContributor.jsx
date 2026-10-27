@@ -152,8 +152,8 @@ const BecomeContributor = () => {
   return (
     <div className="become-contributor-page">
       <SEO
-        title="Become a Contributor | SAP Security Expert"
-        description="Join the SAP Security Expert community as a contributor or volunteer. Share your expertise through articles, tools research, podcasts, and more."
+        title="Become an SAP Security Contributor | Share Your Expertise"
+        description="Share your SAP security expertise with a global community. Contribute articles, practical guides and insights on SAP Security, GRC, BTP and cybersecurity."
       />
       {/* HERO SECTION */}
       <section className="contributor-hero">

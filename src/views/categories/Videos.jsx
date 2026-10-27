@@ -7,8 +7,8 @@ const Videos = () => {
   return (
     <>
       <SEO
-        title="SAP Security Video Library — Short Insights from Global Practitioners"
-        description="Watch two-minute perspectives from SAP Security professionals on authorization design, GRC tools, BTP security, and real-world implementation challenges."
+        title="SAP Security Videos: Expert Tutorials & Practical Guides"
+        description="Watch short video tutorials and practical perspectives from SAP Security and GRC practitioners around the world."
         url={`${VITE_SITE_URL}/videos`}
       />
       <CategoryLayout categorySlug="videos" displayName="Global Voices in SAP Security" />

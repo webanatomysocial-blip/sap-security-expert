@@ -7,8 +7,8 @@ const SafetyMovement = () => {
   return (
     <LegalLayout title="Safety Movement">
       <SEO
-        title="SAP Security Expert Safety Movement — Our Commitment to a Safe, Inclusive Community"
-        description="Learn about the SAP Security Expert Safety Movement and our commitment to creating a safe, respectful, and inclusive environment for SAP Security practitioners worldwide."
+        title="Safety Movement | SAP Security Expert"
+        description="Learn about the SAP Security Expert Safety Movement and its aims, key principles and role in encouraging safer practices across the professional community."
         url={`${VITE_SITE_URL}/safety-movement`}
       />
       <p style={{ color: "#666", marginBottom: "40px" }}>

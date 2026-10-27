@@ -277,7 +277,10 @@ const MemberSignup = () => {
 
   return (
     <div className="login-page-wrapper">
-      <SEO title="Become a Member | SAP Security Expert" />
+      <SEO
+        title="Join SAP Security Expert | Create Your Free Account"
+        description="Join SAP Security Expert to connect with SAP security professionals, explore expert resources, access community insights and share knowledge with practitioners worldwide."
+      />
 
       <div className="login-page-container">
         <div className="login-split-grid">

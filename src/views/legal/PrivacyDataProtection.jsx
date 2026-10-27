@@ -8,8 +8,8 @@ const PrivacyDataProtection = () => {
   return (
     <LegalLayout title="Your Rights &amp; Data Privacy">
       <SEO
-        title="Your Rights & Data Privacy — SAP Security Expert"
-        description="Understand your data privacy rights at SAP Security Expert: access, correction, deletion, and how we handle personal data under GDPR and applicable data protection law."
+        title="Privacy & Data Protection | SAP Security Expert"
+        description="Learn how SAP Security Expert approaches privacy and data protection, including responsible information handling for website visitors and community members."
         url={`${VITE_SITE_URL}/privacy-and-data-protection`}
       />
       <p style={{ color: "#666", marginBottom: "40px" }}>Last Updated: 28 Aug 2026</p>

@@ -7,8 +7,8 @@ const ResponsibleAi = () => {
   return (
     <LegalLayout title="Responsible AI & Automation Statement">
       <SEO
-        title="Responsible AI & Automation Statement — SAP Security Expert's Approach to AI"
-        description="Read how SAP Security Expert uses AI and automation responsibly in content creation, moderation, and platform operations — with human editorial oversight at every step."
+        title="Responsible AI & Automation Statement | SAP Security Expert"
+        description="Read SAP Security Expert's responsible AI and automation statement on transparent, thoughtful and accountable use of AI across our platform and community."
         url={`${VITE_SITE_URL}/responsible-ai-automation-statement`}
       />
       <p style={{ color: "#666", marginBottom: "40px" }}>

@@ -7,8 +7,9 @@ const SapS4Hana = () => {
   return (
     <>
       <SEO
-        title="SAP S/4HANA Security: Roles, HANA DB & Best Practices"
-        description="Learn SAP S/4HANA Security with expert guides on roles, authorizations, Fiori security, HANA database security, and best practices for protecting your SAP landscape."
+        title="SAP S/4HANA Security | Roles & Authorization Guides"
+        description="Explore SAP S/4HANA Security guides covering roles, authorizations, access controls, audit readiness and practical best practices for secure SAP environments."
+        keywords="SAP S/4HANA Security Best Practices, SAP S/4HANA Authorizations, SAP Role Management, SAP Access Controls, SAP Security Configuration"
         url={`${VITE_SITE_URL}/sap-s4hana-security`}
       />
       <CategoryLayout categorySlug="sap-s4hana-security" displayName="SAP S/4HANA Security" />
