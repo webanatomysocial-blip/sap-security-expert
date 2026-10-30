@@ -140,6 +140,8 @@ app.use((_, res, next) => {
 
 // Attach DB connection to every request
 app.use(dbMiddleware);
+// Keep contributor/ambassador permissions in sync with the DB (admin revokes apply immediately)
+app.use(require('./middleware/permissions').refreshStaffPermissions);
 
 // Health check — validates process liveness AND database connectivity.
 // Mounted after dbMiddleware so it can reuse the request-scoped req.db connection.
