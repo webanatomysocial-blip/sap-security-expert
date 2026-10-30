@@ -4,6 +4,7 @@ const { asyncHandler } = require('../utils/asyncHandler');
 const OTPService = require('../services/OTPService');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
+const { grantAndNotify, syncAchievementsInBackground } = require('../services/achievements');
 const repo = require('../repositories/membersRepository');
 
 // POST /api/member/login
@@ -63,6 +64,8 @@ const login = async (req, res) => {
     // Setup session
     req.session.member_logged_in = true;
     req.session.member_id = member.id;
+    // Catch up on anything earned while logged out (e.g. welcome for new members)
+    syncAchievementsInBackground(db, member.id);
     req.session.member_email = member.email;
     req.session.member_name = member.name;
     req.session.member_status = member.status;
@@ -112,6 +115,15 @@ const login = async (req, res) => {
       req.session.premium_expires_at = subscription.expires_at;
     }
 
+    const [recentArticles, articlesCount, recentComments, commentCount, contributorStats, earnedBadges] = await Promise.all([
+      repo.findRecentArticlesByEmail(db, member.email).catch(() => []),
+      repo.countPublishedArticlesByEmail(db, member.email).catch(() => 0),
+      repo.findRecentCommentsByMember(db, member.id, member.email, 5).catch(() => []),
+      repo.countApprovedCommentsByMember(db, member.id, member.email).catch(() => 0),
+      isRealContributor ? repo.findContributorStatsByEmail(db, member.email).catch(() => null) : null,
+      repo.findMemberEarnedBadges(db, member.id).catch(() => []),
+    ]);
+
     return res.json({
       status: 'success',
       is_contributor: isContributor,
@@ -131,6 +143,11 @@ const login = async (req, res) => {
         state: member.state || null,
         company_name: member.company_name || null,
         job_role: member.job_role || null,
+        headline: member.headline || null,
+        bio: member.bio || null,
+        linkedin: member.linkedin || null,
+        expertise_tags: member.expertise_tags || null,
+        sap_certifications: member.sap_certifications || null,
         profile_image: member.profile_image || null,
         profile_visibility: member.profile_visibility || null,
         receive_blog_emails: member.receive_blog_emails ?? 1,
@@ -141,6 +158,12 @@ const login = async (req, res) => {
         ambassador_badge_year: ambassadorBadge ? ambassadorBadge.badge_year : null,
         ambassador_badge_country: ambassadorBadge ? ambassadorBadge.country : null,
         ambassador_badge_years: ambassadorBadge ? ambassadorBadge.badge_years : [],
+        recent_articles: recentArticles,
+        articles_count: articlesCount,
+        recent_comments: recentComments,
+        comment_count: commentCount,
+        contributor_stats: contributorStats,
+        badges: earnedBadges,
       },
       subscription,
     });
@@ -279,6 +302,21 @@ const getProfile = asyncHandler(async (req, res) => {
     profile.is_public_profile_pending = false;
   }
 
+  const recentArticles = await repo.findRecentArticlesByEmail(db, profile.email);
+  profile.recent_articles = recentArticles;
+  profile.articles_count = await repo.countPublishedArticlesByEmail(db, profile.email);
+
+  const [recentComments, commentCount, contributorStats, earnedBadges] = await Promise.all([
+    repo.findRecentCommentsByMember(db, profile.id, profile.email, 5),
+    repo.countApprovedCommentsByMember(db, profile.id, profile.email),
+    isContributor ? repo.findContributorStatsByEmail(db, profile.email) : null,
+    repo.findMemberEarnedBadges(db, profile.id).catch(() => []),
+  ]);
+  profile.recent_comments = recentComments;
+  profile.comment_count = commentCount;
+  profile.contributor_stats = contributorStats;
+  profile.badges = earnedBadges;
+
   // Self-heal sessions created before CSRF protection was added to member
   // routes — those have no session.csrf_token at all, which would make every
   // change-password/profile-update/payment request 403 until the member
@@ -314,7 +352,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   }
-  const { name, phone, location, country, state, company_name, job_role, receive_blog_emails, profile_visibility } = req.body || {};
+  const { name, phone, location, country, state, company_name, job_role, headline, bio, linkedin, expertise_tags, sap_certifications, receive_blog_emails, profile_visibility } = req.body || {};
 
   let profileImage = null;
   if (req.file) {
@@ -322,7 +360,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   }
 
   await repo.updateMemberProfile(db, req.session.member_id, {
-    name, phone, location, country, state, company_name, job_role, receive_blog_emails, profile_visibility, profileImage,
+    name, phone, location, country, state, company_name, job_role, headline, bio, linkedin, expertise_tags, sap_certifications, receive_blog_emails, profile_visibility, profileImage,
   });
 
   // Sync profile image to contributor/user account (same email) so both portals show the same photo
@@ -336,14 +374,36 @@ const updateProfile = asyncHandler(async (req, res) => {
   // Keep Contributor/Ambassador application records in sync with whatever
   // country/state/city the member sets here — they're the same person's
   // location, shown across three different tables.
-  if (country !== undefined || state !== undefined || location !== undefined) {
+  if (country !== undefined || state !== undefined || location !== undefined || linkedin !== undefined) {
     const memberRow = await repo.findMemberEmailById(db, req.session.member_id);
     if (memberRow) {
-      await repo.syncLocationToContributorAndAmbassador(db, memberRow.email, { country, state, city: location });
+      await repo.syncLocationToContributorAndAmbassador(db, memberRow.email, { country, state, city: location, linkedin });
+    }
+  }
+
+  if (bio !== undefined) {
+    const memberRow = await repo.findMemberEmailById(db, req.session.member_id);
+    if (memberRow) {
+      await repo.syncBioToContributorAndAmbassador(db, memberRow.email, bio);
     }
   }
 
   const updated = await repo.findMemberProfileById(db, req.session.member_id);
+  const isContributor = await repo.findContributorApprovedByEmail(db, updated.email);
+  const [recentArticles, recentComments, commentCount, contributorStats, earnedBadges] = await Promise.all([
+    repo.findRecentArticlesByEmail(db, updated.email),
+    repo.findRecentCommentsByMember(db, updated.id, updated.email, 5),
+    repo.countApprovedCommentsByMember(db, updated.id, updated.email),
+    isContributor ? repo.findContributorStatsByEmail(db, updated.email) : null,
+    repo.findMemberEarnedBadges(db, updated.id).catch(() => []),
+  ]);
+  updated.recent_articles = recentArticles;
+  updated.articles_count = await repo.countPublishedArticlesByEmail(db, updated.email);
+  updated.recent_comments = recentComments;
+  updated.comment_count = commentCount;
+  updated.contributor_stats = contributorStats;
+  updated.badges = earnedBadges;
+  updated.is_real_contributor = isContributor;
   req.session.member_name = updated?.name || req.session.member_name;
   return res.json({ status: 'success', message: 'Profile updated', member: updated });
 });
@@ -355,53 +415,6 @@ const logout = (req, res) => {
     res.json({ status: 'success' });
   });
 };
-
-// Grant an achievement and send email if newly granted
-// Email clients don't load the Bootstrap Icons font used on the site, so the
-// achievement's `icon` field (a CSS class like "bi-pen-fill") can't be rendered
-// there directly — it would just show as literal text. Emoji render natively
-// in virtually every email client, so map each achievement to one instead.
-const ACHIEVEMENT_EMAIL_EMOJI = {
-  welcome: '✨',
-  first_comment: '💬',
-  '100_helpful_comments': '🏆',
-  top_contributor: '✍️',
-  profile_complete: '✅',
-  linkedin_ambassador: '💼',
-  first_referral: '🤝',
-};
-
-async function grantAndNotify(db, mailer, memberId, achievementId, memberEmail, memberName, siteUrl) {
-  // Check if already earned before inserting
-  const existing = await repo.findAchievementRecord(db, memberId, achievementId);
-  if (existing) return; // already granted, skip
-
-  await repo.insertAchievement(db, memberId, achievementId);
-
-  // Fetch achievement type details for email
-  const type = await repo.findAchievementType(db, achievementId);
-  if (!type || !memberEmail) return;
-
-  const { label, description } = type;
-  if (mailer) {
-    const sent = await mailer.send(
-      db,
-      memberEmail,
-      `🏅 Achievement Unlocked: ${label}`,
-      'member/achievement_unlocked',
-      {
-        name: memberName || 'Member',
-        label,
-        description,
-        icon: ACHIEVEMENT_EMAIL_EMOJI[achievementId] || '🏅',
-        achievements_url: `${siteUrl}/member/achievements`,
-      }
-    );
-    if (sent) {
-      await repo.markAchievementEmailSent(db, memberId, achievementId);
-    }
-  }
-}
 
 // GET /api/member/referral — return member's referral code + stats
 const referral = asyncHandler(async (req, res) => {
@@ -437,10 +450,8 @@ const achievements = asyncHandler(async (req, res) => {
   const db = req.db;
   await repo.ensureAchievementTables(db);
 
-  // Only use session member_id for auto-grant/email logic.
-  // ?member_id= (public profile view) gets read-only data with no side-effects.
-  const sessionMemberId = req.session.member_id || null;
-  const viewMemberId = req.query.member_id || sessionMemberId;
+  // Read-only: achievements are granted (and emailed) when they're earned, not when viewed.
+  const viewMemberId = req.query.member_id || req.session.member_id || null;
 
   if (!viewMemberId) {
     // Return all types as locked if no member context
@@ -449,53 +460,6 @@ const achievements = asyncHandler(async (req, res) => {
       status: 'success',
       achievements: types.map(t => ({ ...t, earned: false, earned_at: null })),
     });
-  }
-
-  // Only run auto-grant and send emails for the authenticated member's own profile
-  const memberId = sessionMemberId;
-
-  // Fetch member info for email notifications (only needed when member is logged in)
-  const memberRow = memberId ? await repo.findMemberEmailAndName(db, memberId) : null;
-
-  const memberEmail = memberRow?.email || null;
-  const memberName = memberRow?.name || 'Member';
-  const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
-  const mailer = MailService.getInstance();
-
-  // Auto-grant logic only runs for the authenticated member's own session
-  if (memberId) {
-    await grantAndNotify(db, mailer, memberId, 'welcome', memberEmail, memberName, siteUrl);
-
-    const commentCount = await repo.countApprovedComments(db, memberId);
-    if (commentCount >= 1) {
-      await grantAndNotify(db, mailer, memberId, 'first_comment', memberEmail, memberName, siteUrl);
-    }
-    if (commentCount >= 100) {
-      await grantAndNotify(db, mailer, memberId, '100_helpful_comments', memberEmail, memberName, siteUrl);
-    }
-
-    if (memberRow?.email) {
-      const isContributor = await repo.findContributorApprovedByEmail(db, memberRow.email);
-      if (isContributor) {
-        await grantAndNotify(db, mailer, memberId, 'top_contributor', memberEmail, memberName, siteUrl);
-      }
-    }
-
-    if (await repo.hasCreditTransactionNote(db, memberId, 'Complete profile bonus')) {
-      await grantAndNotify(db, mailer, memberId, 'profile_complete', memberEmail, memberName, siteUrl);
-    }
-
-    if (await repo.hasCreditTransactionNote(db, memberId, 'LinkedIn share bonus')) {
-      await grantAndNotify(db, mailer, memberId, 'linkedin_ambassador', memberEmail, memberName, siteUrl);
-    }
-
-    const referralRow = await repo.findReferralCodeById(db, memberId);
-    if (referralRow?.referral_code) {
-      const cnt = await repo.countApprovedReferrals(db, referralRow.referral_code);
-      if (cnt >= 1) {
-        await grantAndNotify(db, mailer, memberId, 'first_referral', memberEmail, memberName, siteUrl);
-      }
-    }
   }
 
   // Fetch all types + earned status for whichever member is being viewed
@@ -520,13 +484,9 @@ const grantAchievement = asyncHandler(async (req, res) => {
   if (!member_id || !achievement_id) {
     return res.status(400).json({ status: 'error', message: 'member_id and achievement_id are required.' });
   }
-  await repo.ensureAchievementTables(db);
   const memberRow = await repo.findMemberEmailAndName(db, member_id);
-  const memberEmail = memberRow?.email || null;
-  const memberName = memberRow?.name || 'Member';
-  const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
-  const mailer = MailService.getInstance();
-  await grantAndNotify(db, mailer, member_id, achievement_id, memberEmail, memberName, siteUrl);
+  if (!memberRow) return res.status(404).json({ status: 'error', message: 'Member not found.' });
+  await grantAndNotify(db, member_id, achievement_id, memberRow);
   return res.json({ status: 'success', message: 'Achievement granted.' });
 });
 

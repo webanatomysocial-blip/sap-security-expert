@@ -14,6 +14,7 @@ import {
   getAdminAchievementTypes, saveAchievementType, deleteAchievementType,
 } from "../../services/api";
 import { downloadCSV } from "../../services/exportUtils";
+import AdminMembershipPlans from "./AdminMembershipPlans";
 
 const EMPTY_BUNDLE = { id: null, name: "", credits: "", price_rupees: "", is_active: 1 };
 const EMPTY_COUPON = { id: null, code: "", discount_type: "percentage", discount_value: "", max_uses: "0", is_active: 1, expires_at: "" };
@@ -533,6 +534,7 @@ export default function AdminCreditBundles() {
       <div style={{ display: "flex", gap: 0, marginBottom: 24, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0", width: "fit-content" }}>
         {[
           { key: "bundles", label: "Credit Bundles", icon: "bi-stack" },
+          { key: "membership", label: "Membership", icon: "bi-patch-check-fill" },
           { key: "coupons", label: "Coupons", icon: "bi-ticket-perforated-fill" },
           { key: "activities", label: "Earn Activities", icon: "bi-lightning-charge-fill" },
           { key: "achievements", label: "Achievements", icon: "bi-trophy-fill" },
@@ -552,6 +554,8 @@ export default function AdminCreditBundles() {
           </button>
         ))}
       </div>
+
+      {tab === "membership" && <AdminMembershipPlans />}
 
       {/* ── BUNDLES ─────────────────────────────────────────────────────────── */}
       {tab === "bundles" && (

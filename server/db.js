@@ -5,6 +5,16 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const isSQLite = process.env.DB_CONNECTION === 'sqlite';
 
+// Idempotent, portable (SQLite + MySQL). New plans start inactive so nothing is
+// sold until an admin sets real prices; the legacy ₹1 test plan is retired.
+const MEMBERSHIP_PLAN_SEED_SQL = [
+  "UPDATE membership_plans SET name='1 Month', is_active=0 WHERE id=1 AND name='Monthly Premium' AND price_paise=100",
+  ...[['1 Month', 100, 30], ['3 Months', 100, 90], ['6 Months', 100, 180], ['1 Year', 100, 365]].map(([name, price, days]) =>
+    `INSERT INTO membership_plans (name, price_paise, duration_days, description, is_active)
+     SELECT '${name}', ${price}, ${days}, 'Full access to all premium articles and downloads for ${name.toLowerCase()}', 0
+     FROM (SELECT 1 AS x) t WHERE NOT EXISTS (SELECT 1 FROM membership_plans WHERE duration_days = ${days})`),
+];
+
 // ── SQLite support ────────────────────────────────────────────────────────────
 
 /**
@@ -451,6 +461,11 @@ if (isSQLite) {
     { name: 'goals',           def: "TEXT DEFAULT NULL" },
     { name: 'current_role',    def: "TEXT DEFAULT NULL" },
     { name: 'research_opt_in', def: "INTEGER DEFAULT NULL" },
+    { name: 'headline',        def: "TEXT DEFAULT NULL" },
+    { name: 'linkedin',        def: "TEXT DEFAULT NULL" },
+    { name: 'expertise_tags',  def: "TEXT DEFAULT NULL" },
+    { name: 'sap_certifications', def: "TEXT DEFAULT NULL" },
+    { name: 'bio',             def: "TEXT DEFAULT NULL" },
   ];
   const membersExisting4 = sqliteDb.prepare("PRAGMA table_info(members)").all().map(r => r.name);
   for (const col of membersColumns4) {
@@ -610,6 +625,15 @@ if (isSQLite) {
   sqliteDb.prepare('CREATE INDEX IF NOT EXISTS idx_dld_member ON member_file_downloads(member_id)').run();
   const dldCols = sqliteDb.prepare('PRAGMA table_info(member_file_downloads)').all().map(r => r.name);
   if (!dldCols.includes('original_name')) sqliteDb.prepare('ALTER TABLE member_file_downloads ADD COLUMN original_name TEXT DEFAULT NULL').run();
+
+  // ── Membership (time-limited access alongside permanent credit unlocks) ─────
+  if (!dldCols.includes('source')) sqliteDb.prepare("ALTER TABLE member_file_downloads ADD COLUMN source TEXT NOT NULL DEFAULT 'credits'").run();
+  const unlCols = sqliteDb.prepare('PRAGMA table_info(member_blog_unlocks)').all().map(r => r.name);
+  if (!unlCols.includes('source')) sqliteDb.prepare("ALTER TABLE member_blog_unlocks ADD COLUMN source TEXT NOT NULL DEFAULT 'credits'").run();
+  const poColsLite = sqliteDb.prepare('PRAGMA table_info(payment_orders)').all().map(r => r.name);
+  if (!poColsLite.includes('order_type')) sqliteDb.prepare("ALTER TABLE payment_orders ADD COLUMN order_type TEXT NOT NULL DEFAULT 'credits'").run();
+  if (!poColsLite.includes('plan_id')) sqliteDb.prepare('ALTER TABLE payment_orders ADD COLUMN plan_id INTEGER DEFAULT NULL').run();
+  for (const sql of MEMBERSHIP_PLAN_SEED_SQL) sqliteDb.prepare(sql).run();
 
   sqliteDb.prepare(`
     CREATE TABLE IF NOT EXISTS document_access_log (
@@ -1051,6 +1075,11 @@ if (isSQLite) {
       if (!memberCols.includes('goals'))               await addCol('members', 'goals',              "TEXT DEFAULT NULL");
       if (!memberCols.includes('current_role'))        await addCol('members', 'current_role',       "VARCHAR(100) DEFAULT NULL");
       if (!memberCols.includes('research_opt_in'))     await addCol('members', 'research_opt_in',    "TINYINT(1) DEFAULT NULL");
+      if (!memberCols.includes('headline'))            await addCol('members', 'headline',           "VARCHAR(255) DEFAULT NULL");
+      if (!memberCols.includes('linkedin'))            await addCol('members', 'linkedin',           "VARCHAR(255) DEFAULT NULL");
+      if (!memberCols.includes('expertise_tags'))      await addCol('members', 'expertise_tags',     "TEXT DEFAULT NULL");
+      if (!memberCols.includes('sap_certifications'))  await addCol('members', 'sap_certifications', "TEXT DEFAULT NULL");
+      if (!memberCols.includes('bio'))                 await addCol('members', 'bio',                "TEXT DEFAULT NULL");
 
       // ── blogs: all columns added after original schema ─────────────────────────
       const blogCols = await getColumns('blogs');
@@ -1195,6 +1224,41 @@ if (isSQLite) {
       // ── member_file_downloads: original_name column ───────────────────────────
       const dldCols = await getColumns('member_file_downloads');
       if (!dldCols.includes('original_name')) await addCol('member_file_downloads', 'original_name', "VARCHAR(500) DEFAULT NULL AFTER file_url");
+
+      // ── Membership (time-limited access alongside permanent credit unlocks) ───
+      if (!dldCols.includes('source')) await addCol('member_file_downloads', 'source', "VARCHAR(20) NOT NULL DEFAULT 'credits'");
+      const unlCols = await getColumns('member_blog_unlocks');
+      if (!unlCols.includes('source')) await addCol('member_blog_unlocks', 'source', "VARCHAR(20) NOT NULL DEFAULT 'credits'");
+      if (!poCols.includes('order_type')) await addCol('payment_orders', 'order_type', "VARCHAR(20) NOT NULL DEFAULT 'credits'");
+      if (!poCols.includes('plan_id'))    await addCol('payment_orders', 'plan_id',    'INT DEFAULT NULL');
+      await step('create membership_plans', () => conn.execute(`
+        CREATE TABLE IF NOT EXISTS membership_plans (
+          id            INT AUTO_INCREMENT PRIMARY KEY,
+          name          VARCHAR(100) NOT NULL,
+          price_paise   INT NOT NULL,
+          duration_days INT NOT NULL DEFAULT 30,
+          description   TEXT,
+          is_active     TINYINT NOT NULL DEFAULT 1,
+          created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `));
+      await step('create member_subscriptions', () => conn.execute(`
+        CREATE TABLE IF NOT EXISTS member_subscriptions (
+          id                  INT AUTO_INCREMENT PRIMARY KEY,
+          member_id           INT NOT NULL,
+          plan_id             INT NOT NULL,
+          razorpay_order_id   VARCHAR(255) DEFAULT NULL,
+          razorpay_payment_id VARCHAR(255) DEFAULT NULL,
+          status              VARCHAR(50) NOT NULL DEFAULT 'active',
+          starts_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          expires_at          DATETIME NOT NULL,
+          created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+          KEY idx_sub_member (member_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+      `));
+      // Legacy schema declared status as ENUM without 'cancelled'-style values we rely on.
+      await conn.execute("ALTER TABLE member_subscriptions MODIFY status VARCHAR(50) NOT NULL DEFAULT 'active'").catch(() => {});
+      for (const sql of MEMBERSHIP_PLAN_SEED_SQL) await conn.execute(sql).catch(() => {});
 
       // ── announcements: columns added after original schema ───────────────────
       const annCols = await getColumns('announcements');

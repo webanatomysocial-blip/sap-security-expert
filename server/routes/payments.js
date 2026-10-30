@@ -5,6 +5,8 @@ const controller = require('../controllers/paymentsController');
 
 router.get('/bundles', controller.bundles);
 router.get('/detect-currency', controller.detectCurrency);
+router.get('/membership-plans', controller.membershipPlans);
+router.get('/my-membership', requireMemberAuth, controller.myMembership);
 router.get('/my-credits', requireMemberAuth, controller.myCredits);
 router.get('/my-unlocks', requireMemberAuth, controller.myUnlocks);
 router.get('/my-transactions', requireMemberAuth, controller.myTransactions);

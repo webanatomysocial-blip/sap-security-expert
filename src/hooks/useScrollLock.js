@@ -7,7 +7,7 @@ let lockCount = 0;
 // call preventDefault() on wheel/touch events that originate inside them.
 // We stamp it on every .modal-body so modal content scrolls natively.
 function setLenisPrevent(enable) {
-  document.querySelectorAll('.modal-body').forEach(el => {
+  document.querySelectorAll('.modal-body, .preview-modal-overlay, .preview-modal-dialog').forEach(el => {
     if (enable) el.setAttribute('data-lenis-prevent', '');
     else el.removeAttribute('data-lenis-prevent');
   });

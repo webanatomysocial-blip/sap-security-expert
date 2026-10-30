@@ -176,7 +176,7 @@ async function findLeaderboardContributors(db) {
 
 async function findPublicMemberById(db, id) {
   const [rows] = await db.execute(
-    `SELECT id, name, email, profile_image, job_role, company_name, location, country, profile_visibility, created_at
+    `SELECT id, name, email, profile_image, job_role, headline, bio, linkedin, expertise_tags, sap_certifications, company_name, location, state, country, profile_visibility, created_at
      FROM members WHERE id = ? AND status = 'approved' LIMIT 1`,
     [id]
   );

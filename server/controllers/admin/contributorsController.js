@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const { deleteImage } = require('../../utils/helpers');
+const { syncAchievementsInBackground } = require('../../services/achievements');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
 const AuditService = require('../../services/AuditService');
@@ -65,6 +66,11 @@ const performAction = asyncHandler(async (req, res) => {
       const approveHash = await bcrypt.hash(password, 10);
       await repo.updateMemberPasswordByEmail(db, contributor.email, approveHash);
     }
+
+    // "Top Contributor" achievement — granted and emailed now
+    repo.findMemberByEmail(db, contributor.email)
+      .then((m) => m && syncAchievementsInBackground(db, m.id))
+      .catch(() => {});
 
     const audit = AuditService.fromRequest(db, req);
     notifier.notifyContributorApproved(contributor.email, contributor.full_name, { password }).catch(() => {});

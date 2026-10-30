@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { formatPrice } from "../utils/fxPrice";
+import CurrencySelect from "../components/CurrencySelect";
 import SEO from "../components/SEO";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -13,22 +15,14 @@ import {
   getMemberReferral,
   getMyDownloads,
   getDownloadToken,
+  downloadFile,
   detectPaymentCurrency,
 } from "../services/api";
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
 const fmtAmount = (p) => (typeof p === "number" && !isNaN(p)) ? `₹${(p / 100).toLocaleString("en-IN")}` : "—";
 
-function fmtCurrency(paise, fxCurrency, fxRate, decimals = 2) {
-  if (!fxCurrency || fxCurrency === "INR" || !fxRate) {
-    return `₹${(paise / 100).toLocaleString("en-IN")}`;
-  }
-  let amount = (paise / 100) * fxRate;
-  if (decimals === 3) {
-    amount = Math.floor(Math.round(amount * 1000) / 10) * 10 / 1000;
-  }
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: fxCurrency, minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(amount);
-}
+const fmtCurrency = formatPrice;
 
 /* ── Buy Credits Modal ─────────────────────────────────────────────────────── */
 function BuyCreditsModal({ onClose, onSuccess }) {
@@ -45,11 +39,6 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   const [fxLoading, setFxLoading] = useState(false);
   const { addToast } = useToast();
 
-  const CURRENCIES = [
-    "INR","USD","EUR","GBP","SGD","AED","CAD","AUD","MYR","HKD",
-    "CHF","SEK","NOK","DKK","NZD","ZAR","THB","MXN","QAR",
-    "KWD","BHD","OMR","JPY","KRW","IDR",
-  ];
 
   const applyFx = (data) => {
     if (data?.currency && data.currency !== "INR") {
@@ -154,6 +143,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (err) {
+      if (err.response?.data?.reason === "below_minimum") handleCurrencyChange("INR");
       addToast(err.response?.data?.message || "Failed to create order.", "error");
     } finally { setPaying(false); }
   };
@@ -169,25 +159,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#94a3b8", lineHeight: 1 }}>✕</button>
         </div>
 
-        {/* Currency selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-          <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#64748b", whiteSpace: "nowrap" }}>Pay in</label>
-          <select
-            value={fxCurrency}
-            onChange={(e) => handleCurrencyChange(e.target.value)}
-            disabled={fxLoading}
-            style={{
-              flex: 1, padding: "8px 12px", border: "1.5px solid #e2e8f0", borderRadius: 8,
-              fontSize: "0.88rem", fontFamily: "inherit", background: "#fff", cursor: "pointer",
-              color: "#1e293b", outline: "none", opacity: fxLoading ? 0.6 : 1,
-            }}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>{c}{c === "INR" ? " (Default)" : ""}</option>
-            ))}
-          </select>
-          {fxLoading && <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>Loading…</span>}
-        </div>
+        <CurrencySelect value={fxCurrency} onChange={handleCurrencyChange} loading={fxLoading} />
 
         {/* Bundle selection */}
         <p style={{ margin: "0 0 12px", fontSize: "0.85rem", fontWeight: 600, color: "#64748b" }}>Select a Bundle</p>
@@ -282,7 +254,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
 
 /* ── Main Page ─────────────────────────────────────────────────────────────── */
 export default function MemberCredits() {
-  const { isLoggedIn, creditBalance, onCreditsPurchased } = useMemberAuth();
+  const { isLoggedIn, creditBalance, onCreditsPurchased, membership } = useMemberAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -332,6 +304,22 @@ export default function MemberCredits() {
     getMyDownloads().then((r) => setDownloads(r.data?.downloads || [])).catch(() => setDownloads([])).finally(() => setDownloadsLoading(false));
   }, [isLoggedIn]);
 
+  const [unlockingUrl, setUnlockingUrl] = useState(null);
+  // Re-unlock a lapsed membership download permanently with credits (server sets the price).
+  const unlockWithCredits = async (d) => {
+    setUnlockingUrl(d.file_url);
+    try {
+      const r = await downloadFile(d.file_url, 0, d.original_name);
+      if (typeof r.data?.new_balance === "number") onCreditsPurchased(r.data.new_balance);
+      setDownloads((list) => list.map((x) => (x.file_url === d.file_url ? { ...x, access_expired: false, source: "credits", credits_spent: r.data?.credits_spent ?? x.credits_spent } : x)));
+      window.location.href = `/api/downloads/stream?token=${r.data.token}`;
+    } catch (err) {
+      alert(err.response?.data?.message || "Could not unlock this file. Please try again.");
+    } finally {
+      setUnlockingUrl(null);
+    }
+  };
+
   const handleCopy = () => {
     if (!referral?.referral_link) return;
     navigator.clipboard.writeText(referral.referral_link).then(() => {
@@ -342,7 +330,7 @@ export default function MemberCredits() {
 
   const balance        = data?.balance ?? creditBalance ?? 0;
   const allTx          = data?.transactions || [];
-  const paidPurchases  = allTx.filter((t) => t.type === "purchase" && t.amount_paise > 0);
+  const paidPurchases  = allTx.filter((t) => (t.type === "purchase" || t.type === "membership") && t.amount_paise > 0);
   const bonusCredits   = allTx.filter((t) => t.type === "bonus" || (t.credits_delta > 0 && t.amount_paise === 0 && t.type !== "spend"));
   const unlocks        = data?.unlocks || [];
   const totalSpent     = allTx.reduce((s, t) => s + (Number(t.amount_paise) || 0), 0);
@@ -370,6 +358,24 @@ export default function MemberCredits() {
         <Link to="/" style={{ color: "#64748b", fontSize: "0.85rem", textDecoration: "none" }}>← Back to Home</Link>
         <h1 style={{ margin: "12px 0 4px", fontSize: "1.6rem", color: "#1e293b" }}>Credits &amp; Transactions</h1>
         <p style={{ margin: 0, color: "#64748b" }}>Manage your credits, view purchase history and unlocked articles.</p>
+      </div>
+
+      {/* Membership status */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20, padding: "16px 20px", borderRadius: 14, border: membership ? "1.5px solid #bbf7d0" : "1.5px solid #e2e8f0", background: membership ? "#f0fdf4" : "#fff" }}>
+        <div>
+          <p style={{ margin: "0 0 4px", fontSize: "0.72rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Membership</p>
+          {membership ? (
+            <p style={{ margin: 0, color: "#166534", fontWeight: 600 }}>
+              <i className="bi bi-patch-check-fill" style={{ marginRight: 6 }}></i>
+              {membership.plan_name} · active until {new Date(membership.expires_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+            </p>
+          ) : (
+            <p style={{ margin: 0, color: "#475569" }}>Get unlimited access to every premium article and download for 1, 3, 6 or 12 months.</p>
+          )}
+        </div>
+        <Link to="/membership" style={{ padding: "10px 18px", background: "#15803d", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: "0.88rem", textDecoration: "none", whiteSpace: "nowrap" }}>
+          {membership ? "Extend Membership" : "View Plans"} →
+        </Link>
       </div>
 
       {/* KPI cards */}
@@ -454,7 +460,11 @@ export default function MemberCredits() {
                   <tr key={t.id || i} style={{ borderBottom: "1px solid #f1f5f9" }}>
                     <td style={{ padding: "14px 16px", color: "#334155", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={t.bundle_name || "Credit Purchase"}>{t.bundle_name || "Credit Purchase"}</td>
                     <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                      <span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 10px", borderRadius: 20, fontWeight: 700, fontSize: "0.85rem" }}>+{t.credits_delta}</span>
+                      {t.type === "membership" ? (
+                        <span style={{ background: "#dcfce7", color: "#166534", padding: "2px 10px", borderRadius: 20, fontWeight: 700, fontSize: "0.8rem" }}>Membership</span>
+                      ) : (
+                        <span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 10px", borderRadius: 20, fontWeight: 700, fontSize: "0.85rem" }}>+{t.credits_delta}</span>
+                      )}
                     </td>
                     <td style={{ padding: "14px 16px", textAlign: "right", color: "#10b981", fontWeight: 600 }}>{fmtAmount(t.amount_paise)}</td>
                     <td style={{ padding: "14px 16px", textAlign: "right", color: "#94a3b8" }}>{fmt(t.created_at)}</td>
@@ -586,9 +596,15 @@ export default function MemberCredits() {
                       </span>
                     </td>
                     <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                      <span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 10px", borderRadius: 20, fontWeight: 700, fontSize: "0.85rem" }}>
-                        {u.credits_spent} credit{u.credits_spent !== 1 ? "s" : ""}
-                      </span>
+                      {u.source === "membership" ? (
+                        <span style={{ background: "#dcfce7", color: "#166534", padding: "2px 10px", borderRadius: 20, fontWeight: 700, fontSize: "0.8rem" }} title="Accessible while your membership is active">
+                          Membership
+                        </span>
+                      ) : (
+                        <span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 10px", borderRadius: 20, fontWeight: 700, fontSize: "0.85rem" }}>
+                          {u.credits_spent} credit{u.credits_spent !== 1 ? "s" : ""}
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: "14px 16px", textAlign: "right", color: "#94a3b8" }}>{fmt(u.unlocked_at)}</td>
                   </tr>
@@ -639,7 +655,11 @@ export default function MemberCredits() {
                           </div>
                         </td>
                         <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                          {d.credits_spent === 0 ? (
+                          {d.access_expired ? (
+                            <span style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>Membership ended</span>
+                          ) : d.source === "membership" ? (
+                            <span style={{ background: "#dcfce7", color: "#166534", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>Membership</span>
+                          ) : d.credits_spent === 0 ? (
                             <span style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>Free</span>
                           ) : (
                             <span style={{ background: "#fefce8", color: "#854d0e", border: "1px solid #fde68a", borderRadius: 20, padding: "2px 10px", fontSize: "0.78rem", fontWeight: 700 }}>🪙 {d.credits_spent}</span>
@@ -647,12 +667,23 @@ export default function MemberCredits() {
                         </td>
                         <td style={{ padding: "14px 16px", textAlign: "right", color: "#94a3b8", whiteSpace: "nowrap" }}>{fmt(d.downloaded_at)}</td>
                         <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                          <button
-                            onClick={() => getDownloadToken(d.file_url).then((r) => { window.location.href = `/api/downloads/stream?token=${r.data.token}`; }).catch(() => alert("Download failed. Please try again."))}
-                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-                          >
-                            <i className="bi bi-download"></i> Download
-                          </button>
+                          {d.access_expired ? (
+                            <button
+                              onClick={() => unlockWithCredits(d)}
+                              disabled={unlockingUrl === d.file_url}
+                              title="Your membership ended. Unlock this file permanently with credits."
+                              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "linear-gradient(135deg,#f59e0b,#d97706)", color: "#fff", border: "none", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", opacity: unlockingUrl === d.file_url ? 0.6 : 1 }}
+                            >
+                              <i className="bi bi-coin"></i> {unlockingUrl === d.file_url ? "Unlocking…" : `Unlock${d.credits_required ? ` · ${d.credits_required} credit${d.credits_required !== 1 ? "s" : ""}` : ""}`}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => getDownloadToken(d.file_url).then((r) => { window.location.href = `/api/downloads/stream?token=${r.data.token}`; }).catch((err) => alert(err.response?.data?.reason === "membership_expired" ? "Your membership has expired. Renew it, or download this file again from its article using credits." : "Download failed. Please try again."))}
+                              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                            >
+                              <i className="bi bi-download"></i> Download
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );

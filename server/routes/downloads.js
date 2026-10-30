@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { requireMemberAuth, requireCsrf } = require('../middleware/auth');
 const { personalizePdf } = require('../services/pdfWatermark');
 const { rateLimit } = require('../middleware/rateLimit');
+const { hasActiveMembership } = require('../repositories/paymentsRepository');
 
 const ROOT = path.join(__dirname, '../..');
 const PRIVATE_DIR = path.join(__dirname, '../private-downloads');
@@ -110,11 +111,14 @@ router.post('/token', requireMemberAuth, requireCsrf, async (req, res) => {
   }
 
   const [rows] = await req.db.execute(
-    'SELECT id FROM member_file_downloads WHERE member_id = ? AND file_url = ?',
+    'SELECT id, source FROM member_file_downloads WHERE member_id = ? AND file_url = ?',
     [req.session.member_id, file_url]
   );
   if (rows.length === 0) {
     return res.status(403).json({ status: 'error', message: 'Access denied.' });
+  }
+  if (rows[0].source === 'membership' && !await hasActiveMembership(req.db, req.session.member_id)) {
+    return res.status(402).json({ status: 'error', message: 'Your membership has expired. Renew it or download again with credits.', reason: 'membership_expired' });
   }
 
   const tokenAction = action === 'view' ? 'view' : 'download';

@@ -1017,3 +1017,68 @@ body.modal-open {
     grid-template-columns: 1fr !important;
   }
 }
+
+@media (max-width: 1024px) {
+  .profile-top-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.profile-settings-input:focus {
+  border-color: #ee5e42 !important;
+  box-shadow: 0 0 0 3px rgba(238, 94, 66, 0.12) !important;
+  outline: none !important;
+}
+
+.profile-settings-btn-primary {
+  background-color: #ee5e42;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.profile-settings-btn-primary:hover {
+  background-color: #dc4b2f;
+  transform: translateY(-1px);
+}
+.profile-settings-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.profile-settings-btn-secondary {
+  background-color: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.profile-settings-btn-secondary:hover {
+  background-color: #1e293b;
+  transform: translateY(-1px);
+}
+
+.profile-settings-btn-cancel {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.profile-settings-btn-cancel:hover {
+  background-color: #f8fafc;
+  color: #1e293b;
+}

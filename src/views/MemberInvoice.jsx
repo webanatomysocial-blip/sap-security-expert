@@ -90,21 +90,21 @@ export default function MemberInvoice() {
           <thead>
             <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
               <th style={{ padding: "8px 0", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Description</th>
-              <th style={{ padding: "8px 0", textAlign: "center", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Credits</th>
+              <th style={{ padding: "8px 0", textAlign: "center", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>{invoice.type === "membership" ? "Duration" : "Credits"}</th>
               <th style={{ padding: "8px 0", textAlign: "right", fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Amount</th>
             </tr>
           </thead>
           <tbody>
             <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
               <td style={{ padding: "16px 0", fontWeight: 600, color: "#1e293b" }}>
-                {invoice.bundle_name || "Credit Bundle"}
+                {invoice.bundle_name || "Credit Bundle"}{invoice.type === "membership" ? " Membership" : ""}
                 {invoice.razorpay_order_id && (
                   <span style={{ display: "block", fontSize: 12, color: "#94a3b8", fontWeight: 400, marginTop: 2 }}>
                     Order: {invoice.razorpay_order_id}
                   </span>
                 )}
               </td>
-              <td style={{ padding: "16px 0", textAlign: "center", color: "#64748b" }}>{invoice.credits_delta}</td>
+              <td style={{ padding: "16px 0", textAlign: "center", color: "#64748b" }}>{invoice.type === "membership" ? `${invoice.duration_days} days` : invoice.credits_delta}</td>
               <td style={{ padding: "16px 0", textAlign: "right", color: "#1e293b" }}>{fmt(invoice.bundle_price_paise)}</td>
             </tr>
           </tbody>

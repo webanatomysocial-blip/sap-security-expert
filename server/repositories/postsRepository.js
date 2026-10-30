@@ -1,3 +1,5 @@
+const { toSqlUtc, MEMBERSHIP_ACTIVE_SQL } = require('./paymentsRepository');
+
 // Escapes LIKE wildcard characters (%, _) and the escape character itself
 // so a caller-supplied value used in a LIKE pattern is matched literally.
 //
@@ -120,18 +122,23 @@ async function findSingleBySlugOrId(db, idOrSlug, { isContributor, authorOnly, c
   return rows[0] || null;
 }
 
+// Credit unlocks are permanent; membership opens only while a subscription is in effect.
 async function hasUnlockedBlog(db, memberId, slug) {
+  const now = toSqlUtc();
   const [rows] = await db.execute(
-    'SELECT id FROM member_blog_unlocks WHERE member_id = ? AND blog_slug = ? LIMIT 1',
-    [memberId, slug]
+    `SELECT id FROM member_blog_unlocks
+     WHERE member_id = ? AND blog_slug = ? AND (source <> 'membership' OR ${MEMBERSHIP_ACTIVE_SQL}) LIMIT 1`,
+    [memberId, slug, memberId, now, now]
   );
   return rows.length > 0;
 }
 
 async function findUnlockedSlugsForMember(db, memberId) {
+  const now = toSqlUtc();
   const [rows] = await db.execute(
-    'SELECT blog_slug FROM member_blog_unlocks WHERE member_id = ?',
-    [memberId]
+    `SELECT blog_slug FROM member_blog_unlocks
+     WHERE member_id = ? AND (source <> 'membership' OR ${MEMBERSHIP_ACTIVE_SQL})`,
+    [memberId, memberId, now, now]
   );
   return rows.map(r => r.blog_slug);
 }

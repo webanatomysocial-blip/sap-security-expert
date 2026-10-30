@@ -65,6 +65,8 @@ function createInMemoryDb() {
       final_price_paise INTEGER NOT NULL,
       order_currency TEXT NOT NULL DEFAULT 'INR',
       order_amount_foreign INTEGER DEFAULT NULL,
+      order_type TEXT NOT NULL DEFAULT 'credits',
+      plan_id INTEGER DEFAULT NULL,
       razorpay_payment_id TEXT DEFAULT NULL,
       zoho_invoice_id TEXT DEFAULT NULL,
       zoho_invoice_url TEXT DEFAULT NULL,
@@ -340,7 +342,9 @@ async function runTests() {
   });
 
   // Test 10: Existing database transaction records regression
-  await test('Existing records integrity: all existing records in database.sqlite have clean order_currency="INR"', () => {
+  // Multi-currency orders are legitimate, so this guards the original intent:
+  // every stored currency is a clean, supported code (no quoted '"INR"' leftovers).
+  await test('Existing records integrity: all existing records in database.sqlite have a clean, supported order_currency', () => {
     const fs = require('fs');
     const path = require('path');
     const dbPath = path.resolve(__dirname, '../database.sqlite');
@@ -350,7 +354,8 @@ async function runTests() {
       const rows = realDb.prepare('SELECT id, razorpay_order_id, order_currency FROM payment_orders').all();
       assert.ok(rows.length > 0, 'Database should contain existing payment_orders rows');
       for (const row of rows) {
-        assert.strictEqual(row.order_currency, 'INR', `Row ${row.id} (${row.razorpay_order_id}) must have clean 'INR'`);
+        const ok = row.order_currency === 'INR' || Object.prototype.hasOwnProperty.call(require('../services/currency').SUPPORTED, row.order_currency);
+        assert.ok(ok, `Row ${row.id} (${row.razorpay_order_id}) has unclean order_currency ${JSON.stringify(row.order_currency)}`);
       }
     }
   });

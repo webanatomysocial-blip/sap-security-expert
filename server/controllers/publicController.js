@@ -130,7 +130,7 @@ const publicMemberProfile = asyncHandler(async (req, res) => {
   })();
   const defaults = { show_name: true, show_picture: true, show_company: false, show_email: false, show_country: true, show_in_directory: true, show_stats: true, show_badges: true };
   const v = { ...defaults, ...vis };
-  const comment_count = await repo.countApprovedCommentsByMember(db, m.id);
+  const comment_count = await membersRepo.countApprovedCommentsByMember(db, m.id, m.email);
 
   // Earned achievement badges — only included when the member allows it
   let badges = [];
@@ -148,17 +148,33 @@ const publicMemberProfile = asyncHandler(async (req, res) => {
     } catch { badges = []; }
   }
 
+  const [recentArticles, articlesCount, recentComments] = await Promise.all([
+    membersRepo.findRecentArticlesByEmail(db, m.email),
+    membersRepo.countPublishedArticlesByEmail(db, m.email),
+    membersRepo.findRecentCommentsByMember(db, m.id, m.email, 5),
+  ]);
+
   return res.json({
     id: m.id,
     name: v.show_name ? m.name : 'Community Member',
     profile_image: v.show_picture ? m.profile_image : null,
+    headline: m.headline || null,
+    bio: m.bio || null,
+    linkedin: m.linkedin || null,
+    expertise_tags: m.expertise_tags ? (() => { try { return JSON.parse(m.expertise_tags); } catch { return m.expertise_tags; } })() : [],
+    sap_certifications: m.sap_certifications ? (() => { try { return JSON.parse(m.sap_certifications); } catch { return m.sap_certifications; } })() : [],
     job_role: m.job_role || null,
     company_name: v.show_company ? m.company_name : null,
     location: m.location || null,
+    state: m.state || null,
     country: v.show_country ? m.country : null,
     joined: m.created_at,
     comment_count: v.show_stats ? comment_count : null,
     reputation_level: isContributor ? 'Contributor' : 'Explorer',
+    is_real_contributor: !!isContributor,
+    recent_articles: recentArticles,
+    articles_count: articlesCount,
+    recent_comments: recentComments,
     ambassador_has_badge: ambassadorBadge && ambassadorBadge.has_badge ? 1 : 0,
     ambassador_badge_country: ambassadorBadge ? ambassadorBadge.country : null,
     ambassador_badge_year: ambassadorBadge ? ambassadorBadge.badge_year : null,

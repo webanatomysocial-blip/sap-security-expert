@@ -230,16 +230,22 @@ export const getCreditBundles = () => api.get('/payments/bundles');
 export const getMyCredits = () => api.get('/payments/my-credits');
 export const getMyUnlocks = () => api.get('/payments/my-unlocks');
 export const getMyTransactions = () => api.get('/payments/my-transactions');
-export const validateCoupon = (code, bundle_id) => api.post('/payments/validate-coupon', { code, bundle_id });
+export const validateCoupon = (code, bundle_id, plan_id) => api.post('/payments/validate-coupon', { code, bundle_id, plan_id });
+export const getMembershipPlans = () => api.get('/payments/membership-plans');
+export const getMyMembership = () => api.get('/payments/my-membership');
+export const createMembershipOrder = (plan_id, coupon_code, preferred_currency) => api.post('/payments/create-order', { plan_id, coupon_code, preferred_currency });
 export const createCreditOrder = (bundle_id, coupon_code, preferred_currency) => api.post('/payments/create-order', { bundle_id, coupon_code, preferred_currency });
 export const detectPaymentCurrency = (currency) => api.get('/payments/detect-currency' + (currency ? `?currency=${encodeURIComponent(currency)}` : ''));
 export const verifyCreditPayment = (data) => api.post('/payments/verify', data);
-export const unlockBlog = (blog_slug) => api.post('/payments/unlock-blog', { blog_slug });
+export const unlockBlog = (blog_slug, method = 'credits') => api.post('/payments/unlock-blog', { blog_slug, method });
 
 // ── Admin: Bundles & Coupons ──────────────────────────────────────────────────
 export const getAdminBundles = () => api.get('/admin/bundles');
 export const saveBundle = (data) => api.post('/admin/bundles', data);
 export const deleteBundle = (id) => api.delete(`/admin/bundles/${id}`);
+export const getAdminMembershipPlans = () => api.get('/admin/membership-plans');
+export const saveMembershipPlan = (data) => api.post('/admin/membership-plans', data);
+export const getAdminSubscriptions = () => api.get('/admin/subscriptions');
 export const getAdminCoupons = () => api.get('/admin/coupons');
 export const saveCoupon = (data) => api.post('/admin/coupons', data);
 export const deleteCoupon = (id) => api.delete(`/admin/coupons/${id}`);

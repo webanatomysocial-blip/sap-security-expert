@@ -6,6 +6,7 @@ const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
 const { grantBonus, getActivityCredits } = require('../../services/CreditHelper');
 const AuditService = require('../../services/AuditService');
+const { syncAchievementsInBackground } = require('../../services/achievements');
 const repo = require('../../repositories/admin/membersRepository');
 
 // GET /api/admin/members?status=all|pending|approved|rejected|deleted
@@ -39,7 +40,8 @@ const performAction = asyncHandler(async (req, res) => {
     // Grant registration welcome credits (amount from credit_activities table)
     getActivityCredits(db, 'new_registration', 10).then((amt) =>
       grantBonus(db, id, amt, 'Registration welcome bonus')
-    ).catch((e) => console.error('[approve_credits]', e.message));
+    ).catch((e) => console.error('[approve_credits]', e.message))
+      .finally(() => syncAchievementsInBackground(db, id)); // "Welcome Aboard"
 
     // Credit the referrer if this member was referred (amount from credit_activities table)
     if (member.referred_by_code) {
@@ -48,7 +50,8 @@ const performAction = asyncHandler(async (req, res) => {
         const firstName = (member.name || '').split(' ')[0] || `Member #${id}`;
         getActivityCredits(db, 'referral', 2).then((amt) =>
           grantBonus(db, referrer.id, amt, `Referral bonus: ${firstName} joined`)
-        ).catch((e) => console.error('[referral_credits]', e.message));
+        ).catch((e) => console.error('[referral_credits]', e.message))
+          .finally(() => syncAchievementsInBackground(db, referrer.id)); // "First Referral"
       }
     }
 

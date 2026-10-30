@@ -355,7 +355,10 @@
   border-top: 1px solid #f1f5f9;
 }
 
-.mps-stat { }
+.mps-stat {
+  display: flex;
+  flex-direction: column;
+}
 .mps-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; margin-bottom: 2px; }
 .mps-value { font-size: 17px; font-weight: 700; color: #334155; }
 
@@ -462,25 +465,28 @@
   position: absolute;
   bottom: 2px;
   right: 2px;
-  width: 22px;
-  height: 22px;
-  background: #ffffff;
+  width: 24px;
+  height: 24px;
+  background: #ea580c;
+  border: 2.5px solid #ffffff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);
+  color: #ffffff;
 }
 
 .auth-sidebar-body {
-  padding: 56px 24px 28px;
+  padding: 56px 26px 32px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  text-align: left;
 }
 
 .auth-name-group {
-  text-align: center;
+  text-align: left;
 }
 
 .auth-name {
@@ -496,27 +502,28 @@
   color: #64748b;
   margin: 0;
   line-height: 1.4;
+  font-weight: 500;
 }
 
 .auth-details-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 14px 0;
-  border-top: 1px solid #f1f5f9;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 4px 0;
+  border: none;
 }
 
 .auth-detail-item {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   font-size: 0.81rem;
   color: #475569;
 }
 
-.auth-detail-item i {
-  color: #94a3b8;
+.auth-detail-item i,
+.auth-detail-item svg {
+  color: #64748b;
   font-size: 0.95rem;
   flex-shrink: 0;
 }
@@ -539,31 +546,32 @@
   display: block;
   width: 100%;
   text-align: center;
-  padding: 11px 16px;
-  background: #eb5437;
+  padding: 12px 16px;
+  background: #ea580c;
   color: #ffffff;
   font-size: 0.88rem;
   font-weight: 700;
   border-radius: 10px;
   text-decoration: none;
-  box-shadow: 0 4px 14px rgba(235, 84, 55, 0.28);
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
   transition: all 0.16s ease;
 }
 
 .auth-btn-profile:hover {
-  background: #d84529;
-  box-shadow: 0 6px 18px rgba(235, 84, 55, 0.35);
+  background: #c2410c;
+  color: #ffffff;
   transform: translateY(-1px);
 }
 
 .auth-connect-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 10px;
   padding: 9px 14px;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
   background: #ffffff;
   color: #0077b5;
   font-size: 0.84rem;
@@ -574,7 +582,7 @@
 
 .auth-connect-btn:hover {
   background: #f8fafc;
-  border-color: #94a3b8;
+  border-color: #cbd5e1;
 }
 
 .auth-expertise-tags {
@@ -585,19 +593,20 @@
 
 .auth-tag {
   display: inline-block;
-  padding: 5px 12px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  font-size: 0.74rem;
+  padding: 4px 12px;
+  background: #f0f7ff;
+  border: 1px solid #bae6fd;
+  border-radius: 9999px;
+  font-size: 0.73rem;
   font-weight: 600;
   color: #0284c7;
   text-decoration: none;
-  transition: background 0.15s;
+  transition: all 0.15s ease;
 }
 
 .auth-tag:hover {
-  background: #e2e8f0;
+  background: #e0f2fe;
+  border-color: #7dd3fc;
 }
 
 /* ── Main Content Area ── */
@@ -701,23 +710,21 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 12px 16px;
-  background: #ffffff;
-  border: 1px solid #eef2f6;
+  padding: 8px 10px;
+  background: transparent;
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.16s ease;
 }
 
 .auth-article-row:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  background: #f8fafc;
   transform: translateX(2px);
 }
 
 .auth-article-thumb {
-  width: 72px;
-  height: 52px;
+  width: 88px;
+  height: 58px;
   border-radius: 8px;
   object-fit: cover;
   background: #f1f5f9;
@@ -726,8 +733,8 @@
 }
 
 .auth-article-thumb-placeholder {
-  width: 72px;
-  height: 52px;
+  width: 88px;
+  height: 58px;
   border-radius: 8px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -752,12 +759,17 @@
   align-self: flex-start;
   padding: 2px 7px;
   border-radius: 4px;
-  background: #fff1ee;
-  color: #ee5e42;
+  background: #ffede8;
+  color: #ea580c;
   font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.auth-article-badge.auth-badge-purple {
+  background: #f5f3ff;
+  color: #9333ea;
 }
 
 .auth-article-title {
@@ -872,25 +884,25 @@
 
 .auth-cert-box {
   background: #ffffff;
-  border: 1px solid #eef2f6;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 14px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: none;
 }
 
 .auth-cert-icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 50%;
   background: #eff6ff;
   color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.1rem;
   flex-shrink: 0;
 }
 
@@ -929,5 +941,50 @@
   .auth-article-row {
     padding: 10px 12px;
   }
+}
+
+/* ── Preview Modal Smooth Scroll & Wheel Support ── */
+.preview-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(6px);
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 rgba(15, 23, 42, 0.2);
+}
+
+.preview-modal-overlay::-webkit-scrollbar {
+  width: 8px;
+}
+.preview-modal-overlay::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.2);
+}
+.preview-modal-overlay::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 4px;
+}
+.preview-modal-overlay::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.preview-modal-dialog {
+  background: #ffffff;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 1140px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin: auto 0;
+  overflow: hidden;
 }
 
