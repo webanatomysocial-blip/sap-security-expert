@@ -133,6 +133,7 @@ const verifySession = asyncHandler(async (req, res) => {
       if (user) {
         const p = await repo.findPermissionsByUserIdAll(db, sess.admin_id);
         const permissions = buildPermissions(p);
+        sess.permissions = permissions; // keep the server-side copy in sync with what the UI is told
         return res.json({
           status: 'success',
           authenticated: true,
