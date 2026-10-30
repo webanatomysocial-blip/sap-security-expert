@@ -123,7 +123,7 @@ async function createAndSendInvoice({ orderId, paymentId, member, bundle, amount
   const amountINR = (amountPaise / 100).toFixed(2);
 
   const lineItem = {
-    description: `${bundle.name} — ${bundle.credits} credits`,
+    description: bundle.description || `${bundle.name} — ${bundle.credits} credits`,
     quantity:    1,
     rate:        parseFloat(amountINR),
     ...(process.env.ZOHO_TAX_ID ? { tax_id: process.env.ZOHO_TAX_ID } : {}),
@@ -149,7 +149,7 @@ async function createAndSendInvoice({ orderId, paymentId, member, bundle, amount
       send_from_org_email_id: true,
       to_mail_ids:            [member.email],
       subject:                `Your Invoice for ${bundle.name} — SAP Security Expert`,
-      body:                   `Hi ${member.name || 'there'},\n\nPlease find your invoice for the purchase of ${bundle.name} (${bundle.credits} credits) attached.\n\nThank you for your support!\nSAP Security Expert`,
+      body:                   `Hi ${member.name || 'there'},\n\nPlease find your invoice for the purchase of ${bundle.description || `${bundle.name} (${bundle.credits} credits)`} attached.\n\nThank you for your support!\nSAP Security Expert`,
     });
     console.log(`[zoho] invoice ${invoiceId} created and emailed to ${member.email} for order ${orderId}`);
   } catch (emailErr) {

@@ -73,18 +73,13 @@ async function convertFromINR(paise, targetCurrency) {
   const converted = inrAmount * rate;
   const decimals = SUPPORTED[upperCurrency];
 
-  // Calculate target currency subunit amount
-  // Standard currencies: round to nearest subunit (e.g. nearest cent)
+  // Must match src/utils/fxPrice.js so the displayed price is exactly what's charged.
   let amount = Math.round(converted * Math.pow(10, decimals));
-
-  // Razorpay payment rule for 3-decimal currencies (e.g. KWD, BHD, OMR):
-  // Card payment guidelines require the 3rd decimal digit to be passed as 0 (e.g. 99.991 → 99990).
-  // Zeroing out the trailing subunit prevents rounding up beyond the displayed price.
-  if (decimals === 3) {
-    amount = Math.floor(amount / 10) * 10;
-  }
-
-  if (amount <= 0) return null;
+  // Razorpay rule for 3-decimal currencies (KWD, BHD, OMR): last digit must be 0.
+  // Floor (never charge more than the converted price).
+  if (decimals === 3) amount = Math.floor(amount / 10) * 10;
+  // Tiny INR prices (e.g. ₹1 → 0.0045 BHD) must not round to zero — charge the smallest valid unit.
+  amount = Math.max(amount, decimals === 3 ? 10 : 1);
 
   return { amount, currency: upperCurrency, rate, decimals };
 }

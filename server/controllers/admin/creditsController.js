@@ -37,6 +37,72 @@ const deleteBundle = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Bundle deleted.' });
 });
 
+// GET /api/admin/membership-plans
+const listPlans = asyncHandler(async (req, res) => {
+  const plans = await repo.findAllPlans(req.db);
+  return sendSuccess(res, { plans });
+});
+
+// POST /api/admin/membership-plans — create (all fields) or partial update.
+// On update, only fields present in the body change; is_active in particular
+// keeps its stored value unless explicitly sent. Plans are deactivated, never
+// deleted (member_subscriptions references them).
+function parseActiveFlag(v) {
+  if (v === true || v === 1 || v === '1' || v === 'true') return 1;
+  if (v === false || v === 0 || v === '0' || v === 'false') return 0;
+  return null;
+}
+
+const savePlan = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+  const has = (k) => body[k] !== undefined && body[k] !== null;
+  const out = {};
+
+  if (has('name')) {
+    if (typeof body.name !== 'string' || !body.name.trim()) return sendError(res, 'name is required', 400);
+    out.name = body.name.trim().slice(0, 100);
+  }
+  if (has('price_paise')) {
+    const price = Number(body.price_paise);
+    if (!Number.isInteger(price) || price < 100) return sendError(res, 'price must be at least ₹1', 400);
+    out.price_paise = price;
+  }
+  if (has('duration_days')) {
+    const days = Number(body.duration_days);
+    if (!Number.isInteger(days) || days <= 0 || days > 3660) return sendError(res, 'duration_days must be between 1 and 3660', 400);
+    out.duration_days = days;
+  }
+  if (has('description')) {
+    if (typeof body.description !== 'string') return sendError(res, 'description must be text', 400);
+    out.description = body.description.slice(0, 500);
+  }
+  if (has('is_active')) {
+    const flag = parseActiveFlag(body.is_active);
+    if (flag === null) return sendError(res, 'is_active must be true or false', 400);
+    out.is_active = flag;
+  }
+
+  if (body.id) {
+    const existing = await repo.findPlanById(req.db, body.id);
+    if (!existing) return sendError(res, 'Plan not found', 404);
+    if (!Object.keys(out).length) return sendError(res, 'Nothing to update', 400);
+    await repo.updatePlan(req.db, body.id, out);
+    return sendSuccess(res, { message: 'Plan updated.' });
+  }
+
+  if (!out.name || !out.price_paise || !out.duration_days) {
+    return sendError(res, 'name, price_paise and duration_days are required', 400);
+  }
+  await repo.createPlan(req.db, { description: '', ...out });
+  return sendSuccess(res, { message: 'Plan created.' });
+});
+
+// GET /api/admin/subscriptions
+const listSubscriptions = asyncHandler(async (req, res) => {
+  const subscriptions = await repo.findSubscriptions(req.db);
+  return sendSuccess(res, { subscriptions });
+});
+
 // GET /api/admin/coupons
 const listCoupons = asyncHandler(async (req, res) => {
   const coupons = await repo.findAllCoupons(req.db);
@@ -320,7 +386,7 @@ const deleteAchievement = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  listBundles, saveBundle, deleteBundle, listCoupons, saveCoupon, deleteCoupon,
+  listBundles, saveBundle, deleteBundle, listPlans, savePlan, listSubscriptions, listCoupons, saveCoupon, deleteCoupon,
   grantCredits, bulkGrantCredits, listTransactions, getMemberCredits, getCreditStats,
   listActivities, saveActivity, deleteActivity,
   listAchievements, saveAchievement, deleteAchievement,

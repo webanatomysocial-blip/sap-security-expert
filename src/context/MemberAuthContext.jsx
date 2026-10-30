@@ -8,10 +8,15 @@ export const MemberAuthProvider = ({ children }) => {
   const [isContributor, setIsContributor] = useState(false);
   const [creditBalance, setCreditBalance] = useState(0);
   const [unlockedSlugs, setUnlockedSlugs] = useState([]);
+  // { plan_name, started_at, expires_at } while a membership is in effect, else null
+  const [membership, setMembership] = useState(null);
 
   // Refresh credits + unlocks from server
   const refreshCredits = useCallback(() => {
-    import("../services/api").then(({ getMyCredits, getMyUnlocks }) => {
+    import("../services/api").then(({ getMyCredits, getMyUnlocks, getMyMembership }) => {
+      getMyMembership()
+        .then((res) => setMembership(res.data?.membership || null))
+        .catch(() => {});
       getMyCredits()
         .then((res) => {
           const bal = res.data?.balance ?? 0;
@@ -125,6 +130,7 @@ export const MemberAuthProvider = ({ children }) => {
     setIsContributor(false);
     setCreditBalance(0);
     setUnlockedSlugs([]);
+    setMembership(null);
     localStorage.removeItem("memberAuth");
     localStorage.removeItem("memberData");
     localStorage.removeItem("isContributor");
@@ -149,6 +155,8 @@ export const MemberAuthProvider = ({ children }) => {
         creditBalance,
         unlockedSlugs,
         isUnlocked,
+        membership,
+        setMembership,
         refreshCredits,
         login,
         logout,

@@ -108,7 +108,7 @@ async function insertMember(db, f) {
 // ── Profile ───────────────────────────────────────────────────────────────
 async function findMemberProfileById(db, memberId) {
   const [rows] = await db.execute(
-    'SELECT id, name, email, username, phone, location, country, state, company_name, job_role, profile_image, receive_blog_emails, profile_visibility, status FROM members WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, username, phone, location, country, state, company_name, job_role, headline, bio, linkedin, expertise_tags, sap_certifications, profile_image, receive_blog_emails, profile_visibility, status, created_at FROM members WHERE id = ? LIMIT 1',
     [memberId]
   );
   return rows[0] || null;
@@ -129,10 +129,73 @@ async function findContributorApprovedByEmail(db, email) {
 async function countPublishedArticlesByEmail(db, email) {
   const [[row]] = await db.execute(
     `SELECT COUNT(*) AS count FROM blogs b JOIN users u ON b.author_id = u.id
-     WHERE LOWER(u.email) = LOWER(?) AND b.status IN ('approved','published')`,
-    [email]
+     WHERE LOWER(u.email) = LOWER(?) AND b.status IN ('approved','published') AND (b.date IS NULL OR b.date <= ?)`,
+    [email, new Date().toISOString().slice(0, 19).replace('T', ' ')]
   ).catch(() => [[{ count: 0 }]]);
-  return row.count;
+  return Number(row.count) || 0;
+}
+
+async function findRecentArticlesByEmail(db, email, limit = 50) {
+  const nowUtc = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  // blogs has `image`/`date` (aliased to the names the UI expects). Scheduled
+  // posts (future date) aren't public yet, so they're excluded.
+  const [rows] = await db.execute(
+    `SELECT b.id, b.title, b.slug, b.image AS featured_image, b.date AS published_at, b.status, b.category
+     FROM blogs b JOIN users u ON b.author_id = u.id
+     WHERE LOWER(u.email) = LOWER(?) AND b.status IN ('approved','published') AND (b.date IS NULL OR b.date <= ?)
+     ORDER BY b.date DESC LIMIT ${Math.max(1, parseInt(limit, 10) || 5)}`,
+    [email, nowUtc]
+  ).catch((err) => { console.error('[findRecentArticlesByEmail]', err.message); return [[]]; });
+  return rows;
+}
+
+async function findRecentCommentsByMember(db, memberId, email, limit = 5) {
+  // CAST(... AS CHAR) works on both MySQL and SQLite (AS TEXT is SQLite-only).
+  const [rows] = await db.execute(
+    `SELECT c.id, c.post_id, c.content, c.timestamp, c.status,
+            b.title as post_title, b.slug as post_slug, b.image as post_image, b.category as post_category
+     FROM comments c
+     LEFT JOIN blogs b ON (b.slug = c.post_id OR CAST(b.id AS CHAR) = c.post_id)
+     WHERE (c.member_id = ? OR (c.email IS NOT NULL AND LOWER(c.email) = LOWER(?))) AND c.status = 'approved'
+     ORDER BY c.timestamp DESC
+     LIMIT ${Math.max(1, parseInt(limit, 10) || 5)}`,
+    [memberId, email]
+  ).catch((err) => { console.error('[findRecentCommentsByMember]', err.message); return [[]]; });
+  return rows;
+}
+
+async function countApprovedCommentsByMember(db, memberId, email) {
+  const [rows] = await db.execute(
+    `SELECT COUNT(*) AS count FROM comments
+     WHERE (member_id = ? OR (email IS NOT NULL AND LOWER(email) = LOWER(?))) AND status = 'approved'`,
+    [memberId, email]
+  ).catch(() => [[{ count: 0 }]]);
+  return rows[0]?.count || 0;
+}
+
+async function findContributorStatsByEmail(db, email) {
+  const [rows] = await db.execute(
+    `SELECT experience_years, years_experience, implementations_count, peer_rating, peer_rating_count, short_bio
+     FROM contributors WHERE LOWER(email) = LOWER(?) LIMIT 1`,
+    [email]
+  ).catch(() => [[]]);
+  return rows[0] || null;
+}
+
+async function findMemberEarnedBadges(db, memberId) {
+  try {
+    await ensureAchievementTables(db);
+    const [types, earned] = await Promise.all([
+      findAllAchievementTypes(db),
+      findEarnedAchievements(db, memberId),
+    ]);
+    const earnedSet = new Set(earned.map(e => e.achievement_id));
+    return types
+      .filter(t => earnedSet.has(t.id))
+      .map(t => ({ id: t.id, label: t.label, icon: t.icon, color: t.color }));
+  } catch {
+    return [];
+  }
 }
 
 async function updateMemberProfile(db, memberId, fields) {
@@ -148,6 +211,31 @@ async function updateMemberProfile(db, memberId, fields) {
   if (fields.state) {
     updates.push('state=?');
     params.push(fields.state);
+  }
+
+  if (fields.headline !== undefined) {
+    updates.push('headline=?');
+    params.push(fields.headline || null);
+  }
+
+  if (fields.bio !== undefined) {
+    updates.push('bio=?');
+    params.push(fields.bio || null);
+  }
+
+  if (fields.linkedin !== undefined) {
+    updates.push('linkedin=?');
+    params.push(fields.linkedin || null);
+  }
+
+  if (fields.expertise_tags !== undefined) {
+    updates.push('expertise_tags=?');
+    params.push(typeof fields.expertise_tags === 'string' ? fields.expertise_tags : (fields.expertise_tags ? JSON.stringify(fields.expertise_tags) : null));
+  }
+
+  if (fields.sap_certifications !== undefined) {
+    updates.push('sap_certifications=?');
+    params.push(typeof fields.sap_certifications === 'string' ? fields.sap_certifications : (fields.sap_certifications ? JSON.stringify(fields.sap_certifications) : null));
   }
 
   if (fields.profile_visibility) {
@@ -182,15 +270,33 @@ async function syncProfileImageToUserAndContributor(db, email, profileImage) {
 // their own country/state/city at apply time, which would otherwise drift
 // from whatever the member later corrects on their account. contributors has
 // only a country column (no state/city), so only that gets synced there.
-async function syncLocationToContributorAndAmbassador(db, email, { country, state, city }) {
-  await db.execute(
-    'UPDATE contributors SET country=? WHERE LOWER(email)=LOWER(?)',
-    [country || null, email]
-  ).catch(() => {});
-  await db.execute(
-    'UPDATE ambassadors SET country=?, state=?, city=? WHERE LOWER(email)=LOWER(?)',
-    [country || null, state || null, city || null, email]
-  ).catch(() => {});
+async function syncLocationToContributorAndAmbassador(db, email, { country, state, city, linkedin }) {
+  const contUpdates = [];
+  const contParams = [];
+  if (country !== undefined) { contUpdates.push('country=?'); contParams.push(country || null); }
+  if (linkedin !== undefined) { contUpdates.push('linkedin=?'); contParams.push(linkedin || null); }
+  if (contUpdates.length > 0) {
+    contParams.push(email);
+    await db.execute(`UPDATE contributors SET ${contUpdates.join(',')} WHERE LOWER(email)=LOWER(?)`, contParams).catch(() => {});
+  }
+
+  const ambUpdates = [];
+  const ambParams = [];
+  if (country !== undefined) { ambUpdates.push('country=?'); ambParams.push(country || null); }
+  if (state !== undefined) { ambUpdates.push('state=?'); ambParams.push(state || null); }
+  if (city !== undefined) { ambUpdates.push('city=?'); ambParams.push(city || null); }
+  if (linkedin !== undefined) { ambUpdates.push('linkedin=?'); ambParams.push(linkedin || null); }
+  if (ambUpdates.length > 0) {
+    ambParams.push(email);
+    await db.execute(`UPDATE ambassadors SET ${ambUpdates.join(',')} WHERE LOWER(email)=LOWER(?)`, ambParams).catch(() => {});
+  }
+}
+
+async function syncBioToContributorAndAmbassador(db, email, bio) {
+  if (bio === undefined) return;
+  await db.execute('UPDATE contributors SET short_bio=? WHERE LOWER(email)=LOWER(?)', [bio || null, email]).catch(() => {});
+  await db.execute('UPDATE ambassadors SET about_me=? WHERE LOWER(email)=LOWER(?)', [bio || null, email]).catch(() => {});
+  await db.execute('UPDATE users SET bio=? WHERE LOWER(email)=LOWER(?)', [bio || null, email]).catch(() => {});
 }
 
 // ── Referral ──────────────────────────────────────────────────────────────
@@ -252,10 +358,12 @@ async function ensureAchievementTables(db) {
       FOREIGN KEY (member_id) REFERENCES members(id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
   }
-  // Add email_sent column if it doesn't exist yet (idempotent migration)
-  try {
-    await db.execute(`ALTER TABLE member_achievements ADD COLUMN email_sent INTEGER NOT NULL DEFAULT 0`);
-  } catch (_) { /* column already exists */ }
+  // Add email_sent column if it doesn't exist yet (idempotent migration for existing MySQL tables)
+  if (!isSQLite) {
+    try {
+      await db.execute(`ALTER TABLE member_achievements ADD COLUMN email_sent INT NOT NULL DEFAULT 0`);
+    } catch (_) { /* column already exists */ }
+  }
 
   // Seed the achievement types (INSERT IGNORE = idempotent).
   // Note: INSERT IGNORE, not SQLite's "INSERT OR IGNORE" — db.js's
@@ -295,11 +403,14 @@ async function findAchievementRecord(db, memberId, achievementId) {
   return rows[0] || null;
 }
 
+// Returns true only for the call that actually inserted the row — the UNIQUE
+// (member_id, achievement_id) key makes this the race-safe "send email once" guard.
 async function insertAchievement(db, memberId, achievementId) {
-  await db.execute(
+  const [res] = await db.execute(
     'INSERT IGNORE INTO member_achievements (member_id, achievement_id, email_sent) VALUES (?, ?, 0)',
     [memberId, achievementId]
-  ).catch(() => {});
+  ).catch(() => [{ affectedRows: 0 }]);
+  return (res?.affectedRows || 0) > 0;
 }
 
 async function findAchievementType(db, achievementId) {
@@ -439,11 +550,11 @@ module.exports = {
   findMemberStatusByEmail, userExistsByEmail, memberExistsByUsername, userExistsByUsername,
   findApprovedMemberByReferralCode, insertMember,
   findMemberProfileById, findContributorApprovedByEmail, updateMemberProfile, findMemberEmailById, syncProfileImageToUserAndContributor,
-  syncLocationToContributorAndAmbassador,
+  syncLocationToContributorAndAmbassador, syncBioToContributorAndAmbassador,
   findReferralCodeById, updateReferralCode, countApprovedReferrals,
   findAmbassadorFullProfileByEmail,
   ensureAchievementTables, findAchievementRecord, insertAchievement, findAchievementType, markAchievementEmailSent,
-  findAllAchievementTypes, findEarnedAchievements, findMemberEmailAndName, countApprovedComments, hasCreditTransactionNote,
+  findAllAchievementTypes, findEarnedAchievements, findMemberEarnedBadges, findMemberEmailAndName, countApprovedComments, hasCreditTransactionNote,
   findMemberAuthById, updateMemberPassword, syncPasswordToUser, recordMemberLogin, recordUserLogin, findAmbassadorBadgeByEmail,
-  countPublishedArticlesByEmail,
+  countPublishedArticlesByEmail, findRecentArticlesByEmail, findRecentCommentsByMember, countApprovedCommentsByMember, findContributorStatsByEmail,
 };

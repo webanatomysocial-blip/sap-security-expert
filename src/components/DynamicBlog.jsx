@@ -297,7 +297,7 @@ export default function DynamicBlog() {
     if (isLoggedIn) {
       getMyDownloads()
         .then((res) => {
-          const urls = (res.data?.downloads || []).map((d) => d.file_url);
+          const urls = (res.data?.downloads || []).filter((d) => !d.access_expired).map((d) => d.file_url);
           setUnlockedFileUrls(new Set(urls));
         })
         .catch(() => {});

@@ -6,6 +6,10 @@ router.get('/bundles', requireAdmin, controller.listBundles);
 router.post('/bundles', requireAdmin, controller.saveBundle);
 router.delete('/bundles/:id', requireAdmin, controller.deleteBundle);
 
+router.get('/membership-plans', requireAdmin, controller.listPlans);
+router.post('/membership-plans', requireAdmin, controller.savePlan);
+router.get('/subscriptions', requireAdmin, controller.listSubscriptions);
+
 router.get('/coupons', requireAdmin, controller.listCoupons);
 router.post('/coupons', requireAdmin, controller.saveCoupon);
 router.delete('/coupons/:id', requireAdmin, controller.deleteCoupon);

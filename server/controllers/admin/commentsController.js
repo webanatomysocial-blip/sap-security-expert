@@ -2,6 +2,7 @@ const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const NotificationService = require('../../services/NotificationService');
 const MailService = require('../../services/MailService');
+const { syncAchievementsInBackground } = require('../../services/achievements');
 const { grantBonus, getActivityCredits } = require('../../services/CreditHelper');
 const repo = require('../../repositories/admin/commentsRepository');
 
@@ -50,10 +51,8 @@ const save = asyncHandler(async (req, res) => {
           grantBonus(db, memberId, amt, `Approved comment #${id}`)
         ).catch(() => {});
 
-        // Grant first_comment achievement immediately on approval
-        const cnt = await repo.countApprovedByMember(db, memberId);
-        if (cnt >= 1) repo.grantAchievement(db, memberId, 'first_comment').catch(() => {});
-        if (cnt >= 100) repo.grantAchievement(db, memberId, '100_helpful_comments').catch(() => {});
+        // Comment achievements (granted + emailed now, at approval time)
+        syncAchievementsInBackground(db, memberId);
       }
     } else if (status === 'rejected') {
       notifier.notifyCommentRejected(comm.email, comm.user_name, rejection_reason || 'Does not follow community guidelines.').catch(() => {});

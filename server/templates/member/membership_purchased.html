@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eef2f6; border-radius: 8px; }
+    .header { text-align: center; padding-bottom: 15px; margin-bottom: 20px; border-bottom: 2px solid #ee5e42; }
+    .header h2 { color: #ee5e42; margin: 0; }
+    .plan-card {
+      text-align: center;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 2px solid #86efac;
+      border-radius: 16px;
+      padding: 28px 24px;
+      margin: 24px 0;
+    }
+    .plan-icon { font-size: 2.6rem; margin-bottom: 8px; }
+    .plan-name { font-size: 1.4rem; font-weight: 800; color: #166534; margin: 0 0 4px; }
+    .plan-sub { font-size: 0.95rem; color: #15803d; margin: 0; }
+    .details { width: 100%; border-collapse: collapse; margin: 8px 0 20px; font-size: 0.92rem; }
+    .details td { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+    .details td.k { color: #64748b; }
+    .details td.v { text-align: right; font-weight: 700; color: #0f172a; }
+    .note { background: #f8fafc; border-left: 3px solid #ee5e42; padding: 12px 16px; border-radius: 6px; font-size: 0.88rem; color: #475569; }
+    .perks { padding-left: 18px; margin: 12px 0; color: #334155; font-size: 0.92rem; }
+    .btn {
+      display: inline-block;
+      background: #ee5e42;
+      color: #ffffff !important;
+      padding: 12px 28px;
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: 700;
+      margin: 20px 0;
+    }
+    .footer { font-size: 12px; color: #94a3b8; margin-top: 30px; text-align: center; border-top: 1px solid #eef2f6; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>🎉 Your Membership is Active!</h2>
+    </div>
+    <p>Hello <strong>{{name}}</strong>,</p>
+    <p>Thank you for purchasing a SAP Security Expert membership. Your payment was successful.</p>
+
+    <div class="plan-card">
+      <div class="plan-icon">✅</div>
+      <p class="plan-name">{{plan_name}} Membership</p>
+      <p class="plan-sub">{{duration_days}} days of full premium access</p>
+    </div>
+
+    <table class="details" role="presentation">
+      <tr><td class="k">Starts</td><td class="v">{{starts_on}}</td></tr>
+      <tr><td class="k">Valid until</td><td class="v">{{expires_on}}</td></tr>
+      <tr><td class="k">Amount paid</td><td class="v">{{amount}}</td></tr>
+      <tr><td class="k">Order ID</td><td class="v">{{order_id}}</td></tr>
+    </table>
+
+    {{#if extended}}
+    <p class="note">You already had an active membership, so this plan starts right after your current one ends. No paid days are lost.</p>
+    {{/if}}
+
+    <p><strong>What's included</strong></p>
+    <ul class="perks">
+      <li>Read every premium article while your membership is active</li>
+      <li>Download every premium file at no extra credit cost</li>
+      <li>One-time payment — no auto-renewal, ever</li>
+    </ul>
+    <p class="note">Articles you open with your membership are available until it ends. Want to keep one forever? Unlock it with credits at any time.</p>
+
+    <div style="text-align: center;">
+      <a href="{{account_url}}" class="btn">Start Reading</a>
+    </div>
+
+    <p>Your invoice will be emailed separately.</p>
+    <p>Best Regards,<br>The SAP Security Expert Team</p>
+
+    <div class="footer">
+      &copy; 2026 SAP Security Expert. The leading community for SAP Security Professionals.<br>
+      <a href="{{site_url}}" style="color: #94a3b8;">{{site_domain}}</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -18,7 +18,7 @@ const EXT_META = {
 const DEFAULT_META = { icon: "bi-file-earmark-fill", color: "#64748b", bg: "#f8fafc" };
 
 export default function DownloadBlock({ fileUrl, fileName, fileSize, credits, alreadyUnlocked = false }) {
-  const { isLoggedIn, refreshCredits } = useMemberAuth();
+  const { isLoggedIn, refreshCredits, membership } = useMemberAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // idle | loading | unlocked | downloading | error
@@ -57,6 +57,12 @@ export default function DownloadBlock({ fileUrl, fileName, fileSize, credits, al
         const { data } = await issueDownloadToken(fileUrl);
         triggerStreamDownload(data.token);
       } catch (err) {
+        if (err?.response?.data?.reason === "membership_expired") {
+          // Downloaded under a membership that has since lapsed — offer it again via credits.
+          setState("error");
+          setErrMsg(`Your membership has expired. Click Download to get it again${creditsNum ? ` for ${creditsNum} credit${creditsNum !== 1 ? "s" : ""}` : ""}.`);
+          return;
+        }
         setState("unlocked");
         setErrMsg("Could not start download. Please try again.");
       }
@@ -107,6 +113,10 @@ export default function DownloadBlock({ fileUrl, fileName, fileSize, credits, al
           {isUnlocked ? (
             <span className="sap-dl-unlocked-badge">
               <i className="bi bi-unlock-fill"></i> Already unlocked
+            </span>
+          ) : !isFree && membership ? (
+            <span className="sap-dl-free-badge">
+              <i className="bi bi-patch-check-fill" style={{ marginRight: 4 }}></i>Included in membership
             </span>
           ) : !isFree ? (
             <span className="sap-dl-credit-badge">

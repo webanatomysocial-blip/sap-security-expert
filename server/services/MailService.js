@@ -36,33 +36,38 @@ class MailService {
   }
 
   /** Send using an HTML template file with {{placeholder}} substitution */
-  async send(db, to, subject, templatePath, data = {}) {
+  /** Render a template file with {{key}} / {{#if key}} substitution (values HTML-escaped). */
+  render(templatePath, data = {}) {
     const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
     data.site_url = data.site_url || siteUrl;
     data.site_domain = data.site_domain || new URL(siteUrl).hostname;
-
     const fullPath = path.join(TEMPLATES_DIR, templatePath + '.html');
+    if (!fs.existsSync(fullPath)) throw new Error(`Template ${templatePath} not found`);
+    let body = fs.readFileSync(fullPath, 'utf8');
+
+    // Minimal {{#if key}}...{{/if}} block support — templates use this to
+    // show/hide a section (e.g. a password box only when one was actually
+    // generated). The plain {{key}} loop below has no concept of blocks,
+    // so without this the literal `{{#if ...}}`/`{{/if}}` tags leak
+    // straight into the sent email whenever a template uses them.
+    body = body.replace(/\{\{#if\s+(\w+)\s*\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, key, inner) => (data[key] ? inner : ''));
+
+    for (const [key, val] of Object.entries(data)) {
+      // Escape before interpolation — several templates substitute
+      // user-submitted fields (name, reason, etc.) straight from public
+      // forms, and this is HTML, not React, so nothing escapes it for us.
+      body = body.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), escapeHtml(String(val ?? '')));
+    }
+
+    return body;
+  }
+
+  async send(db, to, subject, templatePath, data = {}) {
     let status = 'failed';
     let error = null;
 
     try {
-      if (!fs.existsSync(fullPath)) throw new Error(`Template ${templatePath} not found`);
-
-      let body = fs.readFileSync(fullPath, 'utf8');
-
-      // Minimal {{#if key}}...{{/if}} block support — templates use this to
-      // show/hide a section (e.g. a password box only when one was actually
-      // generated). The plain {{key}} loop below has no concept of blocks,
-      // so without this the literal `{{#if ...}}`/`{{/if}}` tags leak
-      // straight into the sent email whenever a template uses them.
-      body = body.replace(/\{\{#if\s+(\w+)\s*\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, key, inner) => (data[key] ? inner : ''));
-
-      for (const [key, val] of Object.entries(data)) {
-        // Escape before interpolation — several templates substitute
-        // user-submitted fields (name, reason, etc.) straight from public
-        // forms, and this is HTML, not React, so nothing escapes it for us.
-        body = body.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), escapeHtml(String(val ?? '')));
-      }
+      const body = this.render(templatePath, data);
 
       await this.transporter.sendMail({
         from: this.from,

@@ -9,7 +9,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "cron": "node cron.js",
-    "test": "node tests/currency.test.js && node tests/payments.test.js"
+    "test": "node tests/currency.test.js && node tests/payments.test.js && node tests/membership.test.js"
   },
   "dependencies": {
     "axios": "^1.6.0",

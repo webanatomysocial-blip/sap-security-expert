@@ -23,6 +23,46 @@ async function deleteBundle(db, id) {
   await db.execute('DELETE FROM credit_bundles WHERE id=?', [id]);
 }
 
+async function findAllPlans(db) {
+  const [rows] = await db.execute('SELECT * FROM membership_plans ORDER BY duration_days ASC');
+  return rows;
+}
+
+async function findPlanById(db, id) {
+  const [rows] = await db.execute('SELECT * FROM membership_plans WHERE id = ? LIMIT 1', [id]);
+  return rows[0] || null;
+}
+
+// Partial update: only the given (already-validated) fields are written.
+const PLAN_COLUMNS = ['name', 'price_paise', 'duration_days', 'description', 'is_active'];
+async function updatePlan(db, id, fields) {
+  const cols = PLAN_COLUMNS.filter((c) => fields[c] !== undefined);
+  if (!cols.length) return;
+  await db.execute(
+    `UPDATE membership_plans SET ${cols.map((c) => `${c}=?`).join(', ')} WHERE id=?`,
+    [...cols.map((c) => fields[c]), id]
+  );
+}
+
+async function createPlan(db, { name, price_paise, duration_days, description }) {
+  await db.execute(
+    'INSERT INTO membership_plans (name, price_paise, duration_days, description, is_active) VALUES (?, ?, ?, ?, 1)',
+    [name, price_paise, duration_days, description]
+  );
+}
+
+async function findSubscriptions(db, limit = 200) {
+  const [rows] = await db.execute(
+    `SELECT s.id, s.member_id, s.status, s.starts_at, s.expires_at, s.created_at, s.razorpay_order_id,
+            m.name AS member_name, m.email AS member_email, p.name AS plan_name
+     FROM member_subscriptions s
+     LEFT JOIN members m ON m.id = s.member_id
+     LEFT JOIN membership_plans p ON p.id = s.plan_id
+     ORDER BY s.created_at DESC LIMIT ${Number(limit) | 0}`
+  );
+  return rows;
+}
+
 async function findAllCoupons(db) {
   const [rows] = await db.execute('SELECT * FROM coupons ORDER BY created_at DESC');
   return rows;
@@ -199,6 +239,7 @@ async function deleteAchievementType(db, id) {
 
 module.exports = {
   findAllBundles, updateBundle, createBundle, deleteBundle,
+  findAllPlans, findPlanById, updatePlan, createPlan, findSubscriptions,
   findAllCoupons, updateCoupon, createCoupon, deleteCoupon,
   findMemberById, findAllApprovedMemberIds, findMemberCredits, findMemberCreditsForUpdate, upsertMemberBalance, insertAdjustmentTransaction,
   findAllTransactions, countTransactions, findMemberBalance, getCreditStats,
