@@ -291,7 +291,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
           {[
             { key: "unlock", label: "Unlock", icon: "bi-unlock-fill" },
             { key: "buy", label: "Credits", icon: "bi-coin" },
-            ...(plans.length ? [{ key: "membership", label: "Membership", icon: "bi-patch-check-fill" }] : []),
+            { key: "membership", label: "Membership", icon: "bi-patch-check-fill" },
           ].map((t) => (
             <button key={t.key} role="tab" aria-selected={tab === t.key} className={tab === t.key ? "on" : ""} onClick={() => switchTab(t.key)}>
               <i className={`bi ${t.icon}`}></i>{t.label}
@@ -328,11 +328,11 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
                 <button className="pw-btn pw-btn-green" disabled={!!unlocking} onClick={() => handleUnlock("membership")}>
                   {unlocking === "membership" ? "Opening…" : <>Read with membership <i className="bi bi-arrow-right"></i></>}
                 </button>
-              ) : plans.length > 0 ? (
-                <button className="pw-btn pw-btn-green-outline" onClick={() => switchTab("membership")}>
-                  View membership plans <i className="bi bi-arrow-right"></i>
+              ) : (
+                <button className="pw-btn pw-btn-green" onClick={() => switchTab("membership")}>
+                  <i className="bi bi-patch-check-fill"></i> Get membership <i className="bi bi-arrow-right"></i>
                 </button>
-              ) : null}
+              )}
             </div>
 
             <div className="pw-or"><span>or</span></div>
@@ -423,7 +423,9 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
               ))}
               {items.length === 0 && (
                 <p style={{ textAlign: "center", fontSize: 13, color: "#94a3b8", padding: "20px 0" }}>
-                  {isPlanTab ? "No membership plans available right now." : "No bundles available. Contact the administrator."}
+                  {isPlanTab
+                    ? <>Membership plans aren't available right now. <a href="/membership" style={{ color: "#15803d", fontWeight: 700 }}>See all options →</a></>
+                    : "No bundles available. Contact the administrator."}
                 </p>
               )}
             </div>
