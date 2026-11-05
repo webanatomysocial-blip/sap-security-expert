@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const repo = require('../../repositories/admin/profileRepository');
+const { cleanWebUrl } = require('../../utils/sanitize');
 
 // GET /api/admin/profile
 // Returns the logged-in user's profile. For contributors, falls back to

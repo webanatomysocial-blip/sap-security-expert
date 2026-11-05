@@ -3,8 +3,10 @@ import { FiShare2, FiLink, FiMail } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 // next-disabled: import "../css/ShareButton.css";
 import { shareUrls } from "../data/socialLinks";
+import { useToast } from "../context/ToastContext";
 
 const ShareButton = ({ title, url }) => {
+  const { addToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 

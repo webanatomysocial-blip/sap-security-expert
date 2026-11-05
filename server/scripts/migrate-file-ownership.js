@@ -1,11 +1,12 @@
 // PREPARED. Backfills permanent file ownership from existing posts.
 // Default: dry run (read-only). Applying needs:
-//   --apply --backup=<file.json> --confirm=I_HAVE_A_BACKUP
+//   --apply --backup=<existing non-empty database dump> --confirm=I_HAVE_A_BACKUP
 // Creates the tables if missing (same DDL as migrations/2026-11-05_file_ownership.mysql.sql,
 // SQLite flavour below), then inserts one owner row per file that has none.
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const { openMigrationDb } = require('./lib/migration-db');
 const { findFileBlocks } = require('../utils/fileOwnership');
 
 const SQLITE_DDL = [
@@ -18,7 +19,10 @@ const SQLITE_DDL = [
 // needsReview when: no live embed, several authors embed it, or the embedded prices disagree.
 function planBackfill(blogs, alreadyOwned = new Set()) {
   const embeds = new Map(); // url -> [{blogId, authorId, created, credits, live}]
-  const ordered = [...blogs].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.id).localeCompare(String(b.id)));
+  // MySQL/MariaDB drivers return DATETIME as Date objects; String(Date) sorts by weekday name,
+  // so compare epoch milliseconds instead (strings from SQLite are UTC "YYYY-MM-DD HH:MM:SS").
+  const toMs = (v) => (v instanceof Date ? v.getTime() : Date.parse(String(v).replace(' ', 'T') + 'Z'));
+  const ordered = [...blogs].sort((a, b) => (toMs(a.created_at) - toMs(b.created_at)) || String(a.id).localeCompare(String(b.id)));
   for (const b of ordered) {
     const live = ['approved', 'published'].includes(b.status);
     for (const html of [b.content, b.draft_content]) {
@@ -74,28 +78,35 @@ async function applyPlan(db, plan) {
   return inserted;
 }
 
+let closeDb = async () => {};
+async function finish(code) { await closeDb(); process.exit(code); }
+
 async function main() {
   require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
   const args = process.argv.slice(2);
   const apply = args.includes('--apply');
   const backupArg = (args.find((a) => a.startsWith('--backup=')) || '').slice('--backup='.length);
   const confirmed = args.includes('--confirm=I_HAVE_A_BACKUP');
-  const { poolExec: db, isSQLite } = require('../db');
+  const { db, isSQLite, close } = await openMigrationDb();
+  closeDb = close;
   console.log(`[ownership-backfill] target: ${process.env.DB_CONNECTION || 'sqlite'} / ${process.env.DB_NAME || 'local file'}`);
-  if (apply && (!backupArg || !confirmed)) { console.error('[ownership-backfill] refusing to apply: needs --backup=<file> and --confirm=I_HAVE_A_BACKUP'); process.exit(2); }
+  if (apply && (!backupArg || !confirmed)) { console.error('[ownership-backfill] refusing to apply: needs --backup=<file> and --confirm=I_HAVE_A_BACKUP'); await finish(2); }
+  // The backup must be a full database dump taken BEFORE applying (e.g. mariadb-dump / mysqldump
+  // --single-transaction of blogs, file_ownership and file_ownership_audit). The script does not
+  // write its own snapshot: a list of URLs cannot restore a database.
+  if (apply && !(fs.existsSync(backupArg) && fs.statSync(backupArg).size > 0)) { console.error(`[ownership-backfill] refusing to apply: backup file missing or empty: ${backupArg}`); await finish(2); }
   const [blogs] = await db.execute("SELECT id, author_id, created_at, status, content, draft_content FROM blogs WHERE status <> 'trash'");
   const owned = await existingOwnedFiles(db).catch(() => new Set());
   const plan = planBackfill(blogs, owned);
   const review = plan.filter((p) => p.needsReview).length;
   console.log(`[ownership-backfill] ${plan.length} files without an owner (${review} flagged for review)`);
   plan.slice(0, 20).forEach((p) => console.log(`  ${p.fileUrl}  owner=${p.ownerUserId}  price=${p.price}  ${p.needsReview ? 'REVIEW: ' + p.reason : 'ok'}`));
-  if (!apply) { console.log('[ownership-backfill] dry run only — nothing written'); process.exit(0); }
+  if (!apply) { console.log('[ownership-backfill] dry run only — nothing written'); await finish(0); }
   if (!isSQLite) { /* MySQL: tables must already exist from the .mysql.sql migration */ } else { await ensureTables(db); }
-  fs.writeFileSync(backupArg, JSON.stringify({ takenAt: new Date().toISOString(), owned: [...owned] }, null, 2));
   const inserted = await applyPlan(db, plan);
   console.log(`[ownership-backfill] inserted ${inserted} owner rows (backup: ${backupArg})`);
-  process.exit(0);
+  await finish(0);
 }
 
 module.exports = { planBackfill, applyPlan, ensureTables };
-if (require.main === module) main().catch((e) => { console.error('[ownership-backfill] failed:', e.message); process.exit(1); });
+if (require.main === module) main().catch(async (e) => { console.error('[ownership-backfill] failed:', e.message); await closeDb(); process.exit(e.exitCode || 1); });

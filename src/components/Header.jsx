@@ -323,7 +323,7 @@ const Header = () => {
                           <button
                             className="member-dropdown-item"
                             onClick={() => {
-                              setIsResetPasswordOpen(true);
+                              setIsProfileModalOpen(true); // Change Password lives in the profile modal
                               setIsMemberDropdownOpen(false);
                               setIsSecuritySubmenuOpen(false);
                             }}
