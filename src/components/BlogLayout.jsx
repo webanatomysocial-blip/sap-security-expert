@@ -615,7 +615,7 @@ const BlogLayout = ({
               )}
               {cta.buttonText && cta.buttonLink && (
                 <a
-                  href={cta.buttonLink}
+                  href={safeUrl(cta.buttonLink)}
                   className="btn-cta"
                   style={{
                     display: "inline-block",
@@ -693,7 +693,7 @@ const BlogLayout = ({
                             </a>
                           )}
                           {author_twitter && (
-                            <a href={author_twitter} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
+                            <a href={safeUrl(author_twitter)} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
                               <FaXTwitter size={15} />
                             </a>
                           )}
@@ -753,17 +753,17 @@ const BlogLayout = ({
                           {(caLinkedin || caTwitter || caWebsite) && (
                             <div className="bl-author-socials">
                               {caLinkedin && (
-                                <a href={caLinkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
+                                <a href={safeUrl(caLinkedin)} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
                                   <FaLinkedin size={15} />
                                 </a>
                               )}
                               {caTwitter && (
-                                <a href={caTwitter} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
+                                <a href={safeUrl(caTwitter)} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
                                   <FaXTwitter size={15} />
                                 </a>
                               )}
                               {caWebsite && (
-                                <a href={caWebsite} target="_blank" rel="noopener noreferrer" title="Website" className="bl-social-link bl-social-link--web">
+                                <a href={safeUrl(caWebsite)} target="_blank" rel="noopener noreferrer" title="Website" className="bl-social-link bl-social-link--web">
                                   <FaGlobe size={15} />
                                 </a>
                               )}
