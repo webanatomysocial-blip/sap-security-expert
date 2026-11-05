@@ -9,7 +9,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "cron": "node cron.js",
-    "test": "node tests/currency.test.js && node tests/payments.test.js && node tests/membership.test.js && node tests/content-security.test.js && node tests/frontend-safety.test.js && node tests/external-isolation.test.js && node tests/session-revocation.test.js && node tests/remediation.test.js && node tests/file-ownership.test.js && node tests/download-transport.test.js && node tests/session-csrf.test.js && node tests/permission-matrix.test.js && node tests/migration-prep.test.js && node tests/admin-profile-url.test.js && node tests/reset-link.test.js && node tests/admin-preview-sanitise.test.js",
+    "test": "node tests/currency.test.js && node tests/payments.test.js && node tests/membership.test.js && node tests/content-security.test.js && node tests/frontend-safety.test.js && node tests/external-isolation.test.js && node tests/session-revocation.test.js && node tests/remediation.test.js && node tests/file-ownership.test.js && node tests/download-transport.test.js && node tests/session-csrf.test.js && node tests/permission-matrix.test.js && node tests/migration-prep.test.js && node tests/admin-profile-url.test.js && node tests/reset-link.test.js && node tests/admin-preview-sanitise.test.js && node tests/otp-hmac.test.js",
     "test:db": "node tests/db/run.js"
   },
   "dependencies": {

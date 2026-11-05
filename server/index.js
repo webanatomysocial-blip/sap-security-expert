@@ -9,6 +9,15 @@ const { dbMiddleware, isSQLite } = require('./db');
 require('./services/externalMode').logStatus();
 const { safeCompare } = require('./middleware/auth');
 
+// OTP hashing key (HMAC). Required in every environment: there is no fallback key.
+// The message names the variable but never prints its value.
+try {
+  require('./services/OTPService').assertOtpConfigured();
+} catch (e) {
+  console.error(`FATAL: ${e.message} Refusing to start.`);
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.EXPRESS_PORT || 3001;
 

@@ -9,6 +9,16 @@ const { revokeAccountSessions, ensureRevocationTable } = require('../services/se
 
 const hashResetToken = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
 
+// Configuration problems (for example a missing OTP_HASH_SECRET) are the operator's to fix. They are
+// logged on the server and answered with a generic 500, so clients never learn configuration details.
+function configFailure(res, err, where) {
+  if (err && err.name === 'OTPConfigError') {
+    console.error(`[${where}] OTP service is not configured (see OTP_HASH_SECRET)`);
+    return res.status(500).json({ status: 'error', message: 'Service temporarily unavailable.' });
+  }
+  return null;
+}
+
 // All five handlers below keep their original explicit try/catch (not
 // asyncHandler/next(err)): each one either forwards a deliberately safe,
 // specific error message from a service class (OTPService/MailService) as a
@@ -77,6 +87,7 @@ const sendOtp = async (req, res) => {
 
     return res.json({ status: 'success', message: 'If an account exists with this email, a verification code has been sent.' });
   } catch (err) {
+    if (configFailure(res, err, 'otp-send-or-verify')) return;
     return res.status(400).json({ status: 'error', message: err.message });
   }
 };
@@ -95,6 +106,7 @@ const verifyOtp = async (req, res) => {
     await otpService.verifyOTP(email, code, type);
     return res.json({ status: 'success', message: 'Email verified successfully.' });
   } catch (err) {
+    if (configFailure(res, err, 'otp-send-or-verify')) return;
     return res.status(400).json({ status: 'error', message: err.message });
   }
 };
@@ -212,6 +224,7 @@ const resetPasswordOtp = async (req, res) => {
 
     return res.json({ status: 'success', message: 'Password reset successfully.' });
   } catch (err) {
+    if (configFailure(res, err, 'reset-password-otp')) return;
     console.error('[reset-password-otp]', err.message);
     return res.status(400).json({ status: 'error', message: err.message });
   }
