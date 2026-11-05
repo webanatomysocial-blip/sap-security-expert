@@ -47,11 +47,13 @@ No dependency was installed or upgraded in this pass. The packages already prese
 
 | Risk | Detail | Recommendation |
 |---|---|---|
-| R1 | **Reset token burned on failure after claim.** `claimResetToken` deletes the token before the password update and revocation run. A failure in between (observed: `No space left on device` while creating `account_session_revocations`) consumes the token and leaves the password unchanged. | Run claim, update and revoke in one transaction, or restore the token row on failure. |
-| R2 | OTP codes are sent to `email_queue` in plaintext when SMTP fails (`otpController.sendOtp` → `queueTransactional`). The code is valid for 10 minutes. | Store only a hash, or do not queue OTP mail. |
+| R1 | ~~Reset token burned on failure after claim.~~ **FIXED (round 2).** Claim, password update, session revocation and token deletion run in one transaction. Verified on MariaDB: a forced failure after the claim restores the token and leaves the password unchanged; the same token then succeeds; two simultaneous requests with one token yield exactly one success. | — |
+| R2 | ~~OTP codes queued in plaintext.~~ **FIXED (round 2).** Delivery failure no longer queues the code. Only the SHA-256 hash is stored. `queueTransactional` was removed from `MailService`. **Open:** existing rows in `email_queue` written before this fix may still hold plaintext OTPs on DEV and production. Purge them after review (see §13). | — |
 | R3 | Reset email contains the token in the message body. Mail providers and recipients can log it. | Expected for email links; shorten lifetime if needed (currently 60 min). |
 | R4 | Nginx error log can record request lines for some errors (default `error_log`). | Keep tokens out of URLs (done for reset and downloads); see §8. |
 | R5 | Repo-wide `dangerouslySetInnerHTML` on server-sanitised content only (reviewed); the JSON-LD and GTM scripts are static. | No action. |
+| R6 | **OTP hash is unsalted SHA-256 of a six-digit code.** If `verification_codes` leaks, every code can be recovered in seconds. The attempt limit (5) and 10-minute expiry protect only the online path. | Key the hash with a server secret (HMAC-SHA256). Codes in flight would be invalidated at deployment; that is acceptable for a 10-minute window. |
+| R7 | **`verification_codes.code` is `varchar(10)` in the schema dump and on any database built from it.** OTP hashes are 64 characters, so under strict SQL mode every OTP insert fails (`Data too long`), which breaks signup and password-reset codes. Found by the MariaDB test in round 2; SQLite does not enforce length, so the earlier SQLite tests could not catch it. | Apply `migrations/2026-11-05_widen_verification_codes.mysql.sql` after review. Check DEV first with `scripts/schema-check-readonly.js`. Fresh builds from the updated `schema.sql` are already correct. |
 
 ## 4. Migration readiness
 
@@ -63,6 +65,7 @@ Migrations and their tests are in `server/migrations/` and `server/scripts/`. Al
 | File ownership backfill | writes `file_ownership` (+ audit) from `blogs.content/draft_content` | writes nothing (checksum-verified) | inserts one owner per unowned file | second run inserts 0 | restore via dump (below) | TESTED |
 | URL normalisation | `blogs.cta_button_link`, `blogs.draft_cta_button_link`, `ads.link`, `announcements.link`, `announcements.draft_link`, `contributors.linkedin|personal_website`, `contributor_applications.linkedin|personal_website`, `users.linkedin|personal_website` | writes nothing | rewrites bare domains to https; reports unsafe values as MANUAL | second run: 0 rewrites | `--restore=<backup>` (compare-and-set) | TESTED |
 | News/learnings sanitisation | `blogs.content`, `draft_content`, `faqs`, `draft_faqs` for `type` news/learning | writes nothing | rewrites changed fields | second run: no further change | `--restore=<backup>` | TESTED |
+| Widen OTP code column (round 2) | `verification_codes.code` → `VARCHAR(64)` | `information_schema` check (schema-check-readonly.js) | `ALTER … MODIFY` is idempotent | yes | rollback documented: delete rows longer than 10 chars, then narrow. Not run. | PREPARED, REQUIRES DEV |
 | Read-only inventory | none | `scripts/inventory-readonly.js` | never writes (READ ONLY session; a write was refused in test) | n/a | n/a | TESTED |
 
 ### Backup and restore rules (enforced in code)
@@ -152,6 +155,17 @@ Not covered by DB tests: session expiry in the store (the cookie lifetime was ch
 
 ## 8. Nginx (recommended, not applied to any server)
 
+Status of the Nginx change, separated into the four states that matter:
+
+| State | Status |
+|---|---|
+| Configuration file prepared (`deploy/nginx.conf` in the repo) | DONE |
+| Configuration installed on a server | NOT DONE (DEV or production) |
+| `nginx -t` passed on that configuration | NOT DONE (Nginx is not installed on this Mac; installing it could upgrade shared libraries, as the earlier Node incident showed) |
+| Access and error logs verified to contain no tokens | NOT DONE (needs DEV, after install and a real request) |
+
+The sections below describe the prepared configuration only.
+
 `deploy/nginx.conf` (repo template) now contains:
 
 ```
@@ -167,6 +181,28 @@ access_log /var/log/nginx/sap-security-expert.access.log redacted;
 - Referer: the reset link uses a fragment, which browsers do not send in Referer. The `$http_referer` field still records the referring page path.
 - Error log: the template sets no `error_log`, so the distribution default applies, which can record request lines for some upstream errors. Recommended: `error_log /var/log/nginx/sap-security-expert.error.log warn;` and keep secrets out of URLs (done for reset and downloads). Legacy `?token=` links remain valid for at most 60 minutes after deployment; remove the legacy branch after that window.
 - Not validated with `nginx -t`: Nginx is not installed on this Mac, and installing it with Homebrew could upgrade shared libraries, as the earlier Node incident showed.
+
+
+## 8a. Round 2 changes (this review pass)
+
+| Change | Evidence |
+|---|---|
+| Reset-token consumption, password change, session revocation and token deletion in one transaction (`controllers/otpController.js` `resetWithToken`). `ensureRevocationTable` runs before `BEGIN`, because MySQL/MariaDB DDL commits an open transaction. | `tests/db/reset-atomic.db.test.js`: 4/4 on MariaDB 10.11.19. Against the previous controller, the failure-after-claim test fails (token burned, `2 passed, 2 failed`), so the test detects the bug. |
+| OTP delivery failure no longer queues the code; `queueTransactional` removed. | `tests/db/otp-delivery.db.test.js`: 3/3. Forced SMTP failure: `email_queue` stays empty; stored value is 64 chars, not a six-digit code. |
+| Schema width for OTP hashes (`verification_codes.code` → 64) in `migrations/schema.sql`, plus a prepared migration. | `tests/migration-prep.test.js` schema check (10/10 in pure suite). Found by `tests/db/otp-delivery.db.test.js`, which failed with `Data too long for column 'code'` before the fix. |
+| Read-only schema drift checker `scripts/schema-check-readonly.js` (information_schema SELECT only, READ ONLY session). | Run against a database built from the dump's CREATE statements: reports 6 of 14 expectations not met (missing `ambassadors`, `ambassador_badge_history`, `contributors.approved_at`, `account_session_revocations`, `file_ownership`, `file_ownership_audit`). Run on DEV to compare. |
+| Lint: numeric separator in an existing test fixed (parser is ES2020). | ESLint on all changed files: exit 0. |
+
+Totals after round 2 (Node 22.23.2, MariaDB 10.11.19):
+
+| Command | Exit | Result |
+|---|---|---|
+| `cd server && npm test` | 0 | 16 suite summaries, 154 checks passed, 0 failed |
+| `TEST_DB_* npm run test:db` (sse_test_suite) | 0 | 4 suites: auth-permissions 17/17, migrations 9/9, otp-delivery 3/3, reset-atomic 4/4 — 33 checks, 0 failed |
+| `npm run build` | 0 | Compiled successfully |
+| `npx eslint` on changed files | 0 | clean |
+
+The `ECONNREFUSED 127.0.0.1:3001` prerender messages remain. They are not investigated yet: the build succeeds, but whether every statically prerendered page is complete when the API is up has not been checked.
 
 ## 9. Lint
 
@@ -222,7 +258,7 @@ The repo has no DEV PM2 entry; `ecosystem.config.cjs` has only a production envi
 
 ## 11. Test and build results
 
-All commands run with Node 22.23.2 on PATH.
+All commands run with Node 22.23.2 on PATH. The table below is the first pass; the round 2 totals are in §8a and supersede it.
 
 | Command | Exit | Result |
 |---|---|---|
@@ -242,14 +278,17 @@ Recorded in the git log after the commits for this pass (see the summary in the 
 ## 13. Remaining risks
 
 1. System Node on the Mac is broken (§10). Blocks local `node` and `npm` outside nvm.
-2. Reset token burned on failure after claim (R1). Real, observed under disk pressure.
-3. OTP codes stored plaintext in `email_queue` on SMTP failure (R2).
+2. Reset-token transaction: fixed in round 2 (R1).
+3. OTP codes: no longer queued (R2). Old plaintext rows in `email_queue` may still exist on DEV and production (§13 item 10).
 4. DEV schema drift: `schema.sql` has no `ambassadors` table (created at startup by `ensureMySQLTables`), and `contributors.approved_at` is missing in the dump (`backfillContributorApprovedAt` fails non-fatally). Check DEV before the migration.
 5. Membership checkout, webhook, uploads, file ownership UI, comments, FAQ, announcements, news, learnings, contributor and ambassador browser flows are not verified in a browser (§6).
 6. Staff role and deactivation changes take up to 15 s to apply (cache, §7).
 7. Lint debt (§9); none of it is security-critical after the fixes above, but `no-empty` catch blocks can hide errors.
 8. The Mac's data volume filled up during this pass (about 199 MB free, then recovered on its own). Database writes and builds failed during that period; the results above were produced after space recovered.
 9. Earlier test runs (before this pass) loaded `server/database.sqlite`, the local development database, through `db.js`. That file is git-ignored, and the tests now stub `db.js`. Check the local file if it matters to you. Nothing on DEV or production was touched.
+10. Plaintext OTP rows may remain in `email_queue` from before round 2 on DEV and production (R2).
+11. OTP hash is unsalted SHA-256 (R6), and `verification_codes.code` may be too narrow on DEV and production (R7). Confirm both before OTP sending is relied on.
+
 
 ## 14. DEV deployment prerequisites (checklist)
 
@@ -258,7 +297,10 @@ Recorded in the git log after the commits for this pass (see the summary in the 
 - [ ] Read-only inventory run on DEV with a SELECT-only account; counts reviewed (§5).
 - [ ] Full MariaDB dump of DEV taken; restore verified into a scratch database.
 - [ ] Ownership audit table exported before any rollback (§4).
-- [ ] Schema drift checked: `ambassadors` table, `contributors.approved_at` (§13 item 4).
+- [ ] Schema drift checked: run `scripts/schema-check-readonly.js` on DEV (SELECT only) and compare with §8a (`ambassadors`, `contributors.approved_at`, `verification_codes.code` width).
+- [ ] `verification_codes.code` widened to VARCHAR(64) after review of `migrations/2026-11-05_widen_verification_codes.mysql.sql` (R7). Confirm first whether OTP sending currently fails on DEV.
+- [ ] Existing `email_queue` rows reviewed for plaintext OTP bodies (`SELECT id, recipient, subject, created_at FROM email_queue WHERE subject LIKE '%verification%' OR subject LIKE '%Verification%'`), then purged with approval.
+- [ ] OTP hash keyed with a server secret (R6), decided before DEV.
 - [ ] MANUAL URL values and `needs_review` ownership rows decided by an admin (§4).
 - [ ] Nginx: apply the recommended map and `error_log` change on DEV only after review; validate with `nginx -t`.
 - [ ] Reset flow: legacy `?token=` branch removed 60 minutes after deployment.

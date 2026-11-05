@@ -126,21 +126,7 @@ class MailService {
     }
   }
 
-  // Fix #2: Queue a transactional email (OTP, password reset, approval) so it
-  // gets retried automatically if SMTP is temporarily unavailable.
-  async queueTransactional(db, to, subject, body) {
-    try {
-      await db.execute(
-        `INSERT INTO email_queue (recipient, blog_id, subject, body, status, created_at)
-         VALUES (?, NULL, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
-        [to, subject, body]
-      );
-      return true;
-    } catch (err) {
-      this._logFile(`queueTransactional failed for ${to}: ${err.message}`);
-      return false;
-    }
-  }
+  // Transactional codes are never queued (see controllers/otpController.js sendOtp).
 
   /** Queue new blog notifications for all opted-in members */
   async queuePendingBlogNotifications() {
