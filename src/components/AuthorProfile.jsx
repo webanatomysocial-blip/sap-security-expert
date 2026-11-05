@@ -2,6 +2,7 @@ import React from "react";
 import { authors } from "../data/authors";
 import { FaLinkedin, FaTwitter, FaGlobe } from "react-icons/fa";
 import Image from "next/image";
+import { safeUrl } from "../utils/safeUrl";
 
 const AuthorProfile = ({ authorId }) => {
   const author = authors[authorId];
@@ -59,7 +60,7 @@ const AuthorProfile = ({ authorId }) => {
         <div style={{ display: "flex", gap: "15px" }}>
           {author.socials.linkedin && (
             <a
-              href={author.socials.linkedin}
+              href={safeUrl(author.socials.linkedin)}
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "#0077b5" }}
@@ -79,7 +80,7 @@ const AuthorProfile = ({ authorId }) => {
           )}
           {author.socials.website && (
             <a
-              href={author.socials.website}
+              href={safeUrl(author.socials.website)}
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "#333" }}

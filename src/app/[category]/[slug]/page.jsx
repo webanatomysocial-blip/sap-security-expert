@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import ClientApp from '../../[[...slug]]/ClientApp';
+import { safeUrl } from "../../../utils/safeUrl";
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
 const SSR_SECRET = process.env.REVALIDATE_SECRET || '';
@@ -391,7 +392,7 @@ export default async function BlogPostPage({ params }) {
                 <h2 style={{ fontSize: '1.8rem', marginBottom: '16px', color: '#fff' }}>{blog.cta_title}</h2>
                 {blog.cta_description && <p style={{ opacity: 0.9, marginBottom: '24px' }}>{blog.cta_description}</p>}
                 {blog.cta_button_text && blog.cta_button_link && (
-                  <Link href={blog.cta_button_link} style={{ display: 'inline-block', background: '#fff', color: '#1e40af', padding: '12px 32px', borderRadius: '50px', fontWeight: 'bold', textDecoration: 'none' }}>
+                  <Link href={safeUrl(blog.cta_button_link)} style={{ display: 'inline-block', background: '#fff', color: '#1e40af', padding: '12px 32px', borderRadius: '50px', fontWeight: 'bold', textDecoration: 'none' }}>
                     {blog.cta_button_text}
                   </Link>
                 )}

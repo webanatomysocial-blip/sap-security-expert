@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuCalendar, LuTag, LuUser } from "react-icons/lu";
 import { updateBlogBadges } from "../../services/api";
+import { safeUrl } from "../../utils/safeUrl";
 
 /**
  * BlogPreviewModal — Display a blog post's content and metadata for review.
@@ -511,7 +512,7 @@ const BlogPreviewModal = ({
                       {previewData.cta_button_text &&
                         previewData.cta_button_link && (
                           <a
-                            href={previewData.cta_button_link}
+                            href={safeUrl(previewData.cta_button_link)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn-primary"

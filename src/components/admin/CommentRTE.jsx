@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from "react";
+import { commentToEditorHtml } from "../../utils/commentEditorHtml";
 
 /**
  * Minimal RTE for comment editing.
@@ -13,7 +14,7 @@ const CommentRTE = ({ value, onChange }) => {
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
-    const html = toEditorHtml(value || "");
+    const html = commentToEditorHtml(value || "");
     if (html !== lastSynced.current) {
       lastSynced.current = html;
       el.innerHTML = html;
@@ -87,16 +88,6 @@ const CommentRTE = ({ value, onChange }) => {
 };
 
 // Plain text (newlines) → editor HTML
-function toEditorHtml(text) {
-  if (!text) return "<p><br></p>";
-  if (/^\s*<[a-z]/i.test(text))
-    return text.replace(/<p(?![^>]*style)[^>]*>/gi, '<p style="margin:0 0 10px 0">'); // already HTML, inject margin
-  // Treat every newline as a paragraph break so editor shows visual gaps
-  return text
-    .split(/\n+/)
-    .map((para) => `<p style="margin:0 0 10px 0">${para || "<br>"}</p>`)
-    .join("") || '<p style="margin:0 0 10px 0"><br></p>';
-}
 
 // Editor HTML → stored value: normalize browser divs → p, strip dangerous tags
 function fromEditorHtml(html) {

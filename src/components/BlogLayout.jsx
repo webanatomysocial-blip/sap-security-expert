@@ -17,6 +17,7 @@ import FAQ from "./FAQ";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import MembersOnlyPaywall from "./MembersOnlyPaywall";
 import PremiumPaywall from "./PremiumPaywall";
+import { safeUrl } from "../utils/safeUrl";
 
 // Register ScrollTrigger
 gsap.registerPlugin(ScrollTrigger);
@@ -687,7 +688,7 @@ const BlogLayout = ({
                       {(author_linkedin || author_twitter || author_website) && (
                         <div className="bl-author-socials">
                           {author_linkedin && (
-                            <a href={author_linkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
+                            <a href={safeUrl(author_linkedin)} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
                               <FaLinkedin size={15} />
                             </a>
                           )}
@@ -697,7 +698,7 @@ const BlogLayout = ({
                             </a>
                           )}
                           {author_website && (
-                            <a href={author_website} target="_blank" rel="noopener noreferrer" title="Website" className="bl-social-link bl-social-link--web">
+                            <a href={safeUrl(author_website)} target="_blank" rel="noopener noreferrer" title="Website" className="bl-social-link bl-social-link--web">
                               <FaGlobe size={15} />
                             </a>
                           )}

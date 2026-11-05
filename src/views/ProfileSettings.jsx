@@ -38,6 +38,7 @@ import SearchableSelect from "../components/SearchableSelect";
 import AmbassadorBadge from "../components/AmbassadorBadge";
 import useGeoCountryLock from "../hooks/useGeoCountryLock";
 import useScrollLock from "../hooks/useScrollLock";
+import { safeUrl } from "../utils/safeUrl";
 
 const REPUTATION_CONFIG = {
   Contributor: {
@@ -2210,7 +2211,7 @@ export default function ProfileSettings() {
                       <div>
                         <h3 className="auth-section-heading">Connect</h3>
                         <a
-                          href={formData.linkedin.startsWith("http") ? formData.linkedin : `https://${formData.linkedin}`}
+                          href={safeUrl(formData.linkedin)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="auth-connect-btn"

@@ -11,6 +11,7 @@ import SearchableSelect from "../components/SearchableSelect";
 import useGeoCountryLock from "../hooks/useGeoCountryLock";
 import "../css/ContactForm.css";
 import "../css/MemberLogin.css";
+import { safeInternalPath } from "../utils/safeUrl";
 
 // True once country, state, and city are all set — used to gate whether the
 // location modal needs to show at all.
@@ -222,7 +223,7 @@ const MemberLogin = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const returnTo = location.state?.fromAuth ? "/" : (location.state?.from || new URLSearchParams(location.search).get("return") || "/");
+  const returnTo = location.state?.fromAuth ? "/" : safeInternalPath(location.state?.from || new URLSearchParams(location.search).get("return"));
 
   // Already signed in — don't show the login form again, just send them
   // straight to where they were headed (or the homepage). Skipped while any

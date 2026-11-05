@@ -23,6 +23,7 @@ import {
   LuMessageSquare,
   LuAward,
 } from "react-icons/lu";
+import { safeUrl } from "../utils/safeUrl";
 
 const REPUTATION_CONFIG = {
   Contributor: {
@@ -190,7 +191,7 @@ const MemberPublicProfile = () => {
                 <div>
                   <h3 className="auth-section-heading">Connect</h3>
                   <a
-                    href={member.linkedin.startsWith("http") ? member.linkedin : `https://${member.linkedin}`}
+                    href={safeUrl(member.linkedin)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="auth-connect-btn"

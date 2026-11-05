@@ -5,6 +5,7 @@ import AmbassadorBadge, { downloadBadgeImage } from "../components/AmbassadorBad
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getAmbassadorMemberProfile } from "../services/api";
 import "../css/AmbassadorMemberPage.css";
+import { safeUrl } from "../utils/safeUrl";
 
 export default function AmbassadorMemberPage() {
   const { isLoggedIn } = useMemberAuth();
@@ -277,7 +278,7 @@ export default function AmbassadorMemberPage() {
                 <span className="amb-detail-label"><i className="bi bi-linkedin" /> LinkedIn Profile</span>
                 <p className="amb-detail-value">
                   {profile.linkedin ? (
-                    <a href={profile.linkedin} target="_blank" rel="noreferrer" className="amb-detail-link">
+                    <a href={safeUrl(profile.linkedin)} target="_blank" rel="noreferrer" className="amb-detail-link">
                       View Profile <i className="bi bi-box-arrow-up-right" style={{ fontSize: "0.75rem" }} />
                     </a>
                   ) : "—"}

@@ -19,6 +19,7 @@ import {
   deleteContributor,
 } from "../../services/api";
 import { downloadCSV } from "../../services/exportUtils";
+import { safeUrl } from "../../utils/safeUrl";
 
 const AdminContributors = () => {
   // Mock Data for Demo
@@ -582,7 +583,7 @@ const AdminContributors = () => {
                   <div>
                     {selectedApp.linkedin ? (
                       <a
-                        href={selectedApp.linkedin}
+                        href={safeUrl(selectedApp.linkedin)}
                         target="_blank"
                         rel="noreferrer"
                         style={{
@@ -632,7 +633,7 @@ const AdminContributors = () => {
                   <div>
                     {selectedApp.personal_website ? (
                       <a
-                        href={selectedApp.personal_website}
+                        href={safeUrl(selectedApp.personal_website)}
                         target="_blank"
                         rel="noreferrer"
                         style={{ color: "#1e293b" }}

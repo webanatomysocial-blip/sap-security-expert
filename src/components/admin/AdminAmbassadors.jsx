@@ -31,6 +31,7 @@ import {
   LuX 
 } from "react-icons/lu";
 import { downloadCSV } from "../../services/exportUtils";
+import { safeUrl } from "../../utils/safeUrl";
 
 const EXPERTISE_LABELS = {
   s4hanaSecurity: "S/4HANA Security", sapGrc: "SAP GRC / Access Governance", sapIag: "SAP IAG",
@@ -812,7 +813,7 @@ const AdminAmbassadors = () => {
                       <div style={{ fontSize: "0.88rem", fontWeight: 600 }}>
                         {selectedApp.linkedin ? (
                           <a
-                            href={selectedApp.linkedin}
+                            href={safeUrl(selectedApp.linkedin)}
                             target="_blank"
                             rel="noreferrer"
                             style={{ color: "#0a66c2", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}

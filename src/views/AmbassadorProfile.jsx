@@ -15,6 +15,7 @@ import {
   LuArrowLeft,
   LuCircleCheck,
 } from "react-icons/lu";
+import { safeUrl } from "../utils/safeUrl";
 
 const EXPERTISE_LABELS = {
   sapSecurity: "SAP Security (ABAP/Java)",
@@ -304,7 +305,7 @@ const AmbassadorProfile = () => {
 
               {ambassador.linkedin && (
                 <a
-                  href={ambassador.linkedin}
+                  href={safeUrl(ambassador.linkedin)}
                   target="_blank"
                   rel="noreferrer"
                   style={{
