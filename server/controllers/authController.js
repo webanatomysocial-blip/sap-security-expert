@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { asyncHandler } = require('../utils/asyncHandler');
 const AuditService = require('../services/AuditService');
 const repo = require('../repositories/authRepository');
+const { regenerateSession } = require('../utils/session');
 
 const buildPermissions = (p) => p ? {
   can_manage_blogs: !!p.can_manage_blogs,
@@ -69,6 +70,7 @@ const login = async (req, res) => {
         }
       } catch { /* user_permissions may not exist */ }
 
+      await regenerateSession(req);
       const csrf_token = crypto.randomBytes(32).toString('hex');
 
       req.session.admin_logged_in = true;

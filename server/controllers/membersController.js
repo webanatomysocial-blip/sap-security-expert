@@ -4,6 +4,7 @@ const { asyncHandler } = require('../utils/asyncHandler');
 const OTPService = require('../services/OTPService');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
+const { regenerateSession } = require('../utils/session');
 const { grantAndNotify, syncAchievementsInBackground } = require('../services/achievements');
 const repo = require('../repositories/membersRepository');
 
@@ -61,7 +62,8 @@ const login = async (req, res) => {
       return res.status(403).json({ status: 'error', message: 'Your account is pending approval.' });
     }
 
-    // Setup session
+    // Setup session (rotated first, so a pre-login session ID can't be reused)
+    await regenerateSession(req);
     req.session.member_logged_in = true;
     req.session.member_id = member.id;
     // Catch up on anything earned while logged out (e.g. welcome for new members)

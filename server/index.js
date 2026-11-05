@@ -181,7 +181,11 @@ const ROOT = path.join(__dirname, '..');
 // without requiring a new express.static() line here.
 app.use('/uploads', (req, res, next) => {
   // Block direct static access to downloads — they must go through /api/downloads.
-  if (req.path.startsWith('/downloads')) return res.status(403).json({ status: 'error', message: 'Forbidden' });
+  // Check the DECODED, normalised path: express.static decodes %-escapes, so
+  // checking req.path alone let /uploads/%64ownloads/… reach paid files.
+  let p;
+  try { p = path.posix.normalize(decodeURIComponent(req.path)).toLowerCase(); } catch { p = null; }
+  if (p === null || p.startsWith('/downloads')) return res.status(403).json({ status: 'error', message: 'Forbidden' });
   next();
 }, express.static(path.join(ROOT, 'public/uploads'), { maxAge: '7d' }));
 app.use('/assets', express.static(path.join(ROOT, 'public'), { maxAge: '1d' }));
