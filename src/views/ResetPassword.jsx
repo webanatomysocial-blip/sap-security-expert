@@ -1,19 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SEO from "../components/SEO";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { resetWithToken } from "../services/api";
+import { readResetParams, resetFragment } from "../utils/resetLink";
 
 const ResetPassword = () => {
-    const [searchParams] = useSearchParams();
+    const location = useLocation();
     const navigate = useNavigate();
-    const token = searchParams.get("token");
-    const email = searchParams.get("email");
+    const { token, email, legacy } = readResetParams(location.search, location.hash);
 
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const { addToast } = useToast();
+
+    // Legacy link (token in the query string): move it into the fragment and drop the query.
+    useEffect(() => {
+        if (legacy) {
+            navigate({ pathname: location.pathname, hash: resetFragment(token, email) }, { replace: true });
+        }
+    }, [legacy, token, email, location.pathname, navigate]);
 
     if (!token || !email) {
         return (

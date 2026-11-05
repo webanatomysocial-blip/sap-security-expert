@@ -6,12 +6,22 @@ const MailService = require('../../services/MailService');
 const CacheService = require('../../services/CacheService');
 const { checkPlagiarismScore } = require('../../utils/helpers');
 const { revalidateBlog } = require('../../utils/revalidate');
+const { sanitizeBlogHtml } = require('../../utils/sanitize');
 const repo = require('../../repositories/admin/blogsRepository');
 
 const cache = new CacheService(1800);
 
 // GET /api/admin/blogs/pending — bare array, not the {status, ...} envelope
 const REVIEWABLE_STATUSES = ['pending', 'approved', 'rejected', 'draft'];
+
+// Body fields a reviewer's preview renders as HTML. Other fields pass through unchanged.
+function sanitizeReviewRow(row) {
+  const out = { ...row };
+  for (const key of ['content', 'draft_content']) {
+    if (typeof out[key] === 'string') out[key] = sanitizeBlogHtml(out[key]);
+  }
+  return out;
+}
 
 const listPending = asyncHandler(async (req, res) => {
   const db = req.db;
@@ -23,7 +33,8 @@ const listPending = asyncHandler(async (req, res) => {
   const reviewerId = req.session.admin_id;
 
   const rows = await repo.findPendingByStatus(db, status, { isAdmin, reviewerId });
-  return res.json(rows);
+  // Stored bodies can predate the sanitiser: clean them before the review preview renders them as HTML.
+  return res.json(rows.map(sanitizeReviewRow));
 });
 
 // PUT /api/admin/blogs/:id/review
@@ -178,7 +189,7 @@ const getBody = asyncHandler(async (req, res) => {
   if (req.session.role !== 'admin' && String(b.author_id) !== String(req.session.admin_id)) {
     return sendError(res, 'Unauthorized', 403);
   }
-  return res.json({ status: 'success', content: b.content, draft_content: b.draft_content });
+  return res.json({ status: 'success', content: sanitizeBlogHtml(b.content), draft_content: sanitizeBlogHtml(b.draft_content) });
 });
 
 const selectList = asyncHandler(async (req, res) => {

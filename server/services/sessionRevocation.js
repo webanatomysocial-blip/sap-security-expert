@@ -60,12 +60,25 @@ async function isSessionRevoked(db, sess) {
   return false;
 }
 
+// Member statuses that end an active member session at once. Read from the database on each
+// request: the status copied into the session at login goes stale when an admin suspends or
+// deactivates the member.
+const BLOCKED_MEMBER_STATUSES = new Set(['suspended', 'deactivated', 'deleted', 'banned']);
+async function isMemberBlocked(db, memberId) {
+  const [[m]] = await db.execute('SELECT status, is_deleted FROM members WHERE id = ? LIMIT 1', [memberId]);
+  if (!m) return true; // record removed
+  return Number(m.is_deleted) === 1 || BLOCKED_MEMBER_STATUSES.has(m.status);
+}
+
 function enforceSessionRevocation(req, res, next) {
   const sess = req.session;
   if (!sess || !(sess.member_logged_in || sess.admin_logged_in)) return next();
-  isSessionRevoked(req.db, sess)
-    .then((revoked) => {
-      if (!revoked) return next();
+  const memberCheck = sess.member_logged_in && sess.member_id
+    ? isMemberBlocked(req.db, sess.member_id)
+    : Promise.resolve(false);
+  Promise.all([isSessionRevoked(req.db, sess), memberCheck])
+    .then(([revoked, blocked]) => {
+      if (!revoked && !blocked) return next();
       sess.destroy(() => {});
       res.status(401).json({ status: 'error', message: 'Your session has ended. Please log in again.' });
     })
@@ -75,4 +88,4 @@ function enforceSessionRevocation(req, res, next) {
     });
 }
 
-module.exports = { revokeAccountSessions, revokeOtherSessions, isSessionRevoked, enforceSessionRevocation, accountKeysForEmail, sessionKeys, resetTableCacheForTests: () => { tableReady = false; } };
+module.exports = { revokeAccountSessions, revokeOtherSessions, isSessionRevoked, isMemberBlocked, enforceSessionRevocation, accountKeysForEmail, sessionKeys, resetTableCacheForTests: () => { tableReady = false; } };

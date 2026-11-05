@@ -1,3 +1,4 @@
+const { buildResetLink } = require('../utils/resetLink');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const OTPService = require('../services/OTPService');
@@ -121,7 +122,7 @@ const forgotPassword = async (req, res) => {
     await repo.upsertResetToken(db, email, hashResetToken(token), expiry);
 
     const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
-    const resetUrl = `${siteUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+    const resetUrl = buildResetLink(siteUrl, token, email);
 
     // Not awaited: sending time must not reveal whether the account exists.
     const mailService = MailService.getInstance();

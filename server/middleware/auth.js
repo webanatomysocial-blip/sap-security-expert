@@ -12,6 +12,8 @@ function safeCompare(a, b) {
 
 const accessCache = new Map();
 const ACCESS_TTL_MS = 15000;
+// Tests only: forget cached staff access states so the next request reads the database.
+function _resetAccessCacheForTests() { accessCache.clear(); }
 
 function requireAuth(options = {}) {
   const allowPublic = options.allowPublic || false;
@@ -142,7 +144,7 @@ function requireCsrf(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, requireAdmin, requireMemberAuth, requireCsrf, safeCompare };
+module.exports = { requireAuth, requireAdmin, requireMemberAuth, requireCsrf, safeCompare, _resetAccessCacheForTests };
 
 // CSRF for the session-boundary routes. Logging in creates a session, so it needs a
 // token issued to the anonymous session beforehand (GET /api/csrf-token) — this stops a

@@ -90,6 +90,14 @@ const sanitizeOptions = {
   allowedIframeHostnames: ['www.youtube.com', 'youtube.com', 'player.vimeo.com', 'share.transistor.fm', 'transistor.fm', 'open.spotify.com'],
   allowedSchemes: ['http', 'https', 'mailto'],
   allowProtocolRelative: false,
+  // Inline styles are kept for formatting, but a style that loads a URL or runs expressions
+  // (url(...), expression(...), javascript:, @import) is removed from the element.
+  transformTags: {
+    '*': (tagName, attribs) => {
+      if (attribs.style && /url\s*\(|expression\s*\(|javascript:|@import|behavior\s*:/i.test(attribs.style)) delete attribs.style;
+      return { tagName, attribs };
+    },
+  },
 };
 
 function sanitizeBlogHtml(html) {
