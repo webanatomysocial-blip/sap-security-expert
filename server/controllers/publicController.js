@@ -1,3 +1,4 @@
+const net = require('net');
 const crypto = require('crypto');
 const CacheService = require('../services/CacheService');
 const { asyncHandler } = require('../utils/asyncHandler');
@@ -925,9 +926,11 @@ const geoip = async (req, res) => {
       req.headers['x-real-ip'] ||
       req.socket?.remoteAddress ||
       '';
+    // Header value goes into the outbound URL path — accept only a real IP literal.
+    const ip = net.isIP(rawIp) ? rawIp : '';
     // If local/loopback, ipwho.is will inspect the caller's public IP
-    const url = rawIp && rawIp !== '::1' && rawIp !== '127.0.0.1'
-      ? `https://ipwho.is/${rawIp}`
+    const url = ip && ip !== '::1' && ip !== '127.0.0.1'
+      ? `https://ipwho.is/${ip}`
       : 'https://ipwho.is/';
 
     const response = await fetch(url);

@@ -19,6 +19,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
   const [bundles, setBundles] = useState([]);
   const [selectedBundle, setSelectedBundle] = useState(null);
   const [plans, setPlans] = useState([]);
+  const [plansState, setPlansState] = useState("loading"); // loading | ready | error
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [couponCode, setCouponCode] = useState("");
   const [couponData, setCouponData] = useState(null);
@@ -47,6 +48,18 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
 
   const hasSufficientCredits = creditBalance >= creditsRequired;
 
+  const loadPlans = () => {
+    setPlansState("loading");
+    getMembershipPlans()
+      .then((res) => {
+        const p = res.data?.plans || [];
+        setPlans(p);
+        setPlansState("ready");
+        if (p.length) setSelectedPlan(p[p.length - 1]);
+      })
+      .catch(() => setPlansState("error"));
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
       refreshCredits();
@@ -57,13 +70,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
           if (b.length) setSelectedBundle(b[0]);
         })
         .catch(() => {});
-      getMembershipPlans()
-        .then((res) => {
-          const p = res.data?.plans || [];
-          setPlans(p);
-          if (p.length) setSelectedPlan(p[p.length - 1]);
-        })
-        .catch(() => {});
+      loadPlans();
     }
   }, [isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -385,7 +392,9 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
                   {unlocking === "membership" ? "Opening…" : "Read this article now"}
                 </button>
                 <p style={{ fontSize: 12, color: "#64748b", margin: "10px 0 0" }}>
-                  Want more time? Pick a plan below — it starts when your current one ends.
+                  {plans.length > 0
+                    ? "Want more time? Pick a plan below — it starts when your current one ends."
+                    : "Want more time? Plans start when your current one ends."}
                 </p>
               </div>
             )}
@@ -423,9 +432,13 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
               ))}
               {items.length === 0 && (
                 <p style={{ textAlign: "center", fontSize: 13, color: "#94a3b8", padding: "20px 0" }}>
-                  {isPlanTab
-                    ? <>Membership plans aren't available right now. <a href="/membership" style={{ color: "#15803d", fontWeight: 700 }}>See all options →</a></>
-                    : "No bundles available. Contact the administrator."}
+                  {!isPlanTab
+                    ? "No bundles available. Contact the administrator."
+                    : plansState === "loading"
+                      ? "Loading membership plans…"
+                      : plansState === "error"
+                        ? <>Couldn't load membership plans. <button type="button" onClick={loadPlans} style={{ background: "none", border: "none", padding: 0, color: "#15803d", fontWeight: 700, cursor: "pointer" }}>Retry</button></>
+                        : <>No membership plans are open right now. <button type="button" onClick={() => navigate("/membership")} style={{ background: "none", border: "none", padding: 0, color: "#15803d", fontWeight: 700, cursor: "pointer" }}>See all options →</button></>}
                 </p>
               )}
             </div>
@@ -551,8 +564,6 @@ const PW_CSS = `
 .pw-btn:disabled { opacity: .6; cursor: not-allowed; }
 .pw-btn-green { background: #15803d; color: #fff; box-shadow: 0 4px 12px rgba(21,128,61,.25); }
 .pw-btn-green:hover:not(:disabled) { background: #166534; }
-.pw-btn-green-outline { background: #fff; color: #15803d; border-color: #86efac; }
-.pw-btn-green-outline:hover { background: #f0fdf4; }
 .pw-btn-amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 4px 12px rgba(217,119,6,.28); }
 .pw-btn-amber:hover:not(:disabled) { background: linear-gradient(135deg, #d97706, #b45309); }
 .pw-btn-amber-outline { background: #fff; color: #b45309; border-color: #fcd34d; }
