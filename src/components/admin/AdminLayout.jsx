@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { api as axios } from "../../services/api";
-import { setCsrfToken } from "../../services/csrfStore";
+import { getCsrfToken, setCsrfToken } from "../../services/csrfStore";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar.jsx";
 import ContributorDashboard from "./ContributorDashboard";
@@ -18,6 +18,7 @@ import {
   getAdminProfile,
   getAdminStats,
   getContributorStats,
+  fetchLoginCsrf,
 } from "../../services/api";
 
 const AdminLayout = () => {
@@ -150,6 +151,7 @@ const AdminLayout = () => {
     e.preventDefault();
     setLoginLoading(true);
     try {
+      if (!getCsrfToken()) await fetchLoginCsrf();
       const response = await axios.post("/login", { username, password });
       if (response.data.status === "success") {
         addToast("Login successful! Redirecting...", "success");

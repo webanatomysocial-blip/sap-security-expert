@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { VITE_API_URL } from '../utils/env';
 
-import { getCsrfToken } from "./csrfStore";
+import { getCsrfToken, setCsrfToken } from "./csrfStore";
 const API_URL = VITE_API_URL;
 
 export const api = axios.create({
@@ -307,3 +307,10 @@ export const getDownloadToken = (file_url) => api.post('/downloads/token', { fil
 export const getAuditLogs = (params = {}) => api.get('/admin/audit-logs', { params });
 
 export default api;
+
+// Fetches the token a login form must send (the server ties it to this anonymous session).
+export const fetchLoginCsrf = async () => {
+    const { data } = await api.get('/csrf-token');
+    setCsrfToken(data.csrf_token);
+    return data.csrf_token;
+};

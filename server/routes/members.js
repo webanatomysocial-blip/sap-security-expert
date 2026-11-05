@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const { getUploadDir, verifyImageMagicBytes } = require('../utils/helpers');
 const { rateLimit } = require('../middleware/rateLimit');
-const { requireAdmin, requireMemberAuth, requireCsrf } = require('../middleware/auth');
+const { requireAdmin, requireMemberAuth, requireCsrf, requireSessionCsrf } = require('../middleware/auth');
 const controller = require('../controllers/membersController');
 
 // Profile image upload (members)
@@ -20,7 +20,7 @@ const profileUpload = multer({
   fileFilter: (_, file, cb) => cb(null, ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.mimetype)),
 });
 
-router.post('/login', rateLimit('member_login', 10, 900), controller.login);
+router.post('/login', rateLimit('member_login', 10, 900), requireSessionCsrf({ mode: 'login' }), controller.login);
 router.post('/signup', rateLimit('member_signup', 10, 900), controller.signup);
 router.get('/profile', requireMemberAuth, controller.getProfile);
 router.post('/profile/update', requireMemberAuth, (req, res, next) => {
@@ -29,7 +29,7 @@ router.post('/profile/update', requireMemberAuth, (req, res, next) => {
     next();
   });
 }, requireCsrf, verifyImageMagicBytes, controller.updateProfile);
-router.post('/logout', controller.logout);
+router.post('/logout', requireSessionCsrf({ mode: 'logout' }), controller.logout);
 router.get('/referral', requireMemberAuth, controller.referral);
 router.get('/ambassador-profile', requireMemberAuth, controller.getAmbassadorProfile);
 router.get('/achievements', requireMemberAuth, controller.achievements);

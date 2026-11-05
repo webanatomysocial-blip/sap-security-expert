@@ -143,3 +143,22 @@ function requireCsrf(req, res, next) {
 }
 
 module.exports = { requireAuth, requireAdmin, requireMemberAuth, requireCsrf, safeCompare };
+
+// CSRF for the session-boundary routes. Logging in creates a session, so it needs a
+// token issued to the anonymous session beforehand (GET /api/csrf-token) — this stops a
+// third-party page from logging the visitor into an attacker's account. Logging out
+// needs the token only when a session is active.
+function requireSessionCsrf({ mode }) {
+  return (req, res, next) => {
+    const sess = req.session || {};
+    const loggedIn = !!(sess.member_logged_in || sess.admin_logged_in);
+    if (mode === 'logout' && !loggedIn) return next();
+    const sent = req.get('x-csrf-token') || '';
+    if (!sess.csrf_token || !sent || !safeCompare(sent, sess.csrf_token)) {
+      return res.status(403).json({ status: 'error', message: 'Your session is invalid or expired. Please refresh the page. (CSRF validation failed)' });
+    }
+    next();
+  };
+}
+
+module.exports.requireSessionCsrf = requireSessionCsrf;

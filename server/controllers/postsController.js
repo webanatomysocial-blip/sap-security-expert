@@ -3,6 +3,7 @@ const { sendError } = require('../utils/apiResponse');
 const { calculateSeoScore, checkPlagiarismScore, deleteImage, deleteUploadedFile, extractDownloadUrls } = require('../utils/helpers');
 const { sanitizeBlogHtml, safeBlogImage, cleanWebUrl } = require('../utils/sanitize');
 const { resolvePostDate, todayIso } = require('../utils/postDate');
+const { applyOwnershipToBody, canDeleteFile, OwnershipError, getOwner, markDeleted } = require('../utils/fileOwnership');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const CacheService = require('../services/CacheService');
@@ -668,7 +669,13 @@ const save = asyncHandler(async (req, res) => {
   const preview_unit = isAdmin ? (['lines', 'blocks'].includes(rawPreviewUnit) ? rawPreviewUnit : 'blocks') : 'blocks';
   const VALID_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
   const difficulty_level = VALID_LEVELS.includes(rawDifficultyLevel) ? rawDifficultyLevel : null;
-  const content = sanitizeBlogHtml(rawContent);
+  let content = sanitizeBlogHtml(rawContent);
+  try {
+    content = await applyOwnershipToBody(db, { html: content, actorUserId: currentUserId, isAdmin });
+  } catch (e) {
+    if (e instanceof OwnershipError) return sendError(res, e.message, e.status);
+    throw e;
+  }
   // Premium and Exclusive are mutually exclusive content tiers — Premium wins
   // if both were somehow submitted together (mirrors the same rule enforced
   // in the quick-toggle endpoints).
@@ -766,8 +773,9 @@ const save = asyncHandler(async (req, res) => {
           [sameExt, url]
         ).catch(() => {});
         addedDownloads.splice(addedDownloads.indexOf(sameExt), 1);
-      } else if (!(await repo.isFileReferencedByOtherBlog(db, url, id))) {
+      } else if (!(await repo.isFileReferencedByOtherBlog(db, url, id)) && canDeleteFile(await getOwner(db, url), { actorUserId: currentUserId, isAdmin })) {
         deleteUploadedFile(url);
+        await markDeleted(db, { fileUrl: url, actorUserId: currentUserId });
       }
     }
 
@@ -865,7 +873,10 @@ const remove = asyncHandler(async (req, res) => {
   }
   for (const url of extractDownloadUrls(blog.content)) {
     if (await repo.isFileReferencedByOtherBlog(db, url, blog.id ?? id)) continue; // still used elsewhere
+    // Only the file's owner (or an admin) may remove the physical file. Deleting a post never transfers ownership.
+    if (!canDeleteFile(await getOwner(db, url), { actorUserId: sess.admin_id, isAdmin: sess.role === 'admin' })) continue;
     deleteUploadedFile(url);
+    await markDeleted(db, { fileUrl: url, actorUserId: sess.admin_id });
     // Clean up member download records for this file too
     req.db.execute('DELETE FROM member_file_downloads WHERE file_url = ?', [url]).catch(() => {});
   }

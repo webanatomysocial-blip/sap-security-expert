@@ -16,6 +16,8 @@ const apply = async (req, res) => {
   const input = req.body || {};
   const applicantLinkedin = cleanWebUrl(input.linkedin);
   if (applicantLinkedin === null) return res.status(400).json({ status: 'error', message: 'LinkedIn must be a valid http(s) address.' });
+  const applicantWebsite = cleanWebUrl(input.personalWebsite);
+  if (applicantWebsite === null) return res.status(400).json({ status: 'error', message: 'Website must be a valid http(s) address.' });
 
   // Captcha check
   const captchaAns = parseInt(input.captchaAns || '0');
@@ -60,7 +62,7 @@ const apply = async (req, res) => {
       contributedElsewhere: input.contributedElsewhere || 'No', previousWorkLinks: input.previousWorkLinks || '',
       preferredFrequency: input.preferredFrequency || 'One-time', primaryMotivation: input.primaryMotivation || '',
       weeklyTime: input.weeklyTime || '', volunteerEvents: input.volunteerEvents || 'No',
-      productEvaluation: input.productEvaluation || 'No', personalWebsite: input.personalWebsite || '',
+      productEvaluation: input.productEvaluation || 'No', personalWebsite: applicantWebsite,
       twitterHandle: input.twitterHandle || '', imagePath,
     });
 

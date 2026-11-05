@@ -18,6 +18,7 @@ import {
   downloadFile,
   detectPaymentCurrency,
 } from "../services/api";
+import { saveDownloadWithToken } from "../utils/downloadFile";
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
 const fmtAmount = (p) => (typeof p === "number" && !isNaN(p)) ? `₹${(p / 100).toLocaleString("en-IN")}` : "—";
@@ -312,7 +313,7 @@ export default function MemberCredits() {
       const r = await downloadFile(d.file_url, 0, d.original_name);
       if (typeof r.data?.new_balance === "number") onCreditsPurchased(r.data.new_balance);
       setDownloads((list) => list.map((x) => (x.file_url === d.file_url ? { ...x, access_expired: false, source: "credits", credits_spent: r.data?.credits_spent ?? x.credits_spent } : x)));
-      window.location.href = `/api/downloads/stream?token=${r.data.token}`;
+      await saveDownloadWithToken(r.data.token, d.original_name || "download");
     } catch (err) {
       alert(err.response?.data?.message || "Could not unlock this file. Please try again.");
     } finally {
@@ -678,7 +679,7 @@ export default function MemberCredits() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => getDownloadToken(d.file_url).then((r) => { window.location.href = `/api/downloads/stream?token=${r.data.token}`; }).catch((err) => alert(err.response?.data?.reason === "membership_expired" ? "Your membership has expired. Renew it, or download this file again from its article using credits." : "Download failed. Please try again."))}
+                              onClick={() => getDownloadToken(d.file_url).then((r) => saveDownloadWithToken(r.data.token, displayName)).catch((err) => alert(err.response?.data?.reason === "membership_expired" ? "Your membership has expired. Renew it, or download this file again from its article using credits." : "Download failed. Please try again."))}
                               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "#0f172a", color: "#fff", border: "none", borderRadius: 8, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
                             >
                               <i className="bi bi-download"></i> Download

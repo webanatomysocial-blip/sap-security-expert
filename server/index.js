@@ -277,6 +277,7 @@ app.use('/api/admin/reset-member-password', (req, res, next) => {
 }, require('./routes/admin/members'));
 
 // Admin — comments management
+app.use('/api/admin/file-ownership', require('./routes/admin/fileOwnership'));
 app.use('/api/admin/comments', require('./routes/admin/comments'));
 
 // Homepage Featured Insights (admin-curated)

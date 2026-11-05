@@ -33,13 +33,14 @@ function logAccess(db, memberId, fileUrl, action, req, success) {
   ).catch(() => {});
 }
 
-// GET /api/downloads/stream?token=xxx
+// GET /api/downloads/stream  (header: X-Download-Token: <token>)
 // Validates a one-time session token issued by POST /payments/download-file
 // or POST /api/downloads/token. Consuming the token makes the URL single-use
 // so pasting/sharing it returns 403.
 // PDFs are personalized with a member watermark + footer before delivery.
 router.get('/stream', requireMemberAuth, rateLimit('pdf_stream', 20, 300), async (req, res) => {
-  const token = req.query.token;
+  // Token travels in a header only (never in the URL, so logs can't record it).
+  const token = req.get('x-download-token') || '';
   if (!token) return res.status(403).send('Access denied: missing token.');
 
   const tokens = req.session.dl_tokens || {};

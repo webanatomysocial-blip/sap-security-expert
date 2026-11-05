@@ -7,6 +7,7 @@ const membersRepo = require('../repositories/membersRepository');
 const zoho = require('../services/zoho');
 const currency = require('../services/currency');
 const MailService = require('../services/MailService');
+const { getOwner: getOwnerRecord } = require('../utils/fileOwnership');
 const { isSQLite } = require('../db');
 const { syncAchievementsInBackground } = require('../services/achievements');
 
@@ -766,8 +767,16 @@ const downloadFile = async (req, res) => {
   // only authoritative record of a file's price is the data-credits
   // attribute on the download block embedded in the blog content that
   // references it (set by the content author, sanitized on save).
-  const referencingBlogs = await repo.findBlogsReferencingFile(db, file_url);
-  const authoritativeCredits = findAuthoritativeDownloadCredits(referencingBlogs, file_url);
+  // A file with an owner record is priced by its owner. Files without one fall back to the
+  // content-derived rule (legacy, pending the ownership backfill).
+  const owner = await getOwnerRecord(db, file_url);
+  let authoritativeCredits;
+  if (owner && !owner.deleted_at) {
+    authoritativeCredits = Number(owner.price_credits);
+  } else {
+    const referencingBlogs = await repo.findBlogsReferencingFile(db, file_url);
+    authoritativeCredits = findAuthoritativeDownloadCredits(referencingBlogs, file_url);
+  }
   if (authoritativeCredits === null) {
     return res.status(400).json({ status: 'error', message: 'This file is not available for download.' });
   }

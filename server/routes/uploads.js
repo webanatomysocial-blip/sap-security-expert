@@ -135,7 +135,7 @@ router.post(
       next();
     });
   },
-  (req, res) => {
+  async (req, res) => {
     if (!req.file) return res.json({ status: 'error', message: 'No file received.' });
     const isPdf = req.file.mimetype === 'application/pdf' || /\.pdf$/i.test(req.file.filename);
     // PDFs use private:// prefix — the /api/downloads/stream endpoint resolves this to
@@ -147,6 +147,8 @@ router.post(
     const sizeLabel = sizeKb >= 1024 * 1024
       ? `${(sizeKb / 1024 / 1024).toFixed(1)} MB`
       : `${Math.ceil(sizeKb / 1024)} KB`;
+    // The uploader becomes the file's permanent owner (price set later by the owner).
+    await require('../utils/fileOwnership').registerUpload(req.db, { fileUrl, ownerUserId: req.session.admin_id, price: 0 });
     return res.json({ status: 'success', url: fileUrl, originalName: req.file.originalname, size: sizeLabel });
   }
 );

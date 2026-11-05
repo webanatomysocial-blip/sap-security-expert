@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { downloadFile, issueDownloadToken } from "../services/api";
+import { saveDownloadWithToken } from "../utils/downloadFile";
 
 const EXT_META = {
   pdf:  { icon: "bi-file-earmark-pdf-fill",         color: "#dc2626", bg: "#fef2f2" },
@@ -37,7 +38,7 @@ export default function DownloadBlock({ fileUrl, fileName, fileSize, credits, al
 
   const triggerStreamDownload = (token) => {
     setState("downloading");
-    window.location.href = `/api/downloads/stream?token=${token}`;
+    saveDownloadWithToken(token, fileName || "download").catch(() => setErrMsg("Download failed. Please try again."));
     // After a moment the page is still mounted (browser handles the download
     // inline); reset to "unlocked" so the button is usable again.
     setTimeout(() => setState("unlocked"), 3000);

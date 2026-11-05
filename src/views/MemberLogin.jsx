@@ -278,7 +278,9 @@ const MemberLogin = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { memberLogin: apiMemberLogin } = await import("../services/api");
+      const { memberLogin: apiMemberLogin, fetchLoginCsrf } = await import("../services/api");
+      const { getCsrfToken } = await import("../services/csrfStore");
+      if (!getCsrfToken()) await fetchLoginCsrf();
       const res = await apiMemberLogin({ email, password });
 
       if (res.data.status === "success" && res.data.member) {
