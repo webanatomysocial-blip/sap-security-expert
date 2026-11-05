@@ -857,7 +857,7 @@ if (isSQLite) {
           state                         VARCHAR(100)  DEFAULT NULL,
           city                          VARCHAR(100)  DEFAULT NULL,
           organization                  VARCHAR(255)  DEFAULT NULL,
-          current_role                  VARCHAR(255)  DEFAULT NULL,
+          \`current_role\`                VARCHAR(255)  DEFAULT NULL,
           years_experience              VARCHAR(50)   DEFAULT NULL,
           expertise                     TEXT          DEFAULT NULL,
           other_expertise               TEXT          DEFAULT NULL,

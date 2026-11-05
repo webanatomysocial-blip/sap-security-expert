@@ -5,7 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Generated and vendored output is never linted: Next.js build output, dependencies,
+  // coverage and the public static folder. Source code is linted in full.
+  globalIgnores(['dist', '.next', 'out', 'coverage', 'node_modules', 'server/node_modules', 'public/**']),
   {
     files: ['**/*.{js,jsx}'],
     ignores: ['server/**/*.js'],
@@ -16,7 +18,7 @@ export default defineConfig([
     ],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.browser,
+      globals: { ...globals.browser, process: 'readonly' },
       parserOptions: {
         ecmaVersion: 'latest',
         ecmaFeatures: { jsx: true },

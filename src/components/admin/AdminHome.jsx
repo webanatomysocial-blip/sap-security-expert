@@ -12,10 +12,7 @@ const AdminHome = () => {
   const { role } = useAuth();
   const isAdmin = role === "admin";
 
-  if (!isAdmin) {
-    return <ContributorDashboard />;
-  }
-
+  // Hooks must run in the same order on every render, so the role check comes after them.
   const [stats, setStats] = useState({
     contributors: 0,
     pending_contributors: 0,
@@ -84,6 +81,10 @@ const AdminHome = () => {
       color: "#1e293b",
     },
   ];
+
+  if (!isAdmin) {
+    return <ContributorDashboard />;
+  }
 
   return (
     <div className="admin-page-wrapper">

@@ -84,18 +84,6 @@ async function findInactiveAmbassadorsForDeactivation(db) {
   return rows;
 }
 
-async function deleteAmbassador(db, id) {
-  await db.execute(
-    "UPDATE ambassadors SET is_deleted=1, deleted_at=CURRENT_TIMESTAMP, status='deleted' WHERE id=?",
-    [id]
-  );
-  await db.execute("UPDATE users SET is_active=0 WHERE ambassador_id=?", [id]).catch(() => {});
-}
-
-async function detachUserFromAmbassador(db, ambassadorId) {
-  await db.execute('UPDATE users SET ambassador_id = NULL WHERE ambassador_id = ?', [ambassadorId]);
-}
-
 async function findBadgeHistoryByCountry(db, country) {
   const [rows] = await db.execute(
     `SELECT h.badge_year, h.granted_at, a.id AS ambassador_id, a.full_name
