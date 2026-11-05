@@ -52,7 +52,7 @@ No dependency was installed or upgraded in this pass. The packages already prese
 | R3 | Reset email contains the token in the message body. Mail providers and recipients can log it. | Expected for email links; shorten lifetime if needed (currently 60 min). |
 | R4 | Nginx error log can record request lines for some errors (default `error_log`). | Keep tokens out of URLs (done for reset and downloads); see §8. |
 | R5 | Repo-wide `dangerouslySetInnerHTML` on server-sanitised content only (reviewed); the JSON-LD and GTM scripts are static. | No action. |
-| R6 | **OTP hash is unsalted SHA-256 of a six-digit code.** If `verification_codes` leaks, every code can be recovered in seconds. The attempt limit (5) and 10-minute expiry protect only the online path. | Key the hash with a server secret (HMAC-SHA256). Codes in flight would be invalidated at deployment; that is acceptable for a 10-minute window. |
+| R6 | ~~Unsalted SHA-256 of six-digit codes; recoverable in seconds if the table leaked.~~ **FIXED (round 3):** codes are HMAC-SHA-256 digests keyed by `OTP_HASH_SECRET` (≥32 random bytes), compared in constant time, and the key is required at startup. Remaining step is operational: set the key on DEV and production (§8b.1, §14). |
 | R7 | **`verification_codes.code` is `varchar(10)` in the schema dump and on any database built from it.** OTP hashes are 64 characters, so under strict SQL mode every OTP insert fails (`Data too long`), which breaks signup and password-reset codes. Found by the MariaDB test in round 2; SQLite does not enforce length, so the earlier SQLite tests could not catch it. | Apply `migrations/2026-11-05_widen_verification_codes.mysql.sql` after review. Check DEV first with `scripts/schema-check-readonly.js`. Fresh builds from the updated `schema.sql` are already correct. |
 
 ## 4. Migration readiness
@@ -204,6 +204,112 @@ Totals after round 2 (Node 22.23.2, MariaDB 10.11.19):
 
 The `ECONNREFUSED 127.0.0.1:3001` prerender messages remain. They are not investigated yet: the build succeeds, but whether every statically prerendered page is complete when the API is up has not been checked.
 
+
+## 8b. Round 3: keyed OTP hashing, DEV schema inspection, legacy OTP purge preparation
+
+### 8b.1 Keyed OTP hashing (implemented)
+
+- Codes are stored as **HMAC-SHA-256** digests (64 lowercase hex characters). The message is `otp-v1|<lowercased email>|<type>|<code>`, so equal codes for different records produce different digests. Implementation: `server/services/OTPService.js`.
+- Key: `OTP_HASH_SECRET`, a hex string encoding **at least 32 random bytes** (64 hex characters). Odd length, non-hex, short, empty, or missing values are refused.
+- **No fallback.** The server refuses to start without a valid key (`server/index.js`, checked before the app is created). Requests that would create a code also refuse, and write nothing.
+- The key is read at call time, so it is never cached in a stale state. It must be identical on every instance that verifies codes. Use one value per environment and never share a value between DEV and production.
+- Verification compares digests with `crypto.timingSafeEqual`, not an SQL `WHERE code = ?`.
+- Single use: the verify step moves the row from `pending` to `verified` with `WHERE status = 'pending'` and requires exactly one affected row, so two concurrent submissions cannot both succeed.
+- Attempts: five wrong codes lock the code. Expiry: 10 minutes (DB-side `NOW()`).
+- No logging of codes, digests or the key. Configuration errors are logged server-side as a fixed sentence and answered to clients with a generic `500 Service temporarily unavailable.`, so no client learns the variable name.
+- Existing pending codes hashed with the old SHA-256 **no longer verify**. They expire within 10 minutes. Users request new codes. This was approved.
+
+**Configuration requirement (every environment):**
+
+```
+OTP_HASH_SECRET=<64+ hex characters>
+```
+
+Generate a value (run on the machine that holds the environment file; do not paste the output into chat, reports or commits):
+
+```
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+- Store it only in that environment's environment file or process manager environment. `server/.env`, `server/.env.production` and `.env.local` are git-ignored; keep it that way.
+- `server/.env.example` lists the variable with a deliberately invalid placeholder (`REPLACE_WITH_GENERATED_HEX_VALUE_NOT_A_REAL_KEY`), which the server refuses. It is documentation only.
+- **Local development:** the server does not start until `OTP_HASH_SECRET` is added to `server/.env`. This was not done in this pass, because the environment file was not modified.
+- **Rotation:** changing the value invalidates pending codes only (10-minute window). Plan rotation outside sign-in peaks; there is no other effect.
+- **Loss:** losing the value invalidates pending codes; nothing else is affected.
+
+Tests: `tests/otp-hmac.test.js` 13/13 (pure, per-run generated keys): digest format, case-insensitive email, binding to code/email/purpose, not an unkeyed SHA-256, different key gives different digest, constant-time helper, and refusal of missing, empty, short, non-hex, odd-length and placeholder-like values. The error text never contains the key.
+
+### 8b.2 DEV schema inspection (REQUIRES DEV: not performed)
+
+- **Access status:** no DEV host, user or password is available in this repository or environment. The only database settings present are SQLite for local development and production values (`server/.env.production`, git-ignored). Production was not used as a substitute, and no credentials were guessed.
+- **Operator command (read-only).** Run from the repository root on a machine that can reach DEV, with a SELECT-only account:
+
+  ```
+  DB_CONNECTION=mysql DB_HOST=<dev-host> DB_PORT=3306 DB_NAME=<dev-db> \
+  DB_USER=<select_only_user> DB_PASS=<password> \
+  node server/scripts/schema-check-readonly.js
+  ```
+
+  The checker opens a READ ONLY session, reads `information_schema` and `@@GLOBAL.sql_mode`, and writes nothing. Its output includes the server version, whether strict mode is set, and each expectation with its column type and width.
+- **Connection requirements:** MariaDB 10.11 reachable from the operator's machine (or an SSH tunnel to it); the account needs SELECT on `information_schema` for that database only; no write privileges. Do not use the production account.
+- **What the result means:**
+  - `verification_codes.code` reported as `varchar(10)`, with strict mode `yes`: **OTP sending fails on DEV** with `Data too long for column 'code'`. The migration in §8b.4 must be applied after review.
+  - `varchar(10)` with strict mode `NO`: OTP sending **appears to succeed**, but every code is truncated and can never verify (proven in `tests/db/otp-service.db.test.js`). This is the worse case, and must be fixed first.
+  - `varchar(64)` or wider: the OTP column is correct on DEV.
+  - Reported missing: `ambassadors`, `ambassador_badge_history`, `contributors.approved_at`, `account_session_revocations` (created on first revocation), `file_ownership`, `file_ownership_audit`.
+- **Reference result (not DEV):** a database built from the pre-widening dump (`cc13e2b`, `varchar(10)`), with the MariaDB 10.11.19 default strict mode, reports `TOO NARROW (varchar(10), need 64)` and seven expectations not met. The DEV result will differ only if DEV was altered.
+
+### 8b.3 Legacy plaintext OTP rows (inspection prepared; counts REQUIRES DEV)
+
+- **Target:** table `email_queue`. Selection rule (shared by inspection and purge, `server/scripts/legacy-otp-queue-select.js`): `blog_id IS NULL AND body LIKE '%Your verification code is:%'`. Only the retry queue (since removed) wrote this shape; blog notifications and membership mail do not match.
+- **Inspection (SELECT-only, prints counts and metadata, never addresses, subjects, bodies or codes):**
+
+  ```
+  DB_CONNECTION=mysql DB_HOST=<dev-host> DB_PORT=3306 DB_NAME=<dev-db> \
+  DB_USER=<select_only_user> DB_PASS=<password> \
+  node server/scripts/inspect-legacy-otp-queue.js
+  ```
+
+  Reports: database and server, total rows, matching rows, counts by status, counts by age (under 10 minutes, 10 minutes to 1 day, over 1 day), `created_at` range, rows whose body still holds a six-digit code, rows with a known OTP subject, and the expected deletion count.
+- **Counts for DEV and production: not available** (no access). No count is reported here. Production was not inspected.
+- **Purge (prepared, NOT executed):** `server/scripts/purge-legacy-otp-queue.js`. Dry run by default and writes nothing. Applying requires all of:
+  - `--backup=<file>`: an existing non-empty `mariadb-dump` of `email_queue`. The script checks that the file contains a dump of that table. **Sensitivity:** the backup itself contains the plaintext codes, so store it encrypted and delete it after the verification is signed off.
+  - `--target=<db name>` equal to the connected database.
+  - `--expected-count=<N>` equal to the matching count at apply time (refusal otherwise).
+  - `--confirm=PURGE_LEGACY_OTP_ROWS`.
+  It deletes in id batches, re-checks the selection rule on every `DELETE`, then verifies that no matching row remains and that the other rows are unchanged in count.
+- **Procedure for DEV (requires separate approval):** (1) run the inspection and present the counts and the target name; (2) take `mariadb-dump --single-transaction <db> email_queue > <encrypted-location>`; (3) confirm the expected count; (4) run the purge with all guards; (5) run the inspection again and expect zero matching rows.
+- **Verified on a disposable database** (`tests/db/legacy-otp-purge.db.test.js`, 6/6): inspection writes nothing and prints no sensitive values; dry run writes nothing; each refusal (no backup, empty backup, a dump of another table, wrong target, wrong count, missing phrase) is enforced; apply with a real dump deletes exactly the four legacy rows and keeps the other three (including a row that quotes the phrase but has a blog_id); the backup restores with the pre-purge row count; a repeat run deletes nothing.
+
+### 8b.4 Column-width migration (prepared, NOT run)
+
+`migrations/2026-11-05_widen_verification_codes.mysql.sql` widens `verification_codes.code` to `VARCHAR(64)`. Verified on a disposable MariaDB 10.11.19 database:
+
+- Before the migration, a six-digit OTP is **rejected** in strict mode (`Data too long for column 'code'`), and **silently truncated** in non-strict mode.
+- After the migration, applied twice without error, a six-digit OTP is inserted and its row holds a 64-character digest, and the full lifecycle works (verify, single use, wrong code, attempt limit, expiry, reset-password regression).
+
+### 8b.5 Test results for this round
+
+All commands with Node 22.23.2 on PATH.
+
+| Command | Exit | Result |
+|---|---|---|
+| `cd server && npm test` | 0 | 17 suite summaries, 167 checks passed, 0 failed (includes `otp-hmac` 13/13 and `session-revocation` 12/12) |
+| `TEST_DB_* npm run test:db` (MariaDB 10.11.19, disposable `sse_test_suite`) | 0 | 6 suites: auth-permissions 17/17, legacy-otp-purge 6/6, migrations 9/9, otp-delivery 3/3, otp-service 10/10, reset-atomic 4/4 — **49 checks, 0 failed, 0 skipped** |
+| `npm run build` | 0 | Compiled successfully |
+| `npx eslint` on every changed and new file | 0 | clean (two unused identifiers found and fixed during this round) |
+
+Browser tests were **not** run in this round. The earlier browser results in §6 are unchanged and were not re-verified against the keyed hash.
+
+### 8b.6 Blockers before DEV can accept OTP changes
+
+1. Operator must run `schema-check-readonly.js` on DEV and report its output (§8b.2).
+2. `OTP_HASH_SECRET` must be generated and set for DEV and production by the operator. Neither was set in this pass; the server refuses to start without it.
+3. Legacy row inspection on DEV and production (§8b.3). Purge needs separate approval after the counts and target are presented.
+4. Column-width migration (§8b.4) after review, if the DEV check shows `varchar(10)`.
+5. Browser verification of the OTP flows (signup and password-reset codes) on DEV with MOCK mail.
+6. Remaining from earlier rounds: membership checkout and webhook, uploads and file ownership in a browser, contributor and ambassador login flows, and the NOT DONE items in §6.
+
 ## 9. Lint
 
 - ESLint config now ignores generated and vendored output: `.next`, `out`, `coverage`, `node_modules`, `server/node_modules`, `public/**`. `process` is a readonly global for browser code (Next.js inlines `process.env`).
@@ -287,7 +393,7 @@ Recorded in the git log after the commits for this pass (see the summary in the 
 8. The Mac's data volume filled up during this pass (about 199 MB free, then recovered on its own). Database writes and builds failed during that period; the results above were produced after space recovered.
 9. Earlier test runs (before this pass) loaded `server/database.sqlite`, the local development database, through `db.js`. That file is git-ignored, and the tests now stub `db.js`. Check the local file if it matters to you. Nothing on DEV or production was touched.
 10. Plaintext OTP rows may remain in `email_queue` from before round 2 on DEV and production (R2).
-11. OTP hash is unsalted SHA-256 (R6), and `verification_codes.code` may be too narrow on DEV and production (R7). Confirm both before OTP sending is relied on.
+11. `verification_codes.code` may be too narrow on DEV and production (R7). Confirm with the DEV schema check (§8b.2). The keyed-hash change (R6) is implemented; DEV needs `OTP_HASH_SECRET` before OTP sending works.
 
 
 ## 14. DEV deployment prerequisites (checklist)
@@ -300,7 +406,8 @@ Recorded in the git log after the commits for this pass (see the summary in the 
 - [ ] Schema drift checked: run `scripts/schema-check-readonly.js` on DEV (SELECT only) and compare with §8a (`ambassadors`, `contributors.approved_at`, `verification_codes.code` width).
 - [ ] `verification_codes.code` widened to VARCHAR(64) after review of `migrations/2026-11-05_widen_verification_codes.mysql.sql` (R7). Confirm first whether OTP sending currently fails on DEV.
 - [ ] Existing `email_queue` rows reviewed for plaintext OTP bodies (`SELECT id, recipient, subject, created_at FROM email_queue WHERE subject LIKE '%verification%' OR subject LIKE '%Verification%'`), then purged with approval.
-- [ ] OTP hash keyed with a server secret (R6), decided before DEV.
+- [x] OTP hash keyed with `OTP_HASH_SECRET` (R6): implemented; the operator must generate and set the value for DEV (§8b.1).
+- [ ] `OTP_HASH_SECRET` set for DEV and, separately, for production (generated on the host, never pasted into chat or Git).
 - [ ] MANUAL URL values and `needs_review` ownership rows decided by an admin (§4).
 - [ ] Nginx: apply the recommended map and `error_log` change on DEV only after review; validate with `nginx -t`.
 - [ ] Reset flow: legacy `?token=` branch removed 60 minutes after deployment.

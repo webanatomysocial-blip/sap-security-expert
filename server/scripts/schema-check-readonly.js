@@ -33,7 +33,11 @@ async function main() {
     if (isSQLite) { console.log('[schema-check] SQLite is not supported by this check; run it against MySQL/MariaDB.'); return; }
     await db.query('SET SESSION TRANSACTION READ ONLY');
     const [[{ db: name }]] = await db.query('SELECT DATABASE() AS db');
+    const [[{ mode: sqlMode, ver: version }]] = await db.query('SELECT @@GLOBAL.sql_mode AS mode, VERSION() AS ver');
+    const strict = /STRICT_TRANS_TABLES|STRICT_ALL_TABLES/.test(sqlMode);
     console.log(`[schema-check] database: ${name} (read-only session)`);
+    console.log(`[schema-check] server: ${version}`);
+    console.log(`[schema-check] sql_mode: ${sqlMode || '(empty)'} — strict: ${strict ? 'yes' : 'NO (over-long values are silently truncated)'}`);
     const [cols] = await db.query(
       `SELECT TABLE_NAME AS t, COLUMN_NAME AS c, DATA_TYPE AS dt, CHARACTER_MAXIMUM_LENGTH AS len
          FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()`
