@@ -141,6 +141,7 @@ app.use((_, res, next) => {
 
 // Attach DB connection to every request
 app.use(dbMiddleware);
+app.use(require('./services/sessionRevocation').enforceSessionRevocation);
 // Keep contributor/ambassador permissions in sync with the DB (admin revokes apply immediately)
 app.use(require('./middleware/permissions').refreshStaffPermissions);
 
@@ -356,7 +357,7 @@ app.use((err, req, res, next) => {
   console.error(
     `[Express Error]\n` +
     `Method: ${req.method}\n` +
-    `URL: ${req.originalUrl || req.path}\n` +
+    `URL: ${require('./utils/logSafe').redactUrl(req.originalUrl || req.path)}\n` +
     `Status: ${status}\n` +
     `Message: ${err.message}\n` +
     `Stack: ${err.stack}\n` +

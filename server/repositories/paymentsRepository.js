@@ -303,7 +303,7 @@ async function countProductReviews(db, memberId) {
 // the result set small); the exact per-tag match happens in JS.
 async function findBlogsReferencingFile(db, fileUrl) {
   const [rows] = await db.execute(
-    `SELECT content, draft_content FROM blogs
+    `SELECT id, author_id, created_at, content, draft_content FROM blogs
      WHERE status IN ('approved','published')
        AND (content LIKE ? OR draft_content LIKE ?)`,
     [`%${fileUrl}%`, `%${fileUrl}%`]

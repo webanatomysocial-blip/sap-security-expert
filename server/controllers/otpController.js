@@ -4,6 +4,7 @@ const OTPService = require('../services/OTPService');
 const MailService = require('../services/MailService');
 const NotificationService = require('../services/NotificationService');
 const repo = require('../repositories/otpRepository');
+const { revokeAccountSessions } = require('../services/sessionRevocation');
 
 // All five handlers below keep their original explicit try/catch (not
 // asyncHandler/next(err)): each one either forwards a deliberately safe,
@@ -148,6 +149,7 @@ const resetWithToken = async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     await repo.updateMemberPassword(db, email, hash);
     await repo.updateUserPassword(db, email, hash).catch(() => {});
+    await revokeAccountSessions(db, email);
     await repo.deleteResetTokensByEmail(db, email);
 
     return res.json({ status: 'success', message: 'Password reset successfully.' });
@@ -186,6 +188,7 @@ const resetPasswordOtp = async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     await repo.updateMemberPassword(db, email, hash);
     await repo.updateUserPassword(db, email, hash).catch(() => {});
+    await revokeAccountSessions(db, email);
 
     return res.json({ status: 'success', message: 'Password reset successfully.' });
   } catch (err) {

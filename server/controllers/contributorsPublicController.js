@@ -1,3 +1,4 @@
+const { cleanWebUrl } = require('../utils/sanitize');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../utils/apiResponse');
 const { deleteImage } = require('../utils/helpers');
@@ -13,6 +14,8 @@ const repo = require('../repositories/contributorsPublicRepository');
 const apply = async (req, res) => {
   const db = req.db;
   const input = req.body || {};
+  const applicantLinkedin = cleanWebUrl(input.linkedin);
+  if (applicantLinkedin === null) return res.status(400).json({ status: 'error', message: 'LinkedIn must be a valid http(s) address.' });
 
   // Captcha check
   const captchaAns = parseInt(input.captchaAns || '0');
@@ -39,22 +42,10 @@ const apply = async (req, res) => {
 
     if (existing) {
       if (existing.status === 'rejected') {
-        if (imagePath && existing.image && existing.image !== imagePath) deleteImage(existing.image);
-        await repo.updateRejectedApplication(db, existing.id, {
-          fullName: input.fullName || '', linkedin: input.linkedin || '', country: input.country || '',
-          organization: input.organization || '', designation: input.designation || '', role: input.role || '',
-          expertise, otherExpertiseText: input.otherExpertiseText || '', yearsExperience: input.yearsExperience || '',
-          shortBio: input.shortBio || '', contributionTypes, proposedTopics: input.proposedTopics || '',
-          contributedElsewhere: input.contributedElsewhere || 'No', previousWorkLinks: input.previousWorkLinks || '',
-          preferredFrequency: input.preferredFrequency || 'One-time', primaryMotivation: input.primaryMotivation || '',
-          weeklyTime: input.weeklyTime || '', volunteerEvents: input.volunteerEvents || 'No',
-          productEvaluation: input.productEvaluation || 'No', personalWebsite: input.personalWebsite || '',
-          twitterHandle: input.twitterHandle || '', imagePath,
-        });
-        const mailService = MailService.getInstance();
-        const notifier = new NotificationService(mailService, db);
-        notifier.notifyContributorApplicationSubmitted(email, { name: input.fullName, experience: input.yearsExperience, details: input.proposedTopics }).catch(() => {});
-        return sendSuccess(res, { message: 'Application re-submitted successfully', id: existing.id });
+        // A public form can't prove it comes from the applicant, so a declined
+        // application is never overwritten or its photo removed from here.
+        if (imagePath) deleteImage(imagePath);
+        return res.status(409).json({ status: 'error', message: 'An earlier application with this email was declined. Please contact us to reapply.' });
       }
       // Note: intentionally no explicit status code here — matches the
       // original response exactly (HTTP 200 with status:'error' in the body).
@@ -62,7 +53,7 @@ const apply = async (req, res) => {
     }
 
     const newId = await repo.createApplication(db, {
-      fullName: input.fullName || '', email, linkedin: input.linkedin || '', country: input.country || '',
+      fullName: input.fullName || '', email, linkedin: applicantLinkedin, country: input.country || '',
       organization: input.organization || '', designation: input.designation || '', role: input.role || '',
       expertise, otherExpertiseText: input.otherExpertiseText || '', yearsExperience: input.yearsExperience || '',
       shortBio: input.shortBio || '', contributionTypes, proposedTopics: input.proposedTopics || '',

@@ -9,7 +9,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "cron": "node cron.js",
-    "test": "node tests/currency.test.js && node tests/payments.test.js && node tests/membership.test.js && node tests/content-security.test.js && node tests/frontend-safety.test.js && node tests/external-isolation.test.js"
+    "test": "node tests/currency.test.js && node tests/payments.test.js && node tests/membership.test.js && node tests/content-security.test.js && node tests/frontend-safety.test.js && node tests/external-isolation.test.js && node tests/session-revocation.test.js && node tests/remediation.test.js"
   },
   "dependencies": {
     "axios": "^1.6.0",

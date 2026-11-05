@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { cacheableMember } from "../utils/memberCache";
 
 const MemberAuthContext = createContext(null);
 
@@ -57,7 +58,7 @@ export const MemberAuthProvider = ({ children }) => {
               if (res.data.status === "success") {
                 const freshMember = res.data.member;
                 setMember(freshMember);
-                localStorage.setItem("memberData", JSON.stringify(freshMember));
+                localStorage.setItem("memberData", JSON.stringify(cacheableMember(freshMember)));
                 // Self-heals sessions logged in before CSRF protection was
                 // added to member routes — without this, a missing token
                 // would 403 every change-password/profile-update/payment
@@ -82,7 +83,7 @@ export const MemberAuthProvider = ({ children }) => {
     setMember(memberData);
     setIsContributor(isContrib);
     localStorage.setItem("memberAuth", "true");
-    localStorage.setItem("memberData", JSON.stringify(memberData));
+    localStorage.setItem("memberData", JSON.stringify(cacheableMember(memberData)));
     localStorage.setItem("isContributor", isContrib ? "true" : "false");
     // Same key api.js reads for every request (admin or member) — lets member
     // mutating routes (profile update, payments) be CSRF-checked too.
@@ -100,7 +101,7 @@ export const MemberAuthProvider = ({ children }) => {
 
   const updateMember = (updatedMemberData) => {
     setMember(updatedMemberData);
-    localStorage.setItem("memberData", JSON.stringify(updatedMemberData));
+    localStorage.setItem("memberData", JSON.stringify(cacheableMember(updatedMemberData)));
   };
 
   // Call after a successful blog unlock to update local state immediately

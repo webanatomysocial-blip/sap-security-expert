@@ -18,7 +18,11 @@ const getProfile = asyncHandler(async (req, res) => {
 // and members.profile_image so all three portals stay in sync.
 const updateProfile = asyncHandler(async (req, res) => {
   const db = req.db;
-  const { full_name, email, bio, designation, linkedin, twitter_handle, personal_website } = req.body || {};
+  const { full_name, email, bio, designation, linkedin: rawLinkedin, twitter_handle, personal_website: rawWebsite } = req.body || {};
+  const linkedin = cleanWebUrl(rawLinkedin);
+  const personal_website = cleanWebUrl(rawWebsite);
+  if (linkedin === null) return sendError(res, 'LinkedIn must be a valid http(s) address', 400);
+  if (personal_website === null) return sendError(res, 'Website must be a valid http(s) address', 400);
 
   const profileImage = req.file ? '/uploads/profiles/' + req.file.filename : null;
   await repo.updateProfile(db, req.session.admin_id, { full_name, email, bio, designation, linkedin, twitter_handle, personal_website, profile_image: profileImage });

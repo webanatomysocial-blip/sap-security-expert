@@ -5,6 +5,7 @@ const OTPService = require('../services/OTPService');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const { regenerateSession } = require('../utils/session');
+const { cleanWebUrl } = require('../utils/sanitize');
 const { grantAndNotify, syncAchievementsInBackground } = require('../services/achievements');
 const repo = require('../repositories/membersRepository');
 
@@ -354,7 +355,10 @@ const updateProfile = asyncHandler(async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Unauthorized' });
   }
-  const { name, phone, location, country, state, company_name, job_role, headline, bio, linkedin, expertise_tags, sap_certifications, receive_blog_emails, profile_visibility } = req.body || {};
+  const { name, phone, location, country, state, company_name, job_role, headline, bio, linkedin: rawLinkedin, expertise_tags, sap_certifications, receive_blog_emails, profile_visibility } = req.body || {};
+  if (typeof name !== 'string' || !name.trim()) return res.status(400).json({ status: 'error', message: 'Name is required.' });
+  const linkedin = cleanWebUrl(rawLinkedin);
+  if (linkedin === null) return res.status(400).json({ status: 'error', message: 'LinkedIn must be a valid http(s) address.' });
 
   let profileImage = null;
   if (req.file) {

@@ -1,3 +1,4 @@
+const { cleanWebUrl } = require('../utils/sanitize');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../utils/apiResponse');
 const { deleteImage } = require('../utils/helpers');
@@ -9,6 +10,8 @@ const repo = require('../repositories/ambassadorsPublicRepository');
 const apply = async (req, res) => {
   const db = req.db;
   const input = req.body || {};
+  const applicantLinkedin = cleanWebUrl(input.linkedin);
+  if (applicantLinkedin === null) return res.status(400).json({ status: 'error', message: 'LinkedIn must be a valid http(s) address.' });
 
   const captchaAns = parseInt(input.captchaAns || '0');
   const captchaExpected = parseInt(req.session.captcha_ans || '0');
@@ -36,7 +39,7 @@ const apply = async (req, res) => {
   }
 
   const fields = {
-    fullName: input.fullName || '', email, linkedin: input.linkedin || '',
+    fullName: input.fullName || '', email, linkedin: applicantLinkedin,
     country: input.country || '', state: input.state || '', city: input.city || '',
     organization: input.organization || '',
     currentRole: input.currentRole === 'Other' && input.otherCurrentRoleText ? input.otherCurrentRoleText : (input.currentRole || ''),
@@ -59,12 +62,10 @@ const apply = async (req, res) => {
 
     if (existing) {
       if (existing.status === 'rejected') {
-        if (imagePath && existing.image && existing.image !== imagePath) deleteImage(existing.image);
-        await repo.updateRejectedApplication(db, existing.id, fields);
-        const mailService = MailService.getInstance();
-        const notifier = new NotificationService(mailService, db);
-        notifier.notifyAmbassadorApplicationSubmitted(email, { name: input.fullName, country: input.country }).catch(() => {});
-        return sendSuccess(res, { message: 'Application re-submitted successfully', id: existing.id });
+        // A public form can't prove it comes from the applicant, so a declined
+        // application is never overwritten or its photo removed from here.
+        if (imagePath) deleteImage(imagePath);
+        return res.status(409).json({ status: 'error', message: 'An earlier application with this email was declined. Please contact us to reapply.' });
       }
       return res.json({ status: 'error', message: `An application with this email already exists and is ${existing.status}.` });
     }

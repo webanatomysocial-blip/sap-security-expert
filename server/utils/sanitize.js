@@ -97,10 +97,43 @@ function sanitizeBlogHtml(html) {
   return sanitizeHtml(html, sanitizeOptions);
 }
 
-module.exports = { sanitizeBlogHtml };
+
 
 // Featured-image path a non-admin may store: empty, their own blog upload, or an https URL.
 function safeBlogImage(v) {
   return typeof v === 'string' && (v === '' || v.startsWith('/uploads/blogs/') || /^https:\/\//.test(v)) && !v.includes('..') ? v : '';
 }
-module.exports.safeBlogImage = safeBlogImage;
+
+// Server-side rule for user-entered web addresses (CTA, LinkedIn, website).
+// Empty is allowed. Only http(s) survives; a bare domain such as
+// "linkedin.com/in/x" gets https://. Anything else returns null (reject).
+function cleanWebUrl(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  if (!v) return '';
+  if (v.length > 500) return null;
+  const candidate = /^https?:\/\//i.test(v) ? v : (/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(v) ? `https://${v}` : null);
+  if (!candidate) return null;
+  try {
+    const u = new URL(candidate);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    if (!u.hostname.includes('.')) return null;
+    return u.href;
+  } catch { return null; }
+}
+
+// Visitor and admin comment text: only the formatting the comment renderer shows.
+// Everything else (script, img, handlers, unknown tags) is removed; text is kept
+// and HTML-escaped by the sanitiser.
+const COMMENT_OPTIONS = {
+  allowedTags: ['p', 'br', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i'],
+  allowedAttributes: {},
+  disallowedTagsMode: 'discard',
+};
+function cleanCommentHtml(text) {
+  if (typeof text !== 'string') return '';
+  return sanitizeHtml(text, COMMENT_OPTIONS).trim();
+}
+
+module.exports = { sanitizeBlogHtml, safeBlogImage, cleanWebUrl, cleanCommentHtml };

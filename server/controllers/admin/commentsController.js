@@ -1,3 +1,4 @@
+const { cleanCommentHtml } = require('../../utils/sanitize');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const NotificationService = require('../../services/NotificationService');
@@ -27,7 +28,9 @@ const save = asyncHandler(async (req, res) => {
     const existing = await repo.findContentById(db, id);
     if (!existing) return sendError(res, 'Comment not found', 404);
     const originalText = existing.original_text || existing.content;
-    await repo.updateContent(db, id, content, originalText);
+    const cleanContent = cleanCommentHtml(content);
+    if (!cleanContent) return sendError(res, 'Content required for edit', 400);
+    await repo.updateContent(db, id, cleanContent, originalText);
     return sendSuccess(res, { message: 'Comment updated' });
   }
 

@@ -23,24 +23,27 @@ function getRazorpay() {
 // no published blog references this exact file, which downloadFile treats
 // as "not a real download" rather than defaulting to free.
 function findAuthoritativeDownloadCredits(blogRows, fileUrl) {
-  // Only live content prices a file: a draft_content edit is pending review and
-  // must never set what members pay (a contributor could otherwise set 0 in a
-  // draft and make an admin's paid file free). If several live posts embed the
-  // file, charge the highest price — row order is unspecified, so "first match"
-  // would make the price nondeterministic.
+  // A paid file belongs to the post that first published it: the earliest live post
+  // (by created_at, then id) that embeds it. Only that owner's embedded price counts,
+  // so a later post — including one by another contributor — cannot reprice the file.
+  // Drafts never set a price.
   const escapedUrl = fileUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const tagRegex = new RegExp(`<[^>]*data-file-url=["']${escapedUrl}["'][^>]*>`, 'gi');
-  let best = null;
+  const tagRegex = new RegExp(`<[^>]*data-file-url=["']${escapedUrl}["'][^>]*>`, 'i');
+  const creditsRegex = /data-credits=["'](\d+)["']/i;
+  let owner = null;
   for (const row of blogRows) {
     if (!row.content) continue;
-    for (const tagMatch of row.content.matchAll(tagRegex)) {
-      const creditsMatch = tagMatch[0].match(/data-credits=["'](\d+)["']/i);
-      if (!creditsMatch) continue;
-      const credits = parseInt(creditsMatch[1], 10);
-      if (best === null || credits > best) best = credits;
+    const tagMatch = row.content.match(tagRegex);
+    if (!tagMatch) continue;
+    const creditsMatch = tagMatch[0].match(creditsRegex);
+    if (!creditsMatch) continue;
+    const created = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at || '');
+    const key = [created, String(row.id || '')];
+    if (!owner || key[0] < owner.key[0] || (key[0] === owner.key[0] && key[1] < owner.key[1])) {
+      owner = { key, credits: parseInt(creditsMatch[1], 10) };
     }
   }
-  return best;
+  return owner ? owner.credits : null;
 }
 
 // GET /api/payments/detect-currency?currency=USD — detects or accepts explicit currency, returns rate

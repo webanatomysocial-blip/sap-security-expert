@@ -2,7 +2,11 @@
 // cookie can't become an authenticated one (session fixation).
 function regenerateSession(req) {
   return new Promise((resolve, reject) => {
-    req.session.regenerate((err) => (err ? reject(err) : resolve()));
+    req.session.regenerate((err) => {
+      if (err) return reject(err);
+      req.session.issued_at = Date.now();
+      resolve();
+    });
   });
 }
 

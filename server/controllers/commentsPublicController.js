@@ -1,3 +1,4 @@
+const { cleanCommentHtml } = require('../utils/sanitize');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const repo = require('../repositories/commentsPublicRepository');
@@ -74,8 +75,11 @@ const saveComment = async (req, res) => {
   const post_id = String(body.post_id || body.blogId || '').trim();
   const user_name = String(body.user_name || body.author || '').trim();
   const email = String(body.email || '').trim();
-  const content = String(body.content || body.text || '').trim();
+  const rawContent = String(body.content || body.text || '').trim();
   const parent_id = body.parent_id != null ? parseInt(body.parent_id, 10) : null;
+
+  // Stored as sanitised formatting-only HTML (see cleanCommentHtml)
+  const content = cleanCommentHtml(rawContent);
 
   // Required field validation
   if (!post_id || !user_name || !email || !content) {
@@ -89,7 +93,7 @@ const saveComment = async (req, res) => {
   if (user_name.length > MAX_NAME_LEN) {
     return res.status(400).json({ status: 'error', message: 'Name is too long.' });
   }
-  if (content.length > MAX_CONTENT_LEN) {
+  if (rawContent.length > MAX_CONTENT_LEN) {
     return res.status(400).json({ status: 'error', message: `Comment must be under ${MAX_CONTENT_LEN} characters.` });
   }
   if (email.length > 254) {

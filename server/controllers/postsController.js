@@ -1,7 +1,8 @@
 const { asyncHandler } = require('../utils/asyncHandler');
 const { sendError } = require('../utils/apiResponse');
 const { calculateSeoScore, checkPlagiarismScore, deleteImage, deleteUploadedFile, extractDownloadUrls } = require('../utils/helpers');
-const { sanitizeBlogHtml, safeBlogImage } = require('../utils/sanitize');
+const { sanitizeBlogHtml, safeBlogImage, cleanWebUrl } = require('../utils/sanitize');
+const { resolvePostDate, todayIso } = require('../utils/postDate');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const CacheService = require('../services/CacheService');
@@ -631,16 +632,25 @@ const save = asyncHandler(async (req, res) => {
     if (aRow) { author_id = parseInt(data.author_id); authorName = aRow.display_name; }
   }
 
-  const { id, title = '', slug: rawSlug, excerpt = '', content: rawContent = '', date, image: rawImage = '',
+  const { id, title = '', slug: rawSlug, excerpt = '', content: rawContent = '', date: rawDate, image: rawImage = '',
           image_alt = '',
           category = '', tags = '', meta_title = '', meta_description = '', meta_keywords = '',
-          faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link = null,
+          faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link: rawCtaLink = null,
           is_members_only: rawIsMembersOnly = 0, send_notification_email = 0, status: requestedStatus, related_blogs,
           schema_type = 'BlogPosting', article_section = null, co_authors = [],
           difficulty_level: rawDifficultyLevel = null, preview_paragraphs: rawPreviewParagraphs = null,
           preview_unit: rawPreviewUnit = 'blocks', video_url = null } = data;
   // Contributors may only point the featured image at their own blog uploads or an https image.
   const image = isAdmin ? rawImage : safeBlogImage(rawImage);
+
+  let date;
+  try {
+    date = resolvePostDate({ isAdmin, rawDate, existingDate: undefined, today: todayIso() });
+  } catch (e) {
+    return sendError(res, e.message, e.status || 400);
+  }
+  const cta_button_link = cleanWebUrl(rawCtaLink);
+  if (cta_button_link === null) return sendError(res, 'CTA link must be a valid http(s) address', 400);
 
   const sched = isAdmin ? parseSchedule(data.scheduled_at) : null;
 
@@ -706,6 +716,7 @@ const save = asyncHandler(async (req, res) => {
       return res.status(403).json({ status: 'error', message: 'Unauthorized' });
     }
 
+    if (!isAdmin) date = ex.date;
     // Keep existing author unless admin re-assigns
     if (!isAdmin || !data.author_id) { author_id = ex.author_id; authorName = ex.author; }
 
@@ -734,7 +745,7 @@ const save = asyncHandler(async (req, res) => {
     }
 
     // Standard update — safe to clean up replaced files now that the live columns are being overwritten
-    if (ex.image && ex.image !== image && ex.image.startsWith('/uploads/blogs/')) {
+    if (ex.image && ex.image !== image && ex.image.startsWith('/uploads/blogs/') && !(await repo.isImageUsedByOtherBlog(db, ex.image, id))) {
       deleteImage(ex.image);
     }
     const oldDownloads = extractDownloadUrls(ex.content);
@@ -849,7 +860,9 @@ const remove = asyncHandler(async (req, res) => {
 
   // Only this post's own blog uploads — a contributor-supplied image path could
   // otherwise point at any file under public/uploads (ads, other users' photos).
-  if (typeof blog.image === 'string' && blog.image.startsWith('/uploads/blogs/')) deleteImage(blog.image);
+  if (typeof blog.image === 'string' && blog.image.startsWith('/uploads/blogs/') && !(await repo.isImageUsedByOtherBlog(db, blog.image, blog.id ?? id))) {
+    deleteImage(blog.image);
+  }
   for (const url of extractDownloadUrls(blog.content)) {
     if (await repo.isFileReferencedByOtherBlog(db, url, blog.id ?? id)) continue; // still used elsewhere
     deleteUploadedFile(url);
