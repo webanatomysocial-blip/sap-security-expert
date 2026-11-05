@@ -98,3 +98,9 @@ function sanitizeBlogHtml(html) {
 }
 
 module.exports = { sanitizeBlogHtml };
+
+// Featured-image path a non-admin may store: empty, their own blog upload, or an https URL.
+function safeBlogImage(v) {
+  return typeof v === 'string' && (v === '' || v.startsWith('/uploads/blogs/') || /^https:\/\//.test(v)) && !v.includes('..') ? v : '';
+}
+module.exports.safeBlogImage = safeBlogImage;

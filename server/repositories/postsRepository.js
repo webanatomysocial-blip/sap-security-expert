@@ -383,8 +383,18 @@ async function insertBlog(db, f) {
   }
 }
 
+// True if any other post (any status) still embeds this file — a shared file
+// must not be deleted, or the other post's download (and members' records) break.
+async function isFileReferencedByOtherBlog(db, fileUrl, excludeBlogId) {
+  const [rows] = await db.execute(
+    'SELECT id FROM blogs WHERE id <> ? AND (content LIKE ? OR draft_content LIKE ?) LIMIT 1',
+    [String(excludeBlogId), `%${fileUrl}%`, `%${fileUrl}%`]
+  );
+  return rows.length > 0;
+}
+
 async function findForDelete(db, id) {
-  const [rows] = await db.execute('SELECT author_id, image, content, category, slug FROM blogs WHERE id = ? OR slug = ?', [id, id]);
+  const [rows] = await db.execute('SELECT id, author_id, image, content, category, slug FROM blogs WHERE id = ? OR slug = ?', [id, id]);
   return rows[0] || null;
 }
 
@@ -393,6 +403,7 @@ async function deleteBlogById(db, id) {
 }
 
 module.exports = {
+  isFileReferencedByOtherBlog,
   getExclusivePremiumCounts, findSuggestedCurrent, findSameCategoryCandidates, findCrossCategoryCandidates, findPopularFallback,
   updateBadges, findSingleBySlugOrId, hasUnlockedBlog, findUnlockedSlugsForMember, findList, findByIds, findAuthorDisplayName, slugExists, findExistingForUpdate,
   cascadeSlugChange, saveEditForReview, updateBlogStandard, insertBlog, findForDelete, deleteBlogById,

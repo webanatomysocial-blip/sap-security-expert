@@ -1,7 +1,7 @@
 const { asyncHandler } = require('../utils/asyncHandler');
 const { sendError } = require('../utils/apiResponse');
 const { calculateSeoScore, checkPlagiarismScore, deleteImage, deleteUploadedFile, extractDownloadUrls } = require('../utils/helpers');
-const { sanitizeBlogHtml } = require('../utils/sanitize');
+const { sanitizeBlogHtml, safeBlogImage } = require('../utils/sanitize');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const CacheService = require('../services/CacheService');
@@ -631,7 +631,7 @@ const save = asyncHandler(async (req, res) => {
     if (aRow) { author_id = parseInt(data.author_id); authorName = aRow.display_name; }
   }
 
-  const { id, title = '', slug: rawSlug, excerpt = '', content: rawContent = '', date, image = '',
+  const { id, title = '', slug: rawSlug, excerpt = '', content: rawContent = '', date, image: rawImage = '',
           image_alt = '',
           category = '', tags = '', meta_title = '', meta_description = '', meta_keywords = '',
           faqs = [], cta_title = null, cta_description = null, cta_button_text = null, cta_button_link = null,
@@ -639,8 +639,11 @@ const save = asyncHandler(async (req, res) => {
           schema_type = 'BlogPosting', article_section = null, co_authors = [],
           difficulty_level: rawDifficultyLevel = null, preview_paragraphs: rawPreviewParagraphs = null,
           preview_unit: rawPreviewUnit = 'blocks', video_url = null } = data;
+  // Contributors may only point the featured image at their own blog uploads or an https image.
+  const image = isAdmin ? rawImage : safeBlogImage(rawImage);
 
   const sched = isAdmin ? parseSchedule(data.scheduled_at) : null;
+
 
   // Badges, is_premium, and credits_required are admin-only fields — contributors
   // submitting these in the request body must be silently ignored so they cannot
@@ -752,7 +755,7 @@ const save = asyncHandler(async (req, res) => {
           [sameExt, url]
         ).catch(() => {});
         addedDownloads.splice(addedDownloads.indexOf(sameExt), 1);
-      } else {
+      } else if (!(await repo.isFileReferencedByOtherBlog(db, url, id))) {
         deleteUploadedFile(url);
       }
     }
@@ -844,8 +847,11 @@ const remove = asyncHandler(async (req, res) => {
     return res.status(403).json({ status: 'error', message: 'Unauthorized' });
   }
 
-  if (blog.image) deleteImage(blog.image);
+  // Only this post's own blog uploads — a contributor-supplied image path could
+  // otherwise point at any file under public/uploads (ads, other users' photos).
+  if (typeof blog.image === 'string' && blog.image.startsWith('/uploads/blogs/')) deleteImage(blog.image);
   for (const url of extractDownloadUrls(blog.content)) {
+    if (await repo.isFileReferencedByOtherBlog(db, url, blog.id ?? id)) continue; // still used elsewhere
     deleteUploadedFile(url);
     // Clean up member download records for this file too
     req.db.execute('DELETE FROM member_file_downloads WHERE file_url = ?', [url]).catch(() => {});

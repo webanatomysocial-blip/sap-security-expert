@@ -23,18 +23,24 @@ function getRazorpay() {
 // no published blog references this exact file, which downloadFile treats
 // as "not a real download" rather than defaulting to free.
 function findAuthoritativeDownloadCredits(blogRows, fileUrl) {
+  // Only live content prices a file: a draft_content edit is pending review and
+  // must never set what members pay (a contributor could otherwise set 0 in a
+  // draft and make an admin's paid file free). If several live posts embed the
+  // file, charge the highest price — row order is unspecified, so "first match"
+  // would make the price nondeterministic.
   const escapedUrl = fileUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const tagRegex = new RegExp(`<[^>]*data-file-url=["']${escapedUrl}["'][^>]*>`, 'i');
+  const tagRegex = new RegExp(`<[^>]*data-file-url=["']${escapedUrl}["'][^>]*>`, 'gi');
+  let best = null;
   for (const row of blogRows) {
-    for (const html of [row.content, row.draft_content]) {
-      if (!html) continue;
-      const tagMatch = html.match(tagRegex);
-      if (!tagMatch) continue;
+    if (!row.content) continue;
+    for (const tagMatch of row.content.matchAll(tagRegex)) {
       const creditsMatch = tagMatch[0].match(/data-credits=["'](\d+)["']/i);
-      if (creditsMatch) return parseInt(creditsMatch[1], 10);
+      if (!creditsMatch) continue;
+      const credits = parseInt(creditsMatch[1], 10);
+      if (best === null || credits > best) best = credits;
     }
   }
-  return null;
+  return best;
 }
 
 // GET /api/payments/detect-currency?currency=USD — detects or accepts explicit currency, returns rate
@@ -917,5 +923,5 @@ module.exports = {
   bundles, myCredits, myUnlocks, myTransactions, invoice, validateCoupon, createOrder, verify, unlockBlog, webhook,
   linkedinBonus, completeProfileBonus, reportError, productReviewBonus, downloadFile, myDownloads,
   testZohoConnection, invoicePdf, detectCurrency, membershipPlans, myMembership,
-  formatPaidAmount,
+  formatPaidAmount, findAuthoritativeDownloadCredits,
 };
