@@ -2,6 +2,14 @@
 // Data center: zoho.in (India). All amounts in INR paise → converted to INR here.
 'use strict';
 const https = require('https');
+const { resolveMode } = require('./externalMode');
+
+// Every network call goes through this guard, so a non-LIVE process can't reach Zoho
+// even if a new code path forgets to check the mode.
+function assertLive(what) {
+  const mode = resolveMode('ZOHO');
+  if (mode !== 'live') throw new Error(`Zoho ${what} blocked: ZOHO_MODE=${mode}`);
+}
 
 const AUTH_URL  = 'https://accounts.zoho.in/oauth/v2/token';
 const API_BASE  = 'https://www.zohoapis.in/books/v3';
@@ -28,6 +36,7 @@ async function getAccessToken() {
 
 // ── low-level fetch ────────────────────────────────────────────────────────────
 function request(method, url, token, bodyStr, contentType = 'application/json') {
+  assertLive('request');
   return new Promise((resolve, reject) => {
     const u = new URL(url);
     const options = {
@@ -63,6 +72,7 @@ function apiPost(path, token, payload) {
 
 // Stream Zoho invoice PDF into a writable (e.g. res). Returns a Promise that resolves when done.
 function streamInvoicePdf(invoiceId, token, writable) {
+  assertLive('PDF download');
   return new Promise((resolve, reject) => {
     const u = new URL(`${API_BASE}/invoices/${invoiceId}?organization_id=${ORG_ID()}`);
     const options = {
@@ -111,6 +121,12 @@ async function getOrCreateContact(token, { name, email }) {
 // ── main entry point ───────────────────────────────────────────────────────────
 // Fire-and-forget safe: caller catches and logs. Never throws into payment flow.
 async function createAndSendInvoice({ orderId, paymentId, member, bundle, amountPaise }) {
+  const mode = resolveMode('ZOHO');
+  if (mode !== 'live') {
+    // No invoice, no id saved, no email — the order simply has no Zoho invoice.
+    console.log(`[zoho=${mode.toUpperCase()}] invoice not created for order ${orderId} (non-live mode)`);
+    return null;
+  }
   const missingEnv = ['ZOHO_CLIENT_ID', 'ZOHO_CLIENT_SECRET', 'ZOHO_REFRESH_TOKEN', 'ZOHO_ORG_ID']
     .filter((k) => !process.env[k]);
   if (missingEnv.length) {
@@ -159,4 +175,32 @@ async function createAndSendInvoice({ orderId, paymentId, member, bundle, amount
   return { invoiceId, invoiceUrl };
 }
 
-module.exports = { createAndSendInvoice, getInvoicePdf };
+// Read-only check of the OAuth connection. Gets a token (refresh grant) and lists
+// one invoice. Creates or changes nothing. Requires an explicit ZOHO_MODE=live.
+async function readOnlyOrganisationCheck() {
+  if (!process.env.ZOHO_MODE || resolveMode('ZOHO') !== 'live') {
+    throw new Error('readOnlyOrganisationCheck requires an explicit ZOHO_MODE=live');
+  }
+  const token = await getAccessToken();
+  const body = await request('GET', `${API_BASE}/invoices?organization_id=${ORG_ID()}&per_page=1`, token);
+  if (!Array.isArray(body?.invoices)) throw new Error(`Zoho read check failed: ${body?.code} ${body?.message}`);
+  return { organisationId: ORG_ID(), tokenRefreshed: true, invoicesVisible: body.page_context?.total ?? body.invoices.length };
+}
+
+// Invoice creation test helper. Only callable from scripts/zoho-invoice-test.js, which
+// requires explicit authorisation. Creates the invoice WITHOUT emailing anyone.
+async function createTestInvoiceNoEmail({ customerEmail, name, amountINR, reference }) {
+  if (resolveMode('ZOHO') !== 'live') throw new Error('test invoice requires ZOHO_MODE=live');
+  const token = await getAccessToken();
+  const contactId = await getOrCreateContact(token, { name, email: customerEmail });
+  const created = await apiPost('/invoices', token, {
+    customer_id: contactId,
+    reference_number: reference,
+    line_items: [{ description: 'AUTOMATED TEST INVOICE — VOID AFTER VERIFICATION', quantity: 1, rate: amountINR }],
+    notes: 'Integration test. Not a real purchase.',
+  });
+  if (!created?.invoice?.invoice_id) throw new Error(`Zoho test invoice failed: ${JSON.stringify(created)}`);
+  return { invoiceId: created.invoice.invoice_id, invoiceNumber: created.invoice.invoice_number };
+}
+
+module.exports = { createAndSendInvoice, getInvoicePdf, readOnlyOrganisationCheck, createTestInvoiceNoEmail };

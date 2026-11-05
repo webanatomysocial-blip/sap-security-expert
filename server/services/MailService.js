@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const { poolExec, pool, isSQLite } = require('../db');
+const { resolveMode } = require('./externalMode');
 
 const TEMPLATES_DIR = path.join(__dirname, '../templates');
 
@@ -15,15 +16,29 @@ let _instance = null;
 
 class MailService {
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+    this.mode = resolveMode('MAIL');
+    if (this.mode === 'live') {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+    } else if (this.mode === 'test') {
+      // Local Mailpit / test SMTP only — credentials never used.
+      this.transporter = nodemailer.createTransport({
+        host: process.env.MAILPIT_HOST || '127.0.0.1',
+        port: parseInt(process.env.MAILPIT_PORT || '1025'),
+        secure: false,
+        ignoreTLS: true,
+      });
+    } else {
+      // MOCK: builds the message but never opens a connection.
+      this.transporter = nodemailer.createTransport({ jsonTransport: true });
+    }
     this.from = `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM}>`;
     this.logFile = path.join(__dirname, '../logs/mail.log');
   }
@@ -78,7 +93,7 @@ class MailService {
       });
 
       status = 'sent';
-      this._logFile(`Mail sent to ${to}: ${subject}`);
+      this._logFile(`[${this.mode.toUpperCase()}] Mail ${this.mode === 'live' ? 'sent' : 'handled (no real delivery)'} to ${to}: ${subject}`);
       return true;
     } catch (err) {
       error = err.message;

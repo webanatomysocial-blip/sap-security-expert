@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 
 const { dbMiddleware, isSQLite } = require('./db');
+require('./services/externalMode').logStatus();
 const { safeCompare } = require('./middleware/auth');
 
 const app = express();
