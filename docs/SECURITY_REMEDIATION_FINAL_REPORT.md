@@ -301,6 +301,71 @@ All commands with Node 22.23.2 on PATH.
 
 Browser tests were **not** run in this round. The earlier browser results in §6 are unchanged and were not re-verified against the keyed hash.
 
+### 8b.7 Follow-up OTP path and operations audit (2026-11-05)
+
+This was a local, read-only code/configuration review. No `.env` file was changed, no DEV or production connection was attempted, and no migration or purge command was run.
+
+**OTP path/configuration result:**
+
+- `POST /api/send-otp` is the only code-generation endpoint. Signup (`type=signup`), password reset (`type=reset`) and member account deletion (`type=delete_account`) all call `OTPService.generateOTP`, which calls `otpKey()` before any insert and uses `hashOtp()` with the same call-time `process.env.OTP_HASH_SECRET` value.
+- `POST /api/verify-otp` and the member deletion action both call `OTPService.verifyOTP`; verification hashes with the same email, purpose and call-time key. Signup completion checks the verified database state through `OTPService.isVerified` and does not implement a second hashing path.
+- No alternative OTP generator, verifier, unkeyed OTP hash, background OTP worker or separate OTP API process was found. The email cron handles already-rendered queue messages; transactional OTP messages are deliberately not queued.
+- Production PM2 runs one fork-mode process (`ecosystem.config.cjs` -> `start.cjs` -> `server/index.js`). `start.cjs` loads `server/.env`, and `server/index.js` validates `OTP_HASH_SECRET` before creating or exporting the Express application. A missing/invalid value exits with status 1; `OTPService.generateOTP` and `verifyOTP` also validate at call time. There is no fallback or default key.
+- PM2 does **not** define `OTP_HASH_SECRET` in `env_production`; it must therefore be present in `server/.env` or injected into the PM2 environment. After setting/changing it, the operator must reload the one intended process with `--update-env` if PM2 environment injection is used. Every web/API instance in one environment must receive the identical value. Local, DEV and production values must differ.
+- `server/package.json` contains a stale `cron` command for missing `server/cron.js`. It is not part of the PM2 production configuration and no separate worker currently needs the OTP secret. Do not create or start a second process from that command as part of this remediation.
+- Startup validation occurs when `server/index.js` is required. In the unified production entry point, Next.js preparation happens before that require, so a bad key still prevents the HTTP listener from starting but only after Next preparation. This is fail-closed, though not the earliest possible validation point.
+
+**Read-only tooling result:**
+
+- `schema-check-readonly.js` sets the MariaDB session to `TRANSACTION READ ONLY` before querying `DATABASE()`, server/sql-mode metadata and `information_schema`. It contains no DDL/DML statement.
+- `inspect-legacy-otp-queue.js` likewise sets the session read-only before querying. It prints only database/server identity, aggregate counts, age/status groups and a date range; it does not select or print recipient, subject, body, code or row ID.
+- Use a DEV account with SELECT-only grants even though the scripts request read-only sessions. This provides an independent database-side control.
+
+**Guarded purge review — NOT approved and not ready to execute:**
+
+- The selection is narrow and shared with inspection: `blog_id IS NULL AND body LIKE '%Your verification code is:%'`. Deletes re-check the predicate by ID; count and confirmation guards exist; disposable-MariaDB tests show unrelated rows are retained.
+- The current wrong-target guard is not sufficient to claim that an accidental wrong-database purge is impossible. `--target` is compared only with `SELECT DATABASE()`; an operator connected to the wrong host/database can copy that displayed name into the option. The script does not require an approved host fingerprint, environment marker or inspection artifact.
+- The backup check proves only that a non-empty file contains `CREATE TABLE email_queue` in its first 200 KB. It does not prove encryption, that row data is present, that it came from the connected database, or that it restores successfully.
+- Therefore keep the purge on hold. Before any later execution, add and test an independent environment identity guard (approved DEV host plus immutable environment marker), bind the approved inspection result/count to the run, and require a successfully restored encrypted backup. A separate deletion decision remains mandatory.
+
+**Backup confidentiality requirement:**
+
+- Legacy queue dumps contain plaintext OTPs and must never be written to the repository, pasted into chat/tickets/reports, or included in terminal/log capture. The report may contain aggregate counts only.
+- Store the dump only in an encrypted, access-controlled location. Prefer streaming directly into an approved encryption tool so no plaintext dump exists on disk; verify decryption and restore into an isolated scratch database, record only the verification result/counts, then apply the organization's retention/deletion policy. Exact encryption/key-custody commands must be supplied by the environment owner because no approved tool or recipient key is identified in this repository.
+
+**`VARCHAR(64)` migration review:**
+
+- The forward statement changes only `verification_codes.code` to `VARCHAR(64) NOT NULL`, which is the required width for SHA-256 hex digests. Run it only if DEV inspection reports a width below 64 and only after the migration/backup decision is approved.
+- MariaDB `ALTER TABLE` causes an implicit commit and may rebuild/lock the table; this is not an application-level transactional migration. Calling the statement "idempotent" means the desired schema result is repeatable, not that a repeat is operationally free.
+- The documented rollback is destructive: it first deletes every row longer than 10 characters, including all HMAC OTP rows, then narrows the column. It cannot preserve outstanding OTPs and is not a true data rollback. The normal recovery is to restore the pre-migration database backup or leave the wider compatible column in place; narrowing should be an exceptional, separately approved action.
+
+**Exact prerequisites and commands once DEV read-only access exists:**
+
+1. Obtain the approved DEV hostname/database name and a DEV-only SELECT account. Confirm independently that the target is DEV; do not infer it from script output and do not substitute production.
+2. In a terminal excluded from screen/log capture, export the DEV connection variables (do not put credentials in shell history or this report), then run:
+
+   ```sh
+   node server/scripts/schema-check-readonly.js
+   node server/scripts/inspect-legacy-otp-queue.js
+   ```
+
+   Required variables are `DB_CONNECTION=mysql`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASS`. Review the database/server identity, `verification_codes.code` width, SQL strict mode, total queue count, matching count and known-subject count. Do not run the purge.
+3. If and only if the width is below 64, review the execution window, database backup/restore proof and DDL locking risk, then seek separate migration approval for `migrations/2026-11-05_widen_verification_codes.mysql.sql`. No migration command is authorized by this report.
+4. Present only aggregate legacy-row counts and the encrypted-backup/restore procedure for a separate purge decision. The current purge script must receive the additional wrong-environment controls above before it is eligible for approval.
+
+**Precise DEV browser checklist (MOCK mail, after schema/key readiness and before deployment approval):**
+
+1. Confirm the DEV web/API process starts with the DEV-only secret and MOCK mail, and that logs show neither secret, OTP, digest nor email body. Confirm a deliberately missing secret in a controlled process launch exits non-zero and opens no listener.
+2. Signup: request a code for a new address; retrieve it only from the approved MOCK mail viewer; verify it; complete signup; confirm the same code cannot be verified again.
+3. Password reset: request and verify a reset code for an existing account; set a new password; confirm the reset completes once and the verified authorization cannot be reused.
+4. Invalid code: submit a wrong six-digit value and confirm a generic invalid-code response without leakage in browser or server logs.
+5. Attempt limit: submit five wrong values for one fresh code, then submit the correct value and confirm it is refused as locked. Request a new code before continuing to avoid the hourly send limit.
+6. Expiry: with an isolated test row/clock procedure approved for DEV, allow or arrange expiry beyond 10 minutes and confirm the correct code is refused as expired.
+7. Single use/concurrency: submit the same valid code twice (including near-concurrent submissions if the test harness supports it); exactly one verification may succeed.
+8. Cross-binding: confirm a code issued for one email or purpose cannot verify another email/purpose. Include signup versus reset.
+9. Delivery failure: force MOCK delivery failure, confirm the API does not expose account existence, and confirm no OTP-bearing `email_queue` row is created.
+10. Capture pass/fail evidence without OTP values, secrets, digests, message bodies or live personal addresses. Production deployment remains unapproved regardless of DEV results.
+
 ### 8b.6 Blockers before DEV can accept OTP changes
 
 1. Operator must run `schema-check-readonly.js` on DEV and report its output (§8b.2).
@@ -405,7 +470,7 @@ Recorded in the git log after the commits for this pass (see the summary in the 
 - [ ] Ownership audit table exported before any rollback (§4).
 - [ ] Schema drift checked: run `scripts/schema-check-readonly.js` on DEV (SELECT only) and compare with §8a (`ambassadors`, `contributors.approved_at`, `verification_codes.code` width).
 - [ ] `verification_codes.code` widened to VARCHAR(64) after review of `migrations/2026-11-05_widen_verification_codes.mysql.sql` (R7). Confirm first whether OTP sending currently fails on DEV.
-- [ ] Existing `email_queue` rows reviewed for plaintext OTP bodies (`SELECT id, recipient, subject, created_at FROM email_queue WHERE subject LIKE '%verification%' OR subject LIKE '%Verification%'`), then purged with approval.
+- [ ] Existing `email_queue` rows reviewed with `server/scripts/inspect-legacy-otp-queue.js` (aggregate output only). Purge remains on hold pending the additional wrong-environment guards, encrypted backup/restore proof, exact-row review and separate approval (§8b.7).
 - [x] OTP hash keyed with `OTP_HASH_SECRET` (R6): implemented; the operator must generate and set the value for DEV (§8b.1).
 - [ ] `OTP_HASH_SECRET` set for DEV and, separately, for production (generated on the host, never pasted into chat or Git).
 - [ ] MANUAL URL values and `needs_review` ownership rows decided by an admin (§4).
