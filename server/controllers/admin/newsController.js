@@ -25,7 +25,7 @@ const save = asyncHandler(async (req, res) => {
     id,
     title = '',
     excerpt = '',
-    content = '',
+    content: rawContent = '',
     date,
     image = '',
     image_alt = '',
@@ -40,6 +40,7 @@ const save = asyncHandler(async (req, res) => {
     cta_button_link = null,
     status: requestedStatus,
   } = data;
+  const content = sanitizeBlogHtml(rawContent);
 
   let slug = data.slug || '';
   if (!slug && title) {

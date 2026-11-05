@@ -34,7 +34,7 @@ const save = asyncHandler(async (req, res) => {
     id,
     title = '',
     excerpt = '',
-    content = '',
+    content: rawContent = '',
     date,
     image = '',
     image_alt = '',
@@ -56,6 +56,7 @@ const save = asyncHandler(async (req, res) => {
     send_notification_email = 0,
     status: requestedStatus,
   } = data;
+  const content = sanitizeBlogHtml(rawContent);
 
   const category = MODULE_CATEGORIES.includes(data.category) ? data.category : 'security-fundamentals';
 
