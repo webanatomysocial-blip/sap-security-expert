@@ -5,7 +5,7 @@ const OTPService = require('../services/OTPService');
 const MailService = require('../services/MailService');
 const NotificationService = require('../services/NotificationService');
 const repo = require('../repositories/otpRepository');
-const { revokeAccountSessions } = require('../services/sessionRevocation');
+const { revokeAccountSessions, ensureRevocationTable } = require('../services/sessionRevocation');
 
 const hashResetToken = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
 
@@ -70,10 +70,9 @@ const sendOtp = async (req, res) => {
 
     const ok = await mailService.send(db, email, subject, template, { name, code, year: new Date().getFullYear() });
     if (!ok) {
-      // SMTP failed — queue for retry so the user can still receive the code
-      await mailService.queueTransactional(db, email, subject,
-        `<p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 10 minutes.</p>`
-      );
+      // Not queued. A retry queue would keep this one-time code in plaintext in email_queue.
+      // Only its SHA-256 hash is stored, so an undelivered code is unusable: the user requests a new one.
+      console.error(`[otp] delivery failed for ${type} code; no retry is queued (code is not stored in plaintext)`);
     }
 
     return res.json({ status: 'success', message: 'If an account exists with this email, a verification code has been sent.' });
@@ -147,19 +146,34 @@ const resetWithToken = async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'Password must be 8–128 characters.' });
   }
 
+  // Token consumption, password change and session revocation are one transaction. If any step
+  // fails, the rollback restores the token, so a failed attempt never burns a valid link.
+  // Two simultaneous requests with the same token: the DELETE row-locks the token, the second
+  // request waits, then finds no row and is refused.
+  let inTx = false;
   try {
-    // Claim the token first, atomically: only one request can use it, even if two arrive at once.
+    // CREATE TABLE implicitly commits on MySQL/MariaDB, so the one-time table setup must run
+    // before the transaction opens, never inside it.
+    await ensureRevocationTable(db);
+    await db.beginTransaction();
+    inTx = true;
     const claimed = await repo.claimResetToken(db, email, hashResetToken(token));
-    if (!claimed) return res.status(400).json({ status: 'error', message: 'Invalid or expired reset token.' });
-
+    if (!claimed) {
+      await db.rollback();
+      inTx = false;
+      return res.status(400).json({ status: 'error', message: 'Invalid or expired reset token.' });
+    }
     const hash = await bcrypt.hash(password, 10);
     await repo.updateMemberPassword(db, email, hash);
     await repo.updateUserPassword(db, email, hash).catch(() => {});
     await revokeAccountSessions(db, email);
     await repo.deleteResetTokensByEmail(db, email);
+    await db.commit();
+    inTx = false;
 
     return res.json({ status: 'success', message: 'Password reset successfully.' });
   } catch (err) {
+    if (inTx) await db.rollback().catch(() => {});
     console.error('[reset-with-token]', err.message);
     return res.status(500).json({ status: 'error', message: 'Failed to reset password.' });
   }

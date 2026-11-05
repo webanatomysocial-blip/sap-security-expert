@@ -88,4 +88,4 @@ function enforceSessionRevocation(req, res, next) {
     });
 }
 
-module.exports = { revokeAccountSessions, revokeOtherSessions, isSessionRevoked, isMemberBlocked, enforceSessionRevocation, accountKeysForEmail, sessionKeys, resetTableCacheForTests: () => { tableReady = false; } };
+module.exports = { ensureRevocationTable: ensureTable, revokeAccountSessions, revokeOtherSessions, isSessionRevoked, isMemberBlocked, enforceSessionRevocation, accountKeysForEmail, sessionKeys, resetTableCacheForTests: () => { tableReady = false; } };
