@@ -51,7 +51,7 @@ const detectCurrency = asyncHandler(async (req, res) => {
   // If caller passes ?currency=USD, use that directly (manual selector override)
   const requested = typeof req.query.currency === 'string' ? req.query.currency.toUpperCase() : null;
   if (requested && requested !== 'INR') {
-    const converted = await currency.convertFromINR(100_00, requested);
+    const converted = await currency.convertFromINR(10000, requested);
     if (converted) {
       return res.json({ status: 'success', currency: requested, rate: converted.rate, decimals: converted.decimals });
     }
@@ -60,7 +60,7 @@ const detectCurrency = asyncHandler(async (req, res) => {
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress;
   const detected = await currency.detectCurrencyFromIp(ip);
   if (detected) {
-    const converted = await currency.convertFromINR(100_00, detected);
+    const converted = await currency.convertFromINR(10000, detected);
     if (converted) {
       return res.json({ status: 'success', currency: detected, rate: converted.rate, decimals: converted.decimals });
     }
@@ -132,7 +132,7 @@ function membershipEmailBuilder(member, paymentOrder, plan) {
       expires_on: fmtEmailDate(expires_at),
       amount: formatPaidAmount(paymentOrder),
       order_id: paymentOrder.razorpay_order_id,
-      extended: new Date(starts_at).getTime() > Date.now() + 60_000 ? 'yes' : '',
+      extended: new Date(starts_at).getTime() > Date.now() + 60000 ? 'yes' : '',
       account_url: `${siteUrl}/member/credits`,
     }),
   });
@@ -776,7 +776,7 @@ const downloadFile = async (req, res) => {
   const issueToken = () => {
     const token = crypto.randomBytes(24).toString('hex');
     if (!req.session.dl_tokens) req.session.dl_tokens = {};
-    req.session.dl_tokens[token] = { url: file_url, action: 'download', expires: Date.now() + 10 * 60_000 };
+    req.session.dl_tokens[token] = { url: file_url, action: 'download', expires: Date.now() + 10 * 60000 };
     return token;
   };
 

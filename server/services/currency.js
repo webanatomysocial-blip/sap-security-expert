@@ -32,7 +32,7 @@ function get(url) {
 }
 
 async function getRates() {
-  if (_rateCache.rates && Date.now() - _rateCache.fetchedAt < 3_600_000) {
+  if (_rateCache.rates && Date.now() - _rateCache.fetchedAt < 3600000) {
     return _rateCache.rates;
   }
   const json = await get('https://api.exchangerate-api.com/v4/latest/INR');

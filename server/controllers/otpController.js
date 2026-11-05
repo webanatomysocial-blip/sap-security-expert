@@ -6,6 +6,8 @@ const NotificationService = require('../services/NotificationService');
 const repo = require('../repositories/otpRepository');
 const { revokeAccountSessions } = require('../services/sessionRevocation');
 
+const hashResetToken = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
+
 // All five handlers below keep their original explicit try/catch (not
 // asyncHandler/next(err)): each one either forwards a deliberately safe,
 // specific error message from a service class (OTPService/MailService) as a
@@ -115,14 +117,16 @@ const forgotPassword = async (req, res) => {
 
     const token = crypto.randomBytes(32).toString('hex');
     const expiry = new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
-    await repo.upsertResetToken(db, email, token, expiry);
+    // Only a hash is stored; the emailed link carries the raw token.
+    await repo.upsertResetToken(db, email, hashResetToken(token), expiry);
 
     const siteUrl = (process.env.SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
     const resetUrl = `${siteUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
+    // Not awaited: sending time must not reveal whether the account exists.
     const mailService = MailService.getInstance();
     const notifier = new NotificationService(mailService, db);
-    await notifier.notifyPasswordReset(email, resetUrl);
+    notifier.notifyPasswordReset(email, resetUrl).catch((e) => console.error('[forgot-password] mail', e.message));
 
     return res.json({ status: 'success', message: 'If an account exists with this email, reset instructions have been sent.' });
   } catch (err) {
@@ -143,8 +147,9 @@ const resetWithToken = async (req, res) => {
   }
 
   try {
-    const tokenRow = await repo.findValidResetToken(db, email, token);
-    if (!tokenRow) return res.status(400).json({ status: 'error', message: 'Invalid or expired reset token.' });
+    // Claim the token first, atomically: only one request can use it, even if two arrive at once.
+    const claimed = await repo.claimResetToken(db, email, hashResetToken(token));
+    if (!claimed) return res.status(400).json({ status: 'error', message: 'Invalid or expired reset token.' });
 
     const hash = await bcrypt.hash(password, 10);
     await repo.updateMemberPassword(db, email, hash);

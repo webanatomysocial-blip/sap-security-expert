@@ -1,3 +1,4 @@
+const { revokeOtherSessions } = require('../../services/sessionRevocation');
 const bcrypt = require('bcryptjs');
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
@@ -55,6 +56,7 @@ const resetPassword = asyncHandler(async (req, res) => {
   const hash = await bcrypt.hash(new_password, 10);
   await repo.updatePassword(db, req.session.admin_id, hash);
   await repo.syncPasswordToMember(db, user.email, hash).catch(() => {});
+  await revokeOtherSessions(db, user.email, req.session);
 
   return sendSuccess(res, { message: 'Password changed successfully.' });
 });

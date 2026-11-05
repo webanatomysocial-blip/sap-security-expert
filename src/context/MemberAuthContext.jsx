@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { cacheableMember } from "../utils/memberCache";
 
+import { setCsrfToken, clearCsrfToken } from "../services/csrfStore";
 const MemberAuthContext = createContext(null);
 
 export const MemberAuthProvider = ({ children }) => {
@@ -63,7 +64,7 @@ export const MemberAuthProvider = ({ children }) => {
                 // added to member routes — without this, a missing token
                 // would 403 every change-password/profile-update/payment
                 // request until the member manually logs out and back in.
-                if (res.data.csrf_token) localStorage.setItem("csrf_token", res.data.csrf_token);
+                if (res.data.csrf_token) setCsrfToken(res.data.csrf_token);
               }
             })
             .catch((err) => {
@@ -87,7 +88,7 @@ export const MemberAuthProvider = ({ children }) => {
     localStorage.setItem("isContributor", isContrib ? "true" : "false");
     // Same key api.js reads for every request (admin or member) — lets member
     // mutating routes (profile update, payments) be CSRF-checked too.
-    if (csrfToken) localStorage.setItem("csrf_token", csrfToken);
+    if (csrfToken) setCsrfToken(csrfToken);
     // Fetch credits after login
     setTimeout(() => refreshCredits(), 200);
     // Claim LinkedIn share bonus if member shared before logging in
@@ -137,7 +138,7 @@ export const MemberAuthProvider = ({ children }) => {
     localStorage.removeItem("isContributor");
     localStorage.removeItem("memberCredits");
     localStorage.removeItem("memberUnlocks");
-    localStorage.removeItem("csrf_token");
+    clearCsrfToken();
     // Clearing local state alone leaves the server-side session (and its
     // connect.sid cookie) fully authenticated — any request made right after
     // "logging out" would still pass server-side member/premium checks.

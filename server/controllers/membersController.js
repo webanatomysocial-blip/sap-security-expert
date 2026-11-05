@@ -5,11 +5,14 @@ const OTPService = require('../services/OTPService');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const { regenerateSession } = require('../utils/session');
+const { revokeOtherSessions } = require('../services/sessionRevocation');
 const { cleanWebUrl } = require('../utils/sanitize');
 const { grantAndNotify, syncAchievementsInBackground } = require('../services/achievements');
 const repo = require('../repositories/membersRepository');
 
 // POST /api/member/login
+const DUMMY_BCRYPT_HASH = bcrypt.hashSync('timing-equaliser', 10);
+
 const login = async (req, res) => {
   const db = req.db;
   const { email: emailInput, password } = req.body || {};
@@ -38,6 +41,8 @@ const login = async (req, res) => {
     }
 
     if (!member && !user && !contributor) {
+      // Same bcrypt work as a real attempt, so timing doesn't reveal whether the account exists.
+      await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
       return res.status(401).json({ status: 'error', message: 'Invalid email/username or password.' });
     }
 
@@ -523,6 +528,9 @@ const changePassword = asyncHandler(async (req, res) => {
 
   // Sync to users table if contributor/admin account shares this email
   await repo.syncPasswordToUser(db, member.email, hash);
+
+  // Every other session of this account is ended; this one keeps working.
+  await revokeOtherSessions(db, member.email, req.session);
 
   return res.json({ status: 'success', message: 'Password changed successfully.' });
 });

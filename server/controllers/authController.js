@@ -20,6 +20,8 @@ const buildPermissions = (p) => p ? {
 // custom message ("Something went wrong while connecting to the system.")
 // which differs from the central handler's generic "Internal server error"
 // — centralizing it would silently change this response's exact text.
+const DUMMY_BCRYPT_HASH = bcrypt.hashSync('timing-equaliser', 10);
+
 const login = async (req, res) => {
   const db = req.db;
   const { username, password } = req.body || {};
@@ -45,6 +47,8 @@ const login = async (req, res) => {
     }
 
     const user = await repo.findUserByUsername(db, username);
+    // Same bcrypt work whether or not the account exists, so timing doesn't reveal it.
+    if (!user) await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
 
     if (user && await bcrypt.compare(password, user.password)) {
       if (user.role !== 'admin') {

@@ -125,7 +125,7 @@ router.post('/token', requireMemberAuth, requireCsrf, async (req, res) => {
   const token = crypto.randomBytes(24).toString('hex');
   if (!req.session.dl_tokens) req.session.dl_tokens = {};
   // view: 5 min expiry; download: 10 min expiry (per spec)
-  const expiry = tokenAction === 'view' ? 5 * 60_000 : 10 * 60_000;
+  const expiry = tokenAction === 'view' ? 5 * 60000 : 10 * 60000;
   req.session.dl_tokens[token] = { url: file_url, action: tokenAction, expires: Date.now() + expiry };
 
   return res.json({ status: 'success', token });

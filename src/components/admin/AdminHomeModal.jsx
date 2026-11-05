@@ -3,6 +3,7 @@ import { useToast } from "../../context/ToastContext";
 import { getAdminSettings, saveAdminSetting } from "../../services/api";
 import { compressImage } from "../../utils/compressImage";
 
+import { getCsrfToken } from "../../services/csrfStore";
 const empty = { enabled: false, image: "", button_text: "", button_link: "" };
 
 const AdminHomeModal = () => {
@@ -34,7 +35,7 @@ const AdminHomeModal = () => {
       const res = await fetch("/api/upload-ad-image", {
         method: "POST",
         credentials: "include",
-        headers: { "X-CSRF-Token": localStorage.getItem("csrf_token") || "" },
+        headers: { "X-CSRF-Token": getCsrfToken() || "" },
         body: fd,
       });
       const data = await res.json();

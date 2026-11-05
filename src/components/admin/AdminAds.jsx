@@ -8,6 +8,7 @@ import { useToast } from "../../context/ToastContext";
 import { getAds, saveAd, getAdminBlogAds, saveBlogAd, deleteBlogAd, toggleBlogAd, getAdminBlogSelectList } from "../../services/api";
 import { compressImage } from "../../utils/compressImage";
 
+import { getCsrfToken } from "../../services/csrfStore";
 const ZONE_ADS = [
   { id: "community_left",  label: "Community Page – Left Ad",  dimensions: "300×300 px" },
   { id: "community_right", label: "Community Page – Right Ad", dimensions: "300×300 px" },
@@ -107,7 +108,7 @@ export default function AdminAds() {
       const res = await fetch("/api/upload-ad-image", {
         method: "POST",
         credentials: "include",
-        headers: { "X-CSRF-Token": localStorage.getItem("csrf_token") || "" },
+        headers: { "X-CSRF-Token": getCsrfToken() || "" },
         body: fd,
       });
       const data = await res.json();
@@ -162,7 +163,7 @@ export default function AdminAds() {
       const res = await fetch("/api/upload-ad-image", {
         method: "POST",
         credentials: "include",
-        headers: { "X-CSRF-Token": localStorage.getItem("csrf_token") || "" },
+        headers: { "X-CSRF-Token": getCsrfToken() || "" },
         body: fd,
       });
       const data = await res.json();

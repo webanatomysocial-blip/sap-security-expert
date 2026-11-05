@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { api } from "../services/api";
 import { useLocation } from "react-router-dom";
 
+import { setCsrfToken, clearCsrfToken } from "../services/csrfStore";
 /**
  * AuthContext — provides { user, role, permissions, isAuthenticated, setAuth, clearAuth }
  * to all admin components without prop drilling.
@@ -79,7 +80,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("userRole", role || "admin");
     localStorage.setItem("userPermissions", JSON.stringify(permissions || {}));
     if (csrf_token) {
-      localStorage.setItem("csrf_token", csrf_token);
+      setCsrfToken(csrf_token);
     }
   };
 
@@ -92,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("adminUser");
     localStorage.removeItem("userRole");
     localStorage.removeItem("userPermissions");
-    localStorage.removeItem("csrf_token");
+    clearCsrfToken();
     // Clearing local state alone leaves the server-side session (and its
     // connect.sid cookie) fully authenticated — must destroy it server-side too.
     api.post('/logout').catch(() => {});

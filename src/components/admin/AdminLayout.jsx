@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { api as axios } from "../../services/api";
+import { setCsrfToken } from "../../services/csrfStore";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar.jsx";
 import ContributorDashboard from "./ContributorDashboard";
@@ -120,9 +121,9 @@ const AdminLayout = () => {
       const res = await getAdminProfile();
       if (isMounted.current && res.data.status === "success") {
         setAdminData(res.data.user);
-        // Keep localStorage CSRF token in sync with the live session token
+        // Keep the in-memory CSRF token in sync with the live session token
         if (res.data.csrf_token) {
-          localStorage.setItem("csrf_token", res.data.csrf_token);
+          setCsrfToken(res.data.csrf_token);
         }
       }
     } catch (err) {

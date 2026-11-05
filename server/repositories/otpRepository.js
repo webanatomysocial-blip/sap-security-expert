@@ -56,11 +56,21 @@ async function updateUserPassword(db, email, hash) {
   await db.execute('UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)', [hash, email]);
 }
 
+// Atomically removes a valid, unexpired token row. True only for the single request that won.
+async function claimResetToken(db, email, tokenHash) {
+  const [res] = await db.execute(
+    'DELETE FROM password_reset_tokens WHERE LOWER(email) = LOWER(?) AND token = ? AND expires_at >= NOW()',
+    [email, tokenHash]
+  );
+  return (res?.affectedRows || 0) === 1;
+}
+
 async function deleteResetTokensByEmail(db, email) {
   await db.execute('DELETE FROM password_reset_tokens WHERE LOWER(email) = LOWER(?)', [email]);
 }
 
 module.exports = {
+  claimResetToken,
   findMemberStatusByEmail, findActiveMemberByEmail, findActiveUserByEmail,
   findMemberNameByEmail, findUserNameByEmail, findMemberIdAndNameByEmail, findActiveUserIdAndNameByEmail,
   upsertResetToken, findValidResetToken, updateMemberPassword, updateUserPassword, deleteResetTokensByEmail,

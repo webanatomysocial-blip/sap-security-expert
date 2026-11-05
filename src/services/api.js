@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { VITE_API_URL } from '../utils/env';
 
+import { getCsrfToken } from "./csrfStore";
 const API_URL = VITE_API_URL;
 
 export const api = axios.create({
@@ -27,7 +28,7 @@ api.interceptors.response.use(
 
 // CSRF token injector for all mutating requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('csrf_token');
+  const token = getCsrfToken();
 
   if (token && config.method !== 'get') {
     // Inject into headers for normal JSON requests

@@ -2,6 +2,8 @@
  * OTP generation and verification.
  * All datetime logic is DB-native.
  */
+const hashOtp = (c) => require('crypto').createHash('sha256').update(String(c)).digest('hex');
+
 class OTPService {
   constructor(db) {
     this.db = db;
@@ -20,7 +22,7 @@ class OTPService {
     await this.db.execute(
       `INSERT INTO verification_codes (email, code, type, ip_address, expires_at)
        VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ${this.expiryMinutes} MINUTE))`,
-      [email, code, type, ipAddress]
+      [email, hashOtp(code), type, ipAddress]
     );
 
     return code;
@@ -51,7 +53,7 @@ class OTPService {
 
     const [matchRows] = await this.db.execute(
       'SELECT id FROM verification_codes WHERE id = ? AND code = ?',
-      [record.id, code]
+      [record.id, hashOtp(code)]
     );
 
     if (matchRows.length) {
@@ -100,3 +102,4 @@ class OTPService {
 }
 
 module.exports = OTPService;
+module.exports.hashOtp = hashOtp;

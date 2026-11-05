@@ -20,6 +20,7 @@ async function accountKeysForEmail(db, email) {
   return keys;
 }
 
+// Ends every session of the account started before now. Returns the revocation time.
 async function revokeAccountSessions(db, email) {
   await ensureTable(db);
   const now = Date.now();
@@ -27,6 +28,15 @@ async function revokeAccountSessions(db, email) {
     await db.execute(`DELETE FROM ${TABLE} WHERE account_key = ?`, [key]);
     await db.execute(`INSERT INTO ${TABLE} (account_key, revoked_at) VALUES (?, ?)`, [key, now]);
   }
+  return now;
+}
+
+// Used by a password change: ends the account's other sessions but keeps the
+// session that made the change working.
+async function revokeOtherSessions(db, email, sess) {
+  const ts = await revokeAccountSessions(db, email);
+  if (sess) sess.issued_at = ts + 1;
+  return ts;
 }
 
 function sessionKeys(sess) {
@@ -65,4 +75,4 @@ function enforceSessionRevocation(req, res, next) {
     });
 }
 
-module.exports = { revokeAccountSessions, isSessionRevoked, enforceSessionRevocation, accountKeysForEmail, sessionKeys, resetTableCacheForTests: () => { tableReady = false; } };
+module.exports = { revokeAccountSessions, revokeOtherSessions, isSessionRevoked, enforceSessionRevocation, accountKeysForEmail, sessionKeys, resetTableCacheForTests: () => { tableReady = false; } };

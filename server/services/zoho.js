@@ -19,7 +19,7 @@ const ORG_ID    = () => process.env.ZOHO_ORG_ID || '';
 let _tokenCache = { token: null, expiresAt: 0 };
 
 async function getAccessToken() {
-  if (_tokenCache.token && Date.now() < _tokenCache.expiresAt - 60_000) {
+  if (_tokenCache.token && Date.now() < _tokenCache.expiresAt - 60000) {
     return _tokenCache.token;
   }
   const params = new URLSearchParams({
@@ -63,9 +63,6 @@ function request(method, url, token, bodyStr, contentType = 'application/json') 
   });
 }
 
-function apiGet(path, token) {
-  return request('GET', `${API_BASE}${path}?organization_id=${ORG_ID()}`, token);
-}
 function apiPost(path, token, payload) {
   return request('POST', `${API_BASE}${path}?organization_id=${ORG_ID()}`, token, JSON.stringify(payload));
 }
