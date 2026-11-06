@@ -2,8 +2,6 @@ export const LINKS = {
   sapSecurityExpert: "https://www.sapsecurityexpert.com",
   ssePodcasts: "https://sapsecurityexpert.com/podcasts",
   sseRecommendations: "https://sapsecurityexpert.com/expert-recommendations",
-  sse2015Model:
-    "https://sapsecurityexpert.com/expert-recommendations/sap-security-2015-model-already-behind",
   toggleNow: "https://www.togglenow.com",
   toggleNowSolutions: "https://togglenow.com/solutions/",
   automationStories: "https://togglenow.com/automation-stories/",
@@ -25,8 +23,6 @@ export const SECTIONS = [
   { id: "overview", label: "Overview" },
   { id: "expertise", label: "Expertise" },
   { id: "books", label: "Books" },
-  { id: "secops", label: "SecOps" },
-  { id: "research", label: "Research" },
   { id: "speaking", label: "Speaking" },
   { id: "togglenow", label: "ToggleNow" },
   { id: "viewpoint", label: "Viewpoint" },
@@ -159,70 +155,41 @@ export const BOOKS = [
   },
 ];
 
-export const CERTIFICATIONS = [
-  { code: "CISA", name: "Certified Information Systems Auditor" },
-  { code: "CFE", name: "Certified Fraud Examiner" },
-  { code: "CDPSE", name: "Certified Data Privacy Solutions Engineer" },
-  { code: "SAP Certified", name: "SAP Certified Security Professional" },
-  { code: "SAP GRC", name: "SAP GRC Associate" },
-  { code: "ITIL V3", name: "IT service management foundation" },
-  { code: "PRINCE2", name: "Foundation PRINCE2" },
-  { code: "Security+", name: "CompTIA Security+" },
-];
-
-export const RESEARCH_TOPICS = [
-  "Evolution of SAP Security",
-  "Digital access risk",
-  "SAP SecOps",
-  "Continuous access governance",
-  "SAP security vulnerabilities",
-  "Access and SoD management",
-  "Modernization of SAP GRC",
-  "Security in SAP",
-  "Enterprise AI agent authorizations",
-  "Non-human identities",
-  "SAP Data Protection",
-  "Audit trail and statutory requirements",
-  "Security Automation",
-  "Cloud-based SAP security",
-];
-
 export const ARTICLE_CATEGORIES = [
   {
     category: "SAP Security",
     description:
       "Authorization design, security assessments, security parameters, SAP S/4HANA security and modern SAP security architecture.",
+    href: "/sap-security",
+    cta: "Browse SAP Security",
   },
   {
     category: "SAP GRC",
     description:
       "Access Control, SoD, User Access Reviews, Emergency Access Management and GRC upgrade.",
+    href: "/sap-grc",
+    cta: "Browse SAP GRC",
   },
   {
     category: "SAP Cybersecurity",
     description:
       "Threat monitoring, data protection, security operations and the SAP threat landscape.",
+    href: "/sap-cybersecurity",
+    cta: "Browse SAP Cybersecurity",
   },
   {
     category: "SAP AI & Security",
     description:
       "AI agents, automation, non-human identities and the security implications of linking AI systems to enterprise applications.",
+    href: "/blogs",
+    cta: "Browse all articles",
   },
   {
     category: "Audit & Compliance",
     description: "SAP audit trails, regulatory requirements, controls and readiness for audit.",
+    href: "/learning/audit-compliance",
+    cta: "Open the audit module",
   },
-];
-
-export const PODCAST_TOPICS = [
-  "Cybersecurity for SAP",
-  "SAP Security Evolution",
-  "GRC",
-  "Security and AI",
-  "Automation",
-  "Risk Enterprise",
-  "Leadership",
-  "The future of SAP Security",
 ];
 
 export const SPEAKING_CHANNELS = [
@@ -245,16 +212,4 @@ export const VIEWPOINT_QUESTIONS = [
   "Is the activity detectable?",
   "Is control on ongoing surveillance?",
   "Is there a way to automate, but keep the human accountable?",
-];
-
-export const MODERN_LANDSCAPE = [
-  "Human identities",
-  "Non-human identities",
-  "S/4HANA",
-  "Fiori",
-  "APIs",
-  "BTP",
-  "Integrations",
-  "Automation",
-  "AI Agents",
 ];

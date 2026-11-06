@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import SEO from "../components/SEO";
 import { VITE_SITE_URL } from "../utils/env";
 import {
   LuAward, LuBookOpen, LuClock, LuPlay, LuShieldCheck, LuUsers, LuX,
 } from "react-icons/lu";
 import {
-  ARTICLE_CATEGORIES, AUDIT_MATRIX, BOOKS, CERTIFICATIONS, EXPERTISE, LINKS,
-  MODERN_LANDSCAPE, PODCAST_TOPICS, RESEARCH_TOPICS, SECTIONS, SPEAKING_CHANNELS,
+  ARTICLE_CATEGORIES, AUDIT_MATRIX, BOOKS, EXPERTISE, LINKS,
+  SECTIONS, SPEAKING_CHANNELS,
   TRUST, VIEWPOINT_QUESTIONS,
 } from "../constants/raghuBoddu";
 import "../css/ExpertRaghuBoddu.css";
@@ -72,10 +73,9 @@ function Reveal({ children, delay = 0, className = "", as = "div", style }) {
 
 function EyebrowPill({ text }) {
   return (
-    <div className="rb-eyebrow-pill">
-      <span className="rb-eyebrow-pill-dot" />
+    <p className="rb-eyebrow-pill">
       <span className="rb-eyebrow-pill-text">{text}</span>
-    </div>
+    </p>
   );
 }
 
@@ -215,9 +215,6 @@ export default function ExpertRaghuBoddu() {
           <AuditRisk />
           <Books />
           <Training />
-          <Certifications />
-          <SecOps />
-          <Research />
           <Articles />
           <Podcasts />
           <Speaking />
@@ -560,194 +557,6 @@ function Training() {
   );
 }
 
-function Certifications() {
-  const stack1 = CERTIFICATIONS.slice(0, 4);
-  const stack2 = CERTIFICATIONS.slice(4, 8);
-  return (
-    <Section id="certifications" tone="muted">
-      <SectionHeader eyebrow="Credentials" title="Professional Qualifications & Certifications" />
-      <div className="rb-cert-grid">
-        {[stack1, stack2].map((stack, si) => (
-          <ul className="rb-cert-list" key={si}>
-            {stack.map((c, i) => (
-              <Reveal as="li" key={c.code} delay={(i + si * 4) * 50}>
-                <div className="rb-cert-code">
-                  <span className="rb-dot" />
-                  <span>{c.code}</span>
-                </div>
-                <span>{c.name}</span>
-              </Reveal>
-            ))}
-          </ul>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-/* -------------------------------------------------------------- SecOps */
-
-function SecOps() {
-  return (
-    <Section id="secops">
-      <SectionHeader
-        eyebrow="Signature thinking"
-        title="From SAP Security to SAP SecOps"
-        intro="Classic SAP Security was largely static, focused on users, roles, and periodic audits. Modern enterprise landscapes demand a transition to continuous, real-time SAP SecOps."
-      />
-
-      <div className="rb-secops-grid">
-        <Reveal delay={60} className="rb-model-card">
-          <div className="rb-model-head">
-            <div>
-              <p className="rb-eyebrow" style={{ color: "var(--rb-text-muted)" }}>Traditional Model</p>
-              <h3>Classic SAP Security</h3>
-            </div>
-            <span className="rb-model-tag">Static · Periodic</span>
-          </div>
-          <p className="rb-model-desc">
-            Built primarily around static role provisioning, standard authorization profiles, and
-            periodic manual governance reviews.
-          </p>
-          <div>
-            <p className="rb-eyebrow rb-pipeline-label">Authorization Pipeline</p>
-            <div className="rb-pipeline-grid">
-              {["Users", "Roles", "Authorizations", "Transactions"].map((s, i) => (
-                <div className="rb-pipeline-step" key={s}>
-                  <span>0{i + 1}</span>
-                  <span>{s}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="rb-model-footer">
-            <p>Focus: Entitlement assignment &amp; quarterly box-ticking compliance.</p>
-          </div>
-        </Reveal>
-
-        <Reveal delay={120} className="rb-model-card rb-model-card--modern">
-          <div className="rb-model-head">
-            <div>
-              <EyebrowPill text="Modern Paradigm" />
-              <h3>SAP SecOps Landscape</h3>
-            </div>
-            <span className="rb-model-tag rb-model-tag--active"><span className="rb-eyebrow-pill-dot" />Continuous · Telemetry</span>
-          </div>
-          <p className="rb-model-desc">
-            Encompasses human and non-human identities across hybrid cloud fabrics, orchestrated
-            automations, and live risk monitoring.
-          </p>
-          <div>
-            <p className="rb-eyebrow rb-pipeline-label">Ecosystem Vectors</p>
-            <div className="rb-tag-chip-row">
-              {MODERN_LANDSCAPE.map((m) => <span className="rb-tag-chip" key={m}>{m}</span>)}
-            </div>
-          </div>
-          <div className="rb-model-footer">
-            <p><strong style={{ color: "#0f172a" }}>Focus:</strong>{" "}
-              <span style={{ color: "var(--rb-text-secondary)" }}>Pervasive visibility, live threat detection &amp; human oversight.</span>
-            </p>
-          </div>
-        </Reveal>
-      </div>
-
-      <Reveal delay={160} className="rb-formula-banner">
-        <div className="rb-formula-intro">
-          <EyebrowPill text="The Core Analytical Framework" />
-          <h3 className="rb-formula-title">The "Can Do" vs. "Did Do" Duality</h3>
-          <p className="rb-formula-desc">
-            Raghu's foundational methodology asserts that knowing what an identity is permitted to do
-            is insufficient without analyzing what that identity actually performs.
-          </p>
-        </div>
-
-        <div className="rb-cando-grid">
-          <Reveal delay={80} className="rb-cando-card">
-            <div className="rb-cando-tag-row">
-              <span className="rb-cando-tag"><span className="rb-eyebrow-pill-dot" />Entitlement State</span>
-              <span className="rb-cando-meta">Static Analysis</span>
-            </div>
-            <h4>Can Do</h4>
-            <p className="rb-cando-quote">"What can this identity technically execute?"</p>
-            <p className="rb-cando-desc">
-              Evaluates assigned roles, transaction authorizations, and Segregation of Duties (SoD)
-              permissions configured in SAP GRC and identity governance repositories.
-            </p>
-          </Reveal>
-          <Reveal delay={160} className="rb-cando-card">
-            <div className="rb-cando-tag-row">
-              <span className="rb-cando-tag"><span className="rb-eyebrow-pill-dot" />Runtime Activity</span>
-              <span className="rb-cando-meta">Dynamic Telemetry</span>
-            </div>
-            <h4>Did Do</h4>
-            <p className="rb-cando-quote">"What did the identity actually perform?"</p>
-            <p className="rb-cando-desc">
-              Captures audit logs, transaction executions, database queries, and behavioral anomalies
-              to verify if potential access was actually exercised.
-            </p>
-          </Reveal>
-        </div>
-
-        <Reveal delay={240} className="rb-formula-row">
-          <div className="rb-formula-boxes">
-            <span className="rb-formula-box">Can Do</span>
-            <span className="rb-formula-plus">+</span>
-            <span className="rb-formula-box">Did Do</span>
-            <span className="rb-formula-goesto">&#10132;</span>
-            <span className="rb-formula-box rb-formula-box--result">Security Context</span>
-          </div>
-          <p className="rb-formula-note">
-            Continuous correlation enables proactive incident containment rather than retrospective
-            audits.
-          </p>
-        </Reveal>
-      </Reveal>
-    </Section>
-  );
-}
-
-/* ------------------------------------------------------------ Research */
-
-function Research() {
-  const mid = Math.ceil(RESEARCH_TOPICS.length / 2);
-  const col1 = RESEARCH_TOPICS.slice(0, mid);
-  const col2 = RESEARCH_TOPICS.slice(mid);
-
-  return (
-    <Section id="research" tone="muted">
-      <SectionHeader
-        eyebrow="Insights"
-        title="Research & Expert Insights"
-        intro="Raghu writes on emerging issues in SAP Security, GRC and enterprise cyber security, with particular interest in areas where traditional security models are challenged by changing technology."
-      />
-      <div className="rb-link-grid">
-        {[col1, col2].map((col, ci) => (
-          <ul className="rb-link-list" key={ci}>
-            {col.map((t, i) => (
-              <Reveal as="li" key={t} delay={(i + ci * mid) * 30}>
-                <div className="rb-link-row">
-                  <span>{t}</span>
-                </div>
-              </Reveal>
-            ))}
-          </ul>
-        ))}
-      </div>
-
-      <Reveal delay={100} className="rb-recommendation-card">
-        <EyebrowPill text="Expert Recommendation" />
-        <h3>SAP Security 2015 model already behind</h3>
-        <p>
-          In his latest SAP Security Expert work, Raghu states that the traditional security model
-          from 2015 is no longer sufficient for the current SAP landscape, where Fiori, BTP, APIs,
-          automation and AI open up additional access paths and identities.
-        </p>
-        <ExtLink href={LINKS.sse2015Model}>Read Expert Recommendation</ExtLink>
-      </Reveal>
-    </Section>
-  );
-}
-
 function Articles() {
   return (
     <Section id="articles">
@@ -761,6 +570,10 @@ function Articles() {
           <Reveal as="article" key={a.category} delay={i * 60} className="rb-article-card">
             <p>{a.category}</p>
             <p>{a.description}</p>
+            <Link to={a.href} className="rb-ext-link">
+              <span>{a.cta}</span>
+              <Arrow />
+            </Link>
           </Reveal>
         ))}
       </div>
@@ -773,9 +586,6 @@ function Articles() {
 }
 
 function Podcasts() {
-  const mid = Math.ceil(PODCAST_TOPICS.length / 2);
-  const col1 = PODCAST_TOPICS.slice(0, mid);
-  const col2 = PODCAST_TOPICS.slice(mid);
   return (
     <Section id="podcasts" tone="muted">
       <SectionHeader
@@ -783,23 +593,13 @@ function Podcasts() {
         title="Podcasts & Discussions"
         intro="Raghu joins conversations with SAP Security, GRC, cybersecurity and technology professionals."
       />
-      <div className="rb-link-grid">
-        {[col1, col2].map((col, ci) => (
-          <ul className="rb-link-list rb-podcast-list" key={ci}>
-            {col.map((p, i) => (
-              <Reveal as="li" key={p} delay={(i + ci * mid) * 40}>
-                <div className="rb-link-row">
-                  <span>
-                    <span className="rb-podcast-kicker"><span className="rb-dot" />Podcast / Discussion</span>
-                    <span className="rb-podcast-title">{p}</span>
-                  </span>
-                </div>
-              </Reveal>
-            ))}
-          </ul>
-        ))}
-      </div>
-      <Reveal delay={80} style={{ marginTop: 32 }}>
+      <Reveal delay={60}>
+        <p className="rb-podcast-desc">
+          Raghu's podcast and panel discussions cover the evolution of SAP security, GRC, security and AI,
+          automation, enterprise risk, leadership and the future of SAP security.
+        </p>
+      </Reveal>
+      <Reveal delay={100} style={{ marginTop: 32 }}>
         <ExtLink href={LINKS.ssePodcasts}>SAP Security Expert Podcasts</ExtLink>
       </Reveal>
     </Section>
