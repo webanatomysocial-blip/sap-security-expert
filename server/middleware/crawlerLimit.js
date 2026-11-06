@@ -3,7 +3,9 @@
 // Limits are per client IP, using the same file-based limiter as the other endpoints.
 const { rateLimit } = require('./rateLimit');
 
-const CRAWLER_UA = /bot|crawl|spider|slurp|yandex|baidu|semrush|ahrefs|mj12|dotbot|petalbot|bytespider|gptbot|claudebot|facebookexternalhit|headlesschrome|python-requests|go-http-client|curl\//i;
+// Named crawlers and scrapers only. Generic tools (curl, python, Go clients) are not matched, so
+// monitoring and integrations that identify themselves as tools are not throttled.
+const CRAWLER_UA = /bot|crawl|spider|slurp|yandex|baidu|semrush|ahrefs|mj12|dotbot|petalbot|bytespider|gptbot|claudebot|facebookexternalhit/i;
 const limiter = rateLimit('crawler', 90, 60); // 90 requests per minute per IP for crawlers
 
 module.exports = function crawlerLimit(req, res, next) {
