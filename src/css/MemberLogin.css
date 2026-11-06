@@ -478,6 +478,20 @@
   }
 }
 
+/* Tablet: the stacked layout places the form low on the screen, so tighten the spacing above it.
+   This keeps the password field and Remember me row clear of the bottom cookie banner on first load. */
+@media (min-width: 600px) and (max-width: 991px) {
+  .login-page-container {
+    padding-top: 24px;
+  }
+  .login-split-grid {
+    gap: 24px;
+  }
+  .login-card-form {
+    padding: 32px;
+  }
+}
+
 @media (max-width: 575px) {
   .login-card-form {
     padding: 32px 24px;
