@@ -61,3 +61,5 @@ server/logs/*.log
 
 #claude code  readme
 CLAUDE.md
+# Local-only test suites: kept on disk, never committed or pushed
+server/tests/
