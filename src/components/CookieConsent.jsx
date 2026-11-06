@@ -34,7 +34,7 @@ export default function CookieConsent() {
     apply();
     const ro = typeof ResizeObserver !== "undefined" && bannerRef.current ? new ResizeObserver(apply) : null;
     if (ro && bannerRef.current) ro.observe(bannerRef.current);
-    root.style.scrollPaddingBottom = "var(--cc-banner-h)";
+    root.style.scrollPaddingBottom = "calc(var(--cc-banner-h) + 16px)"; // keep focused controls clear of the banner edge
     return () => {
       if (ro) ro.disconnect();
       root.style.removeProperty("scroll-padding-bottom");
@@ -83,11 +83,33 @@ export default function CookieConsent() {
           boxShadow: "0 -4px 40px rgba(0,0,0,0.14)",
           maxWidth: 510,
           width: "100%",
-          padding: narrow ? "20px 18px 16px" : "28px 28px 24px",
+          padding: narrow ? (customize ? "16px 16px 14px" : "12px 12px") : "28px 28px 24px",
+          maxHeight: narrow && customize ? "70vh" : undefined,
+          overflowY: narrow && customize ? "auto" : undefined,
           animation: "ccSlideUp 0.4s cubic-bezier(0.16,1,0.3,1)",
         }}
       >
-        {!customize ? (
+        {!customize && narrow ? (
+          // Compact bar for narrow screens: one row, so the banner covers as little of the page as possible.
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <p style={{ margin: 0, flex: 1, minWidth: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.35 }}>
+              We use cookies to improve your experience.{" "}
+              <Link to="/privacy-policy" style={{ color: "#ee5e42", textDecoration: "underline" }}>Privacy Policy</Link>
+            </p>
+            <button
+              onClick={() => setCustomize(true)}
+              style={{ padding: "7px 10px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#f8fafc", color: "#475569", fontWeight: 600, fontSize: "0.78rem", cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              Customize
+            </button>
+            <button
+              onClick={acceptAll}
+              style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "#ee5e42", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              Accept All
+            </button>
+          </div>
+        ) : !customize ? (
           <>
             <div style={{ display: "flex", alignItems: "flex-start", gap: narrow ? 10 : 14, marginBottom: narrow ? 10 : 18 }}>
               {!narrow && <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>🍪</span>}
