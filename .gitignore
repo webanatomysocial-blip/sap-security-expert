@@ -63,3 +63,5 @@ server/logs/*.log
 CLAUDE.md
 # Local-only test suites: kept on disk, never committed or pushed
 server/tests/
+# Full database dump with personal data: local copy only, never committed
+server/migrations/schema.sql
