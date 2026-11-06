@@ -61,6 +61,8 @@ app.set('trust proxy', 1);
 app.use(compression());
 
 // Short cache for logged-out GETs of public data; cleared on any write.
+// Crawler rate limit runs before the micro-cache and any database work.
+app.use(require('./middleware/crawlerLimit'));
 app.use('/api', require('./middleware/microCache').microCache);
 
 // CORS — allow the production domain + optional extra origin for split-server setups.
