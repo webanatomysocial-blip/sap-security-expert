@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { useToast } from "../../context/ToastContext";
 import TableScrollContainer from "./TableScrollContainer";
 import ActionMenu from "./ActionMenu";
-import { LuX, LuPlus, LuCalendarCheck } from "react-icons/lu";
+import { LuPlus } from "react-icons/lu";
+import PlanEditModal from "./PlanEditModal";
 import { getAdminMembershipPlans, saveMembershipPlan, getAdminSubscriptions } from "../../services/api";
 
 const EMPTY_PLAN = { id: null, name: "", duration_days: "", price_rupees: "", description: "", is_active: 1 };
@@ -169,63 +169,8 @@ export default function AdminMembershipPlans() {
         </TableScrollContainer>
       </div>
 
-      {form && createPortal(
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setForm(null)}>
-          <div className="modal-container" style={{ maxWidth: 480 }}>
-            <div className="modal-header">
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ padding: 10, background: "#f0fdf4", borderRadius: 10 }}>
-                  <LuCalendarCheck size={20} style={{ color: "#15803d" }} />
-                </div>
-                <h3 style={{ margin: 0 }}>{form.id ? "Edit Plan" : "New Membership Plan"}</h3>
-              </div>
-              <button className="modal-close-btn" onClick={() => setForm(null)}><LuX size={20} /></button>
-            </div>
-            <div className="modal-body" data-lenis-prevent="true">
-              <div className="form-group">
-                <label className="form-label">Plan Name <span style={{ color: "#dc2626" }}>*</span></label>
-                <input className="form-control" placeholder="e.g. 1 Year" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} style={errors.name ? { borderColor: "#dc2626" } : {}} />
-                {errors.name && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.name}</p>}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-                <div className="form-group">
-                  <label className="form-label">Duration (days) <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input className="form-control" type="number" min="1" placeholder="e.g. 365" value={form.duration_days} onChange={(e) => setForm((p) => ({ ...p, duration_days: e.target.value }))} style={errors.duration_days ? { borderColor: "#dc2626" } : {}} />
-                  {errors.duration_days && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.duration_days}</p>}
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Price (₹) <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input className="form-control" type="number" min="1" placeholder="e.g. 3999" value={form.price_rupees} onChange={(e) => setForm((p) => ({ ...p, price_rupees: e.target.value }))} style={errors.price_rupees ? { borderColor: "#dc2626" } : {}} />
-                  {errors.price_rupees && <p style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.price_rupees}</p>}
-                </div>
-              </div>
-              <div className="form-group" style={{ marginTop: 16 }}>
-                <label className="form-label">Description</label>
-                <input className="form-control" placeholder="Shown to members" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
-              </div>
-              {form.id && (
-                <div className="form-group" style={{ marginTop: 16 }}>
-                  <label className="form-label">Status</label>
-                  <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
-                    {[{ v: 1, label: "Active" }, { v: 0, label: "Inactive" }].map(({ v, label }) => (
-                      <label key={v} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 14 }}>
-                        <input type="radio" name="plan_status" checked={form.is_active === v} onChange={() => setForm((p) => ({ ...p, is_active: v }))} />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer" style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid var(--slate-100)", padding: "14px 24px" }}>
-              <button className="btn-secondary" onClick={() => setForm(null)} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--slate-200)", background: "white", fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: "8px 20px", borderRadius: 8, opacity: saving ? 0.7 : 1 }}>
-                {saving ? "Saving…" : form.id ? "Update Plan" : "Create Plan"}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
+      {form && (
+        <PlanEditModal form={form} setForm={setForm} errors={errors} saving={saving} onClose={() => setForm(null)} onSave={handleSave} />
       )}
     </>
   );
