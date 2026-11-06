@@ -1,3 +1,7 @@
+// Generated per request from the live API. Prerendering at build time would fetch the API
+// before it is running and bake an incomplete sitemap/llms.txt into the build.
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
