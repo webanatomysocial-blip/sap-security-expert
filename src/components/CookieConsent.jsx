@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { hasConsentDecision, setConsent } from "../services/consentManager";
@@ -9,6 +9,38 @@ export default function CookieConsent() {
   const [visible, setVisible] = useState(false);
   const [customize, setCustomize] = useState(false);
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
+  const [narrow, setNarrow] = useState(false);
+  const bannerRef = useRef(null);
+
+  // Below 992px the banner sits over the bottom of the page, so track that breakpoint and the
+  // banner's height. Desktop never reads these values and keeps its original layout.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 991px)");
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  // While the banner is shown on narrow screens: publish its height, reserve that space at the
+  // bottom of the page, and make focused or scrolled-to controls land above it.
+  useEffect(() => {
+    if (!visible || !narrow) return undefined;
+    const root = document.documentElement;
+    const apply = () => {
+      const h = bannerRef.current ? bannerRef.current.getBoundingClientRect().height : 0;
+      root.style.setProperty("--cc-banner-h", `${Math.ceil(h)}px`);
+    };
+    apply();
+    const ro = typeof ResizeObserver !== "undefined" && bannerRef.current ? new ResizeObserver(apply) : null;
+    if (ro && bannerRef.current) ro.observe(bannerRef.current);
+    root.style.scrollPaddingBottom = "var(--cc-banner-h)";
+    return () => {
+      if (ro) ro.disconnect();
+      root.style.removeProperty("scroll-padding-bottom");
+      root.style.removeProperty("--cc-banner-h");
+    };
+  }, [visible, narrow, customize]);
 
   useEffect(() => {
     if (!hasConsentDecision()) {
@@ -32,12 +64,15 @@ export default function CookieConsent() {
   if (!visible) return null;
 
   return createPortal(
+    <>
+    {narrow ? <div aria-hidden="true" style={{ height: "var(--cc-banner-h, 0px)" }} /> : null}
     <div
+      ref={bannerRef}
       style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
         zIndex: 99999,
         display: "flex", alignItems: "flex-end", justifyContent: "start",
-        padding: "0 16px 24px",
+        padding: narrow ? "0 8px 8px" : "0 16px 24px",
         animation: "ccFadeIn 0.35s ease",
       }}
     >
@@ -48,17 +83,17 @@ export default function CookieConsent() {
           boxShadow: "0 -4px 40px rgba(0,0,0,0.14)",
           maxWidth: 510,
           width: "100%",
-          padding: "28px 28px 24px",
+          padding: narrow ? "20px 18px 16px" : "28px 28px 24px",
           animation: "ccSlideUp 0.4s cubic-bezier(0.16,1,0.3,1)",
         }}
       >
         {!customize ? (
           <>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 18 }}>
-              <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>🍪</span>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: narrow ? 10 : 14, marginBottom: narrow ? 10 : 18 }}>
+              {!narrow && <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>🍪</span>}
               <div>
                 <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1e293b" }}>We use cookies</h3>
-                <p style={{ margin: "6px 0 0", fontSize: "0.875rem", color: "#475569", lineHeight: 1.6 }}>
+                <p style={{ margin: "6px 0 0", fontSize: "0.875rem", color: "#475569", lineHeight: narrow ? 1.45 : 1.6 }}>
                   We use cookies to improve your experience, remember your preferences, and analyze website usage.
                   See our{" "}
                   <Link to="/privacy-policy" style={{ color: "#ee5e42", textDecoration: "underline" }}>Privacy Policy</Link>
@@ -150,7 +185,8 @@ export default function CookieConsent() {
         @keyframes ccFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes ccSlideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       `}</style>
-    </div>,
+    </div>
+    </>,
     document.body
   );
 }

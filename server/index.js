@@ -357,6 +357,14 @@ app.use('/api', (req, res) => {
 // Must be 4-argument to be recognised as an error handler by Express.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  // Malformed JSON bodies are routine client input, not server faults. Answer with a controlled
+  // 400 and one short log line: no stack trace and no parser detail. Everything else is logged
+  // in full below.
+  if (err && (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && err.status === 400))) {
+    console.warn(`[Request] Malformed JSON rejected: ${req.method} ${require('./utils/logSafe').redactUrl(req.originalUrl || req.path)}`);
+    if (!res.headersSent) res.status(400).json({ status: 'error', message: 'Malformed request body.' });
+    return;
+  }
   const status = err.status || err.statusCode || 500;
 
   // Single standardized log format — the only place a real error is ever
