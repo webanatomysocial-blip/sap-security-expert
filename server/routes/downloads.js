@@ -20,6 +20,10 @@ function resolvePath(fileUrl) {
     return path.join(PRIVATE_DIR, filename);
   }
   const filename = path.basename(fileUrl);
+  // Legacy non-PDF files: prefer a private copy with the same basename when one has been migrated.
+  // The stored URL is unchanged; the public copy is left in place until retirement is approved.
+  const privateCopy = path.join(PRIVATE_DIR, filename);
+  if (fs.existsSync(privateCopy)) return privateCopy;
   return path.join(ROOT, 'public/uploads/downloads', filename);
 }
 
@@ -95,8 +99,8 @@ router.get('/stream', requireMemberAuth, rateLimit('pdf_stream', 20, 300), async
   } catch (err) {
     console.error('[pdf_watermark]', err.message);
     logAccess(req.db, req.session.member_id, fileUrl, 'download', req, false);
-    // Fallback: serve raw PDF rather than failing completely
-    return res.download(filePath, fileName);
+    // Never send the unwatermarked original to a member: fail the request instead.
+    return res.status(503).send('This document cannot be prepared right now. Please try again in a few minutes.');
   }
 });
 
