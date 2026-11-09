@@ -70,6 +70,22 @@ const nextConfig = {
     ];
   },
 
+  // ── Keep the dev/staging deployment out of search engines ─────────────────
+  // Set ROBOTS_NOINDEX=true in the DEV server's env only. Sent as a response
+  // header so it covers every page, including ones whose own metadata sets
+  // robots: { index: true } (those would override a layout-level meta tag).
+  // Deliberately NOT done via robots.txt Disallow: crawlers that are blocked
+  // from fetching a page never see the noindex, so already-indexed URLs stay.
+  async headers() {
+    if (process.env.ROBOTS_NOINDEX !== 'true') return [];
+    return [
+      {
+        source: '/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }],
+      },
+    ];
+  },
+
   async rewrites() {
     // Unified mode: no rewrites needed.
     if (process.env.UNIFIED_SERVER === 'true') return [];
