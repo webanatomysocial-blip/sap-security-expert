@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sapsecurityexpert.com').replace(/^http:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/, 'https://').replace(/\/$/, '');
 
 const STATIC_PAGES = [
   { url: '/',                          priority: 1.0, changeFrequency: 'daily'   },
@@ -31,6 +31,8 @@ const STATIC_PAGES = [
   { url: '/privacy-policy',            priority: 0.3, changeFrequency: 'yearly'  },
   { url: '/privacy-and-data-protection', priority: 0.3, changeFrequency: 'yearly'  },
   { url: '/terms-conditions',          priority: 0.3, changeFrequency: 'yearly'  },
+  { url: '/cookie-policy',             priority: 0.3, changeFrequency: 'yearly'  },
+  { url: '/disclaimer',                priority: 0.3, changeFrequency: 'yearly'  },
   { url: '/accessibility-statement',   priority: 0.3, changeFrequency: 'yearly'  },
   { url: '/safety-movement',           priority: 0.3, changeFrequency: 'yearly'  },
   { url: '/security-compliance-overview', priority: 0.3, changeFrequency: 'yearly'  },

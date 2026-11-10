@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import ClientApp from './ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sapsecurityexpert.com').replace(/^http:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/, 'https://').replace(/\/$/, '');
 const SSR_SECRET = process.env.REVALIDATE_SECRET || '';
 
 // Skip SSR *content* (render via the client SPA shell instead of fetching
@@ -287,8 +287,10 @@ export default async function CatchAll({ params }) {
 const DEFAULT_IMAGE = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
 
 function buildMeta(d) {
+  const secureExternal = (value) => String(value || '').replace(/^http:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/, 'https://');
+  const canonical = secureExternal(d.url || SITE_URL);
   const image = d.image
-    ? (d.image.startsWith('http') ? d.image : `${SITE_URL}${d.image}`)
+    ? (d.image.startsWith('http') ? secureExternal(d.image) : `${SITE_URL}${d.image}`)
     : DEFAULT_IMAGE;
   return {
     title: d.title,
@@ -298,11 +300,11 @@ function buildMeta(d) {
       follow: true,
     },
     ...(d.keywords ? { keywords: d.keywords } : {}),
-    alternates: { canonical: d.url },
+    alternates: { canonical },
     openGraph: {
       title: d.title,
       description: d.description,
-      url: d.url,
+      url: canonical,
       siteName: 'SAP Security Expert',
       images: [{ url: image }],
       type: 'website',

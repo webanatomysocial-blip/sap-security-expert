@@ -73,6 +73,8 @@ const AccessibilityStatement   = lazy(() => import("./views/legal/AccessibilityS
 const SafetyMovement           = lazy(() => import("./views/legal/SafetyMovement"));
 const SecurityCompliance       = lazy(() => import("./views/legal/SecurityCompliance"));
 const ResponsibleAi            = lazy(() => import("./views/legal/ResponsibleAi"));
+const Disclaimer               = lazy(() => import("./views/legal/Disclaimer"));
+const CookiePolicy             = lazy(() => import("./views/legal/CookiePolicy"));
 const SitemapPage              = lazy(() => import("./views/SitemapPage"));
 
 // ── Lazy-loaded admin bundle (never shipped to regular visitors) ──────────────
@@ -227,6 +229,8 @@ function App() {
           <Route path="safety-movement" element={<SafetyMovement />} />
           <Route path="security-compliance-overview" element={<SecurityCompliance />} />
           <Route path="responsible-ai-automation-statement" element={<ResponsibleAi />} />
+          <Route path="disclaimer" element={<Disclaimer />} />
+          <Route path="cookie-policy" element={<CookiePolicy />} />
           <Route path="sitemap" element={<SitemapPage />} />
 
           {/* Any URL nothing above matches */}

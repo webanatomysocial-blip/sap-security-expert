@@ -23,6 +23,7 @@ const ContactUs = () => {
         "Questions about Contribution",
         "Interested to be part of the Podcast/Interview",
         "Interested in showcasing our product",
+        "Complaint or service concern",
         "Others",
     ];
 
@@ -287,7 +288,7 @@ const ContactUs = () => {
               </div>
 
               <div className="form-group full-width captcha-group">
-                <label className="form-label">Captcha: {captchaData.question} *</label>
+                <label className="form-label">Solve to post: {captchaData.question} *</label>
                 <input
                   type="number"
                   className="form-control"
