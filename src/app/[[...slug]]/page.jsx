@@ -5,7 +5,6 @@ import ClientApp from './ClientApp';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sapsecurityexpert.com').replace(/^http:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/, 'https://').replace(/\/$/, '');
-const SSR_SECRET = process.env.REVALIDATE_SECRET || '';
 
 // Skip SSR *content* (render via the client SPA shell instead of fetching
 // blog/news data) for these routes — they're not article pages.
@@ -81,9 +80,9 @@ export default async function CatchAll({ params }) {
         ? `${INTERNAL_API}/api/news/${encodeURIComponent(detailSlug)}`
         : `${INTERNAL_API}/api/posts/${encodeURIComponent(detailSlug)}`;
       try {
+        // Anonymous: the API applies paywall and members-only rules (see [category]/[slug]).
         const res = await fetch(fetchUrl, {
           next: { revalidate: 300 },
-          headers: SSR_SECRET ? { 'X-SSR-Internal': SSR_SECRET } : {},
         });
         if (res.status === 404) {
           is404 = true;

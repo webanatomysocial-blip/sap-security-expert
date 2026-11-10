@@ -10,7 +10,6 @@ import { safeUrl } from "../../../utils/safeUrl";
 export const dynamic = 'force-dynamic';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
-const SSR_SECRET = process.env.REVALIDATE_SECRET || '';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sapsecurityexpert.com').replace(/^http:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/, 'https://').replace(/\/$/, '');
 
 const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next', 'experts', 'contributor', 'ambassador']);
@@ -152,9 +151,11 @@ const CATEGORY_LABELS = {
 
 async function fetchBlog(slug) {
   try {
+    // Anonymous on purpose: the API applies the same paywall and members-only
+    // rules a visitor gets. The internal SSR header bypassed those rules and put
+    // paywalled article bodies into server-rendered HTML.
     const res = await fetch(`${INTERNAL_API}/api/posts/${encodeURIComponent(slug)}`, {
       next: { revalidate: 300 },
-      headers: { 'X-SSR-Internal': SSR_SECRET },
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
