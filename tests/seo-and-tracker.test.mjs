@@ -35,6 +35,17 @@ test('email queue migration preserves rows while enabling full Unicode', () => {
   }
 });
 
+test('email queue v2 migration retains nullability, avoids narrowing, and gates uniqueness', () => {
+  const sql = read('server/migrations/2026-11-10_email_queue_utf8mb4_v2.mysql.sql');
+  assert.match(sql, /MODIFY subject VARCHAR\(500\)[\s\S]*NOT NULL/);
+  assert.match(sql, /MODIFY body LONGTEXT[\s\S]*NOT NULL/);
+  assert.match(sql, /MODIFY blog_id VARCHAR\(255\)[\s\S]*NULL/);
+  assert.match(sql, /ADD UNIQUE KEY uq_email_queue_recipient_blog/);
+  assert.match(sql, /duplicate_nonnull_groups/);
+  assert.match(sql, /Restore the separately verified encrypted backup/);
+  assert.doesNotMatch(sql, /\bDELETE\s+FROM\s+email_queue\b/i);
+});
+
 test('database pool remains configurable with a conservative default', () => {
   const db = read('server/db.js');
   assert.match(db, /DB_POOL_SIZE \|\| '8'/);

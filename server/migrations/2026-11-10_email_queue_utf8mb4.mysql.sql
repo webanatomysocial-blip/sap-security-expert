@@ -1,3 +1,6 @@
+-- SUPERSEDED BY 2026-11-10_email_queue_utf8mb4_v2.mysql.sql.
+-- Retained for audit history. It converts only the character set and does not
+-- reconcile the DEV queue's width/index drift discovered during preflight.
 -- PREPARED ONLY. Do not run until DEV inspection and backup/restore approval.
 -- Preserve existing column types and nullability while allowing Telugu, emoji
 -- and other Unicode mail content.
