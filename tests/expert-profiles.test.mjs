@@ -48,3 +48,10 @@ test('ambassador metadata is indexable only for a real approved profile', () => 
   assert.match(src, /robots: \{ index: !!amb\?\.full_name, follow: true \}/);
   assert.match(src, /const canonical = `\$\{SITE_URL\}\/ambassador\/\$\{encodeURIComponent\(slug\)\}`;/);
 });
+
+test('profile photo is rendered only from local paths or http(s) URLs, with descriptive alt text', () => {
+  const fn = section('function publicImageUrl', 'function personJsonLd');
+  assert.match(fn, /startsWith\('\/'\) && !v\.startsWith\('\/\/'\)/);
+  const comp = section('function ProfileFallback', 'export default async function BlogPostPage');
+  assert.match(comp, /alt=\{`\$\{name\} profile photo`\}/);
+});
