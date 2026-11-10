@@ -70,6 +70,9 @@ export default function CommunitySection() {
   const [announcementsLoaded, setAnnouncementsLoaded] = useState(false);
 
   // State for Ads
+  // Ads load after first paint. Until they arrive, the left promo slot keeps
+  // its height so the list below does not jump when the ad appears (CLS).
+  const [adsLoaded, setAdsLoaded] = useState(false);
   const [adsConfig, setAdsConfig] = useState({
     community_left: { active: false, image: "", link: "" },
     community_right: { active: false, image: "", link: "" },
@@ -156,7 +159,8 @@ export default function CommunitySection() {
             : { active: false },
         });
       })
-      .catch((err) => console.error("Ads Fetch Failed", err));
+      .catch((err) => console.error("Ads Fetch Failed", err))
+      .finally(() => setAdsLoaded(true));
 
     // Fetch total contributor count separately if needed for the big number,
     // or rely on the length of the list if that's what was intended.
@@ -278,7 +282,7 @@ export default function CommunitySection() {
             </div>
 
             {/* Ad */}
-            <div className="widget promo-widget">
+            <div className="widget promo-widget" style={!adsLoaded ? { minHeight: 205 } : undefined}>
               {adsConfig.community_left.active ? (
                 <div className="promo-box">
                   <a href={adsConfig.community_left.link || "#"} target={adsConfig.community_left.link ? "_blank" : "_self"} rel="noreferrer" onClick={() => handleAdClick("community_left")}>
