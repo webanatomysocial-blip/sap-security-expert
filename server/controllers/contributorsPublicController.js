@@ -5,6 +5,7 @@ const { deleteImage } = require('../utils/helpers');
 const NotificationService = require('../services/NotificationService');
 const MailService = require('../services/MailService');
 const repo = require('../repositories/contributorsPublicRepository');
+const { applyContributorPublicPolicy, publicDirectoryEntry, stripBlogStats } = require('../utils/contributorPublicPolicy');
 
 // POST /api/contributors/apply
 // Kept as an explicit try/catch (not asyncHandler/next(err)): the outer
@@ -80,7 +81,7 @@ const apply = async (req, res) => {
 // GET /api/contributors/approved — bare array
 const listApproved = asyncHandler(async (req, res) => {
   const rows = await repo.findApprovedContributors(req.db);
-  return res.json(rows);
+  return res.json(rows.map(publicDirectoryEntry).filter(Boolean));
 });
 
 // GET /api/contributors/profile/:id
@@ -98,8 +99,15 @@ const getProfile = asyncHandler(async (req, res) => {
   if (!row) {
     return sendError(res, 'Contributor not found or not approved.', 404);
   }
-
-  const contributor = { ...row };
+  // Keep the linking keys before the policy strips internal fields.
+  const linkEmail = row.email;
+  const linkUserId = row.user_id;
+  const policy = applyContributorPublicPolicy(row);
+  if (!policy) {
+    return sendError(res, 'Contributor not found or not approved.', 404);
+  }
+  const { flags } = policy;
+  const contributor = policy.contributor;
 
   // Parse expertise JSON string → object
   if (contributor.expertise && typeof contributor.expertise === 'string') {
@@ -115,19 +123,19 @@ const getProfile = asyncHandler(async (req, res) => {
   // Fetch published blog posts for this contributor — the profile itself is
   // always public once approved; findApprovedContributors/ProfileById
   // already null out profile_image until this list is non-empty.
-  const userId = contributor.user_id || 0;
+  const userId = linkUserId || 0;
   const blogs = await repo.findPublishedBlogsByAuthorId(db, userId);
 
-  contributor.blogs = blogs;
-  contributor.blog_count = blogs.length;
+  contributor.blogs = stripBlogStats(blogs, flags);
+  if (flags.show_stats) contributor.blog_count = blogs.length;
 
   // Earned achievement badges (via linked member account)
   contributor.badges = [];
-  if (contributor.email) {
+  if (linkEmail && flags.show_badges) {
     try {
       const membersRepo = require('../repositories/membersRepository');
       await membersRepo.ensureAchievementTables(db);
-      const memberRow = await membersRepo.findMemberByEmailExact(db, contributor.email);
+      const memberRow = await membersRepo.findMemberByEmailExact(db, linkEmail);
       if (memberRow) {
         const [types, earned] = await Promise.all([
           membersRepo.findAllAchievementTypes(db),
