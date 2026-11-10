@@ -3,7 +3,6 @@ const crypto = require('crypto');
 const CacheService = require('../services/CacheService');
 const { asyncHandler } = require('../utils/asyncHandler');
 const repo = require('../repositories/publicRepository');
-const { publicDirectoryEntry } = require('../utils/contributorPublicPolicy');
 
 const cache = new CacheService(1800);
 
@@ -59,7 +58,7 @@ const homepage = async (req, res) => {
     const heroIds = heroArticles.map(h => h.id);
     const recent = (await repo.findRecentBlogs(db, { nowUtc, excludeIds: heroIds })).map(stripHeavyFields);
     const trending = await repo.findHomepageTrending(db, nowUtc);
-    const contributors = (await repo.findApprovedContributorsWithCounts(db)).map(publicDirectoryEntry).filter(Boolean);
+    const contributors = await repo.findApprovedContributorsWithCounts(db);
     const expertPicks = await repo.findExpertPicks(db, nowUtc);
     const premiumArticles = await repo.findPremiumArticles(db, nowUtc);
     const latestNews = await repo.findNews(db, nowUtc);
@@ -111,7 +110,7 @@ const search = async (req, res) => {
 
 // GET /api/contributors/leaderboard
 const leaderboard = asyncHandler(async (req, res) => {
-  const rows = (await repo.findLeaderboardContributors(req.db)).map(publicDirectoryEntry).filter(Boolean);
+  const rows = await repo.findLeaderboardContributors(req.db);
   return res.json(rows);
 });
 
