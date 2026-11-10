@@ -19,6 +19,8 @@ test('metadata blocks streaming and public profile fallbacks remain crawlable', 
   const profile = read('src/app/[category]/[slug]/page.jsx');
   assert.match(config, /htmlLimitedBots:\s*\/\.\*\//);
   assert.match(category, /SPA_PAGE_SUMMARIES/);
+  assert.match(category, /dynamic = 'force-dynamic'/);
+  assert.match(profile, /dynamic = 'force-dynamic'/);
   assert.match(profile, /enhanceArticleImages/);
   assert.match(profile, /KNOWN_CONTRIBUTORS/);
   assert.match(profile, /<h1[\s\S]*?Raghu Boddu/);
