@@ -6,7 +6,6 @@ import ClientApp from '../../[[...slug]]/ClientApp';
 import { safeUrl } from "../../../utils/safeUrl";
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
-const SSR_SECRET = process.env.REVALIDATE_SECRET || '';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
 
 const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next', 'experts', 'contributor', 'ambassador']);
@@ -54,7 +53,6 @@ async function fetchBlog(slug) {
   try {
     const res = await fetch(`${INTERNAL_API}/api/posts/${encodeURIComponent(slug)}`, {
       next: { revalidate: 300 },
-      headers: { 'X-SSR-Internal': SSR_SECRET },
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
