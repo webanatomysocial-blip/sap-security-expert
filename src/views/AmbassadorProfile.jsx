@@ -76,7 +76,11 @@ const AmbassadorProfile = () => {
     window.scrollTo(0, 0);
     getAmbassadorProfile(id)
       .then((res) => {
-        if (res.data?.status === "success") setAmbassador(res.data.ambassador);
+        if (res.data?.status === "success") {
+          setAmbassador(res.data.ambassador);
+          // Hand over from the server-rendered profile (see [category]/[slug] page).
+          window.__removeSsrContent?.();
+        }
         else setError(res.data?.message || "Ambassador not found");
       })
       .catch(() => setError("Ambassador not found or profile is private."))

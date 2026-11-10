@@ -56,6 +56,8 @@ export default function ContributorProfile() {
             }
           });
           setContributor(c);
+          // Hand over from the server-rendered profile (see [category]/[slug] page).
+          window.__removeSsrContent?.();
         } else {
           setError(res.data.message || "Contributor not found");
         }

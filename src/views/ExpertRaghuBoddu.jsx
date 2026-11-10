@@ -167,6 +167,13 @@ function MobileSectionBar() {
 /* ── Page ─────────────────────────────────────────────────────────── */
 
 export default function ExpertRaghuBoddu() {
+  // Static page: hand over from the server-rendered summary once mounted.
+  // Deferred one tick so AppWrapper has defined window.__removeSsrContent.
+  useEffect(() => {
+    const t = setTimeout(() => window.__removeSsrContent?.(), 0);
+    return () => clearTimeout(t);
+  }, []);
+
   const pageUrl = `${VITE_SITE_URL}/experts/raghu-boddu/`;
 
   return (
