@@ -80,6 +80,7 @@ export default async function CatchAll({ params }) {
         ? `${INTERNAL_API}/api/news/${encodeURIComponent(detailSlug)}`
         : `${INTERNAL_API}/api/posts/${encodeURIComponent(detailSlug)}`;
       try {
+        // Anonymous: the API applies paywall and members-only rules (see [category]/[slug]).
         const res = await fetch(fetchUrl, {
           next: { revalidate: 300 },
         });
