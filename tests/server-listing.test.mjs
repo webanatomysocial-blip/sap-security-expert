@@ -46,3 +46,8 @@ test('stage 2: listing cards never expose file URLs or storage paths', () => {
   const comps = src.slice(src.indexOf('function LearningHubFallback'), src.indexOf('// ── Page (Server Component)'));
   assert.doesNotMatch(comps, /file_url|fileUrl|storage|\/private|download_url/);
 });
+
+test('stage 2: server H1 text matches the client heading on /downloads and /learning-hub', () => {
+  assert.match(src, /title=\{summary\.title\.toUpperCase\(\)\}/);
+  assert.match(src, /title="Learn SAP Security\. The way practitioners do\."/);
+});

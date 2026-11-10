@@ -349,7 +349,7 @@ export default async function CategoryPage({ params }) {
     const summary = SPA_PAGE_SUMMARIES.downloads;
     return (
       <>
-        <ListingFallback title={summary.title} intro={summary.description} items={items} />
+        <ListingFallback title={summary.title.toUpperCase()} intro={summary.description} items={items} />
         <ClientApp />
       </>
     );
@@ -364,7 +364,7 @@ export default async function CategoryPage({ params }) {
     const summary = SPA_PAGE_SUMMARIES['learning-hub'];
     return (
       <>
-        <LearningHubFallback title={summary.title} intro={summary.description} counts={counts || {}} items={latest} />
+        <LearningHubFallback title="Learn SAP Security. The way practitioners do." intro={summary.description} counts={counts || {}} items={latest} />
         <ClientApp />
       </>
     );
