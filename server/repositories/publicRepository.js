@@ -419,10 +419,13 @@ async function findBlogForSeoMeta(db, slug) {
 }
 
 // ── News / Learnings ────────────────────────────────────────────────────
-async function findLearnings(db, { nowUtc, category }) {
+async function findLearnings(db, { nowUtc, category, limit = null }) {
   const params = [nowUtc];
   let catClause = '';
   if (category) { catClause = 'AND b.category = ?'; params.push(category); }
+  // LIMIT is applied after the publication/date/type filters (WHERE), never before.
+  let limitClause = '';
+  if (Number.isInteger(limit) && limit > 0) { limitClause = 'LIMIT ?'; params.push(limit); }
   const [rows] = await db.execute(
     `SELECT id, title, slug, excerpt, image, image_alt, category, date, created_at, view_count,
             author, author_id,
@@ -430,7 +433,8 @@ async function findLearnings(db, { nowUtc, category }) {
      FROM blogs b
      WHERE \`type\` = 'learning' AND status IN ('approved','published') AND date <= ?
      ${catClause}
-     ORDER BY date DESC, created_at DESC`,
+     ORDER BY date DESC, created_at DESC
+     ${limitClause}`,
     params
   );
   return rows;
