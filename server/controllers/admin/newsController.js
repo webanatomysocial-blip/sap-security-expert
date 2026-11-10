@@ -1,7 +1,7 @@
 const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const { deleteImage } = require('../../utils/helpers');
-const { sanitizeBlogHtml } = require('../../utils/sanitize');
+const { sanitizeBlogHtml, validateImageAltText, hasMeaningfulAlt } = require('../../utils/sanitize');
 const CacheService = require('../../services/CacheService');
 const repo = require('../../repositories/admin/newsRepository');
 const { parseSchedule, applySchedule } = require('../../utils/schedule');
@@ -41,6 +41,9 @@ const save = asyncHandler(async (req, res) => {
     status: requestedStatus,
   } = data;
   const content = sanitizeBlogHtml(rawContent);
+  const imageAltIssues = validateImageAltText(content);
+  if (image && !hasMeaningfulAlt(image_alt)) imageAltIssues.push('Add meaningful alt text for the featured image.');
+  if (imageAltIssues.length) return sendError(res, imageAltIssues[0], 400);
 
   let slug = data.slug || '';
   if (!slug && title) {

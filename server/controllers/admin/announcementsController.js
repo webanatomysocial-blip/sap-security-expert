@@ -2,7 +2,7 @@ const { asyncHandler } = require('../../utils/asyncHandler');
 const { sendSuccess, sendError } = require('../../utils/apiResponse');
 const CacheService = require('../../services/CacheService');
 const repo = require('../../repositories/admin/announcementsRepository');
-const { sanitizeBlogHtml } = require('../../utils/sanitize');
+const { sanitizeBlogHtml, validateImageAltText, hasMeaningfulAlt } = require('../../utils/sanitize');
 
 const cache = new CacheService(1800);
 
@@ -45,6 +45,9 @@ const save = asyncHandler(async (req, res) => {
   const rawLinkStr = String(rawLink).trim();
   const link = /^https?:\/\//i.test(rawLinkStr) || rawLinkStr === '' ? rawLinkStr : '';
   const content = sanitizeBlogHtml(rawContent);
+  const imageAltIssues = validateImageAltText(content);
+  if (image && !hasMeaningfulAlt(image_alt)) imageAltIssues.push('Add meaningful alt text for the featured image.');
+  if (imageAltIssues.length) return sendError(res, imageAltIssues[0], 400);
 
   // Validate date before parsing to avoid Invalid time value TypeError.
   // date is NOT NULL in the schema — fall back to NOW() when omitted.

@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { sanitizeBlogHtml, validateImageAltText } = require('../server/utils/sanitize');
 
 const read = (file) => fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 
@@ -24,6 +28,13 @@ test('metadata blocks streaming and public profile fallbacks remain crawlable', 
   assert.match(profile, /enhanceArticleImages/);
   assert.match(profile, /KNOWN_CONTRIBUTORS/);
   assert.match(profile, /<h1[\s\S]*?Raghu Boddu/);
+});
+
+test('informative editor images require meaningful alt text while decorative images remain explicit', () => {
+  assert.equal(validateImageAltText(sanitizeBlogHtml('<img src="/uploads/blogs/x.jpg">')).length, 1);
+  assert.equal(validateImageAltText(sanitizeBlogHtml('<img src="/uploads/blogs/x.jpg" alt="">')).length, 1);
+  assert.equal(validateImageAltText(sanitizeBlogHtml('<img src="/uploads/blogs/x.jpg" alt="SAP access control dashboard">')).length, 0);
+  assert.equal(validateImageAltText(sanitizeBlogHtml('<img src="/uploads/blogs/x.jpg" alt="" data-decorative="true">')).length, 0);
 });
 
 test('legal pages, complaint option and non-fabricated instructor state are wired', () => {
