@@ -35,15 +35,34 @@ test('email queue migration preserves rows while enabling full Unicode', () => {
   }
 });
 
-test('email queue v2 migration retains nullability, avoids narrowing, and gates uniqueness', () => {
-  const sql = read('server/migrations/2026-11-10_email_queue_utf8mb4_v2.mysql.sql');
-  assert.match(sql, /MODIFY subject VARCHAR\(500\)[\s\S]*NOT NULL/);
-  assert.match(sql, /MODIFY body LONGTEXT[\s\S]*NOT NULL/);
-  assert.match(sql, /MODIFY blog_id VARCHAR\(255\)[\s\S]*NULL/);
-  assert.match(sql, /ADD UNIQUE KEY uq_email_queue_recipient_blog/);
-  assert.match(sql, /duplicate_nonnull_groups/);
-  assert.match(sql, /Restore the separately verified encrypted backup/);
-  assert.doesNotMatch(sql, /\bDELETE\s+FROM\s+email_queue\b/i);
+test('email queue v2 stages preserve semantics and gate uniqueness at the target collation', () => {
+  const stage1 = read('server/migrations/2026-11-10_email_queue_utf8mb4_v2.mysql.sql');
+  const stage2 = read('server/migrations/2026-11-10_email_queue_utf8mb4_v2_add_unique.mysql.sql');
+  assert.match(stage1, /STAGE 1 OF 2/);
+  assert.match(stage1, /MODIFY subject VARCHAR\(500\)[\s\S]*NOT NULL/);
+  assert.match(stage1, /MODIFY body LONGTEXT[\s\S]*NOT NULL/);
+  assert.match(stage1, /MODIFY blog_id VARCHAR\(255\)[\s\S]*NULL/);
+  assert.doesNotMatch(stage1, /ADD UNIQUE KEY/);
+  assert.match(stage2, /STAGE 2 OF 2/);
+  assert.match(stage2, /recipient COLLATE utf8mb4_unicode_ci/);
+  assert.match(stage2, /blog_id COLLATE utf8mb4_unicode_ci/);
+  assert.match(stage2, /ADD UNIQUE KEY uq_email_queue_recipient_blog/);
+  assert.match(stage2, /DDL commits independently/);
+  assert.match(stage2, /verified encrypted backup/);
+  assert.doesNotMatch(`${stage1}\n${stage2}`, /\bDELETE\s+FROM\s+email_queue\b/i);
+});
+
+test('DEV Nginx proposal emits noindex explicitly in every location class', () => {
+  const nginx = read('deploy/nginx.dev-secure-proposed.conf');
+  assert.match(nginx, /merge template[\s\S]*installable file/);
+  assert.match(nginx, /ssl_certificate and ssl_certificate_key/);
+  assert.match(nginx, /location \^~ \/_next\/static\/[\s\S]*?add_header X-Robots-Tag/);
+  assert.match(nginx, /location \^~ \/assets\/[\s\S]*?add_header X-Robots-Tag/);
+  assert.match(nginx, /location ~ \^\/\(api\|admin\|member\|uploads\)[\s\S]*?add_header X-Robots-Tag/);
+  assert.match(nginx, /location \^~ \/_next\/[\s\S]*?add_header X-Robots-Tag/);
+  assert.match(nginx, /location \/ \{[\s\S]*?add_header X-Robots-Tag/);
+  assert.match(nginx, /proxy_cache off/);
+  assert.doesNotMatch(nginx, /proxy_ignore_headers Cache-Control/);
 });
 
 test('database pool remains configurable with a conservative default', () => {

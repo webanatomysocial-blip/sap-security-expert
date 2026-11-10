@@ -1,10 +1,10 @@
--- PREPARED ONLY — DEV email_queue remediation, version 2.
+-- PREPARED ONLY — DEV email_queue remediation, version 2, STAGE 1 OF 2.
 --
 -- Preconditions (all require separate approval):
 --   * An encrypted DEV backup has been created, checksummed, and restored into
 --     an isolated sse_restore_* database with counts/schema verified.
 --   * Run every preflight query below immediately before this file. Do not run
---     if duplicate_nonnull_groups is non-zero or any width-risk count is non-zero.
+--     if any width-risk count is non-zero.
 --   * Review charset-risk notes: latin1 -> utf8mb4 preserves latin1 code points,
 --     but cannot repair historic UTF-8-as-latin1 mojibake. Never "fix" text by
 --     heuristic during this migration.
@@ -27,18 +27,6 @@ SELECT
   SUM(CHAR_LENGTH(blog_id) > 255) AS blog_id_over_255
 FROM email_queue;
 
-SELECT
-  COUNT(*) AS duplicate_nonnull_groups,
-  COALESCE(SUM(pair_count), 0) AS duplicate_nonnull_rows,
-  COALESCE(SUM(pair_count - 1), 0) AS duplicate_nonnull_excess_rows
-FROM (
-  SELECT recipient, blog_id, COUNT(*) AS pair_count
-  FROM email_queue
-  WHERE recipient IS NOT NULL AND blog_id IS NOT NULL
-  GROUP BY recipient, blog_id
-  HAVING COUNT(*) > 1
-) AS duplicate_pairs;
-
 -- Existing DEV semantics are preserved deliberately:
 --   recipient: NOT NULL, no explicit default
 --   subject:   NOT NULL, no explicit default (widened 255 -> 500)
@@ -55,14 +43,15 @@ ALTER TABLE email_queue
   MODIFY body LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   MODIFY blog_id VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
 
--- Run only after the duplicate gate above reports zero. MariaDB permits multiple
--- NULL blog_id values, so transactional mail without a blog id retains current
--- NULL semantics. If a concurrent duplicate appears, this statement fails and
--- does not delete or silently merge records; stop and restore/review as needed.
-ALTER TABLE email_queue
-  ADD UNIQUE KEY uq_email_queue_recipient_blog (recipient, blog_id);
+-- MariaDB DDL commits independently. This conversion/widening ALTER is not
+-- transactionally coupled to the unique-index stage. If it succeeds, do not
+-- restore merely because stage 2 has not yet run: verify this stage below, keep
+-- the encrypted backup, and proceed only with the separately reviewed stage 2.
+-- If this ALTER itself fails, stop; determine its completed state through the
+-- information_schema query below before any retry. It never deletes queue rows.
 
--- Post-migration verification (read-only):
+-- Stage-1 verification (read-only). A successful result is the hand-off point
+-- to 2026-11-10_email_queue_utf8mb4_v2_add_unique.mysql.sql.
 SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT,
        CHARACTER_SET_NAME, COLLATION_NAME
 FROM information_schema.COLUMNS
@@ -74,6 +63,6 @@ FROM information_schema.STATISTICS
 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'email_queue'
 ORDER BY INDEX_NAME, SEQ_IN_INDEX;
 
--- Rollback: do not narrow types or convert back in place. Such a conversion can
--- be lossy once utf8mb4 text exists, and dropping the unique index reintroduces
--- duplicate-delivery risk. Restore the separately verified encrypted backup.
+-- Recovery: do not narrow types or convert back in place. Such a conversion can
+-- be lossy once utf8mb4 text exists. Restore the separately verified encrypted
+-- backup only if the approved recovery decision requires returning to pre-stage-1.

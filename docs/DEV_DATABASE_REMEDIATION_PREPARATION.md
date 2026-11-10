@@ -31,19 +31,40 @@ The preflight count is zero today. That is not an authorization to delete anythi
 
 ## 2. Revised migration proposal
 
-Use [2026-11-10_email_queue_utf8mb4_v2.mysql.sql](../server/migrations/2026-11-10_email_queue_utf8mb4_v2.mysql.sql) only after explicit approval.
+Use the two ordered files only after explicit approval:
+
+1. [Stage 1: conversion and widening](../server/migrations/2026-11-10_email_queue_utf8mb4_v2.mysql.sql)
+2. [Stage 2: target-collation uniqueness](../server/migrations/2026-11-10_email_queue_utf8mb4_v2_add_unique.mysql.sql)
 
 The earlier charset-only file remains in Git and is marked superseded. V2:
 
-1. Runs aggregate-only width/null/duplicate gates.
+1. Runs aggregate-only width/null gates.
 2. Converts all text columns to `utf8mb4_unicode_ci`.
 3. Preserves current non-null semantics and defaults.
 4. Widens subject to 500 and body to LONGTEXT without truncation.
 5. Retains nullable `blog_id VARCHAR(255)`; it does not narrow data.
-6. Adds `uq_email_queue_recipient_blog` only after zero duplicate non-NULL pairs are confirmed.
-7. Provides post-DDL information_schema checks.
+6. Stops at an information_schema hand-off because MariaDB DDL commits independently.
+7. Rechecks duplicates under the **target** `utf8mb4_unicode_ci` collation in stage 2, immediately before adding `uq_email_queue_recipient_blog`.
+8. Uses the unique-index ALTER as a database-enforced race check: a new duplicate fails safely and changes no queue rows.
+9. Provides post-DDL information_schema checks and explicit partial-completion recovery instructions.
 
-Local fixture result: passed on a fresh disposable MySQL 9.6 database and the fixture was dropped afterward. This is syntax/effect evidence only; approval requires a MariaDB 10.11 restore rehearsal.
+Local fixture result: stage 1 and stage 2 passed on a fresh disposable MySQL 9.6 database, including Telugu/emoji insertion after conversion. A separate disposable fixture demonstrated that `Strasse`/`Straße` are distinct enough for the legacy fixture but collide under `utf8mb4_unicode_ci`; stage 2 reported one aggregate collision group and was not applied. Both fixtures were dropped afterward. This is syntax/effect evidence only; approval requires a MariaDB 10.11 restore rehearsal.
+
+### MariaDB 10.11 validation plan
+
+Do not create a local database/server until separately approved. When a disposable MariaDB `10.11.19` or compatible `10.11.x` instance is available, execute this matrix only against an `sse_test_*` fixture:
+
+| Fixture case | Expected result |
+|---|---|
+| Existing latin1 queue rows | Stage 1 preserves row count, nullability/defaults and data bytes while producing utf8mb4 columns |
+| Telugu and emoji inserted after stage 1 | Round-trip values preserve bytes and characters under utf8mb4 |
+| Nullable `blog_id` rows | Multiple NULL blog IDs remain permitted after stage 2 |
+| Target-collation collision | Stage 2 aggregate reports a duplicate group; unique ALTER is not approved/executed |
+| Duplicate inserted after stage-2 query | Unique ALTER fails without deleting/merging rows; stage 1 remains verifiable |
+| Existing queue rows | Subject/body widening and conversion preserve row count and values |
+| Application queue tests | Membership idempotency, blog notification claim/rollback, retry/attempt handling and mock mail remain passing |
+
+For a deliberate stage-2 failure test, preserve the fixture, inspect only aggregate counts and information_schema, then discard the disposable fixture. The recovery decision must distinguish “stage 1 complete, stage 2 absent” from “restore verified backup”; neither case permits in-place cleanup of live queue records.
 
 ## 3. Encrypted backup and restore rehearsal
 
@@ -117,13 +138,13 @@ Do not use the DEV build file or Nginx stanza on production.
 
 ## 5. Nginx safe-cache proposal
 
-[nginx.dev-secure-proposed.conf](../deploy/nginx.dev-secure-proposed.conf) is an inactive complete replacement proposal for the DEV virtual host. It corrects the active configuration by:
+[nginx.dev-secure-proposed.conf](../deploy/nginx.dev-secure-proposed.conf) is an inactive **merge template**, not a directly installable replacement. It lists the active-vhost TLS, timeout, log and security directives that an approved operator must carry over. It corrects the active configuration by:
 
 - Removing the 120-second shared HTML cache and its `proxy_ignore_headers Cache-Control` override.
 - Eliminating the ambiguous `$cookie_connect_sid` bypass for the `connect.sid` cookie.
 - Explicitly disabling proxy caching for API, admin, member, uploads, downloads, and public HTML.
 - Keeping browser-only immutable caching for `/_next/static/` and bounded caching for `/assets/`.
-- Preserving application security headers and adding a DEV-only noindex defense in depth.
+- Preserving application CSP/HSTS/nosniff/frame/referrer headers and explicitly emitting exactly one DEV-only noindex header in every location class.
 
 Approval-time test matrix:
 
@@ -135,6 +156,7 @@ Approval-time test matrix:
 | `/uploads/downloads/*` | Application-gated and no-store |
 | Hashed `/_next/static/*` | Browser immutable cache only |
 | `/` and protected routes | One `X-Robots-Tag: noindex, nofollow, noarchive` |
+| HTTP redirect, `/_next/static/*`, `/assets/*` | One `X-Robots-Tag: noindex, nofollow, noarchive` |
 
 Back up the exact active vhost, run `sudo nginx -t`, reload DEV only, and retest after explicit approval. None of these commands has run.
 
