@@ -231,8 +231,19 @@ function LearningHubFallback({ title, intro, counts, items }) {
       <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 36px' }}>
         {modules.map((m) => (
           <li key={m.slug} style={{ margin: '0 0 10px' }}>
-            <a href={`/learning/${m.slug}`} style={{ color: '#0f172a', fontWeight: 600 }}>{m.label}</a>
-            {m.count > 0 && <span style={{ color: '#64748b' }}> · {m.count} published</span>}
+            {/* Same rule as the client (LearningHub.jsx): a module is browsable only
+                when it has published articles; otherwise it is "Coming soon". */}
+            {m.count > 0 ? (
+              <>
+                <a href={`/learning/${m.slug}`} style={{ color: '#0f172a', fontWeight: 600 }}>{m.label}</a>
+                <span style={{ color: '#64748b' }}> · Available · {m.count} article{m.count !== 1 ? 's' : ''}</span>
+              </>
+            ) : (
+              <>
+                <span style={{ color: '#0f172a', fontWeight: 600 }}>{m.label}</span>
+                <span style={{ color: '#64748b' }}> · Coming soon</span>
+              </>
+            )}
           </li>
         ))}
       </ul>
@@ -357,7 +368,7 @@ export default async function CategoryPage({ params }) {
 
   if (category === 'learning-hub') {
     const [items, counts] = await Promise.all([
-      fetchPublicJson('/api/learnings'),
+      fetchPublicJson('/api/learnings?limit=12'),
       fetchPublicJson('/api/learnings/counts'),
     ]);
     const latest = (Array.isArray(items) ? items : []).slice(0, 12);

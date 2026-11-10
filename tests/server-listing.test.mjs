@@ -30,7 +30,7 @@ test('stage 2: downloads and learning-hub use anonymous public fetches only', ()
   const pub = src.slice(src.indexOf('async function fetchPublicJson'), src.indexOf('async function fetchSeoMeta'));
   assert.match(pub, /fetch\(`\$\{INTERNAL_API\}\$\{pathWithQuery\}`/);
   assert.doesNotMatch(pub, /x-ssr-internal|REVALIDATE_SECRET|cookie/i);
-  assert.match(src, /fetchPublicJson\('\/api\/learnings'\)/);
+  assert.match(src, /fetchPublicJson\('\/api\/learnings\?limit=12'\)/);
   assert.match(src, /fetchPublicJson\('\/api\/learnings\/counts'\)/);
 });
 
@@ -51,3 +51,12 @@ test('stage 2: server H1 text matches the client heading on /downloads and /lear
   assert.match(src, /title=\{summary\.title\.toUpperCase\(\)\}/);
   assert.match(src, /title="Learn SAP Security\. The way practitioners do\."/);
 });
+
+test('stage 2 closeout: learning-hub links only modules with published articles, as the client does', () => {
+  const client = fs.readFileSync(new URL('../src/views/LearningHub.jsx', import.meta.url), 'utf8');
+  assert.match(client, /const isAvailable = liveCount > 0;/);
+  assert.match(client, /\{isAvailable && \(\s*<Link to=\{`\/learning\/\$\{m\.slug\}`\}/);
+  assert.match(src, /\{m\.count > 0 \? \(/);
+  assert.match(src, /Coming soon/);
+});
+

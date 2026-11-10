@@ -842,9 +842,12 @@ const seoMeta = asyncHandler(async (req, res) => {
 const learnings = async (req, res) => {
   const db = req.db;
   const { category } = req.query;
+  // Optional ?limit=. Absent or invalid = unbounded, exactly as before. Capped at 100.
+  const requested = parseInt(req.query.limit, 10);
+  const limit = Number.isInteger(requested) && requested > 0 ? Math.min(requested, 100) : null;
   const nowUtc = new Date().toISOString().slice(0, 19).replace('T', ' ');
   try {
-    const rows = await repo.findLearnings(db, { nowUtc, category });
+    const rows = await repo.findLearnings(db, { nowUtc, category, limit });
     return res.json(rows);
   } catch (err) {
     console.error('[GET /api/learnings]', err.message);
