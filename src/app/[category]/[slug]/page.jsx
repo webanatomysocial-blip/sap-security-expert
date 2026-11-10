@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { robotsDirectives } from '../../../utils/robots';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -98,7 +99,7 @@ function contributorMeta(slug, contributor) {
   return {
     title: `${name} | SAP Security Expert`,
     description: description.slice(0, 160),
-    robots: { index: true, follow: true },
+    robots: robotsDirectives(),
     alternates: { canonical },
     openGraph: {
       title: `${name} | SAP Security Expert`,
@@ -220,7 +221,7 @@ export async function generateMetadata({ params }) {
     return {
       title,
       description,
-      robots: { index: true, follow: true },
+      robots: robotsDirectives(),
       alternates: { canonical },
       openGraph: {
         title,
@@ -269,10 +270,7 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
-    robots: {
-      index: true,
-      follow: true,
-    },
+    robots: robotsDirectives(),
     ...(keywords ? { keywords } : {}),
     alternates: { canonical },
     openGraph: {

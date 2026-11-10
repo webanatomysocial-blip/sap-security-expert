@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { robotsDirectives } from '../../../utils/robots';
 import { notFound } from 'next/navigation';
 import ClientApp from '../../[[...slug]]/ClientApp';
 
@@ -38,7 +39,7 @@ export async function generateMetadata({ params }) {
   return {
     title,
     description,
-    robots: { index: true, follow: true },
+    robots: robotsDirectives(),
     alternates: { canonical: url },
     openGraph: { title, description, url, siteName: 'SAP Security Expert', images: [{ url: image }], type: 'article' },
     twitter: { card: 'summary_large_image', title, description, images: [image] },

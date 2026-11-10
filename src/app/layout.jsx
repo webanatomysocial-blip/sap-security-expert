@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { robotsDirectives } from '../utils/robots';
 import "./globals.css";
 import DeferredStyles from "../components/DeferredStyles";
 
@@ -62,9 +63,7 @@ export const metadata = {
   title: DEFAULT_TITLE,
   description: DEFAULT_DESC,
   // DEV only: ROBOTS_NOINDEX=true keeps the site out of search results. Matches the X-Robots-Tag header in next.config.js.
-  robots: process.env.ROBOTS_NOINDEX === 'true'
-    ? { index: false, follow: false, noarchive: true }
-    : { index: true, follow: true },
+  robots: robotsDirectives(),
   alternates: { canonical: SITE_URL },
   openGraph: {
     title: DEFAULT_TITLE,
