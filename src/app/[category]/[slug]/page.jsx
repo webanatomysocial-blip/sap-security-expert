@@ -11,6 +11,48 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sapsecurityexpert
 
 const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next', 'experts', 'contributor', 'ambassador']);
 
+function humanizeSlug(value) {
+  return String(value || '')
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+async function fetchContributor(slug) {
+  try {
+    const res = await fetch(`${INTERNAL_API}/api/contributors/profile/${encodeURIComponent(slug)}`, {
+      next: { revalidate: 3600 },
+      headers: SSR_SECRET ? { 'X-SSR-Internal': SSR_SECRET } : {},
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.contributor || null;
+  } catch {
+    return null;
+  }
+}
+
+function contributorMeta(slug, contributor) {
+  const name = contributor?.full_name || humanizeSlug(slug) || 'SAP Security Contributor';
+  const description = contributor?.short_bio || contributor?.bio
+    || `${name} is a contributor at SAP Security Expert, sharing practical SAP security expertise.`;
+  const canonical = `${SITE_URL}/contributor/${encodeURIComponent(slug)}`;
+  return {
+    title: `${name} | SAP Security Expert`,
+    description: description.slice(0, 160),
+    robots: { index: true, follow: true },
+    alternates: { canonical },
+    openGraph: {
+      title: `${name} | SAP Security Expert`,
+      description: description.slice(0, 160),
+      url: canonical,
+      siteName: 'SAP Security Expert',
+      type: 'profile',
+    },
+  };
+}
+
 function safeJsonLd(value) {
   return JSON.stringify(value)
     .replace(/</g, '\\u003c')
@@ -97,6 +139,7 @@ function enhanceArticleImages(html, fallbackAlt) {
 
 export async function generateMetadata({ params }) {
   const { category, slug } = await params;
+  if (category === 'contributor') return contributorMeta(slug, await fetchContributor(slug));
   if (category === 'experts' && slug === 'raghu-boddu') {
     const title = 'Raghu Boddu | SAP Security & GRC Expert | SAP Security Expert';
     const description = 'Raghu Boddu is an SAP Security and GRC expert with 25+ years of experience across SAP security, GRC, audit, access governance, automation, and enterprise cybersecurity. CEO of ToggleNow and founder of SAP Security Expert.';
@@ -264,6 +307,26 @@ function buildSchemas(blog, category, url) {
 
 export default async function BlogPostPage({ params }) {
   const { category, slug } = await params;
+
+  if (category === 'contributor') {
+    const contributor = await fetchContributor(slug);
+    if (contributor) {
+      const name = contributor.full_name || humanizeSlug(slug);
+      const bio = contributor.short_bio || contributor.bio
+        || `${name} shares practical SAP security expertise with the SAP Security Expert community.`;
+      return (
+        <>
+          <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>{name}</h1>
+            {contributor.role && <p style={{ color: '#475569', fontWeight: 600, margin: '0 0 12px' }}>{contributor.role}</p>}
+            <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: 0 }}>{bio}</p>
+          </article>
+          <ClientApp />
+        </>
+      );
+    }
+    return <ClientApp />;
+  }
 
   // The founder profile is rendered by the client application, but it is an
   // important public author page. Keep its principal content in raw HTML so

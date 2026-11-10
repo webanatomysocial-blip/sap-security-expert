@@ -17,6 +17,24 @@ const SPA_PAGES = new Set([
   'security-compliance-overview', 'sitemap', 'terms-conditions', 'expert-papers', 'sap-licensing',
 ]);
 
+// These routes are interactive client pages. Keep a concise, meaningful
+// server-rendered introduction so crawlers and LLMs receive an H1 and context
+// before JavaScript starts.
+const SPA_PAGE_SUMMARIES = {
+  'expert-papers': {
+    title: 'Expert Papers',
+    description: 'Explore expert SAP Security papers, practical research, and implementation guidance from SAP Security Expert.',
+  },
+  downloads: {
+    title: 'Downloads',
+    description: 'Browse SAP Security Expert downloads, templates, guides, and practical resources for SAP security professionals.',
+  },
+  'learning-hub': {
+    title: 'SAP Security Learning Hub',
+    description: 'Build practical SAP security knowledge with structured learning modules, guides, and expert-led resources.',
+  },
+};
+
 const CATEGORY_LABELS = {
   'sap-security': 'SAP Security',
   'sap-s4hana-security': 'SAP S/4HANA Security',
@@ -212,6 +230,18 @@ export default async function CategoryPage({ params }) {
   }
 
   if (SPA_PAGES.has(category) && !CATEGORY_LABELS[category]) {
+    const summary = SPA_PAGE_SUMMARIES[category];
+    if (summary) {
+      return (
+        <>
+          <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>{summary.title}</h1>
+            <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: 0 }}>{summary.description}</p>
+          </article>
+          <ClientApp />
+        </>
+      );
+    }
     return <ClientApp />;
   }
 
