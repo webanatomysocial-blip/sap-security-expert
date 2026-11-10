@@ -116,6 +116,17 @@ async function fetchPublicListing({ category, limit }) {
   }
 }
 
+// Public learning feed and per-module counts. Same anonymous rules as the posts list.
+async function fetchPublicJson(pathWithQuery) {
+  try {
+    const res = await fetch(`${INTERNAL_API}${pathWithQuery}`, { next: { revalidate: 300 } });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 async function fetchSeoMeta(path) {
   try {
     const res = await fetch(
@@ -208,6 +219,43 @@ function ListingFallback({ title, intro, items }) {
   );
 }
 
+const LEARNING_MODULE_KEYS = ['security-fundamentals', 'user-management', 'role-management', 'authorization-concepts', 'audit-compliance', 'grc-advanced'];
+
+function LearningHubFallback({ title, intro, counts, items }) {
+  const modules = LEARNING_MODULE_KEYS.map((k) => ({ slug: k, label: CATEGORY_LABELS[k] || k, count: Number(counts?.[k] || 0) }));
+  return (
+    <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+      <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>{title}</h1>
+      <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: '0 0 32px' }}>{intro}</p>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 12px' }}>Learning modules</h2>
+      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 36px' }}>
+        {modules.map((m) => (
+          <li key={m.slug} style={{ margin: '0 0 10px' }}>
+            <a href={`/learning/${m.slug}`} style={{ color: '#0f172a', fontWeight: 600 }}>{m.label}</a>
+            {m.count > 0 && <span style={{ color: '#64748b' }}> · {m.count} published</span>}
+          </li>
+        ))}
+      </ul>
+      {items.length > 0 && (
+        <>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 12px' }}>Latest learning articles</h2>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {items.map((b) => (
+              <li key={b.slug} style={{ margin: '0 0 24px', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 6px', lineHeight: 1.3 }}>
+                  <a href={`/learning/${b.category}/${b.slug}`} style={{ color: '#0f172a', textDecoration: 'none' }}>{b.title}</a>
+                </h3>
+                {plainExcerpt(b) && <p style={{ margin: '0 0 6px', color: '#475569', lineHeight: 1.6 }}>{plainExcerpt(b)}</p>}
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>{formatDate(b.date || b.created_at)}{b.author ? ` · ${b.author}` : ''}</p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </article>
+  );
+}
+
 // ── Page (Server Component) ───────────────────────────────────────────────────
 
 export default async function CategoryPage({ params }) {
@@ -290,6 +338,33 @@ export default async function CategoryPage({ params }) {
           intro="Browse all SAP Security, GRC, BTP, and cybersecurity articles written by practitioners. Filter by category, search by topic, and find the expert knowledge you need."
           items={items}
         />
+        <ClientApp />
+      </>
+    );
+  }
+
+  if (category === 'downloads') {
+    const rows = await fetchPublicListing({ category: 'downloads', limit: 12 });
+    const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, 12);
+    const summary = SPA_PAGE_SUMMARIES.downloads;
+    return (
+      <>
+        <ListingFallback title={summary.title} intro={summary.description} items={items} />
+        <ClientApp />
+      </>
+    );
+  }
+
+  if (category === 'learning-hub') {
+    const [items, counts] = await Promise.all([
+      fetchPublicJson('/api/learnings'),
+      fetchPublicJson('/api/learnings/counts'),
+    ]);
+    const latest = (Array.isArray(items) ? items : []).slice(0, 12);
+    const summary = SPA_PAGE_SUMMARIES['learning-hub'];
+    return (
+      <>
+        <LearningHubFallback title={summary.title} intro={summary.description} counts={counts || {}} items={latest} />
         <ClientApp />
       </>
     );
