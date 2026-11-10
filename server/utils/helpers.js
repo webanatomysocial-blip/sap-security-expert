@@ -182,7 +182,9 @@ function verifyImageMagicBytes(req, res, next) {
   const FileType = require('file-type');
   FileType.fromFile(req.file.path)
     .then((detected) => {
-      if (!detected || !ALLOWED_IMAGE_EXTS.has(detected.ext)) {
+      const detectedExt = detected?.ext === 'jpeg' ? 'jpg' : detected?.ext;
+      const storedExt = path.extname(req.file.filename || req.file.path).slice(1).toLowerCase().replace('jpeg', 'jpg');
+      if (!detected || !ALLOWED_IMAGE_EXTS.has(detectedExt) || detectedExt !== storedExt) {
         return fs.promises.unlink(req.file.path).catch(() => {}).then(() =>
           res.json({ status: 'error', message: 'Please upload a valid image file (JPG, PNG, or WEBP).' })
         );

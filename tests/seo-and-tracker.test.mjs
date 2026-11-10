@@ -25,8 +25,10 @@ test('legal pages, complaint option and non-fabricated instructor state are wire
 test('email queue migration preserves rows while enabling full Unicode', () => {
   const sql = read('server/migrations/2026-11-10_email_queue_utf8mb4.mysql.sql');
   assert.match(sql, /ALTER TABLE email_queue/);
-  assert.match(sql, /subject VARCHAR\(500\) CHARACTER SET utf8mb4/);
-  assert.match(sql, /body LONGTEXT CHARACTER SET utf8mb4/);
+  assert.match(sql, /CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci/);
+  assert.match(sql, /Preserve existing column types and nullability/);
+  assert.match(sql, /Restore the independently[\s\S]*encrypted backup/);
+  assert.doesNotMatch(sql, /\bMODIFY\b/i);
   assert.doesNotMatch(sql, /\b(DROP|DELETE|TRUNCATE)\b/i);
   for (const sample of ['Standard English', 'తెలుగు భద్రత', 'Security update 🔐', 'GRC & IAG — review']) {
     assert.equal(Buffer.from(sample, 'utf8').toString('utf8'), sample);
