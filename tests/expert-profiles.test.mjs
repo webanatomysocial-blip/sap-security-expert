@@ -55,3 +55,12 @@ test('profile photo is rendered only from local paths or http(s) URLs, with desc
   const comp = section('function ProfileFallback', 'export default async function BlogPostPage');
   assert.match(comp, /alt=\{`\$\{name\} profile photo`\}/);
 });
+
+test('client profiles hand over from the server copy once their data has loaded', () => {
+  const amb = fs.readFileSync(new URL('../src/views/AmbassadorProfile.jsx', import.meta.url), 'utf8');
+  const con = fs.readFileSync(new URL('../src/views/ContributorProfile.jsx', import.meta.url), 'utf8');
+  const raghu = fs.readFileSync(new URL('../src/views/ExpertRaghuBoddu.jsx', import.meta.url), 'utf8');
+  assert.match(amb, /setAmbassador\(res\.data\.ambassador\);\s*window\.__removeSsrContent\?\.\(\);/);
+  assert.match(con, /setContributor\(c\);\s*window\.__removeSsrContent\?\.\(\);/);
+  assert.match(raghu, /window\.__removeSsrContent\?\.\(\)/);
+});
