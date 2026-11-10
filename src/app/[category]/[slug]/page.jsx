@@ -32,11 +32,49 @@ function humanizeSlug(value) {
     .join(' ');
 }
 
+// Public profile endpoints are anonymous: no cookies, no internal SSR header.
+async function fetchAmbassador(slug) {
+  try {
+    const res = await fetch(`${INTERNAL_API}/api/ambassadors/profile/${encodeURIComponent(slug)}`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.ambassador || data?.profile || null;
+  } catch {
+    return null;
+  }
+}
+
+// Only plain-text expertise items are rendered. Anything else is ignored rather than guessed at.
+function expertiseItems(value) {
+  let v = value;
+  if (typeof v === 'string') { try { v = JSON.parse(v); } catch { return []; } }
+  if (Array.isArray(v)) return v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()).slice(0, 20);
+  if (v && typeof v === 'object') return Object.values(v).flat().filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()).slice(0, 20);
+  return [];
+}
+
+// http(s) links only, and only for profile fields the API returns publicly.
+function publicHttpUrl(v) {
+  if (typeof v !== 'string') return null;
+  try { const u = new URL(v); return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : null; } catch { return null; }
+}
+
+function personJsonLd({ name, jobTitle, organization, url, description, sameAs }) {
+  const obj = { '@context': 'https://schema.org', '@type': 'Person', name, url };
+  if (jobTitle) obj.jobTitle = jobTitle;
+  if (organization) obj.worksFor = { '@type': 'Organization', name: organization };
+  if (description) obj.description = description.slice(0, 300);
+  if (sameAs && sameAs.length) obj.sameAs = sameAs;
+  return JSON.stringify(obj).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+}
+
+// Public profile endpoints are anonymous: no cookies, no internal SSR header.
 async function fetchContributor(slug) {
   try {
     const res = await fetch(`${INTERNAL_API}/api/contributors/profile/${encodeURIComponent(slug)}`, {
       next: { revalidate: 3600 },
-      headers: SSR_SECRET ? { 'X-SSR-Internal': SSR_SECRET } : {},
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -153,6 +191,19 @@ function enhanceArticleImages(html, fallbackAlt) {
 export async function generateMetadata({ params }) {
   const { category, slug } = await params;
   if (category === 'contributor') return contributorMeta(slug, await fetchContributor(slug));
+  if (category === 'ambassador') {
+    const amb = await fetchAmbassador(slug);
+    const name = amb?.full_name || humanizeSlug(slug) || 'Country Ambassador';
+    const description = (amb?.about_me || `${name} is a Country Ambassador for SAP Security Expert.`).slice(0, 160);
+    const canonical = `${SITE_URL}/ambassador/${encodeURIComponent(slug)}`;
+    return {
+      title: `${name} | SAP Security Expert`,
+      description,
+      robots: { index: !!amb?.full_name, follow: true },
+      alternates: { canonical },
+      openGraph: { title: `${name} | SAP Security Expert`, description, url: canonical, siteName: 'SAP Security Expert', type: 'profile' },
+    };
+  }
   if (category === 'experts' && slug === 'raghu-boddu') {
     const title = 'Raghu Boddu | SAP Security & GRC Expert | SAP Security Expert';
     const description = 'Raghu Boddu is an SAP Security and GRC expert with 25+ years of experience across SAP security, GRC, audit, access governance, automation, and enterprise cybersecurity. CEO of ToggleNow and founder of SAP Security Expert.';
@@ -318,6 +369,50 @@ function buildSchemas(blog, category, url) {
 
 // ── Page (Server Component) ───────────────────────────────────────────────────
 
+// Server-rendered public profile. AppWrapper removes #ssr-blog-content on mount.
+function ProfileFallback({ name, subtitle, organization, badge, bio, expertise = [], links = [], articles = [] }) {
+  const visibleLinks = links.filter((l) => l.href);
+  return (
+    <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+      <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>{name}</h1>
+      {subtitle && <p style={{ color: '#475569', fontWeight: 600, margin: '0 0 8px' }}>{subtitle}</p>}
+      {organization && <p style={{ color: '#64748b', margin: '0 0 8px' }}>{organization}</p>}
+      {badge && <p style={{ color: '#b45309', fontWeight: 600, margin: '0 0 12px' }}>{badge}</p>}
+      <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: '0 0 20px' }}>{bio}</p>
+      {expertise.length > 0 && (
+        <>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 10px' }}>Areas of expertise</h2>
+          <ul style={{ margin: '0 0 24px', paddingLeft: 20, color: '#334155', lineHeight: 1.7 }}>
+            {expertise.map((e) => <li key={e}>{e}</li>)}
+          </ul>
+        </>
+      )}
+      {visibleLinks.length > 0 && (
+        <p style={{ margin: '0 0 28px' }}>
+          {visibleLinks.map((l) => (
+            <a key={l.label} href={l.href} rel="noopener noreferrer me" style={{ marginRight: 18, color: '#1e293b', fontWeight: 600 }}>{l.label}</a>
+          ))}
+        </p>
+      )}
+      {articles.length > 0 && (
+        <>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>Published articles</h2>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {articles.map((b) => (
+              <li key={b.slug} style={{ margin: '0 0 18px' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px' }}>
+                  <a href={`/${b.category}/${b.slug}`} style={{ color: '#0f172a', textDecoration: 'none' }}>{b.title}</a>
+                </h3>
+                {b.date && <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>{new Date(String(b.date).replace(' ', 'T')).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </article>
+  );
+}
+
 export default async function BlogPostPage({ params }) {
   const { category, slug } = await params;
 
@@ -327,13 +422,50 @@ export default async function BlogPostPage({ params }) {
     if (name) {
       const bio = contributor?.short_bio || contributor?.bio
         || `${name} shares practical SAP security expertise with the SAP Security Expert community.`;
+      const canonical = `${SITE_URL}/contributor/${encodeURIComponent(slug)}`;
+      const sameAs = [publicHttpUrl(contributor?.linkedin), publicHttpUrl(contributor?.personal_website), publicHttpUrl(contributor?.twitter_handle)].filter(Boolean);
+      const articles = (contributor?.blogs || []).filter((b) => b && b.slug && b.category).slice(0, 20);
       return (
         <>
-          <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
-            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>{name}</h1>
-            {contributor?.role && <p style={{ color: '#475569', fontWeight: 600, margin: '0 0 12px' }}>{contributor.role}</p>}
-            <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: 0 }}>{bio}</p>
-          </article>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: personJsonLd({ name, jobTitle: contributor?.role, organization: contributor?.organization, url: canonical, description: bio, sameAs }) }} />
+          <ProfileFallback
+            name={name}
+            subtitle={contributor?.role || contributor?.designation}
+            organization={contributor?.organization}
+            bio={bio}
+            expertise={expertiseItems(contributor?.expertise)}
+            links={[{ href: publicHttpUrl(contributor?.linkedin), label: 'LinkedIn' }, { href: publicHttpUrl(contributor?.personal_website), label: 'Website' }]}
+            articles={articles}
+          />
+          <ClientApp />
+        </>
+      );
+    }
+    return <ClientApp />;
+  }
+
+  if (category === 'ambassador') {
+    const amb = await fetchAmbassador(slug);
+    if (amb?.full_name) {
+      const name = amb.full_name;
+      const bio = amb.about_me || `${name} is a Country Ambassador for SAP Security Expert.`;
+      const role = [amb.current_role, amb.organization].filter(Boolean).join(' · ');
+      const where = [amb.country].filter(Boolean).join(', ');
+      const badge = amb.has_badge ? `Country Ambassador${amb.badge_year ? ` · ${amb.badge_year}` : ''}` : null;
+      const canonical = `${SITE_URL}/ambassador/${encodeURIComponent(slug)}`;
+      const sameAs = [publicHttpUrl(amb.linkedin)].filter(Boolean);
+      return (
+        <>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: personJsonLd({ name, jobTitle: amb.current_role || 'Country Ambassador', organization: amb.organization, url: canonical, description: bio, sameAs }) }} />
+          <ProfileFallback
+            name={name}
+            subtitle={[role, where].filter(Boolean).join(' · ') || null}
+            badge={badge}
+            bio={bio}
+            expertise={expertiseItems(amb.expertise)}
+            links={[{ href: publicHttpUrl(amb.linkedin), label: 'LinkedIn' }]}
+            articles={[]}
+          />
           <ClientApp />
         </>
       );
