@@ -65,4 +65,17 @@ async function processUpload(source, kind = 'content') {
   return processImage(source, { widths: kind === 'avatar' ? [100] : DEFAULT_WIDTHS });
 }
 
-module.exports = { DEFAULT_WIDTHS, inspectImage, processImage, processUpload, publicVariantUrl, variantPath };
+async function createAvatarVariant(req, _res, next) {
+  if (!req.file?.path) return next();
+  try {
+    const result = await processUpload(req.file.path, 'avatar');
+    req.imageVariants = result.outputs;
+  } catch (err) {
+    // Compatibility first: a valid original upload must remain usable even if
+    // an old GIF or an optimization failure cannot produce a WebP avatar.
+    console.warn('[image] avatar variant unavailable:', err.message);
+  }
+  return next();
+}
+
+module.exports = { DEFAULT_WIDTHS, createAvatarVariant, inspectImage, processImage, processUpload, publicVariantUrl, variantPath };
