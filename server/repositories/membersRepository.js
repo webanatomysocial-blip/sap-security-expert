@@ -155,7 +155,7 @@ async function findRecentCommentsByMember(db, memberId, email, limit = 5) {
     `SELECT c.id, c.post_id, c.content, c.timestamp, c.status,
             b.title as post_title, b.slug as post_slug, b.image as post_image, b.category as post_category
      FROM comments c
-     LEFT JOIN blogs b ON (b.slug = c.post_id OR CAST(b.id AS CHAR) = c.post_id)
+     LEFT JOIN blogs b ON (b.slug = c.post_id OR CAST(b.id AS CHAR) COLLATE utf8mb4_unicode_ci = c.post_id)
      WHERE (c.member_id = ? OR (c.email IS NOT NULL AND LOWER(c.email) = LOWER(?))) AND c.status = 'approved'
      ORDER BY c.timestamp DESC
      LIMIT ${Math.max(1, parseInt(limit, 10) || 5)}`,
