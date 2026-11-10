@@ -5,6 +5,7 @@ const { getUploadDir, verifyImageMagicBytes } = require('../utils/helpers');
 const { rateLimit } = require('../middleware/rateLimit');
 const { requireAdmin, requireMemberAuth, requireCsrf, requireSessionCsrf } = require('../middleware/auth');
 const controller = require('../controllers/membersController');
+const { createAvatarVariant } = require('../services/ImageService');
 
 // Profile image upload (members)
 const profileStorage = multer.diskStorage({
@@ -28,7 +29,7 @@ router.post('/profile/update', requireMemberAuth, (req, res, next) => {
     if (err) return res.status(400).json({ status: 'error', message: err.message });
     next();
   });
-}, requireCsrf, verifyImageMagicBytes, controller.updateProfile);
+}, requireCsrf, verifyImageMagicBytes, createAvatarVariant, controller.updateProfile);
 router.post('/logout', requireSessionCsrf({ mode: 'logout' }), controller.logout);
 router.get('/referral', requireMemberAuth, controller.referral);
 router.get('/ambassador-profile', requireMemberAuth, controller.getAmbassadorProfile);

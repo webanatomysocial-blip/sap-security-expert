@@ -5,6 +5,7 @@ const { getUploadDir, verifyImageMagicBytes } = require('../utils/helpers');
 const { rateLimit } = require('../middleware/rateLimit');
 const { requireMemberAuth, requireCsrf } = require('../middleware/auth');
 const controller = require('../controllers/ambassadorsPublicController');
+const { createAvatarVariant } = require('../services/ImageService');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, getUploadDir('ambassadors')),
@@ -22,7 +23,7 @@ const upload = multer({
   },
 });
 
-router.post('/apply', rateLimit('ambassador_apply', 5, 3600), upload.single('profilePhoto'), verifyImageMagicBytes, controller.apply);
+router.post('/apply', rateLimit('ambassador_apply', 5, 3600), upload.single('profilePhoto'), verifyImageMagicBytes, createAvatarVariant, controller.apply);
 router.get('/approved', controller.listApproved);
 router.get('/profile/:id', controller.getProfile);
 router.post('/about-me', requireMemberAuth, requireCsrf, controller.updateAboutMe);
