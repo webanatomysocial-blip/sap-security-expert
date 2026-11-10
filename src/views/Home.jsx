@@ -25,7 +25,7 @@ export default function Home() {
     <div className="home-wrapper">
       <SEO
         title="SAP Security Expert | Global Community for SAP Professionals"
-        description="Explore SAP Security with expert guides on SAP Fiori Security, GRC controls, BTP security, authorizations, audit, risk management and compliance best practices."
+        description="SAP Security Expert: expert guides on SAP Fiori Security, GRC controls, BTP security, authorizations, audit and compliance."
         keywords="SAP Security Expert, SAP Fiori Security, SAP GRC Controls, SAP BTP Security, SAP Authorizations, SAP Audit, SAP Risk Management, SAP Compliance"
       />
       <h1
@@ -178,7 +178,7 @@ export default function Home() {
                 <IoMdCheckmarkCircleOutline />
                 {/* <CircleCheckBig /> */}
               </div>
-              <h3>Real-World Experience</h3>
+              <h5>Real-World Experience</h5>
               <p>
                 Content authored by practitioners with hands-on SAP security
                 implementation experience across Fortune 500 companies.
@@ -236,7 +236,7 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <h3>Join the SAP Security Expert Community</h3>
+                  <h6>Join the SAP Security Expert Community</h6>
                   <p>Get exclusive access to premium articles, expert insights, and the latest SAP security updates, all in one place.</p>
                   <div className="newsletter-signup-actions">
                     <Link to="/member/signup" className="btn-newsletter-primary">

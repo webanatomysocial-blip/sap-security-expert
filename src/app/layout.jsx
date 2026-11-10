@@ -41,6 +41,12 @@ const websiteSchema = {
   '@type': 'WebSite',
   name: 'SAP Security Expert',
   url: SITE_URL,
+  publisher: {
+    '@type': 'Organization',
+    name: 'SAP Security Expert',
+    url: SITE_URL,
+    logo: { '@type': 'ImageObject', url: `${SITE_URL}/assets/sapsecurityexpert-black.png` },
+  },
   potentialAction: {
     '@type': 'SearchAction',
     target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/blogs?q={search_term_string}` },

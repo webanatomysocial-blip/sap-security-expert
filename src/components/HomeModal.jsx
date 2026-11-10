@@ -36,7 +36,7 @@ export default function HomeModal() {
     <div className="hm-overlay" onClick={close}>
       <div className="hm-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <button className="hm-close" onClick={close} aria-label="Close">✕</button>
-        <img className="hm-image" src={cfg.image} alt="" />
+        <img className="hm-image" src={cfg.image} alt={cfg.alt || cfg.title || "SAP Security Expert announcement"} loading="lazy" decoding="async" />
         {showButton && (
           <div className="hm-footer">
             {internal ? (

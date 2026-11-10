@@ -20,7 +20,14 @@ const getEnv = (key, fallback = "") => {
 };
 
 export const VITE_API_URL = getEnv("VITE_API_URL", "/api");
-export const VITE_SITE_URL = getEnv("VITE_SITE_URL", "http://sapsecurityexpert.com");
+// Referenced by literal name so Next.js inlines NEXT_PUBLIC_SITE_URL into the
+// client bundle. getEnv()'s dynamic process.env[key] lookup is NOT inlined in
+// the browser, which left client-side SEO (SEO.jsx) rewriting every page's
+// canonical to the http:// fallback after hydration.
+export const VITE_SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  getEnv("VITE_SITE_URL", "https://sapsecurityexpert.com")
+).replace(/\/$/, "");
 export const DEV = typeof process !== "undefined" 
   ? process.env.NODE_ENV === "development" 
   : getEnv("DEV", false);

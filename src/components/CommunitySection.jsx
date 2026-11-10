@@ -252,7 +252,7 @@ export default function CommunitySection() {
                     {/* Avatar */}
                     <div className="rt-avatar">
                       {post.author_image ? (
-                        <img src={getImageUrl(post.author_image)} alt={post.author_name} onError={(e) => { e.target.src = "https://placehold.co/100x100?text=A"; }} />
+                        <img loading="lazy" decoding="async" src={getImageUrl(post.author_image)} alt={post.author_name} onError={(e) => { e.target.src = "https://placehold.co/100x100?text=A"; }} />
                       ) : (
                         <span>{(post.author_name || "G").charAt(0).toUpperCase()}</span>
                       )}
@@ -282,11 +282,11 @@ export default function CommunitySection() {
               {adsConfig.community_left.active ? (
                 <div className="promo-box">
                   <a href={adsConfig.community_left.link || "#"} target={adsConfig.community_left.link ? "_blank" : "_self"} rel="noreferrer" onClick={() => handleAdClick("community_left")}>
-                    <img src={getImageUrl(adsConfig.community_left.image)} alt="Ad" />
+                    <img loading="lazy" decoding="async" src={getImageUrl(adsConfig.community_left.image)} alt="Ad" />
                   </a>
                 </div>
               ) : (
-                <img src={ads1} alt="Promotion" />
+                <img loading="lazy" decoding="async" src={ads1} alt="Promotion" />
               )}
             </div>
 
@@ -305,7 +305,7 @@ export default function CommunitySection() {
                         <span className="tc-medal">{medals[index]}</span>
                         <div className="tc-avatar">
                           {contributor.profile_image ? (
-                            <img src={getImageUrl(contributor.profile_image)} alt={contributor.full_name} onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
+                            <img loading="lazy" decoding="async" src={getImageUrl(contributor.profile_image)} alt={contributor.full_name} onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
                           ) : null}
                           <div className="avatar-fallback" style={{ display: contributor.profile_image ? "none" : "flex" }}>
                             {contributor.full_name ? contributor.full_name.charAt(0) : "C"}
@@ -615,6 +615,8 @@ export default function CommunitySection() {
                       >
                         <div className="activity-img-wrapper" style={{ flexShrink: 0 }}>
                           <img
+                            loading="lazy"
+                            decoding="async"
                             src={activity.image ? getImageUrl(activity.image) : "https://placehold.co/600x400?text=No+Image"}
                             alt={activity.title}
                             onError={(e) => { e.target.src = "https://placehold.co/600x400?text=No+Image"; }}
@@ -656,6 +658,8 @@ export default function CommunitySection() {
                             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                               {activity.author_image ? (
                                 <img
+                                  loading="lazy"
+                                  decoding="async"
                                   src={getImageUrl(activity.author_image)}
                                   alt={activity.author_name || activity.author}
                                   style={{ width: "22px", height: "22px", borderRadius: "50%", objectFit: "cover", border: "1px solid #e2e8f0" }}
@@ -761,11 +765,11 @@ export default function CommunitySection() {
                     rel="noreferrer"
                     onClick={() => handleAdClick("community_right")}
                   >
-                    <img src={getImageUrl(adsConfig.community_right.image)} alt="Ad 2" />
+                    <img loading="lazy" decoding="async" src={getImageUrl(adsConfig.community_right.image)} alt="Ad 2" />
                   </a>
                 </div>
               ) : (
-                <img src={ads2} alt="Promotion 2" />
+                <img loading="lazy" decoding="async" src={ads2} alt="Promotion 2" />
               )}
             </div>
 

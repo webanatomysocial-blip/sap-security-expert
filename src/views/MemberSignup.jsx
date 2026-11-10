@@ -293,7 +293,7 @@ const MemberSignup = () => {
               </div>
               <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#ee5e42", letterSpacing: 1, textTransform: "uppercase" }}>{info.badge}</span>
             </div>
-            <h2 style={{ whiteSpace: "pre-line" }}>{info.headline}</h2>
+            <h1 style={{ whiteSpace: "pre-line" }}>{info.headline}</h1>
             <div className="login-accent-line" />
             <p className="login-info-desc">{info.desc}</p>
             <div className="login-features-list">

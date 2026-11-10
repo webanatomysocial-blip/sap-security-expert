@@ -339,7 +339,7 @@ const MemberLogin = () => {
         <div className="login-split-grid">
           {/* LEFT SIDE: Welcome Content */}
           <div className="login-info-side">
-            <h2>Welcome Back!</h2>
+            <h1>Welcome Back!</h1>
             <div className="login-accent-line"></div>
             <p className="login-info-desc">
               Log in to access exclusive SAP security content, tools, and community insights.

@@ -102,7 +102,7 @@ const ForgotPassword = () => {
               <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#ee5e42", letterSpacing: 1, textTransform: "uppercase" }}>Account Recovery</span>
             </div>
 
-            <h2>Reset Your<br />Password Safely</h2>
+            <h1>Reset Your<br />Password Safely</h1>
             <div className="login-accent-line" />
             <p className="login-info-desc">
               We use a secure OTP-based verification process to ensure only you can reset your account password, no guessing, no gaps.

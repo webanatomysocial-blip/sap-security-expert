@@ -547,7 +547,7 @@ const postsSitemap = async (req, res) => {
 const SEO_STATIC = {
   '/': {
     title: 'SAP Security Expert | Global Community for SAP Professionals',
-    description: 'Explore SAP Security with expert guides on SAP Fiori Security, GRC controls, BTP security, authorizations, audit, risk management and compliance best practices.',
+    description: 'SAP Security Expert: expert guides on SAP Fiori Security, GRC controls, BTP security, authorizations, audit and compliance.',
     keywords: 'SAP Security Expert, SAP Fiori Security, SAP GRC Controls, SAP BTP Security, SAP Authorizations, SAP Audit, SAP Risk Management, SAP Compliance',
   },
   '/blogs': { title: 'SAP Security Blogs & Articles — Expert Tutorials, Guides & Best Practices', description: 'Browse all SAP Security, GRC, BTP, and cybersecurity articles written by practitioners. Filter by category, search by topic, and find the expert knowledge you need.' },
