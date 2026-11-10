@@ -16,63 +16,6 @@ const SKIP_SEO = new Set(['admin', 'member', 'experts', 'contributor', 'ambassad
 // not the generic noindexed fallback the other SPA-only routes get.
 const SKIP_SEO_META = new Set(['admin', 'member', 'contributor', 'ambassador']);
 
-const SPA_PAGE_SUMMARIES = {
-  'expert-papers': {
-    title: 'Expert Papers',
-    description: 'Explore expert SAP Security papers, practical research, and implementation guidance from SAP Security Expert.',
-  },
-  downloads: {
-    title: 'Downloads',
-    description: 'Browse SAP Security Expert downloads, templates, guides, and practical resources for SAP security professionals.',
-  },
-  'learning-hub': {
-    title: 'SAP Security Learning Hub',
-    description: 'Build practical SAP security knowledge with structured learning modules, guides, and expert-led resources.',
-  },
-};
-
-function humanizeSlug(value) {
-  return String(value || '')
-    .split('-')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-async function fetchContributor(slug) {
-  try {
-    const res = await fetch(`${INTERNAL_API}/api/contributors/profile/${encodeURIComponent(slug)}`, {
-      next: { revalidate: 3600 },
-      headers: SSR_SECRET ? { 'X-SSR-Internal': SSR_SECRET } : {},
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data?.contributor || null;
-  } catch {
-    return null;
-  }
-}
-
-function contributorMeta(slug, contributor) {
-  const name = contributor?.full_name || humanizeSlug(slug) || 'SAP Security Contributor';
-  const description = contributor?.short_bio || contributor?.bio
-    || `${name} is a contributor at SAP Security Expert, sharing practical SAP security expertise.`;
-  const canonical = `${SITE_URL}/contributor/${encodeURIComponent(slug)}`;
-  return {
-    title: `${name} | SAP Security Expert`,
-    description: description.slice(0, 160),
-    robots: { index: true, follow: true },
-    alternates: { canonical },
-    openGraph: {
-      title: `${name} | SAP Security Expert`,
-      description: description.slice(0, 160),
-      url: canonical,
-      siteName: 'SAP Security Expert',
-      type: 'profile',
-    },
-  };
-}
-
 const CATEGORY_LABELS = {
   'sap-security': 'SAP Security',
   'sap-s4hana-security': 'SAP S/4HANA Security',
@@ -98,9 +41,6 @@ const CATEGORY_LABELS = {
 
 export async function generateMetadata({ params }) {
   const slug = (await params)?.slug || [];
-  if (slug[0] === 'contributor' && slug.length === 2) {
-    return contributorMeta(slug[1], await fetchContributor(slug[1]));
-  }
   if (SKIP_SEO_META.has(slug[0])) return { title: 'SAP Security Expert', robots: { index: false, follow: false } };
 
   const path = slug.length ? '/' + slug.join('/') : '/';
@@ -124,39 +64,6 @@ export default async function CatchAll({ params }) {
   const isHomepage = slug.length === 0;
   const firstSegment = slug[0] || '';
   const isCategory = Object.prototype.hasOwnProperty.call(CATEGORY_LABELS, firstSegment) && slug.length === 1;
-
-  if (firstSegment === 'contributor' && slug.length === 2) {
-    const contributor = await fetchContributor(slug[1]);
-    if (contributor) {
-      const name = contributor.full_name || humanizeSlug(slug[1]);
-      const bio = contributor.short_bio || contributor.bio
-        || `${name} shares practical SAP security expertise with the SAP Security Expert community.`;
-      return (
-        <>
-          <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
-            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>{name}</h1>
-            {contributor.role && <p style={{ color: '#475569', fontWeight: 600, margin: '0 0 12px' }}>{contributor.role}</p>}
-            <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: 0 }}>{bio}</p>
-          </article>
-          <ClientApp />
-        </>
-      );
-    }
-    return <ClientApp />;
-  }
-
-  if (slug.length === 1 && SPA_PAGE_SUMMARIES[firstSegment]) {
-    const page = SPA_PAGE_SUMMARIES[firstSegment];
-    return (
-      <>
-        <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>{page.title}</h1>
-          <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: 0 }}>{page.description}</p>
-        </article>
-        <ClientApp />
-      </>
-    );
-  }
 
   // Admin/member routes: no SSR content needed
   if (SKIP_SEO.has(firstSegment)) {
