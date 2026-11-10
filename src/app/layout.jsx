@@ -61,10 +61,10 @@ const DEFAULT_IMAGE = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
 export const metadata = {
   title: DEFAULT_TITLE,
   description: DEFAULT_DESC,
-  robots: {
-    index: true,
-    follow: true,
-  },
+  // DEV only: ROBOTS_NOINDEX=true keeps the site out of search results. Matches the X-Robots-Tag header in next.config.js.
+  robots: process.env.ROBOTS_NOINDEX === 'true'
+    ? { index: false, follow: false, noarchive: true }
+    : { index: true, follow: true },
   alternates: { canonical: SITE_URL },
   openGraph: {
     title: DEFAULT_TITLE,
