@@ -100,6 +100,22 @@ async function fetchCategoryArticles(category) {
   }
 }
 
+// Anonymous server-side listing: no cookies are forwarded, so the API applies
+// the same publication and paywall rules a logged-out visitor gets. The
+// internal SSR-bypass header is never sent here.
+async function fetchPublicListing({ category, limit }) {
+  const q = new URLSearchParams({ limit: String(limit) });
+  if (category) q.set('category', category);
+  try {
+    const res = await fetch(`${INTERNAL_API}/api/posts?${q.toString()}`, { next: { revalidate: 300 } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : (data.posts || data.blogs || []);
+  } catch {
+    return [];
+  }
+}
+
 async function fetchSeoMeta(path) {
   try {
     const res = await fetch(
@@ -159,6 +175,37 @@ function formatDate(str) {
   if (!str) return '';
   const d = new Date(str.includes('T') ? str : str.replace(' ', 'T') + 'Z');
   return isNaN(d) ? str : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+// Server-rendered first page of a listing. AppWrapper removes #ssr-blog-content
+// on mount, after which the interactive client list takes over.
+function plainExcerpt(b) {
+  const raw = (b.excerpt || b.meta_description || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  return raw.length > 160 ? raw.slice(0, 157).trimEnd() + '...' : raw;
+}
+
+function ListingFallback({ title, intro, items }) {
+  return (
+    <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+      <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>{title}</h1>
+      <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: '0 0 32px' }}>{intro}</p>
+      {items.length > 0 && (
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {items.map((b) => (
+            <li key={b.slug} style={{ margin: '0 0 28px', paddingBottom: '24px', borderBottom: '1px solid #e2e8f0' }}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, margin: '0 0 8px', lineHeight: 1.3 }}>
+                <a href={`/${b.category}/${b.slug}`} style={{ color: '#0f172a', textDecoration: 'none' }}>{b.title}</a>
+              </h2>
+              {plainExcerpt(b) && <p style={{ margin: '0 0 8px', color: '#475569', lineHeight: 1.6 }}>{plainExcerpt(b)}</p>}
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
+                {formatDate(b.date || b.created_at)}{b.author_name ? ` · ${b.author_name}` : ''}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
 }
 
 // ── Page (Server Component) ───────────────────────────────────────────────────
@@ -231,6 +278,33 @@ export default async function CategoryPage({ params }) {
 
   if (SKIP_CATEGORIES.has(category)) {
     return <ClientApp />;
+  }
+
+  if (category === 'blogs') {
+    const rows = await fetchPublicListing({ limit: 12 });
+    const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, 12);
+    return (
+      <>
+        <ListingFallback
+          title="SAP Security Blogs & Articles"
+          intro="Browse all SAP Security, GRC, BTP, and cybersecurity articles written by practitioners. Filter by category, search by topic, and find the expert knowledge you need."
+          items={items}
+        />
+        <ClientApp />
+      </>
+    );
+  }
+
+  if (category === 'expert-papers') {
+    const rows = await fetchPublicListing({ category: 'expert-papers', limit: 12 });
+    const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, 12);
+    const summary = SPA_PAGE_SUMMARIES['expert-papers'];
+    return (
+      <>
+        <ListingFallback title={summary.title} intro={summary.description} items={items} />
+        <ClientApp />
+      </>
+    );
   }
 
   if (SPA_PAGES.has(category) && !CATEGORY_LABELS[category]) {
