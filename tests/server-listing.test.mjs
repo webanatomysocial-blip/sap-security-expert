@@ -21,3 +21,7 @@ test('listing only shows published items and keeps the client app for interactiv
   assert.match(src, /\['approved', 'published'\]\.includes\(b\.status\)/);
   assert.match(src, /<ListingFallback[\s\S]*?\/>\s*<ClientApp \/>/);
 });
+
+test('the server H1 for /blogs matches the client H1 so the title does not change on hydration', () => {
+  assert.match(src, /title="All Blogs & Articles"/);
+});
