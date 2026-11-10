@@ -286,7 +286,7 @@ export default async function CategoryPage({ params }) {
     return (
       <>
         <ListingFallback
-          title="SAP Security Blogs & Articles"
+          title="All Blogs & Articles"
           intro="Browse all SAP Security, GRC, BTP, and cybersecurity articles written by practitioners. Filter by category, search by topic, and find the expert knowledge you need."
           items={items}
         />
