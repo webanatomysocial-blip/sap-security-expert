@@ -2,6 +2,9 @@ const WIDTHS = [400, 800, 1200];
 
 export function variantUrl(src, width) {
   if (typeof src !== 'string' || !/^\/uploads\/(blogs|ads)\//.test(src)) return null;
+  // The backfill only creates variants for JPEG/PNG originals. A WebP original
+  // has none, so requesting one would always 404 before the onError fallback.
+  if (/\.webp$/i.test(src)) return null;
   const dot = src.lastIndexOf('.');
   if (dot <= src.lastIndexOf('/')) return null;
   return `${src.slice(0, dot)}-${width}.webp`;
