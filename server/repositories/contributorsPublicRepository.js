@@ -1,4 +1,3 @@
-const { applyContributorCountryVisibility } = require('../utils/contributorVisibility');
 const { slugify } = require('../utils/slugify');
 
 // Appends -2, -3, ... until the slug doesn't collide with an existing one —
@@ -92,7 +91,8 @@ async function findApprovedContributors(db) {
      ) t WHERE contributions_count > 0
      ORDER BY created_at DESC`
   );
-  return rows.map((r) => applyContributorCountryVisibility({ ...r, country: r.member_country || r.country }));
+  // Settings stay on the row; contributorPublicPolicy applies them.
+  return rows.map((r) => ({ ...r, country: r.member_country || r.country }));
 }
 
 // idOrSlug: the public profile URL now carries the contributor's slug
@@ -115,10 +115,7 @@ async function findApprovedProfileById(db, idOrSlug) {
     [idOrSlug, idOrSlug]
   );
   if (!rows[0] || rows[0].contributions_count === 0) return null;
-  return applyContributorCountryVisibility({
-    ...rows[0],
-    country: rows[0].member_country || rows[0].country,
-  });
+  return { ...rows[0], country: rows[0].member_country || rows[0].country };
 }
 
 async function findPublishedBlogsByAuthorId(db, authorId) {

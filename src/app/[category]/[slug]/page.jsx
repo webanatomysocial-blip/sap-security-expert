@@ -16,12 +16,6 @@ const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', 
 
 // These established public profile URLs must retain meaningful raw HTML even
 // when a legacy contributor record is unavailable through the profile API.
-const KNOWN_CONTRIBUTORS = {
-  raghu: 'Raghu Boddu',
-  'inderdeep-singh': 'Inderdeep Singh',
-  'sahar-guermah': 'Sahar Guermah',
-  'srini-p': 'Srini P',
-};
 
 function humanizeSlug(value) {
   return String(value || '')
@@ -91,8 +85,12 @@ async function fetchContributor(slug) {
 }
 
 function contributorMeta(slug, contributor) {
-  const name = contributor?.full_name || KNOWN_CONTRIBUTORS[slug] || humanizeSlug(slug) || 'SAP Security Contributor';
-  const description = contributor?.short_bio || contributor?.bio
+  // A hidden or missing profile must not be named or indexed. The API decides visibility.
+  if (!contributor?.full_name) {
+    return { title: 'SAP Security Expert', robots: { index: false, follow: false } };
+  }
+  const name = contributor.full_name;
+  const description = contributor.short_bio || contributor.bio
     || `${name} is a contributor at SAP Security Expert, sharing practical SAP security expertise.`;
   const canonical = `${SITE_URL}/contributor/${encodeURIComponent(slug)}`;
   return {
@@ -427,7 +425,9 @@ export default async function BlogPostPage({ params }) {
 
   if (category === 'contributor') {
     const contributor = await fetchContributor(slug);
-    const name = contributor?.full_name || KNOWN_CONTRIBUTORS[slug];
+    // Fail closed: only the API's public, policy-filtered name is rendered. A hidden
+    // or missing profile gets no name here (the API returns nothing for it).
+    const name = contributor?.full_name;
     if (name) {
       const bio = contributor?.short_bio || contributor?.bio
         || `${name} shares practical SAP security expertise with the SAP Security Expert community.`;

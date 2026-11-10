@@ -26,7 +26,9 @@ test('metadata blocks streaming and public profile fallbacks remain crawlable', 
   assert.match(category, /dynamic = 'force-dynamic'/);
   assert.match(profile, /dynamic = 'force-dynamic'/);
   assert.match(profile, /enhanceArticleImages/);
-  assert.match(profile, /KNOWN_CONTRIBUTORS/);
+  // Owner-approved visibility rules: no hard-coded name fallback. A hidden or
+  // missing profile must not be named without the API's permission.
+  assert.doesNotMatch(profile, /KNOWN_CONTRIBUTORS/);
   assert.match(profile, /<h1[\s\S]*?Raghu Boddu/);
 });
 
