@@ -2,6 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ClientApp from '../[[...slug]]/ClientApp';
 
+// These pages obtain public content from the local API. Serve current SSR
+// content and metadata rather than retaining a stale full-route response.
+export const dynamic = 'force-dynamic';
+
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sapsecurityexpert.com').replace(/^http:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/, 'https://').replace(/\/$/, '');
 
