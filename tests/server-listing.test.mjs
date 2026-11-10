@@ -25,3 +25,24 @@ test('listing only shows published items and keeps the client app for interactiv
 test('the server H1 for /blogs matches the client H1 so the title does not change on hydration', () => {
   assert.match(src, /title="All Blogs & Articles"/);
 });
+
+test('stage 2: downloads and learning-hub use anonymous public fetches only', () => {
+  const pub = src.slice(src.indexOf('async function fetchPublicJson'), src.indexOf('async function fetchSeoMeta'));
+  assert.match(pub, /fetch\(`\$\{INTERNAL_API\}\$\{pathWithQuery\}`/);
+  assert.doesNotMatch(pub, /x-ssr-internal|REVALIDATE_SECRET|cookie/i);
+  assert.match(src, /fetchPublicJson\('\/api\/learnings'\)/);
+  assert.match(src, /fetchPublicJson\('\/api\/learnings\/counts'\)/);
+});
+
+test('stage 2: downloads and learning-hub render H1, real links and publication filters', () => {
+  assert.match(src, /category === 'downloads'/);
+  assert.match(src, /category === 'learning-hub'/);
+  assert.match(src, /<a href=\{`\/learning\/\$\{b\.category\}\/\$\{b\.slug\}`\}/);
+  assert.match(src, /<a href=\{`\/learning\/\$\{m\.slug\}`\}/);
+  assert.match(src, /\['approved', 'published'\]\.includes\(b\.status\)/);
+});
+
+test('stage 2: listing cards never expose file URLs or storage paths', () => {
+  const comps = src.slice(src.indexOf('function LearningHubFallback'), src.indexOf('// ── Page (Server Component)'));
+  assert.doesNotMatch(comps, /file_url|fileUrl|storage|\/private|download_url/);
+});
