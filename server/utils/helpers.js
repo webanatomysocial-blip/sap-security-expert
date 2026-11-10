@@ -177,14 +177,31 @@ const ALLOWED_IMAGE_EXTS = new Set(['jpg', 'png', 'webp', 'gif']);
  * after upload and deletes the file if it isn't really an allowed image type.
  * Use as Express middleware right after the multer .single(...) call.
  */
+// Reads only the first 12 bytes. Covers exactly the formats the upload routes accept.
+// Replaces the file-type package, whose ASF parser has a known infinite-loop DoS and
+// whose fixed major needs Node 22.
+async function sniffImageExt(filePath) {
+  const fh = await fs.promises.open(filePath, 'r');
+  try {
+    const buf = Buffer.alloc(12);
+    const { bytesRead } = await fh.read(buf, 0, 12, 0);
+    const b = buf.subarray(0, bytesRead);
+    if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpg';
+    if (b.length >= 8 && b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
+    if (b.length >= 12 && b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+    if (b.length >= 6 && b.toString('ascii', 0, 4) === 'GIF8' && (b[4] === 0x37 || b[4] === 0x39) && b[5] === 0x61) return 'gif';
+    return null;
+  } finally {
+    await fh.close();
+  }
+}
+
 function verifyImageMagicBytes(req, res, next) {
   if (!req.file) return next();
-  const FileType = require('file-type');
-  FileType.fromFile(req.file.path)
-    .then((detected) => {
-      const detectedExt = detected?.ext === 'jpeg' ? 'jpg' : detected?.ext;
+  sniffImageExt(req.file.path)
+    .then((detectedExt) => {
       const storedExt = path.extname(req.file.filename || req.file.path).slice(1).toLowerCase().replace('jpeg', 'jpg');
-      if (!detected || !ALLOWED_IMAGE_EXTS.has(detectedExt) || detectedExt !== storedExt) {
+      if (!detectedExt || !ALLOWED_IMAGE_EXTS.has(detectedExt) || detectedExt !== storedExt) {
         return fs.promises.unlink(req.file.path).catch(() => {}).then(() =>
           res.json({ status: 'error', message: 'Please upload a valid image file (JPG, PNG, or WEBP).' })
         );

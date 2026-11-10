@@ -32,6 +32,19 @@ async function inspectImage(source) {
   return metadata;
 }
 
+// An existing variant counts only if it is a readable, non-empty WebP no wider than requested.
+// Anything else (empty, truncated, or wrong format) is regenerated.
+async function isValidVariant(file, requestedWidth) {
+  try {
+    const st = await fs.promises.stat(file);
+    if (st.size === 0) return false;
+    const meta = await sharp(file).metadata();
+    return meta.format === 'webp' && meta.width > 0 && meta.width <= requestedWidth;
+  } catch {
+    return false;
+  }
+}
+
 async function processImage(source, options = {}) {
   const widths = [...new Set(options.widths || DEFAULT_WIDTHS)].filter((n) => Number.isInteger(n) && n > 0);
   const quality = Math.min(95, Math.max(40, Number(options.quality || process.env.IMAGE_WEBP_QUALITY || DEFAULT_QUALITY)));
@@ -45,16 +58,25 @@ async function processImage(source, options = {}) {
     // portrait whose orientation swaps width and height.
     const width = requestedWidth;
     const output = variantPath(source, requestedWidth);
-    if (!overwrite && fs.existsSync(output)) {
+    if (!overwrite && await isValidVariant(output, requestedWidth)) {
       const existingMeta = await sharp(output).metadata();
       outputs.push({ width: requestedWidth, actualWidth: existingMeta.width, height: existingMeta.height, path: output, status: 'existing' });
       continue;
     }
-    await sharp(source, { failOn: 'error', limitInputPixels: MAX_PIXELS })
-      .rotate()
-      .resize({ width, withoutEnlargement: true, fit: 'inside' })
-      .webp({ quality, effort: 4 })
-      .toFile(output);
+    // Write under a temporary name, then rename. An interrupted run never leaves a
+    // partial file at the final path, so a retry cannot mistake it for a valid variant.
+    const tmp = output.replace(/\.webp$/, `.partial-${process.pid}.webp`);
+    try {
+      await sharp(source, { failOn: 'error', limitInputPixels: MAX_PIXELS })
+        .rotate()
+        .resize({ width, withoutEnlargement: true, fit: 'inside' })
+        .webp({ quality, effort: 4 })
+        .toFile(tmp);
+      await fs.promises.rename(tmp, output);
+    } catch (err) {
+      await fs.promises.unlink(tmp).catch(() => {});
+      throw err;
+    }
     const outMeta = await sharp(output).metadata();
     outputs.push({ width: requestedWidth, actualWidth: outMeta.width, height: outMeta.height, path: output, status: 'created' });
   }
@@ -78,4 +100,4 @@ async function createAvatarVariant(req, _res, next) {
   return next();
 }
 
-module.exports = { DEFAULT_WIDTHS, createAvatarVariant, inspectImage, processImage, processUpload, publicVariantUrl, variantPath };
+module.exports = { DEFAULT_WIDTHS, createAvatarVariant, inspectImage, isValidVariant, processImage, processUpload, publicVariantUrl, variantPath };
