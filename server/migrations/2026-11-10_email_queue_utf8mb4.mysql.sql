@@ -1,9 +1,12 @@
 -- PREPARED ONLY. Do not run until DEV inspection and backup/restore approval.
--- Preserve existing rows while allowing Telugu, emoji and other Unicode mail content.
+-- Preserve existing column types and nullability while allowing Telugu, emoji
+-- and other Unicode mail content.
 ALTER TABLE email_queue
-  MODIFY recipient VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  MODIFY subject VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  MODIFY body LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;
+  CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Rollback limitation: converting these columns back to a narrower character
+-- set can be lossy or fail once utf8mb4 content exists. Restore the independently
+-- verified encrypted backup instead of attempting an in-place charset rollback.
 
 -- Read-only verification before/after:
 -- SELECT COLUMN_NAME, CHARACTER_SET_NAME, COLLATION_NAME
