@@ -1,4 +1,3 @@
-const { applyContributorCountryVisibility } = require('../utils/contributorVisibility');
 const { Country } = require('country-state-city');
 
 // Same country list the signup/profile dropdowns use — anything else is
@@ -105,7 +104,8 @@ async function findApprovedContributorsWithCounts(db) {
      ) t WHERE contributions_count > 0
      ORDER BY contributions_count DESC, created_at ASC`
   );
-  return rows.map((r) => applyContributorCountryVisibility(r));
+  // Contributor data is public; member privacy settings do not filter it.
+  return rows;
 }
 
 async function findExpertPicks(db, nowUtc) {
@@ -171,7 +171,8 @@ async function findLeaderboardContributors(db) {
      ) t WHERE contributions_count > 0
      ORDER BY contributions_count DESC, created_at ASC`
   );
-  return rows.map((r) => applyContributorCountryVisibility(r));
+  // Contributor data is public; member privacy settings do not filter it.
+  return rows;
 }
 
 async function findPublicMemberById(db, id) {
