@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getLearningCounts } from '../services/api';
 import SEO from '../components/SEO';
@@ -268,12 +268,6 @@ function DiagModal({ open, onClose, onAccept }) {
   const [scores, setScores] = useState([]);
   const [reco, setReco] = useState(null);
 
-  const reset = useCallback(() => { setStep(0); setScores([]); setReco(null); }, []);
-
-  useEffect(() => {
-    if (open) reset();
-  }, [open, reset]);
-
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -360,7 +354,7 @@ function ShareModal({ open, onClose, result }) {
 
   function shareTo(platform) {
     const text = `I scored ${result.pct}% (${result.band}) on the ${result.topic} capability test at SAP Security Expert.`;
-    const url = 'http://sapsecurityexpert.com';
+    const url = 'https://sapsecurityexpert.com';
     if (platform === 'linkedin') {
       window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url), '_blank');
     } else if (platform === 'twitter') {
@@ -921,25 +915,12 @@ export default function LearningHub() {
             <p>Every lesson is built and reviewed by working SAP Security professionals. No theory-only trainers, people who design roles, run audits, and ship security tickets every week.</p>
           </div>
           <div className="lh-instructors-grid">
-            {[
-              { initials: 'PR', cls: 'lh-avatar-1', name: 'Priya Rangarajan', role: 'Lead Curriculum Designer · Role Management', bio: 'Twelve years designing SAP authorization frameworks for global retail and pharma. Designed Module 03 from the ground up.', lessons: 22 },
-              { initials: 'MO', cls: 'lh-avatar-2', name: 'Marcus Okonkwo', role: 'Senior Author · Cybersecurity & BTP', bio: 'Eight years in SAP cybersecurity, with a focus on BTP hardening and audit-log forensics. Covers Modules 05 and the BTP track.', lessons: 18 },
-              { initials: 'SK', cls: 'lh-avatar-3', name: 'Sandra Köhler', role: 'GRC & IAG Specialist · Audit Reviewer', bio: 'Fifteen years implementing GRC Access Control and IAG across Fortune 500 manufacturing and financial services clients.', lessons: 14 },
-            ].map((inst, i) => (
-              <div key={i} className="lh-instructor-card lh-reveal">
-                <div className={`lh-instructor-avatar ${inst.cls}`}>{inst.initials}</div>
-                <h3>{inst.name}</h3>
-                <div className="lh-instructor-role">{inst.role}</div>
-                <p className="lh-instructor-bio">{inst.bio}</p>
-                <div className="lh-instructor-meta">
-                  <span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-                    LinkedIn
-                  </span>
-                  <span>{inst.lessons} lessons authored</span>
-                </div>
-              </div>
-            ))}
+            <div className="lh-instructor-card lh-reveal">
+              <div className="lh-instructor-avatar lh-avatar-1" aria-hidden="true">SSE</div>
+              <h3>Instructor profiles coming soon</h3>
+              <div className="lh-instructor-role">Content awaiting editorial verification</div>
+              <p className="lh-instructor-bio">Named instructor biographies and qualifications will be published only after the people and credentials have been verified.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -989,7 +970,7 @@ export default function LearningHub() {
       </section>
 
       {/* ── Diagnostic Modal ── */}
-      <DiagModal open={diagOpen} onClose={() => setDiagOpen(false)} onAccept={handleAcceptReco} />
+      <DiagModal key={diagOpen ? 'open' : 'closed'} open={diagOpen} onClose={() => setDiagOpen(false)} onAccept={handleAcceptReco} />
     </div>
   );
 }

@@ -14,6 +14,7 @@
     "postinstall": "cd server && npm install",
     "build": "next build",
     "lint": "eslint .",
+    "test:codebase": "node --test tests/*.test.mjs",
     "start": "node start.cjs"
   },
   "dependencies": {

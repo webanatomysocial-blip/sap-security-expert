@@ -724,5 +724,12 @@
 .hm-modal:not(:has(.hm-footer)) .hm-image {
   border-radius: 16px;
 }
+@media (max-width: 600px) {
+  .hm-overlay { align-items: flex-end; padding: 10px; background: rgba(15, 23, 42, 0.35); }
+  .hm-modal { width: 100%; max-height: min(52vh, 420px); border-radius: 14px; }
+  .hm-image { max-height: 260px; aspect-ratio: 16 / 9; border-radius: 14px 14px 0 0; }
+  .hm-footer { padding: 12px; }
+  .hm-btn { padding: 11px 16px; }
+}
 @keyframes hm-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes hm-pop { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }

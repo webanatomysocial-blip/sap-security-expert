@@ -77,6 +77,8 @@ const sections = [
     links: [
       { label: "Privacy Policy", to: "/privacy-policy" },
       { label: "Terms & Conditions", to: "/terms-conditions" },
+      { label: "Cookie Policy", to: "/cookie-policy" },
+      { label: "Disclaimer", to: "/disclaimer" },
       { label: "Accessibility Statement", to: "/accessibility-statement" },
       { label: "Safety Movement", to: "/safety-movement" },
       { label: "Security & Compliance", to: "/security-compliance-overview" },

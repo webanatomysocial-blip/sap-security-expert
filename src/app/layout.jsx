@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import DeferredStyles from "../components/DeferredStyles";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://sapsecurityexpert.com').replace(/\/$/, '');
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sapsecurityexpert.com').replace(/^http:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/, 'https://').replace(/\/$/, '');
 
 // Escape JSON for safe embedding inside a <script> element.
 // JSON.stringify escapes quotes/backslashes but NOT < or /, so the sequence

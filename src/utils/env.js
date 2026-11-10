@@ -27,7 +27,7 @@ export const VITE_API_URL = getEnv("VITE_API_URL", "/api");
 export const VITE_SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ||
   getEnv("VITE_SITE_URL", "https://sapsecurityexpert.com")
-).replace(/\/$/, "");
+).replace(/^http:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/, "https://").replace(/\/$/, "");
 export const DEV = typeof process !== "undefined" 
   ? process.env.NODE_ENV === "development" 
   : getEnv("DEV", false);
