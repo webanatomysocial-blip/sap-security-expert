@@ -61,6 +61,13 @@ function publicHttpUrl(v) {
   try { const u = new URL(v); return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : null; } catch { return null; }
 }
 
+// Profile photo: a local upload/asset path or an http(s) URL, otherwise nothing.
+function publicImageUrl(v) {
+  if (typeof v !== 'string' || !v.trim()) return null;
+  if (v.startsWith('/') && !v.startsWith('//')) return v;
+  return publicHttpUrl(v);
+}
+
 function personJsonLd({ name, jobTitle, organization, url, description, sameAs }) {
   const obj = { '@context': 'https://schema.org', '@type': 'Person', name, url };
   if (jobTitle) obj.jobTitle = jobTitle;
@@ -370,10 +377,11 @@ function buildSchemas(blog, category, url) {
 // ── Page (Server Component) ───────────────────────────────────────────────────
 
 // Server-rendered public profile. AppWrapper removes #ssr-blog-content on mount.
-function ProfileFallback({ name, subtitle, organization, badge, bio, expertise = [], links = [], articles = [] }) {
+function ProfileFallback({ name, image, subtitle, organization, badge, bio, expertise = [], links = [], articles = [] }) {
   const visibleLinks = links.filter((l) => l.href);
   return (
     <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+      {image && <img src={image} alt={`${name} profile photo`} width={120} height={120} loading="eager" decoding="async" style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', display: 'block', margin: '0 0 16px' }} />}
       <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>{name}</h1>
       {subtitle && <p style={{ color: '#475569', fontWeight: 600, margin: '0 0 8px' }}>{subtitle}</p>}
       {organization && <p style={{ color: '#64748b', margin: '0 0 8px' }}>{organization}</p>}
@@ -430,6 +438,7 @@ export default async function BlogPostPage({ params }) {
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: personJsonLd({ name, jobTitle: contributor?.role, organization: contributor?.organization, url: canonical, description: bio, sameAs }) }} />
           <ProfileFallback
             name={name}
+            image={publicImageUrl(contributor?.profile_image)}
             subtitle={contributor?.role || contributor?.designation}
             organization={contributor?.organization}
             bio={bio}
@@ -459,6 +468,7 @@ export default async function BlogPostPage({ params }) {
           <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: personJsonLd({ name, jobTitle: amb.current_role || 'Country Ambassador', organization: amb.organization, url: canonical, description: bio, sameAs }) }} />
           <ProfileFallback
             name={name}
+            image={publicImageUrl(amb.profile_image)}
             subtitle={[role, where].filter(Boolean).join(' · ') || null}
             badge={badge}
             bio={bio}
