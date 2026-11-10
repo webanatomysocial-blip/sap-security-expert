@@ -73,6 +73,8 @@ router.get('/stream', requireMemberAuth, rateLimit('pdf_stream', 20, 300), async
   if (!isPdf) {
     // Non-PDF: pass through unchanged
     logAccess(req.db, req.session.member_id, fileUrl, 'download', req, true);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     return res.download(filePath, fileName);
   }
 

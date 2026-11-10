@@ -18,6 +18,7 @@ import { useMemberAuth } from "../context/MemberAuthContext";
 import MembersOnlyPaywall from "./MembersOnlyPaywall";
 import PremiumPaywall from "./PremiumPaywall";
 import { safeUrl } from "../utils/safeUrl";
+import { responsiveImageProps } from "../utils/responsiveImage";
 
 // Register ScrollTrigger
 gsap.registerPlugin(ScrollTrigger);
@@ -808,8 +809,15 @@ const BlogLayout = ({
                       {art.image ? (
                         <img
                           src={art.image}
-                          alt=""
+                          alt={art.title || "Related article"}
+                          loading="lazy"
+                          decoding="async"
+                          width="600"
+                          height="400"
+                          {...responsiveImageProps(art.image, "(max-width: 768px) 100vw, 33vw")}
                           onError={(e) => {
+                            e.currentTarget.removeAttribute('srcset');
+                            e.currentTarget.removeAttribute('sizes');
                             e.currentTarget.style.display = 'none';
                             e.currentTarget.nextSibling.style.display = 'flex';
                           }}

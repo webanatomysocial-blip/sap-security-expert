@@ -1288,15 +1288,15 @@ if (isSQLite) {
     database: process.env.DB_NAME || '',
     charset: process.env.DB_CHARSET || 'utf8mb4',
     waitForConnections: true,
-    // 2 GB RAM server: session store has its own 2-connection pool (separate).
-    // Main pool: 20 connections × ~6 MB each ≈ 120 MB — still well within budget.
+    // Conservative default for the current single-process deployment. Keep it
+    // configurable rather than assuming the database can absorb more clients.
     // With lazy connection acquisition (see dbMiddleware below), connections are
     // only held during actual DB work, not for the full request lifetime.
     // The previous eager-checkout approach meant every concurrent HTTP request
     // (including SSR loopback calls, cached responses, static files) consumed
     // a pool slot; 10 slots was trivially exhausted under moderate traffic.
     // Override with DB_POOL_SIZE env var if you need to tune for your host.
-    connectionLimit: parseInt(process.env.DB_POOL_SIZE || '25'),
+    connectionLimit: parseInt(process.env.DB_POOL_SIZE || '8'),
     queueLimit: 200,
     timezone: '+00:00',
     // Reconnect automatically if the Hostinger MySQL server closes idle connections.

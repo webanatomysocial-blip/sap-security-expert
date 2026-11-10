@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
+import { responsiveImageProps } from "../utils/responsiveImage";
 // Removed static metadata import
 // Removed static metadata import
 // next-disabled: import "../css/CommunitySection.css";
@@ -91,7 +92,6 @@ export default function CommunitySection() {
   const [premiumArticles, setPremiumArticles] = useState(() => ssrSeed?.premiumArticles || []);
   const [latestNews, setLatestNews] = useState(() => ssrSeed?.latestNews || []);
   const [activeTab, setActiveTab] = useState("all");
-  const [trending, setTrending] = useState(() => ssrSeed?.trending || []);
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
   const [homepageLoading, setHomepageLoading] = useState(() => !ssrSeed);
 
@@ -121,7 +121,6 @@ export default function CommunitySection() {
           setExpertPicks(data.expertPicks || []);
           setPremiumArticles(data.premiumArticles || []);
           setLatestNews(data.latestNews || []);
-          setTrending(data.trending || []);
           setContributors(data.contributors || []);
           setContributorCount(data.contributors ? data.contributors.length : 0);
         }
@@ -256,7 +255,7 @@ export default function CommunitySection() {
                     {/* Avatar */}
                     <div className="rt-avatar">
                       {post.author_image ? (
-                        <img loading="lazy" decoding="async" src={getImageUrl(post.author_image)} alt={post.author_name} onError={(e) => { e.target.src = "https://placehold.co/100x100?text=A"; }} />
+                        <img loading="lazy" decoding="async" width="100" height="100" src={getImageUrl(post.author_image)} alt={post.author_name} onError={(e) => { e.target.src = "https://placehold.co/100x100?text=A"; }} />
                       ) : (
                         <span>{(post.author_name || "G").charAt(0).toUpperCase()}</span>
                       )}
@@ -286,11 +285,11 @@ export default function CommunitySection() {
               {adsConfig.community_left.active ? (
                 <div className="promo-box">
                   <a href={adsConfig.community_left.link || "#"} target={adsConfig.community_left.link ? "_blank" : "_self"} rel="noreferrer" onClick={() => handleAdClick("community_left")}>
-                    <img loading="lazy" decoding="async" src={getImageUrl(adsConfig.community_left.image)} alt="Ad" />
+                    <img loading="lazy" decoding="async" width="280" height="205" src={getImageUrl(adsConfig.community_left.image)} alt="Sponsored promotion" {...responsiveImageProps(adsConfig.community_left.image, "280px")} />
                   </a>
                 </div>
               ) : (
-                <img loading="lazy" decoding="async" src={ads1} alt="Promotion" />
+                <img loading="lazy" decoding="async" width="280" height="205" src={ads1} alt="Community promotion" />
               )}
             </div>
 
@@ -309,7 +308,7 @@ export default function CommunitySection() {
                         <span className="tc-medal">{medals[index]}</span>
                         <div className="tc-avatar">
                           {contributor.profile_image ? (
-                            <img loading="lazy" decoding="async" src={getImageUrl(contributor.profile_image)} alt={contributor.full_name} onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
+                            <img loading="lazy" decoding="async" width="100" height="100" src={getImageUrl(contributor.profile_image)} alt={contributor.full_name} onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
                           ) : null}
                           <div className="avatar-fallback" style={{ display: contributor.profile_image ? "none" : "flex" }}>
                             {contributor.full_name ? contributor.full_name.charAt(0) : "C"}
@@ -354,6 +353,10 @@ export default function CommunitySection() {
                     src={getImageUrl(activeBg)}
                     alt=""
                     fetchPriority="high"
+                    decoding="async"
+                    width="1200"
+                    height="675"
+                    {...responsiveImageProps(activeBg, "100vw")}
                     aria-hidden="true"
                     style={{
                       position: "absolute",
@@ -623,7 +626,14 @@ export default function CommunitySection() {
                             decoding="async"
                             src={activity.image ? getImageUrl(activity.image) : "https://placehold.co/600x400?text=No+Image"}
                             alt={activity.title}
-                            onError={(e) => { e.target.src = "https://placehold.co/600x400?text=No+Image"; }}
+                            width="600"
+                            height="400"
+                            {...responsiveImageProps(activity.image, "(max-width: 768px) 100vw, 33vw")}
+                            onError={(e) => {
+                              e.currentTarget.removeAttribute('srcset');
+                              e.currentTarget.removeAttribute('sizes');
+                              e.currentTarget.src = "https://placehold.co/600x400?text=No+Image";
+                            }}
                           />
                         </div>
                         <div className="activity-content">
@@ -666,6 +676,8 @@ export default function CommunitySection() {
                                   decoding="async"
                                   src={getImageUrl(activity.author_image)}
                                   alt={activity.author_name || activity.author}
+                                  width="100"
+                                  height="100"
                                   style={{ width: "22px", height: "22px", borderRadius: "50%", objectFit: "cover", border: "1px solid #e2e8f0" }}
                                   onError={(e) => { e.target.src = "https://placehold.co/100x100?text=Author"; }}
                                 />
@@ -769,11 +781,11 @@ export default function CommunitySection() {
                     rel="noreferrer"
                     onClick={() => handleAdClick("community_right")}
                   >
-                    <img loading="lazy" decoding="async" src={getImageUrl(adsConfig.community_right.image)} alt="Ad 2" />
+                    <img loading="lazy" decoding="async" width="280" height="205" src={getImageUrl(adsConfig.community_right.image)} alt="Sponsored promotion" {...responsiveImageProps(adsConfig.community_right.image, "280px")} />
                   </a>
                 </div>
               ) : (
-                <img loading="lazy" decoding="async" src={ads2} alt="Promotion 2" />
+                <img loading="lazy" decoding="async" width="280" height="205" src={ads2} alt="Community promotion" />
               )}
             </div>
 
