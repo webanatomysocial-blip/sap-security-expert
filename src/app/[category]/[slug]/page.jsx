@@ -76,9 +76,21 @@ async function fetchSeoMeta(path) {
   return null;
 }
 
-// Add loading="lazy" to <img> tags that don't already have a loading attribute
-function addLazyLoading(html) {
-  return html.replace(/<img(?![^>]*\bloading=)/gi, '<img loading="lazy"');
+// Article HTML is editor-authored. Ensure every content image has an alt
+// attribute and lazy loading before it reaches the server-rendered document.
+// Existing non-empty author-provided alt text is preserved.
+function enhanceArticleImages(html, fallbackAlt) {
+  const escapedAlt = String(fallbackAlt || 'SAP Security Expert article image')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return html.replace(/<img\b[^>]*>/gi, (tag) => {
+    let result = tag;
+    if (!/\balt\s*=/i.test(result)) result = result.replace(/<img\b/i, `<img alt="${escapedAlt}"`);
+    if (!/\bloading\s*=/i.test(result)) result = result.replace(/<img\b/i, '<img loading="lazy"');
+    return result;
+  });
 }
 
 // ── Metadata ─────────────────────────────────────────────────────────────────
@@ -253,6 +265,23 @@ function buildSchemas(blog, category, url) {
 export default async function BlogPostPage({ params }) {
   const { category, slug } = await params;
 
+  // The founder profile is rendered by the client application, but it is an
+  // important public author page. Keep its principal content in raw HTML so
+  // non-JavaScript crawlers and LLM crawlers receive a descriptive H1.
+  if (category === 'experts' && slug === 'raghu-boddu') {
+    return (
+      <>
+        <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+          <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>Raghu Boddu</h1>
+          <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: 0 }}>
+            Raghu Boddu is an SAP Security and GRC expert with more than 25 years of experience in access governance, cybersecurity, SAP automation, and enterprise security architecture.
+          </p>
+        </article>
+        <ClientApp />
+      </>
+    );
+  }
+
   // Let the SPA catch-all handle non-blog routes
   if (SKIP_CATEGORIES.has(category)) {
     return <ClientApp />;
@@ -368,7 +397,7 @@ export default async function BlogPostPage({ params }) {
             <article
               suppressHydrationWarning
               className="blog-content-body"
-              dangerouslySetInnerHTML={{ __html: addLazyLoading(blog.content || '') }}
+              dangerouslySetInnerHTML={{ __html: enhanceArticleImages(blog.content || '', blog.title) }}
             />
 
             {/* FAQs */}

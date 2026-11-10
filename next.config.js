@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Metadata that resolves after the initial response flush is normally
+  // streamed into the body by Next.js 15. That is valid for modern browsers,
+  // but SEO crawlers (and many LLM crawlers) require title, canonical and
+  // robots tags to be present inside <head>. Treat every request as
+  // HTML-limited so Next waits for metadata and writes it into <head>.
+  htmlLimitedBots: /.*/,
+
   // Reduce the number of SSR pages Next.js keeps hot in memory.
   // Default is 50; 25 is plenty for this app and halves the page-cache footprint.
   onDemandEntries: {

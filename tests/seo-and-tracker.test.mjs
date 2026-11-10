@@ -13,6 +13,18 @@ test('server metadata fallbacks are HTTPS and restricted routes stay out of site
   assert.doesNotMatch(sitemap, /url:\s*['"]\/(admin|member\/login|api|forgot-password|reset-password)/);
 });
 
+test('metadata blocks streaming and public profile fallbacks remain crawlable', () => {
+  const config = read('next.config.js');
+  const catchAll = read('src/app/[[...slug]]/page.jsx');
+  const profile = read('src/app/[category]/[slug]/page.jsx');
+  assert.match(config, /htmlLimitedBots:\s*\/\.\*\//);
+  assert.match(catchAll, /robots:\s*\{ index: true, follow: true \}/);
+  assert.match(catchAll, /<h1[\s\S]*?\{name\}/);
+  assert.match(catchAll, /SPA_PAGE_SUMMARIES/);
+  assert.match(profile, /enhanceArticleImages/);
+  assert.match(profile, /<h1[\s\S]*?Raghu Boddu/);
+});
+
 test('legal pages, complaint option and non-fabricated instructor state are wired', () => {
   const app = read('src/App.jsx');
   assert.match(app, /cookie-policy/);
