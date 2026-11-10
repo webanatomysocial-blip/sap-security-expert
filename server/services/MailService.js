@@ -172,18 +172,40 @@ class MailService {
 
         await conn.beginTransaction();
         try {
-          const blogIdStr = String(blog.id);
-          for (const member of members) {
-            await conn.execute(
-              `INSERT IGNORE INTO email_queue (recipient, blog_id, subject, body, status, created_at)
-               VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
-              [member.email, blogIdStr, subject, body]
-            );
-          }
-          await conn.execute(
-            'UPDATE blogs SET is_queued_for_members = 1 WHERE id = ?',
+          // Atomic claim: only the publisher that flips the flag 0 -> 1 enqueues.
+          // email_queue has no unique key, so without this two concurrent
+          // publishes (or a cron re-run) would both enqueue every member.
+          // A rollback (below) also releases the claim, so the blog can retry.
+          const [claim] = await conn.execute(
+            'UPDATE blogs SET is_queued_for_members = 1 WHERE id = ? AND (is_queued_for_members IS NULL OR is_queued_for_members = 0)',
             [blog.id]
           );
+          if (claim.affectedRows === 0) {
+            await conn.rollback();
+            continue;
+          }
+
+          const blogIdStr = String(blog.id);
+          if (isSQLite) {
+            // SQLite adapter has no multi-row query(); small dev lists, one row at a time.
+            for (const member of members) {
+              await conn.execute(
+                `INSERT INTO email_queue (recipient, blog_id, subject, body, status, created_at)
+                 VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+                [member.email, blogIdStr, subject, body]
+              );
+            }
+          } else {
+            // One multi-row INSERT per 200 members, not one round-trip per member.
+            const CHUNK = 200;
+            for (let i = 0; i < members.length; i += CHUNK) {
+              const rows = members.slice(i, i + CHUNK).map((m) => [m.email, blogIdStr, subject, body, 'pending', new Date()]);
+              await conn.query(
+                'INSERT INTO email_queue (recipient, blog_id, subject, body, status, created_at) VALUES ?',
+                [rows]
+              );
+            }
+          }
           await conn.commit();
         } catch (err) {
           await conn.rollback();

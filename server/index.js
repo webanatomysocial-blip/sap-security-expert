@@ -42,7 +42,9 @@ if (isSQLite) {
     database: process.env.DB_NAME || '',
     createDatabaseTable: true,
     // 2 connections for sessions + 3 for main pool = 5 total.
-    connectionLimit: parseInt(process.env.SESSION_POOL_SIZE || '2'),
+    // 8 (was 2): session reads/writes run on every request; 2 queued under load.
+    // Measured demand stays far below MariaDB max_connections (151).
+    connectionLimit: parseInt(process.env.SESSION_POOL_SIZE || '8'),
     schema: { tableName: 'sessions', columnNames: { session_id: 'session_id', expires: 'expires', data: 'data' } },
   });
   sessionStore.on('error', function(error) {

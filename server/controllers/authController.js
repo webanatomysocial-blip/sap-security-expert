@@ -37,7 +37,11 @@ const login = async (req, res) => {
     const lockoutTime = 900;
     const maxAttempts = 5;
 
-    const attempt = await repo.findLoginAttempts(db, ip);
+    // Independent reads: run concurrently (one round-trip of latency, not two).
+    const [attempt, user] = await Promise.all([
+      repo.findLoginAttempts(db, ip),
+      repo.findUserByUsername(db, username),
+    ]);
     if (attempt && attempt.attempts >= maxAttempts && (now - attempt.last_attempt) < lockoutTime) {
       const remaining = lockoutTime - (now - attempt.last_attempt);
       return res.status(429).json({
@@ -45,8 +49,6 @@ const login = async (req, res) => {
         message: `Too many login attempts. Please try again in ${Math.ceil(remaining / 60)} minutes.`,
       });
     }
-
-    const user = await repo.findUserByUsername(db, username);
     // Same bcrypt work whether or not the account exists, so timing doesn't reveal it.
     if (!user) await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
 
@@ -86,7 +88,8 @@ const login = async (req, res) => {
       req.session.csrf_token = csrf_token;
 
       await repo.clearLoginAttempts(db, ip);
-      await audit.log({ userId: user.id, actor: user.username, action: 'login_success', targetType: 'user', targetId: user.id, ip });
+      // Audit is bookkeeping: don't hold the login response for it.
+      audit.log({ userId: user.id, actor: user.username, action: 'login_success', targetType: 'user', targetId: user.id, ip }).catch(() => {});
 
       return res.json({
         status: 'success',
@@ -97,8 +100,9 @@ const login = async (req, res) => {
         user: { id: user.id, username: user.username, role: user.role, avatar: user.avatar || null },
       });
     } else {
+      // Failed-attempt counter stays awaited so the lockout can't be raced past.
       await repo.recordFailedAttempt(db, ip, now);
-      await audit.log({ userId: null, actor: username, action: 'login_failure', targetType: 'user', targetId: username, ip });
+      audit.log({ userId: null, actor: username, action: 'login_failure', targetType: 'user', targetId: username, ip }).catch(() => {});
       return res.status(401).json({ status: 'error', message: 'The username or password you entered is incorrect.' });
     }
   } catch (err) {
