@@ -10,6 +10,15 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sapsecurityexpert
 
 const SKIP_CATEGORIES = new Set(['admin', 'member', 'api', 'uploads', 'assets', '_next', 'experts', 'contributor', 'ambassador']);
 
+// These established public profile URLs must retain meaningful raw HTML even
+// when a legacy contributor record is unavailable through the profile API.
+const KNOWN_CONTRIBUTORS = {
+  raghu: 'Raghu Boddu',
+  'inderdeep-singh': 'Inderdeep Singh',
+  'sahar-guermah': 'Sahar Guermah',
+  'srini-p': 'Srini P',
+};
+
 function humanizeSlug(value) {
   return String(value || '')
     .split('-')
@@ -33,7 +42,7 @@ async function fetchContributor(slug) {
 }
 
 function contributorMeta(slug, contributor) {
-  const name = contributor?.full_name || humanizeSlug(slug) || 'SAP Security Contributor';
+  const name = contributor?.full_name || KNOWN_CONTRIBUTORS[slug] || humanizeSlug(slug) || 'SAP Security Contributor';
   const description = contributor?.short_bio || contributor?.bio
     || `${name} is a contributor at SAP Security Expert, sharing practical SAP security expertise.`;
   const canonical = `${SITE_URL}/contributor/${encodeURIComponent(slug)}`;
@@ -308,15 +317,15 @@ export default async function BlogPostPage({ params }) {
 
   if (category === 'contributor') {
     const contributor = await fetchContributor(slug);
-    if (contributor) {
-      const name = contributor.full_name || humanizeSlug(slug);
-      const bio = contributor.short_bio || contributor.bio
+    const name = contributor?.full_name || KNOWN_CONTRIBUTORS[slug];
+    if (name) {
+      const bio = contributor?.short_bio || contributor?.bio
         || `${name} shares practical SAP security expertise with the SAP Security Expert community.`;
       return (
         <>
           <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
             <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>{name}</h1>
-            {contributor.role && <p style={{ color: '#475569', fontWeight: 600, margin: '0 0 12px' }}>{contributor.role}</p>}
+            {contributor?.role && <p style={{ color: '#475569', fontWeight: 600, margin: '0 0 12px' }}>{contributor.role}</p>}
             <p style={{ fontSize: '1.1rem', color: '#334155', lineHeight: 1.7, margin: 0 }}>{bio}</p>
           </article>
           <ClientApp />
