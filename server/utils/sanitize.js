@@ -24,7 +24,7 @@ const sanitizeOptions = {
   ]),
   allowedAttributes: {
     a: ['href', 'name', 'target', 'rel', 'class', 'id', 'style', 'title'],
-    img: ['src', 'srcset', 'alt', 'title', 'width', 'height', 'loading', 'class', 'id', 'style', 'align'],
+    img: ['src', 'srcset', 'alt', 'title', 'width', 'height', 'loading', 'class', 'id', 'style', 'align', 'data-decorative'],
     video: ['src', 'controls', 'autoplay', 'muted', 'loop', 'poster', 'width', 'height', 'class', 'id', 'style'],
     source: ['src', 'srcset', 'type', 'media', 'sizes'],
     audio: ['src', 'controls', 'autoplay', 'muted', 'loop', 'class', 'id', 'style'],
@@ -105,6 +105,24 @@ function sanitizeBlogHtml(html) {
   return sanitizeHtml(html, sanitizeOptions);
 }
 
+function hasMeaningfulAlt(value) {
+  const alt = String(value || '').trim();
+  return alt.length >= 3 && !/^(image|photo|picture|img)$/i.test(alt);
+}
+
+// `data-decorative="true"` is an explicit authoring decision. Decorative
+// images must retain alt=""; every other content image needs useful text.
+function validateImageAltText(html) {
+  if (typeof html !== 'string' || !html) return [];
+  const issues = [];
+  for (const tag of html.match(/<img\b[^>]*>/gi) || []) {
+    if (/\bdata-decorative\s*=\s*(["'])true\1/i.test(tag)) continue;
+    const match = tag.match(/\balt\s*=\s*(["'])(.*?)\1/i);
+    if (!match || !hasMeaningfulAlt(match[2])) issues.push('Add meaningful alt text for each informative content image, or explicitly mark it decorative.');
+  }
+  return issues;
+}
+
 
 
 // Featured-image path a non-admin may store: empty, their own blog upload, or an https URL.
@@ -144,4 +162,4 @@ function cleanCommentHtml(text) {
   return sanitizeHtml(text, COMMENT_OPTIONS).trim();
 }
 
-module.exports = { sanitizeBlogHtml, safeBlogImage, cleanWebUrl, cleanCommentHtml };
+module.exports = { sanitizeBlogHtml, validateImageAltText, hasMeaningfulAlt, safeBlogImage, cleanWebUrl, cleanCommentHtml };

@@ -242,13 +242,13 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
 
           openConfirm({
             title: "Image Alt Text",
-            message: "Enter descriptive alt text for the pasted image:",
+            message: "Enter descriptive alt text for this informative image. Choose ‘Insert decorative’ only when the image conveys no information.",
             confirmText: "Insert Image",
-            cancelText: "Skip",
+            cancelText: "Insert decorative",
             showInput: true,
             inputPlaceholder: "e.g. SAP role conflict matrix screenshot",
             onConfirm: (alt) => insertImageWithAlt(url, alt),
-            onCancel: () => insertImageWithAlt(url, ""),
+            onCancel: () => insertImageWithAlt(url, "", true),
           });
         } catch (err) {
           console.error("Image paste upload failed:", err);
@@ -491,11 +491,16 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
     cleanAndDispatch();
   };
 
-  const insertImageWithAlt = (url, alt) => {
+  const insertImageWithAlt = (url, alt, decorative = false) => {
+    const normalizedAlt = String(alt || '').trim();
+    if (!decorative && normalizedAlt.length < 3) {
+      window.alert('Informative images need meaningful alt text. Choose “Insert decorative” only for images that convey no information.');
+      return;
+    }
     restoreSelection();
     editorRef.current?.focus();
     // Use execCommand so the insertion is tracked in the browser's undo history
-    const imgHtml = `<img src="${url}" alt="${alt || ''}" class="align-center" />`;
+    const imgHtml = `<img src="${url}" alt="${normalizedAlt}"${decorative ? ' data-decorative="true"' : ''} class="align-center" />`;
     document.execCommand('insertHTML', false, imgHtml);
     cleanAndDispatch();
   };
@@ -516,13 +521,13 @@ const SimpleRTE = ({ value, onChange, onImageUpload, onReady, minHeight = "400px
           saveSelection();
           openConfirm({
             title: "Image Alt Text",
-            message: "Enter descriptive alt text for this image (improves accessibility & SEO):",
+            message: "Enter descriptive alt text for this informative image. Choose ‘Insert decorative’ only when the image conveys no information.",
             confirmText: "Insert Image",
-            cancelText: "Skip",
+            cancelText: "Insert decorative",
             showInput: true,
             inputPlaceholder: "e.g. SAP GRC dashboard showing role assignments",
             onConfirm: (alt) => insertImageWithAlt(url, alt),
-            onCancel: () => insertImageWithAlt(url, ""),
+            onCancel: () => insertImageWithAlt(url, "", true),
           });
         }
       }

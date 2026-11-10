@@ -1,7 +1,7 @@
 const { asyncHandler } = require('../utils/asyncHandler');
 const { sendError } = require('../utils/apiResponse');
 const { calculateSeoScore, checkPlagiarismScore, deleteImage, deleteUploadedFile, extractDownloadUrls } = require('../utils/helpers');
-const { sanitizeBlogHtml, safeBlogImage, cleanWebUrl } = require('../utils/sanitize');
+const { sanitizeBlogHtml, validateImageAltText, hasMeaningfulAlt, safeBlogImage, cleanWebUrl } = require('../utils/sanitize');
 const { resolvePostDate, todayIso } = require('../utils/postDate');
 const { applyOwnershipToBody, canDeleteFile, OwnershipError, getOwner, markDeleted } = require('../utils/fileOwnership');
 const NotificationService = require('../services/NotificationService');
@@ -670,6 +670,9 @@ const save = asyncHandler(async (req, res) => {
   const VALID_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Enterprise'];
   const difficulty_level = VALID_LEVELS.includes(rawDifficultyLevel) ? rawDifficultyLevel : null;
   let content = sanitizeBlogHtml(rawContent);
+  const imageAltIssues = validateImageAltText(content);
+  if (image && !hasMeaningfulAlt(image_alt)) imageAltIssues.push('Add meaningful alt text for the featured image.');
+  if (imageAltIssues.length) return sendError(res, imageAltIssues[0], 400);
   try {
     content = await applyOwnershipToBody(db, { html: content, actorUserId: currentUserId, isAdmin });
   } catch (e) {
