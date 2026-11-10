@@ -118,7 +118,7 @@ export const AUDIT_MATRIX = [
 
 export const BOOKS = [
   {
-    title: "SAP Access Control – Comprehensive Guide",
+    title: "SAP Access Control: Comprehensive Guide",
     badge: "BESTSELLER",
     badgeType: "bestseller",
     cover: "/assets/book_sap_access_control.png",
@@ -130,7 +130,7 @@ export const BOOKS = [
     href: LINKS.bookAccessControl,
   },
   {
-    title: "SAP Process Control 12.0 – Comprehensive Guide",
+    title: "SAP Process Control 12.0: Comprehensive Guide",
     badge: "OFFICIAL GUIDE",
     badgeType: "official",
     cover: "/assets/book_sap_process_control.png",
