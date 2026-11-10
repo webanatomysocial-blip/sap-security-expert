@@ -323,7 +323,7 @@ const CommentSection = ({ blogId, onCommentAdded, isExclusive }) => {
             <div className="form-footer">
               <div className="form-group captcha-group">
                 <label className="form-label">
-                  Security Check: {mathQuestion.q} = ?
+                  Solve to post: {mathQuestion.q} = ?
                 </label>
                 <input
                   type="text"
