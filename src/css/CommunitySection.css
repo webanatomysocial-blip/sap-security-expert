@@ -1599,3 +1599,12 @@
   width: 100%;
   height: auto;
 }
+
+/* Mobile: Learn / Practice / Connect side by side in two columns. */
+@media (max-width: 500px) {
+  .explore-community-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .explore-card { padding: 12px; min-width: 0; }
+  .explore-card-title { font-size: 1rem; }
+  .explore-card-list li { font-size: 0.85rem; }
+  .explore-card-list li a { overflow-wrap: anywhere; }
+}
