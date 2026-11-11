@@ -454,11 +454,14 @@ const content = async (req, res) => {
     const b = await repo.findBlogForContent(db, slug);
     if (!b) return res.status(404).send('Not found');
 
+    // Members-only and premium articles: never send the body to anonymous callers.
+    // Only the excerpt is public, as with the other anonymous endpoints.
+    const locked = Number(b.is_members_only) === 1 || Number(b.is_premium) === 1;
     if (format === 'json') {
-      return res.json({ title: b.title, author: b.author_name, date: b.date, excerpt: b.excerpt, content: b.content });
+      return res.json({ title: b.title, author: b.author_name, date: b.date, excerpt: b.excerpt, locked, content: locked ? null : b.content });
     }
     // Default: plain text (strip HTML tags)
-    const plainContent = (b.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const plainContent = locked ? '' : (b.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     res.set('Content-Type', 'text/plain; charset=utf-8');
     return res.send(`${b.title}\nBy ${b.author_name} | ${b.date}\n\n${b.excerpt || ''}\n\n${plainContent}`);
   } catch (err) {
@@ -805,7 +808,8 @@ const seoMeta = asyncHandler(async (req, res) => {
         if (!desc && b.excerpt) {
           desc = cleanText(b.excerpt);
         }
-        if (!desc && b.content) {
+        const locked = Number(b.is_members_only) === 1 || Number(b.is_premium) === 1;
+        if (!desc && b.content && !locked) {
           desc = cleanText(b.content).slice(0, 155);
         }
         if (!desc) {
