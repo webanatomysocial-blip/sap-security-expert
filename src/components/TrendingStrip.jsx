@@ -162,19 +162,30 @@ const TrendingStrip = () => {
           color: #1e293b;
         }
         @media (max-width: 768px) {
+          .trending-strip-wrapper {
+            padding: 12px 0;
+          }
           .trending-strip-inner {
             flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
+            align-items: stretch;
+            gap: 10px;
+          }
+          .trending-label {
+            width: 100%;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 6px 12px;
           }
           .trending-marquee-container {
             width: 100%;
           }
           .trending-title {
-            max-width: 200px;
+            max-width: 70vw;
           }
           .trending-ambassador-btn {
-            align-self: flex-start;
+            width: 100%;
+            justify-content: center;
+            box-sizing: border-box;
           }
         }
       `}</style>
