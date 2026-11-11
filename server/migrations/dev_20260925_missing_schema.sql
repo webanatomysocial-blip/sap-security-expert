@@ -9,12 +9,6 @@
 ALTER TABLE `blogs`
   ADD COLUMN IF NOT EXISTS `preview_unit` VARCHAR(10) DEFAULT 'blocks';
 
--- 2) Missing unique key: email_queue (blog_id, recipient)
---    Stops the same article notification being queued twice for one recipient.
---    email_queue is empty in the dump, so this cannot fail on duplicates.
-ALTER TABLE `email_queue`
-  ADD UNIQUE INDEX IF NOT EXISTS `uq_email_queue_blog_recipient` (`blog_id`, `recipient`);
-
 -- 3) Missing performance indexes (speed up the admin members list)
 CREATE INDEX IF NOT EXISTS `idx_members_referred`      ON `members` (`referred_by_code`);
 CREATE INDEX IF NOT EXISTS `idx_members_referral_code` ON `members` (`referral_code`);

@@ -1,4 +1,4 @@
--- PREPARED ONLY — DEV email_queue remediation, version 2, STAGE 1 OF 2.
+-- DEV email_queue charset and width migration (version 2). This is the only email_queue migration.
 --
 -- Preconditions (all require separate approval):
 --   * An encrypted DEV backup has been created, checksummed, and restored into
@@ -43,15 +43,12 @@ ALTER TABLE email_queue
   MODIFY body LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   MODIFY blog_id VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
 
--- MariaDB DDL commits independently. This conversion/widening ALTER is not
--- transactionally coupled to the unique-index stage. If it succeeds, do not
--- restore merely because stage 2 has not yet run: verify this stage below, keep
--- the encrypted backup, and proceed only with the separately reviewed stage 2.
+-- MariaDB DDL commits independently. If this ALTER succeeds, verify it below and
+-- keep the encrypted backup.
 -- If this ALTER itself fails, stop; determine its completed state through the
 -- information_schema query below before any retry. It never deletes queue rows.
 
--- Stage-1 verification (read-only). A successful result is the hand-off point
--- to 2026-11-10_email_queue_utf8mb4_v2_add_unique.mysql.sql.
+-- Verification (read-only).
 SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT,
        CHARACTER_SET_NAME, COLLATION_NAME
 FROM information_schema.COLUMNS
