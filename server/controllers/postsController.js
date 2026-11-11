@@ -385,8 +385,10 @@ const list = asyncHandler(async (req, res) => {
       // More blocks than the preview: keep everything up to the nth block.
       if (count > n) return html.slice(0, nthEnd);
       // The whole article would fit inside the preview (count <= n). Showing it in full leaks
-      // paid content, so cut to about 900 characters at a tag boundary instead.
-      return truncateHtmlFallback(html, 900);
+      // paid content, so cut it short at a tag boundary instead.
+      // Short articles: show at most half of the text, never more than 900 characters.
+      const textLen = html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().length;
+      return truncateHtmlFallback(html, Math.max(200, Math.min(900, Math.floor(textLen / 2))));
     }
 
     // "Lines" mode: counts approx. text lines (~80 chars each) across all countable elements.
