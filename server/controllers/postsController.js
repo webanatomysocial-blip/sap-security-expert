@@ -523,6 +523,12 @@ const list = asyncHandler(async (req, res) => {
       }
     }
 
+    // Locked preview shown to an anonymous or non-entitled viewer: remove download blocks
+    // (file name, size and credit price) so they are not visible before unlocking.
+    if (blog.paywall_preview != null && typeof blog.content === 'string') {
+      blog.content = blog.content.replace(/<div class="sap-download-block"[^>]*>[\s\S]*?<\/div>/gi, '');
+    }
+
     // Strip internal-only columns for anyone who isn't staff — admins and
     // contributors viewing their own post still need draft/review fields.
     if (!hasAdminAccess) stripInternalFields(blog);
