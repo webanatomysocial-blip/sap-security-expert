@@ -1587,3 +1587,15 @@
   }
 }
 
+
+/* Promo ads fill the column: the link wrapper must be block-level, or the image sizes to its own natural width. */
+.promo-widget > a,
+.promo-widget .promo-box,
+.promo-widget .promo-box > a {
+  display: block;
+  width: 100%;
+}
+.promo-widget img {
+  width: 100%;
+  height: auto;
+}
