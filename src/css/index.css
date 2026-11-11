@@ -1082,3 +1082,9 @@ body.modal-open {
   background-color: #f8fafc;
   color: #1e293b;
 }
+
+/* Main content offset under the fixed header: 90px on desktop, 60px on mobile. */
+.site-main { padding-top: 90px; }
+@media (max-width: 600px) {
+  .site-main { padding-top: 60px; }
+}
