@@ -420,13 +420,13 @@ async function findBlogForSeoMeta(db, slug) {
 }
 
 // ── News / Learnings ────────────────────────────────────────────────────
-async function findLearnings(db, { nowUtc, category, limit = null }) {
+async function findLearnings(db, { nowUtc, category, limit = null, offset = 0 }) {
   const params = [nowUtc];
   let catClause = '';
   if (category) { catClause = 'AND b.category = ?'; params.push(category); }
   // LIMIT is applied after the publication/date/type filters (WHERE), never before.
   let limitClause = '';
-  if (Number.isInteger(limit) && limit > 0) { limitClause = 'LIMIT ?'; params.push(limit); }
+  if (Number.isInteger(limit) && limit > 0) { limitClause = 'LIMIT ? OFFSET ?'; params.push(limit, Math.max(0, Number(offset) || 0)); }
   const [rows] = await db.execute(
     `SELECT id, title, slug, excerpt, image, image_alt, category, date, created_at, view_count,
             author, author_id,

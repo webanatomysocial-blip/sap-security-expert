@@ -847,7 +847,8 @@ const learnings = async (req, res) => {
   const limit = Number.isInteger(requested) && requested > 0 ? Math.min(requested, 100) : null;
   const nowUtc = new Date().toISOString().slice(0, 19).replace('T', ' ');
   try {
-    const rows = await repo.findLearnings(db, { nowUtc, category, limit });
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const rows = await repo.findLearnings(db, { nowUtc, category, limit, offset });
     return res.json(rows);
   } catch (err) {
     console.error('[GET /api/learnings]', err.message);

@@ -143,7 +143,7 @@ async function findUnlockedSlugsForMember(db, memberId) {
   return rows.map(r => r.blog_slug);
 }
 
-async function findList(db, { isContributor, authorOnly, currentUserId, isAdminLoggedIn, trending, filterCategory, nowUtc, limit }) {
+async function findList(db, { isContributor, authorOnly, currentUserId, isAdminLoggedIn, trending, filterCategory, nowUtc, limit, offset = 0 }) {
   let sql = `SELECT b.*, b.view_count,
     (SELECT COUNT(*) FROM comments c_count WHERE c_count.post_id = b.slug AND c_count.status = 'approved') as comment_count,
     ${AUTHOR_FIELDS}
@@ -195,8 +195,8 @@ async function findList(db, { isContributor, authorOnly, currentUserId, isAdminL
     // table just to slice(0, 20) client-side. Apply the limit at the SQL level
     // when the caller passes one (bounded to 100 to avoid an accidental huge scan).
     if (limit) {
-      sql += ' LIMIT ?';
-      params.push(Math.min(parseInt(limit) || 20, 100));
+      sql += ' LIMIT ? OFFSET ?';
+      params.push(Math.min(parseInt(limit) || 20, 100), Math.max(0, parseInt(offset, 10) || 0));
     }
   }
 
