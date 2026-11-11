@@ -388,7 +388,7 @@ const list = asyncHandler(async (req, res) => {
       // paid content, so cut it short at a tag boundary instead.
       // Short articles: show at most half of the text, never more than 900 characters.
       const textLen = html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().length;
-      return truncateHtmlFallback(html, Math.max(200, Math.min(900, Math.floor(textLen / 2))));
+      return truncateHtmlFallback(html, Math.max(1, Math.min(900, Math.floor(textLen / 2))));
     }
 
     // "Lines" mode: counts approx. text lines (~80 chars each) across all countable elements.
