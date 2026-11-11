@@ -325,7 +325,7 @@ const list = asyncHandler(async (req, res) => {
       const TAGS = ['blockquote', 'figure', 'table', 'ul', 'ol', 'p']; // longest first avoids prefix collisions
       let count = 0;
       let pos = 0;
-      let firstBlockEnd = -1;
+      let nthEnd = -1;
 
       while (pos < lo.length) {
         // Find the next opening tag that belongs to our countable set
@@ -376,21 +376,17 @@ const list = asyncHandler(async (req, res) => {
         if (!inner.replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, '').trim()) continue; // skip empty
 
         count++;
-        if (count === 1) {
-          firstBlockEnd = closeEnd;
-        }
-        if (count === n) return html.slice(0, closeEnd);
+        if (count === n) nthEnd = closeEnd;
       }
 
       if (count === 0) {
         return truncateHtmlFallback(html, n * 400);
       }
-      // If the total count of blocks is less than or equal to n,
-      // we force truncate to 1 block so the paywall is not at the very bottom.
-      if (firstBlockEnd !== -1) {
-        return html.slice(0, firstBlockEnd);
-      }
-      return html;
+      // More blocks than the preview: keep everything up to the nth block.
+      if (count > n) return html.slice(0, nthEnd);
+      // The whole article would fit inside the preview (count <= n). Showing it in full leaks
+      // paid content, so cut to about 900 characters at a tag boundary instead.
+      return truncateHtmlFallback(html, 900);
     }
 
     // "Lines" mode: counts approx. text lines (~80 chars each) across all countable elements.
@@ -552,10 +548,12 @@ const list = asyncHandler(async (req, res) => {
   // Only honor an explicit ?limit= — the admin blog manager relies on the
   // unlimited default to fetch its full editable list in one call.
   const limit = req.query.limit ? parseInt(req.query.limit) || null : null;
+  // ?offset= pages through the list (used by paginated public listing pages).
+  const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
 
   const rows = await repo.findList(db, {
     isContributor, authorOnly, currentUserId,
-    isAdminLoggedIn: !!sess.admin_logged_in, trending, filterCategory, nowUtc, limit,
+    isAdminLoggedIn: !!sess.admin_logged_in, trending, filterCategory, nowUtc, limit, offset,
   });
 
   // Same content-gating the single-post endpoint applies — the list query

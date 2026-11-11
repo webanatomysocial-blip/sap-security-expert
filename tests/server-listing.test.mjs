@@ -30,7 +30,7 @@ test('stage 2: downloads and learning-hub use anonymous public fetches only', ()
   const pub = src.slice(src.indexOf('async function fetchPublicJson'), src.indexOf('async function fetchSeoMeta'));
   assert.match(pub, /fetch\(`\$\{INTERNAL_API\}\$\{pathWithQuery\}`/);
   assert.doesNotMatch(pub, /x-ssr-internal|REVALIDATE_SECRET|cookie/i);
-  assert.match(src, /fetchPublicJson\('\/api\/learnings\?limit=12'\)/);
+  assert.match(src, /fetchPublicJson\(`\/api\/learnings\?limit=\$\{PAGE_SIZE \+ 1\}&offset=/);
   assert.match(src, /fetchPublicJson\('\/api\/learnings\/counts'\)/);
 });
 

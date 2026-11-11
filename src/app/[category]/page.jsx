@@ -103,8 +103,9 @@ async function fetchCategoryArticles(category) {
 // Anonymous server-side listing: no cookies are forwarded, so the API applies
 // the same publication and paywall rules a logged-out visitor gets. The
 // internal SSR-bypass header is never sent here.
-async function fetchPublicListing({ category, limit }) {
+async function fetchPublicListing({ category, limit, offset = 0 }) {
   const q = new URLSearchParams({ limit: String(limit) });
+  if (offset > 0) q.set('offset', String(offset));
   if (category) q.set('category', category);
   try {
     const res = await fetch(`${INTERNAL_API}/api/posts?${q.toString()}`, { next: { revalidate: 300 } });
@@ -142,8 +143,9 @@ async function fetchSeoMeta(path) {
 
 const DEFAULT_IMAGE = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata({ params, searchParams }) {
   const { category } = await params;
+  const pageNo = pageFrom(await searchParams);
   if (SKIP_CATEGORIES.has(category)) return { title: 'SAP Security Expert', robots: { index: false, follow: false } };
 
   const path = `/${category}`;
@@ -151,7 +153,8 @@ export async function generateMetadata({ params }) {
 
   const title = d?.title || `${CATEGORY_LABELS[category] || 'SAP Security Expert'} | SAP Security Expert`;
   const description = d?.description || 'Expert SAP Security, GRC, and BTP guides, tutorials, and best practices.';
-  const canonical = d?.url || `${SITE_URL}${path}`;
+  // Each page of a listing points its canonical at itself.
+  const canonical = pageNo > 1 ? `${SITE_URL}${path}?page=${pageNo}` : (d?.url || `${SITE_URL}${path}`);
   const image = d?.image || DEFAULT_IMAGE;
 
   return {
@@ -195,7 +198,22 @@ function plainExcerpt(b) {
   return raw.length > 160 ? raw.slice(0, 157).trimEnd() + '...' : raw;
 }
 
-function ListingFallback({ title, intro, items }) {
+const PAGE_SIZE = 12;
+function pageFrom(sp) { const n = parseInt(sp?.page, 10); return Number.isInteger(n) && n > 0 && n < 10000 ? n : 1; }
+// Plain links with real URLs, so crawlers can reach every page of a listing.
+function PageNav({ base, page, hasNext }) {
+  if (page === 1 && !hasNext) return null;
+  const link = (p) => (p === 1 ? base : `${base}?page=${p}`);
+  return (
+    <nav aria-label="Pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 0', fontSize: '0.95rem' }}>
+      {page > 1 ? <a rel="prev" href={link(page - 1)} style={{ color: '#0f172a' }}>← Previous</a> : <span />}
+      <span style={{ color: '#64748b' }}>Page {page}</span>
+      {hasNext ? <a rel="next" href={link(page + 1)} style={{ color: '#0f172a' }}>Next →</a> : <span />}
+    </nav>
+  );
+}
+
+function ListingFallback({ title, intro, items, pagination }) {
   return (
     <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
       <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>{title}</h1>
@@ -215,13 +233,14 @@ function ListingFallback({ title, intro, items }) {
           ))}
         </ul>
       )}
+      {pagination && <PageNav {...pagination} />}
     </article>
   );
 }
 
 const LEARNING_MODULE_KEYS = ['security-fundamentals', 'user-management', 'role-management', 'authorization-concepts', 'audit-compliance', 'grc-advanced'];
 
-function LearningHubFallback({ title, intro, counts, items }) {
+function LearningHubFallback({ title, intro, counts, items, pagination }) {
   const modules = LEARNING_MODULE_KEYS.map((k) => ({ slug: k, label: CATEGORY_LABELS[k] || k, count: Number(counts?.[k] || 0) }));
   return (
     <article id="ssr-blog-content" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
@@ -263,13 +282,15 @@ function LearningHubFallback({ title, intro, counts, items }) {
           </ul>
         </>
       )}
+      {pagination && <PageNav {...pagination} />}
     </article>
   );
 }
 
 // ── Page (Server Component) ───────────────────────────────────────────────────
 
-export default async function CategoryPage({ params }) {
+export default async function CategoryPage({ params, searchParams }) {
+  const page = pageFrom(await searchParams);
   const { category } = await params;
 
   if (category === 'about') {
@@ -340,14 +361,16 @@ export default async function CategoryPage({ params }) {
   }
 
   if (category === 'blogs') {
-    const rows = await fetchPublicListing({ limit: 12 });
-    const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, 12);
+    const rows = await fetchPublicListing({ limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
+    const hasNext = rows.length > PAGE_SIZE;
+    const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, PAGE_SIZE);
     return (
       <>
         <ListingFallback
           title="All Blogs & Articles"
           intro="Browse all SAP Security, GRC, BTP, and cybersecurity articles written by practitioners. Filter by category, search by topic, and find the expert knowledge you need."
           items={items}
+          pagination={{ base: '/blogs', page, hasNext }}
         />
         <ClientApp />
       </>
@@ -368,26 +391,29 @@ export default async function CategoryPage({ params }) {
 
   if (category === 'learning-hub') {
     const [items, counts] = await Promise.all([
-      fetchPublicJson('/api/learnings?limit=12'),
+      fetchPublicJson(`/api/learnings?limit=${PAGE_SIZE + 1}&offset=${(page - 1) * PAGE_SIZE}`),
       fetchPublicJson('/api/learnings/counts'),
     ]);
-    const latest = (Array.isArray(items) ? items : []).slice(0, 12);
+    const all = Array.isArray(items) ? items : [];
+    const hasNext = all.length > PAGE_SIZE;
+    const latest = all.slice(0, PAGE_SIZE);
     const summary = SPA_PAGE_SUMMARIES['learning-hub'];
     return (
       <>
-        <LearningHubFallback title="Learn SAP Security. The way practitioners do." intro={summary.description} counts={counts || {}} items={latest} />
+        <LearningHubFallback title="Learn SAP Security. The way practitioners do." intro={summary.description} counts={counts || {}} items={latest} pagination={{ base: '/learning-hub', page, hasNext }} />
         <ClientApp />
       </>
     );
   }
 
   if (category === 'expert-papers') {
-    const rows = await fetchPublicListing({ category: 'expert-papers', limit: 12 });
-    const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, 12);
+    const rows = await fetchPublicListing({ category: 'expert-papers', limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
+    const hasNext = rows.length > PAGE_SIZE;
+    const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, PAGE_SIZE);
     const summary = SPA_PAGE_SUMMARIES['expert-papers'];
     return (
       <>
-        <ListingFallback title={summary.title} intro={summary.description} items={items} />
+        <ListingFallback title={summary.title} intro={summary.description} items={items} pagination={{ base: '/expert-papers', page, hasNext }} />
         <ClientApp />
       </>
     );
