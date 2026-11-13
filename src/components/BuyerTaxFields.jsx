@@ -55,9 +55,8 @@ export function CheckoutPriceSummary({ itemLabel, listPricePaise, discountPaise 
   const money = format || ((paise) => `₹${(paise / 100).toFixed(2)}`);
   return (
     <section className="checkout-summary" aria-live="polite">
-      <div className="checkout-summary-row checkout-summary-muted"><span>{itemLabel}</span><span>{money(listPricePaise)}</span></div>
+      <div className="checkout-summary-row checkout-summary-muted"><span>{itemLabel} (GST-exclusive)</span><span>{money(listPricePaise)}</span></div>
       {discountPaise > 0 && <div className="checkout-summary-row checkout-summary-discount"><span>Coupon discount</span><span>−{money(discountPaise)}</span></div>}
-      <div className="checkout-summary-row checkout-summary-muted"><span>GST-exclusive amount</span><span>{money(taxablePaise)}</span></div>
       {!tax.ready ? <div className="checkout-tax-prompt"><i className="bi bi-info-circle" /> Choose a billing location to calculate GST.</div>
         : tax.plan === "export" ? <div className="checkout-summary-row checkout-summary-muted"><span>GST (zero-rated export)</span><span>{money(0)}</span></div>
           : tax.plan === "cgst-sgst" ? <>
