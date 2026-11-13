@@ -78,7 +78,9 @@ export default function BuyerTaxFields({ value, onChange, profileBuyer, isCustom
   const isIndia = (value?.buyer_country || "").toLowerCase() === "india";
   const profile = profileBuyer || emptyBuyer;
   const profileComplete = !buyerError(profile);
-  const showFields = isCustom || !profileComplete;
+  // Address and postal code are required for the invoice, so keep the form
+  // visible instead of hiding required fields behind a later validation toast.
+  const showFields = true;
   const profileLocation = profileComplete ? `${profile.buyer_state ? `${profile.buyer_state}, ` : ""}${profile.buyer_country}` : "No saved billing location";
   const field = { width: "100%", padding: "11px 12px", border: "1px solid #cbd5e1", borderRadius: 9, fontSize: 14, marginTop: 8, background: "#fff" };
   return (
