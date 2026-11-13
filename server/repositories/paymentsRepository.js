@@ -155,7 +155,8 @@ async function findInvoiceData(db, txId, memberId) {
     `SELECT ct.id, ct.credits_delta, ct.amount_paise, ct.created_at, ct.razorpay_order_id,
             COALESCE(mp.name, cb.name) AS bundle_name, ct.type, mp.duration_days,
             m.name AS member_name, m.email AS member_email,
-            po.final_price_paise, po.bundle_price_paise, co.code AS coupon_code,
+            po.final_price_paise, po.bundle_price_paise, po.discount_paise, po.taxable_amount_paise,
+            po.cgst_paise, po.sgst_paise, po.igst_paise, po.gst_paise, po.tax_plan, co.code AS coupon_code,
             co.discount_type, co.discount_value,
             po.zoho_invoice_id, po.zoho_invoice_url
      FROM credit_transactions ct
@@ -195,9 +196,11 @@ async function findBundleById(db, bundleId) {
 async function insertPaymentOrder(db, f) {
   await db.execute(
     `INSERT INTO payment_orders
-       (razorpay_order_id, member_id, bundle_id, bundle_credits, bundle_price_paise, coupon_id, final_price_paise, order_currency, order_amount_foreign, order_type, plan_id, buyer_state, buyer_country)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (razorpay_order_id, member_id, bundle_id, bundle_credits, bundle_price_paise, coupon_id, final_price_paise, discount_paise, taxable_amount_paise, gst_rate_bps, cgst_paise, sgst_paise, igst_paise, gst_paise, tax_plan, order_currency, order_amount_foreign, order_type, plan_id, buyer_state, buyer_country)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [f.orderId, f.memberId, f.bundleId, f.bundleCredits, f.bundlePricePaise, f.couponId, f.finalPricePaise,
+     f.discountPaise || 0, f.taxableAmountPaise, f.gstRateBps || 0, f.cgstPaise || 0, f.sgstPaise || 0,
+     f.igstPaise || 0, f.gstPaise || 0, f.taxPlan || null,
      f.orderCurrency || 'INR', f.orderAmountForeign != null ? f.orderAmountForeign : f.finalPricePaise,
      f.orderType || 'credits', f.planId || null, f.buyerState || null, f.buyerCountry || null]
   );

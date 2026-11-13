@@ -162,6 +162,14 @@ export default function MembershipPage() {
     if (!couponData || selectedBundle !== bundle) return bundle.price_paise;
     return Math.max(bundle.price_paise - (couponData.discount_paise || 0), 100);
   };
+  // This is a display estimate only. The server calculates and locks the
+  // authoritative GST snapshot when it creates the Razorpay order.
+  const gstEstimatePaise = (bundle) => (
+    String(buyer?.country || '').trim().toLowerCase() === 'india'
+      ? Math.round(discountedPaise(bundle) * 0.18)
+      : 0
+  );
+  const payablePaise = (bundle) => discountedPaise(bundle) + gstEstimatePaise(bundle);
 
   const [view, setView] = useState("membership");
   const showPlans = plans.length > 0 && view === "membership";
@@ -251,7 +259,9 @@ export default function MembershipPage() {
           {items.length === 0 && <p className="mp-empty">{showPlans ? "No plans available right now." : "Loading bundles…"}</p>}
           {items.map((item) => {
             const isSelected = selectedBundle === item;
-            const finalPaise = discountedPaise(item);
+            const taxablePaise = discountedPaise(item);
+            const gstPaise = gstEstimatePaise(item);
+            const finalPaise = payablePaise(item);
             const isBest = showPlans && item === bestPlan && savingsPct(item) > 0;
             const save = showPlans ? savingsPct(item) : 0;
             return (
@@ -271,9 +281,10 @@ export default function MembershipPage() {
                   <span className="mp-price-now">{fmt(finalPaise)}</span>
                 </div>
                 <div className="mp-price-note">
+                  {gstPaise > 0 && <>includes {fmt(gstPaise)} GST (18%) · </>}
                   {showPlans
-                    ? (item.duration_days > 31 ? <>≈ {fmt(Math.round(item.price_paise / (item.duration_days / 30)))} / month</> : <>billed once</>)
-                    : <>≈ {fmt(Math.round(item.price_paise / item.credits))} per credit</>}
+                    ? (item.duration_days > 31 ? <>≈ {fmt(Math.round(taxablePaise / (item.duration_days / 30)))} / month before GST</> : <>GST-exclusive base: {fmt(taxablePaise)}</>)
+                    : <>GST-exclusive base: {fmt(taxablePaise)}</>}
                   {save > 0 && <span className="mp-save">Save {save}%</span>}
                 </div>
 

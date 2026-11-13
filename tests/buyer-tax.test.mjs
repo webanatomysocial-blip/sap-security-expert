@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { taxPlanFor, validateBuyer, zohoTaxIdFor } = require('../server/utils/gstTax');
+const { taxPlanFor, calculateTax, validateBuyer, zohoTaxIdFor } = require('../server/utils/gstTax');
 
 test('buyer in Telangana gets GST18 (intra-state)', () => {
   const p = taxPlanFor({ buyer_country: 'India', buyer_state: 'Telangana' });
@@ -39,4 +39,13 @@ test('a buyer country is always required', () => {
 test('each tax rate needs its own configured Zoho tax ID; none is guessed', () => {
   assert.throws(() => zohoTaxIdFor('GST18', {}), /ZOHO_TAX_ID_GST18 is not configured/);
   assert.equal(zohoTaxIdFor('IGST0', { ZOHO_TAX_ID_IGST0: '123' }), '123');
+});
+
+test('GST-exclusive totals are charged consistently in integer paise', () => {
+  const telangana = calculateTax({ buyer_country: 'India', buyer_state: 'Telangana', taxable_amount_paise: 99900 });
+  assert.deepEqual({ cgst: telangana.cgst_paise, sgst: telangana.sgst_paise, igst: telangana.igst_paise, total: telangana.total_price_paise }, { cgst: 8991, sgst: 8991, igst: 0, total: 117882 });
+  const interstate = calculateTax({ buyer_country: 'India', buyer_state: 'Karnataka', taxable_amount_paise: 99900 });
+  assert.deepEqual({ cgst: interstate.cgst_paise, sgst: interstate.sgst_paise, igst: interstate.igst_paise, total: interstate.total_price_paise }, { cgst: 0, sgst: 0, igst: 17982, total: 117882 });
+  const exportOrder = calculateTax({ buyer_country: 'United States', taxable_amount_paise: 99900 });
+  assert.equal(exportOrder.total_price_paise, 99900);
 });

@@ -18,6 +18,7 @@ const GST_STATES = {
 };
 
 const SUPPLIER_STATE = 'Telangana';
+const GST_RATE_BPS = 1800; // 18.00%; amounts are integer paise.
 
 // Validate buyer location from checkout. Throws a readable error when the buyer is incomplete.
 function validateBuyer({ buyer_country, buyer_state } = {}) {
@@ -45,6 +46,21 @@ function taxPlanFor({ buyer_country, buyer_state }) {
   return { key: 'IGST18', supply: 'inter_state', gstTreatment: 'consumer', placeOfSupply };
 }
 
+// Calculate GST from the discounted GST-exclusive taxable amount. Persist this
+// result with the order; Razorpay, Zoho and the invoice must use this snapshot.
+function calculateTax({ buyer_country, buyer_state, taxable_amount_paise }) {
+  const plan = taxPlanFor({ buyer_country, buyer_state });
+  const taxable = Number(taxable_amount_paise);
+  if (!Number.isInteger(taxable) || taxable < 0) throw new Error('A valid taxable amount is required');
+  const gst = plan.key === 'IGST0' ? 0 : Math.round(taxable * GST_RATE_BPS / 10000);
+  const cgst = plan.key === 'GST18' ? Math.floor(gst / 2) : 0;
+  const sgst = plan.key === 'GST18' ? gst - cgst : 0;
+  const igst = plan.key === 'IGST18' ? gst : 0;
+  return { ...plan, gst_rate_bps: plan.key === 'IGST0' ? 0 : GST_RATE_BPS,
+    taxable_amount_paise: taxable, cgst_paise: cgst, sgst_paise: sgst,
+    igst_paise: igst, gst_paise: gst, total_price_paise: taxable + gst };
+}
+
 // Zoho tax ID for a plan key. Each rate is configured explicitly, so a missing ID is an error, never a silent 0%.
 function zohoTaxIdFor(key, env = process.env) {
   const id = env[`ZOHO_TAX_ID_${key}`];
@@ -52,4 +68,4 @@ function zohoTaxIdFor(key, env = process.env) {
   return id;
 }
 
-module.exports = { GST_STATES, validateBuyer, taxPlanFor, zohoTaxIdFor };
+module.exports = { GST_STATES, validateBuyer, taxPlanFor, calculateTax, zohoTaxIdFor };
