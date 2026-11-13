@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { formatPrice } from "../utils/fxPrice";
 import CurrencySelect from "../components/CurrencySelect";
 import SEO from "../components/SEO";
+import BuyerTaxFields, { emptyBuyer, buyerError } from "../components/BuyerTaxFields";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
@@ -34,6 +35,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   const [couponError, setCouponError] = useState("");
   const [validating, setValidating] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [buyer, setBuyer] = useState(emptyBuyer);
   const [fxCurrency, setFxCurrency] = useState("INR");
   const [fxRate, setFxRate] = useState(1);
   const [fxDecimals, setFxDecimals] = useState(2);
@@ -106,6 +108,8 @@ function BuyCreditsModal({ onClose, onSuccess }) {
 
   const handlePay = async () => {
     if (!selected) return;
+    const bErr = buyerError(buyer);
+    if (bErr) { addToast(bErr, "error"); return; }
     setPaying(true);
     try {
       const loaded = await loadRazorpay();
@@ -115,7 +119,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
         return;
       }
 
-      const orderRes = await createCreditOrder(selected.id, couponData ? couponCode : undefined, fxCurrency !== "INR" ? fxCurrency : undefined);
+      const orderRes = await createCreditOrder(selected.id, couponData ? couponCode : undefined, fxCurrency !== "INR" ? fxCurrency : undefined, buyer);
       const { order_id: razorpay_order_id, amount, currency: orderCurrency, key_id } = orderRes.data;
 
       const options = {
@@ -236,6 +240,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
           </div>
         )}
 
+        <BuyerTaxFields value={buyer} onChange={setBuyer} />
         <button
           onClick={handlePay}
           disabled={paying || !selected}

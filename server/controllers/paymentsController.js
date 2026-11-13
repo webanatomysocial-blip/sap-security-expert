@@ -5,6 +5,7 @@ const { grantBonus, getActivityCredits } = require('../services/CreditHelper');
 const repo = require('../repositories/paymentsRepository');
 const membersRepo = require('../repositories/membersRepository');
 const zoho = require('../services/zoho');
+const { validateBuyer } = require('../utils/gstTax');
 const currency = require('../services/currency');
 const MailService = require('../services/MailService');
 const { getOwner: getOwnerRecord } = require('../utils/fileOwnership');
@@ -206,6 +207,7 @@ async function fulfillPaidOrder(db, paymentOrder, paymentId, source) {
     return zoho.createAndSendInvoice({
       orderId, paymentId, member: { name: member.name, email: member.email },
       bundle: invoiceItem, amountPaise: paymentOrder.final_price_paise,
+      buyer: { buyer_state: paymentOrder.buyer_state, buyer_country: paymentOrder.buyer_country },
     });
   }).then((r) => {
     if (r?.invoiceId) repo.saveZohoInvoiceId(db, orderId, r.invoiceId, r.invoiceUrl);
@@ -313,8 +315,12 @@ const createOrder = async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Please log in to purchase credits' });
   }
-  const { bundle_id, plan_id, coupon_code, preferred_currency } = req.body || {};
+  const { bundle_id, plan_id, coupon_code, preferred_currency, buyer_state, buyer_country } = req.body || {};
   if (!bundle_id && !plan_id) return res.status(400).json({ status: 'error', message: 'bundle_id or plan_id required' });
+  // GST depends on where the buyer is, so the location is required before any Razorpay order is created.
+  let buyer;
+  try { buyer = validateBuyer({ buyer_state, buyer_country }); }
+  catch (e) { return res.status(400).json({ status: 'error', message: e.message }); }
   const isMembership = !!plan_id;
 
   try {
@@ -383,6 +389,7 @@ const createOrder = async (req, res) => {
       orderCurrency, orderAmountForeign: orderAmount,
       orderType: isMembership ? 'membership' : 'credits',
       planId: isMembership ? bundle.id : null,
+      buyerState: buyer.buyer_state, buyerCountry: buyer.buyer_country,
     });
 
     return res.json({

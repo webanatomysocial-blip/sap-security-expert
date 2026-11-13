@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatPrice } from "../utils/fxPrice";
 import CurrencySelect from "./CurrencySelect";
+import BuyerTaxFields, { emptyBuyer, buyerError } from "./BuyerTaxFields";
 import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getCreditBundles, createCreditOrder, verifyCreditPayment, unlockBlog, validateCoupon, detectPaymentCurrency, getMembershipPlans, createMembershipOrder } from "../services/api";
@@ -26,6 +27,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
   const [couponError, setCouponError] = useState("");
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [buyer, setBuyer] = useState(emptyBuyer);
   const [unlocking, setUnlocking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [tab, setTab] = useState("unlock"); // "unlock" | "buy" | "membership"
@@ -125,6 +127,8 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
   // ── Buy credits or membership ─────────────────────────────────────────────
   const handlePurchase = async () => {
     if (!selected) return;
+    const bErr = buyerError(buyer);
+    if (bErr) { setErrorMsg(bErr); return; }
     const item = selected;
     const buyingPlan = isPlanTab;
     setErrorMsg("");
@@ -140,8 +144,8 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
       const coupon = couponData ? couponCode : undefined;
       const cur = fxCurrency !== "INR" ? fxCurrency : undefined;
       const orderRes = buyingPlan
-        ? await createMembershipOrder(item.id, coupon, cur)
-        : await createCreditOrder(item.id, coupon, cur);
+        ? await createMembershipOrder(item.id, coupon, cur, buyer)
+        : await createCreditOrder(item.id, coupon, cur, buyer);
       const { order_id, amount, currency, key_id } = orderRes.data;
 
       const options = {
@@ -505,6 +509,7 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
               </p>
             )}
 
+            <BuyerTaxFields value={buyer} onChange={setBuyer} />
             <button
               className={`pw-btn ${isPlanTab ? "pw-btn-green" : "pw-btn-amber"}`}
               disabled={paying || !selected}

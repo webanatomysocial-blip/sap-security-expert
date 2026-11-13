@@ -574,6 +574,8 @@ if (isSQLite) {
   // Add order_currency / order_amount_foreign for international payment reconciliation
   try { sqliteDb.prepare("ALTER TABLE payment_orders ADD COLUMN order_currency TEXT NOT NULL DEFAULT 'INR'").run(); } catch { /* column already exists */ }
   try { sqliteDb.prepare('ALTER TABLE payment_orders ADD COLUMN order_amount_foreign INTEGER DEFAULT NULL').run(); } catch { /* column already exists */ }
+  try { sqliteDb.prepare('ALTER TABLE payment_orders ADD COLUMN buyer_state VARCHAR(64) DEFAULT NULL').run(); } catch { /* column already exists */ }
+  try { sqliteDb.prepare('ALTER TABLE payment_orders ADD COLUMN buyer_country VARCHAR(60) DEFAULT NULL').run(); } catch { /* column already exists */ }
 
   // Add razorpay_order_id for replay prevention (ignore if column already exists)
   try { sqliteDb.prepare('ALTER TABLE credit_transactions ADD COLUMN razorpay_order_id TEXT').run(); } catch { /* column already exists */ }

@@ -195,11 +195,11 @@ async function findBundleById(db, bundleId) {
 async function insertPaymentOrder(db, f) {
   await db.execute(
     `INSERT INTO payment_orders
-       (razorpay_order_id, member_id, bundle_id, bundle_credits, bundle_price_paise, coupon_id, final_price_paise, order_currency, order_amount_foreign, order_type, plan_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (razorpay_order_id, member_id, bundle_id, bundle_credits, bundle_price_paise, coupon_id, final_price_paise, order_currency, order_amount_foreign, order_type, plan_id, buyer_state, buyer_country)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [f.orderId, f.memberId, f.bundleId, f.bundleCredits, f.bundlePricePaise, f.couponId, f.finalPricePaise,
      f.orderCurrency || 'INR', f.orderAmountForeign != null ? f.orderAmountForeign : f.finalPricePaise,
-     f.orderType || 'credits', f.planId || null]
+     f.orderType || 'credits', f.planId || null, f.buyerState || null, f.buyerCountry || null]
   );
 }
 

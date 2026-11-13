@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getCreditBundles, createCreditOrder, verifyCreditPayment, validateCoupon, detectPaymentCurrency, getMembershipPlans, createMembershipOrder } from "../services/api";
 import SEO from "../components/SEO";
+import BuyerTaxFields, { emptyBuyer, buyerError } from "../components/BuyerTaxFields";
 import { VITE_SITE_URL } from "../utils/env";
 
 export default function MembershipPage() {
@@ -18,6 +19,7 @@ export default function MembershipPage() {
   const [couponError, setCouponError] = useState("");
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [buyer, setBuyer] = useState(emptyBuyer);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [fxCurrency, setFxCurrency] = useState("INR");
@@ -89,6 +91,8 @@ export default function MembershipPage() {
       return;
     }
     setErrorMsg("");
+    const bErr = buyerError(buyer);
+    if (bErr) { setErrorMsg(bErr); return; }
     setPaying(true);
     try {
       const loaded = await loadRazorpay();
@@ -101,8 +105,8 @@ export default function MembershipPage() {
       const coupon = couponData && selectedBundle === bundle ? couponCode : undefined;
       const cur = fxCurrency !== "INR" ? fxCurrency : undefined;
       const orderRes = bundle.isPlan
-        ? await createMembershipOrder(bundle.id, coupon, cur)
-        : await createCreditOrder(bundle.id, coupon, cur);
+        ? await createMembershipOrder(bundle.id, coupon, cur, buyer)
+        : await createCreditOrder(bundle.id, coupon, cur, buyer);
       const { order_id, amount, currency: orderCurrency, key_id } = orderRes.data;
 
       const options = {
@@ -240,6 +244,7 @@ export default function MembershipPage() {
           </div>
         </div>
 
+        <BuyerTaxFields value={buyer} onChange={setBuyer} />
         <div className="mp-grid">
           {items.length === 0 && <p className="mp-empty">{showPlans ? "No plans available right now." : "Loading bundles…"}</p>}
           {items.map((item) => {

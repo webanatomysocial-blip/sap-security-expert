@@ -11,6 +11,7 @@ function assertLive(what) {
   if (mode !== 'live') throw new Error(`Zoho ${what} blocked: ZOHO_MODE=${mode}`);
 }
 
+const { taxPlanFor, zohoTaxIdFor } = require('../utils/gstTax');
 const AUTH_URL  = 'https://accounts.zoho.in/oauth/v2/token';
 const API_BASE  = 'https://www.zohoapis.in/books/v3';
 const ORG_ID    = () => process.env.ZOHO_ORG_ID || '';
@@ -97,19 +98,25 @@ async function getInvoicePdf(invoiceId, writable) {
 }
 
 // ── contact: find by email or create ──────────────────────────────────────────
-async function getOrCreateContact(token, { name, email }) {
+async function getOrCreateContact(token, { name, email, gstTreatment, placeOfSupply }) {
   const search = await request(
     'GET',
     `${API_BASE}/contacts?organization_id=${ORG_ID()}&email=${encodeURIComponent(email)}`,
     token,
   );
   const existing = search?.contacts?.[0];
-  if (existing?.contact_id) return existing.contact_id;
+  // Keep the buyer's GST treatment and place of supply current on the contact.
+  const gst = { gst_treatment: gstTreatment, ...(placeOfSupply ? { place_of_supply: placeOfSupply } : {}) };
+  if (existing?.contact_id) {
+    await request('PUT', `${API_BASE}/contacts/${existing.contact_id}?organization_id=${ORG_ID()}`, token, JSON.stringify(gst));
+    return existing.contact_id;
+  }
 
   const created = await apiPost('/contacts', token, {
     contact_name: name || email,
     contact_type: 'customer',
     contact_persons: [{ email, is_primary_contact: true }],
+    ...gst,
   });
   if (!created?.contact?.contact_id) throw new Error(`Zoho contact create failed: ${JSON.stringify(created)}`);
   return created.contact.contact_id;
@@ -117,13 +124,17 @@ async function getOrCreateContact(token, { name, email }) {
 
 // ── main entry point ───────────────────────────────────────────────────────────
 // Fire-and-forget safe: caller catches and logs. Never throws into payment flow.
-async function createAndSendInvoice({ orderId, paymentId, member, bundle, amountPaise }) {
+async function createAndSendInvoice({ orderId, paymentId, member, bundle, amountPaise, buyer }) {
   const mode = resolveMode('ZOHO');
+  // Tax is chosen from the buyer's location. An order without a valid location gets no invoice, never a guessed tax.
   if (mode !== 'live') {
     // No invoice, no id saved, no email — the order simply has no Zoho invoice.
-    console.log(`[zoho=${mode.toUpperCase()}] invoice not created for order ${orderId} (non-live mode)`);
+    let would = 'no buyer location';
+    try { would = taxPlanFor(buyer || {}).key; } catch { /* incomplete buyer: nothing to log */ }
+    console.log(`[zoho=${mode.toUpperCase()}] invoice not created for order ${orderId} (non-live mode; would use ${would})`);
     return null;
   }
+  const plan = taxPlanFor(buyer || {});
   const missingEnv = ['ZOHO_CLIENT_ID', 'ZOHO_CLIENT_SECRET', 'ZOHO_REFRESH_TOKEN', 'ZOHO_ORG_ID']
     .filter((k) => !process.env[k]);
   if (missingEnv.length) {
@@ -132,19 +143,23 @@ async function createAndSendInvoice({ orderId, paymentId, member, bundle, amount
   }
 
   const token     = await getAccessToken();
-  const contactId = await getOrCreateContact(token, { name: member.name, email: member.email });
+  const contactId = await getOrCreateContact(token, {
+    name: member.name, email: member.email,
+    gstTreatment: plan.gstTreatment, placeOfSupply: plan.placeOfSupply,
+  });
   const amountINR = (amountPaise / 100).toFixed(2);
 
   const lineItem = {
     description: bundle.description || `${bundle.name} — ${bundle.credits} credits`,
     quantity:    1,
     rate:        parseFloat(amountINR),
-    ...(process.env.ZOHO_TAX_ID ? { tax_id: process.env.ZOHO_TAX_ID } : {}),
+    tax_id:      zohoTaxIdFor(plan.key),
   };
 
   const invoicePayload = {
     customer_id:     contactId,
     reference_number: orderId,
+    ...(plan.placeOfSupply ? { place_of_supply: plan.placeOfSupply } : {}),
     line_items:      [lineItem],
     notes:           `Razorpay order: ${orderId}${paymentId ? ` | payment: ${paymentId}` : ''}`,
   };
