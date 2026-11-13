@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getCreditBundles, createCreditOrder, verifyCreditPayment, validateCoupon, detectPaymentCurrency, getMembershipPlans, createMembershipOrder } from "../services/api";
 import SEO from "../components/SEO";
-import BuyerTaxFields, { emptyBuyer, buyerError } from "../components/BuyerTaxFields";
+import BuyerTaxFields, { buyerFromMember, buyerError } from "../components/BuyerTaxFields";
 import { VITE_SITE_URL } from "../utils/env";
 
 export default function MembershipPage() {
@@ -19,7 +19,9 @@ export default function MembershipPage() {
   const [couponError, setCouponError] = useState("");
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [buyer, setBuyer] = useState(emptyBuyer);
+  const [buyerEdit, setBuyer] = useState(null);
+  const { member: buyerMember } = useMemberAuth();
+  const buyer = buyerEdit || buyerFromMember(buyerMember);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [fxCurrency, setFxCurrency] = useState("INR");

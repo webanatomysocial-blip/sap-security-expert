@@ -12,6 +12,14 @@ export const INDIAN_STATES = [
 
 export const emptyBuyer = { buyer_country: "India", buyer_state: "" };
 
+// Prefill from the member's profile. The member can change it for this purchase.
+export function buyerFromMember(member) {
+  const country = (member?.country || "").trim();
+  if (!country) return emptyBuyer;
+  const state = country.toLowerCase() === "india" && INDIAN_STATES.includes(member?.state) ? member.state : "";
+  return { buyer_country: country, buyer_state: state };
+}
+
 // Returns an error message, or null when the buyer details are complete.
 export function buyerError(b) {
   const country = (b?.buyer_country || "").trim();
@@ -28,7 +36,8 @@ export default function BuyerTaxFields({ value, onChange }) {
   const field = { width: "100%", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 14, marginTop: 6 };
   return (
     <div style={{ margin: "14px 0" }}>
-      <div style={{ fontWeight: 600, fontSize: 14, color: "#0f172a" }}>Where are you buying from?</div>
+      <div style={{ fontWeight: 600, fontSize: 14, color: "#0f172a" }}>Billing details</div>
+      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Taken from your profile. Change them here if this purchase needs a different billing location.</div>
       <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 14 }}>
         <label><input type="radio" name="buyer-location" checked={isIndia} onChange={() => onChange({ buyer_country: "India", buyer_state: "" })} /> India</label>
         <label><input type="radio" name="buyer-location" checked={!isIndia} onChange={() => onChange({ buyer_country: "", buyer_state: "" })} /> Outside India</label>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatPrice } from "../utils/fxPrice";
 import CurrencySelect from "./CurrencySelect";
-import BuyerTaxFields, { emptyBuyer, buyerError } from "./BuyerTaxFields";
+import BuyerTaxFields, { buyerFromMember, buyerError } from "./BuyerTaxFields";
 import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getCreditBundles, createCreditOrder, verifyCreditPayment, unlockBlog, validateCoupon, detectPaymentCurrency, getMembershipPlans, createMembershipOrder } from "../services/api";
@@ -27,7 +27,9 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
   const [couponError, setCouponError] = useState("");
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [buyer, setBuyer] = useState(emptyBuyer);
+  const [buyerEdit, setBuyer] = useState(null);
+  const { member: buyerMember } = useMemberAuth();
+  const buyer = buyerEdit || buyerFromMember(buyerMember);
   const [unlocking, setUnlocking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [tab, setTab] = useState("unlock"); // "unlock" | "buy" | "membership"

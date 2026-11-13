@@ -317,10 +317,17 @@ const createOrder = async (req, res) => {
   }
   const { bundle_id, plan_id, coupon_code, preferred_currency, buyer_state, buyer_country } = req.body || {};
   if (!bundle_id && !plan_id) return res.status(400).json({ status: 'error', message: 'bundle_id or plan_id required' });
-  // GST depends on where the buyer is, so the location is required before any Razorpay order is created.
+  // GST depends on where the buyer is. Use the billing details sent with the request, or the member's profile.
   let buyer;
-  try { buyer = validateBuyer({ buyer_state, buyer_country }); }
-  catch (e) { return res.status(400).json({ status: 'error', message: e.message }); }
+  try {
+    const profile = (buyer_state === undefined && buyer_country === undefined)
+      ? await membersRepo.findMemberProfileById(req.db, req.session.member_id)
+      : null;
+    buyer = validateBuyer({
+      buyer_state: buyer_state !== undefined ? buyer_state : profile?.state,
+      buyer_country: buyer_country !== undefined ? buyer_country : profile?.country,
+    });
+  } catch (e) { return res.status(400).json({ status: 'error', message: e.message }); }
   const isMembership = !!plan_id;
 
   try {
