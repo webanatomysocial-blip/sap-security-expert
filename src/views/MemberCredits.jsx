@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { formatPrice } from "../utils/fxPrice";
 import CurrencySelect from "../components/CurrencySelect";
 import SEO from "../components/SEO";
@@ -40,6 +40,16 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   usePopupScrollLock();
   const [buyerEdit, setBuyer] = useState(null);
   const buyer = buyerEdit || buyerFromMember(buyerMember);
+  const panelRef = useRef(null);
+  // Wheel over the popup scrolls the popup panel directly. The event stops here, so the smooth
+  // scroller and the page behind never receive it.
+  const onPopupWheel = (e) => {
+    e.stopPropagation();
+    const panel = panelRef.current;
+    if (panel && panel.contains(e.target)) {
+      panel.scrollTop += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    }
+  };
   const [fxCurrency, setFxCurrency] = useState("INR");
   const [fxRate, setFxRate] = useState(1);
   const [fxDecimals, setFxDecimals] = useState(2);
@@ -160,10 +170,11 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   return createPortal(
     <div
       data-lenis-prevent
+      onWheel={onPopupWheel}
       style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", zIndex: 9999, padding: "20px 20px", overflowY: "auto", overscrollBehavior: "contain" }}
       onClick={onClose}
     >
-      <div data-lenis-prevent onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", maxWidth: 480, width: "100%", margin: "auto", flexShrink: 0, maxHeight: "calc(100vh - 40px)", overflowY: "auto", overscrollBehavior: "contain" }}>
+      <div ref={panelRef} data-lenis-prevent onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", maxWidth: 480, width: "100%", margin: "auto", flexShrink: 0, maxHeight: "calc(100vh - 40px)", overflowY: "auto", overscrollBehavior: "contain" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#1e293b" }}>Buy Credits</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#94a3b8", lineHeight: 1 }}>✕</button>
