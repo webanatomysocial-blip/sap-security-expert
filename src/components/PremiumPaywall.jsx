@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatPrice } from "../utils/fxPrice";
 import CurrencySelect from "./CurrencySelect";
-import BuyerTaxFields, { buyerFromMember, buyerError } from "./BuyerTaxFields";
+import BuyerTaxFields, { buyerFromMember, buyerError, CheckoutPriceSummary, estimateCheckoutTax } from "./BuyerTaxFields";
 import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getCreditBundles, createCreditOrder, verifyCreditPayment, unlockBlog, validateCoupon, detectPaymentCurrency, getMembershipPlans, createMembershipOrder } from "../services/api";
@@ -29,7 +29,8 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
   const [paying, setPaying] = useState(false);
   const [buyerEdit, setBuyer] = useState(null);
   const { member: buyerMember } = useMemberAuth();
-  const buyer = buyerEdit || buyerFromMember(buyerMember);
+  const profileBuyer = buyerFromMember(buyerMember);
+  const buyer = buyerEdit || profileBuyer;
   const [unlocking, setUnlocking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [tab, setTab] = useState("unlock"); // "unlock" | "buy" | "membership"
@@ -223,6 +224,8 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
   const discountedPaise = selected && couponData
     ? Math.max(selected.price_paise - (couponData.discount_paise || 0), 100)
     : selected?.price_paise;
+  const checkoutTax = estimateCheckoutTax(buyer, discountedPaise || 0);
+  const checkoutTotalPaise = checkoutTax.totalPaise;
 
   // ── NOT logged in ─────────────────────────────────────────────────────────
   if (!isLoggedIn) {
@@ -482,42 +485,26 @@ export default function PremiumPaywall({ creditsRequired = 1, blogSlug, onSucces
               </div>
             )}
 
-            {/* Price summary */}
-            {selected && (
-              <div style={{ background: "#fffbeb", border: "1.5px solid #fcd34d", borderRadius: 8, padding: "12px 16px", marginBottom: 16, textAlign: "center" }}>
-                {couponData ? (
-                  <>
-                    <span style={{ fontSize: 13, textDecoration: "line-through", color: "#94a3b8" }}>
-                      {displayPrice(selected.price_paise)}
-                    </span>
-                    <span style={{ fontSize: 26, fontWeight: 900, color: "#1e293b", marginLeft: 8 }}>
-                      {displayPrice(discountedPaise)}
-                    </span>
-                  </>
-                ) : (
-                  <span style={{ fontSize: 26, fontWeight: 900, color: "#1e293b" }}>
-                    {displayPrice(selected.price_paise)}
-                  </span>
-                )}
-                <div style={{ fontSize: 12, color: "#92400e", marginTop: 4 }}>
-                  {isPlanTab ? `for ${selected.duration_days} days of membership` : `for ${selected.credits} credits`}
-                </div>
-              </div>
-            )}
-
             {errorMsg && (
               <p style={{ color: "#dc2626", fontSize: 13, marginBottom: 12, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, padding: "8px 12px" }}>
                 {errorMsg}
               </p>
             )}
 
-            <BuyerTaxFields value={buyer} onChange={setBuyer} />
+            <BuyerTaxFields value={buyer} onChange={setBuyer} profileBuyer={profileBuyer} isCustom={buyerEdit !== null} onUseProfile={() => setBuyer(null)} />
+            {selected && <CheckoutPriceSummary
+              itemLabel={`${selected.name} · ${isPlanTab ? `${selected.duration_days} days` : `${selected.credits} credits`}`}
+              listPricePaise={selected.price_paise}
+              discountPaise={couponData?.discount_paise || 0}
+              buyer={buyer}
+              format={displayPrice}
+            />}
             <button
               className={`pw-btn ${isPlanTab ? "pw-btn-green" : "pw-btn-amber"}`}
               disabled={paying || !selected}
               onClick={handlePurchase}
             >
-              {paying ? "Processing…" : selected ? `Pay ${displayPrice(discountedPaise || selected.price_paise)}` : isPlanTab ? "Select a plan" : "Select a bundle"}
+              {paying ? "Processing…" : selected ? `Pay ${displayPrice(checkoutTotalPaise)}` : isPlanTab ? "Select a plan" : "Select a bundle"}
             </button>
 
             <p className="members-paywall-note" style={{ marginTop: 12 }}>

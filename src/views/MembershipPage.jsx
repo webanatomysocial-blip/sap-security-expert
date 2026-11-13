@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
 import { getCreditBundles, createCreditOrder, verifyCreditPayment, validateCoupon, detectPaymentCurrency, getMembershipPlans, createMembershipOrder } from "../services/api";
 import SEO from "../components/SEO";
-import BuyerTaxFields, { buyerFromMember, buyerError } from "../components/BuyerTaxFields";
+import BuyerTaxFields, { buyerFromMember, buyerError, CheckoutPriceSummary, estimateCheckoutTax } from "../components/BuyerTaxFields";
 import { VITE_SITE_URL } from "../utils/env";
 
 export default function MembershipPage() {
@@ -21,7 +21,8 @@ export default function MembershipPage() {
   const [paying, setPaying] = useState(false);
   const [buyerEdit, setBuyer] = useState(null);
   const { member: buyerMember } = useMemberAuth();
-  const buyer = buyerEdit || buyerFromMember(buyerMember);
+  const profileBuyer = buyerFromMember(buyerMember);
+  const buyer = buyerEdit || profileBuyer;
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [fxCurrency, setFxCurrency] = useState("INR");
@@ -162,14 +163,7 @@ export default function MembershipPage() {
     if (!couponData || selectedBundle !== bundle) return bundle.price_paise;
     return Math.max(bundle.price_paise - (couponData.discount_paise || 0), 100);
   };
-  // This is a display estimate only. The server calculates and locks the
-  // authoritative GST snapshot when it creates the Razorpay order.
-  const gstEstimatePaise = (bundle) => (
-    String(buyer?.country || '').trim().toLowerCase() === 'india'
-      ? Math.round(discountedPaise(bundle) * 0.18)
-      : 0
-  );
-  const payablePaise = (bundle) => discountedPaise(bundle) + gstEstimatePaise(bundle);
+  const taxEstimate = (bundle) => estimateCheckoutTax(buyer, discountedPaise(bundle));
 
   const [view, setView] = useState("membership");
   const showPlans = plans.length > 0 && view === "membership";
@@ -254,14 +248,22 @@ export default function MembershipPage() {
           </div>
         </div>
 
-        <BuyerTaxFields value={buyer} onChange={setBuyer} />
+        <BuyerTaxFields value={buyer} onChange={setBuyer} profileBuyer={profileBuyer} isCustom={buyerEdit !== null} onUseProfile={() => setBuyer(null)} />
+        {selectedBundle && <CheckoutPriceSummary
+          itemLabel={selectedBundle.name}
+          listPricePaise={selectedBundle.price_paise}
+          discountPaise={couponData?.discount_paise || 0}
+          buyer={buyer}
+          format={fmt}
+        />}
         <div className="mp-grid">
           {items.length === 0 && <p className="mp-empty">{showPlans ? "No plans available right now." : "Loading bundles…"}</p>}
           {items.map((item) => {
             const isSelected = selectedBundle === item;
             const taxablePaise = discountedPaise(item);
-            const gstPaise = gstEstimatePaise(item);
-            const finalPaise = payablePaise(item);
+            const tax = taxEstimate(item);
+            const gstPaise = tax.gstPaise;
+            const finalPaise = tax.totalPaise;
             const isBest = showPlans && item === bestPlan && savingsPct(item) > 0;
             const save = showPlans ? savingsPct(item) : 0;
             return (

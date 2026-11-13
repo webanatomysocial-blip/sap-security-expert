@@ -3,7 +3,7 @@ import { formatPrice } from "../utils/fxPrice";
 import CurrencySelect from "../components/CurrencySelect";
 import SEO from "../components/SEO";
 import usePopupScrollLock from "../hooks/usePopupScrollLock";
-import BuyerTaxFields, { buyerFromMember, buyerError } from "../components/BuyerTaxFields";
+import BuyerTaxFields, { buyerFromMember, buyerError, CheckoutPriceSummary, estimateCheckoutTax } from "../components/BuyerTaxFields";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
@@ -39,7 +39,8 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   const { member: buyerMember } = useMemberAuth();
   usePopupScrollLock();
   const [buyerEdit, setBuyer] = useState(null);
-  const buyer = buyerEdit || buyerFromMember(buyerMember);
+  const profileBuyer = buyerFromMember(buyerMember);
+  const buyer = buyerEdit || profileBuyer;
   const panelRef = useRef(null);
   // Wheel over the popup scrolls the popup panel directly. The event stops here, so the smooth
   // scroller and the page behind never receive it.
@@ -91,9 +92,11 @@ function BuyCreditsModal({ onClose, onSuccess }) {
     }).catch(() => {});
   }, []);
 
-  const finalPaise = selected
+  const taxablePaise = selected
     ? Math.max(selected.price_paise - (couponData?.discount_paise || 0), 100)
     : 0;
+  const taxEstimate = estimateCheckoutTax(buyer, taxablePaise);
+  const finalPaise = taxEstimate.totalPaise;
 
   // Razorpay's checkout.js is only injected on the paywall/membership pages —
   // this modal can be opened directly (e.g. from the credits dashboard) without
@@ -234,29 +237,11 @@ function BuyCreditsModal({ onClose, onSuccess }) {
           </p>
         )}
 
-        {/* Summary */}
-        {selected && (
-          <div style={{ background: "#f8fafc", borderRadius: 10, padding: "14px 16px", marginBottom: 20, marginTop: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", color: "#64748b", marginBottom: 6 }}>
-              <span>{selected.name}</span><span>{fmtCurrency(selected.price_paise, fxCurrency, fxRate, fxDecimals)}</span>
-            </div>
-            {couponData && (
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", color: "#16a34a", marginBottom: 6 }}>
-                <span>Discount</span><span>−{fmtCurrency(couponData.discount_paise, fxCurrency, fxRate, fxDecimals)}</span>
-              </div>
-            )}
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: "1rem", color: "#1e293b", borderTop: "1px solid #e2e8f0", paddingTop: 8, marginTop: 4 }}>
-              <span>Total</span><span>{fmtCurrency(finalPaise, fxCurrency, fxRate, fxDecimals)}</span>
-            </div>
-            {fxCurrency !== "INR" && (
-              <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 6, textAlign: "right" }}>
-                ≈ {fmtAmount(finalPaise)} INR · Rate: 1 INR = {fxRate.toFixed(4)} {fxCurrency}
-              </div>
-            )}
-          </div>
-        )}
-
-        <BuyerTaxFields value={buyer} onChange={setBuyer} />
+        <BuyerTaxFields value={buyer} onChange={setBuyer} profileBuyer={profileBuyer} isCustom={buyerEdit !== null} onUseProfile={() => setBuyer(null)} />
+        {selected && <>
+          <CheckoutPriceSummary itemLabel={selected.name} listPricePaise={selected.price_paise} discountPaise={couponData?.discount_paise || 0} buyer={buyer} format={(p) => fmtCurrency(p, fxCurrency, fxRate, fxDecimals)} />
+          {fxCurrency !== "INR" && <div style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "-10px 0 14px", textAlign: "right" }}>≈ {fmtAmount(finalPaise)} INR · Rate: 1 INR = {fxRate.toFixed(4)} {fxCurrency}</div>}
+        </>}
         <button
           onClick={handlePay}
           disabled={paying || !selected}
