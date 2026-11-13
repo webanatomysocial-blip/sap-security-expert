@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { formatPrice } from "../utils/fxPrice";
 import CurrencySelect from "../components/CurrencySelect";
 import SEO from "../components/SEO";
+import usePopupScrollLock from "../hooks/usePopupScrollLock";
 import BuyerTaxFields, { buyerFromMember, buyerError } from "../components/BuyerTaxFields";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -36,12 +37,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   const [validating, setValidating] = useState(false);
   const [paying, setPaying] = useState(false);
   const { member: buyerMember } = useMemberAuth();
-  // Lock the page behind the popup while it is open, so the wheel only scrolls the popup.
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, []);
+  usePopupScrollLock();
   const [buyerEdit, setBuyer] = useState(null);
   const buyer = buyerEdit || buyerFromMember(buyerMember);
   const [fxCurrency, setFxCurrency] = useState("INR");

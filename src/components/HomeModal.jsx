@@ -1,9 +1,11 @@
+import usePopupScrollLock from "../hooks/usePopupScrollLock";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { getHomeModal } from "../services/api";
 
 export default function HomeModal() {
+  usePopupScrollLock();
   const [cfg, setCfg] = useState(null);
   const [open, setOpen] = useState(false);
 
