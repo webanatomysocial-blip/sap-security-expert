@@ -215,4 +215,21 @@ async function createTestInvoiceNoEmail({ customerEmail, name, amountINR, refere
   return { invoiceId: created.invoice.invoice_id, invoiceNumber: created.invoice.invoice_number };
 }
 
-module.exports = { createAndSendInvoice, getInvoicePdf, readOnlyOrganisationCheck, createTestInvoiceNoEmail };
+// Void a specific unpaid test invoice. Callers must provide the invoice ID and
+// perform their own explicit confirmation; this function never searches for or
+// bulk-voids invoices.
+async function voidInvoice(invoiceId) {
+  const id = String(invoiceId || '').trim();
+  if (!/^\d+$/.test(id)) throw new Error('A numeric Zoho invoice ID is required');
+  const token = await getAccessToken();
+  const before = await request('GET', `${API_BASE}/invoices/${id}?organization_id=${ORG_ID()}`, token);
+  const invoice = before?.invoice;
+  if (!invoice?.invoice_id) throw new Error(`Zoho invoice lookup failed: ${before?.code} ${before?.message}`);
+  if (invoice.status === 'void') return { invoiceId: id, status: 'void', alreadyVoided: true };
+  if (invoice.status === 'paid') throw new Error('Refusing to void a paid invoice; process a refund/credit note instead.');
+  const result = await apiPost(`/invoices/${id}/status/void`, token, {});
+  if (result?.code !== 0) throw new Error(`Zoho invoice void failed: ${result?.code} ${result?.message}`);
+  return { invoiceId: id, status: 'void', invoiceNumber: invoice.invoice_number || null };
+}
+
+module.exports = { createAndSendInvoice, getInvoicePdf, readOnlyOrganisationCheck, createTestInvoiceNoEmail, voidInvoice };
