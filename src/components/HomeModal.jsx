@@ -5,9 +5,10 @@ import { Link } from "react-router-dom";
 import { getHomeModal } from "../services/api";
 
 export default function HomeModal() {
-  usePopupScrollLock();
   const [cfg, setCfg] = useState(null);
   const [open, setOpen] = useState(false);
+  // Only while the popup is actually open (the component stays mounted).
+  usePopupScrollLock(open && !!cfg);
 
   useEffect(() => {
     let timer;
