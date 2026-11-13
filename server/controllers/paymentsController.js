@@ -334,6 +334,7 @@ const createOrder = async (req, res) => {
       buyer_state: buyer_state !== undefined ? buyer_state : profile?.state,
       buyer_country: buyer_country !== undefined ? buyer_country : profile?.country,
     }), billing_address: String(billing_address || '').trim().slice(0, 500), billing_address2: String(billing_address2 || '').trim().slice(0, 255), billing_city: String(billing_city !== undefined ? billing_city : profile?.location || '').trim().slice(0, 100), billing_postal_code: String(billing_postal_code || '').trim().slice(0, 50) };
+    if (!buyer.billing_address || !buyer.billing_postal_code) throw new Error('Billing address and postal / ZIP code are required for the invoice.');
   } catch (e) { return res.status(400).json({ status: 'error', message: e.message }); }
   const isMembership = !!plan_id;
 

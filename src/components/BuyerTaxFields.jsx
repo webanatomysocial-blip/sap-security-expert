@@ -28,6 +28,9 @@ export function buyerError(b) {
   if (country.toLowerCase() === "india" && !INDIAN_STATES.includes(b.buyer_state)) {
     return "Please choose your state. It decides the GST on your invoice.";
   }
+  if (!String(b?.billing_address || "").trim() || !String(b?.billing_postal_code || "").trim()) {
+    return "Please enter your billing address and postal / ZIP code for the invoice.";
+  }
   return null;
 }
 
@@ -92,7 +95,7 @@ export default function BuyerTaxFields({ value, onChange, profileBuyer, isCustom
       {showFields && <div className="checkout-billing-fields">
         <div className="checkout-location-choice">
           <label><input type="radio" name="buyer-location" checked={isIndia} onChange={() => onChange({ ...value, buyer_country: "India", buyer_state: "" })} /> India</label>
-          <label><input type="radio" name="buyer-location" checked={!isIndia} onChange={() => onChange({ ...value, buyer_country: "", buyer_state: "" })} /> Outside India</label>
+          <label><input type="radio" name="buyer-location" checked={!isIndia} onChange={() => onChange({ ...value, buyer_country: "", buyer_state: "", billing_city: "" })} /> Outside India</label>
         </div>
         {isIndia ? (
         <select style={field} value={value?.buyer_state || ""} onChange={(e) => onChange({ ...value, buyer_country: "India", buyer_state: e.target.value })}>
@@ -102,10 +105,10 @@ export default function BuyerTaxFields({ value, onChange, profileBuyer, isCustom
       ) : (
           <input style={field} placeholder="Your country" maxLength={60} value={value?.buyer_country || ""} onChange={(e) => onChange({ ...value, buyer_country: e.target.value, buyer_state: "" })} />
         )}
-        <input style={field} placeholder="Address line 1" maxLength={500} value={value?.billing_address || ""} onChange={(e) => onChange({ ...value, billing_address: e.target.value })} />
+        <input style={field} required placeholder="Address line 1 *" maxLength={500} value={value?.billing_address || ""} onChange={(e) => onChange({ ...value, billing_address: e.target.value })} />
         <input style={field} placeholder="Address line 2 (optional)" maxLength={255} value={value?.billing_address2 || ""} onChange={(e) => onChange({ ...value, billing_address2: e.target.value })} />
         <input style={field} placeholder="City" maxLength={100} value={value?.billing_city || ""} onChange={(e) => onChange({ ...value, billing_city: e.target.value })} />
-        <input style={field} placeholder="Postal / ZIP code" maxLength={50} value={value?.billing_postal_code || ""} onChange={(e) => onChange({ ...value, billing_postal_code: e.target.value })} />
+        <input style={field} required placeholder="Postal / ZIP code *" maxLength={50} value={value?.billing_postal_code || ""} onChange={(e) => onChange({ ...value, billing_postal_code: e.target.value })} />
       </div>}
     </section>
   );
