@@ -35,6 +35,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   const [couponError, setCouponError] = useState("");
   const [validating, setValidating] = useState(false);
   const [paying, setPaying] = useState(false);
+  const { member: buyerMember } = useMemberAuth();
   const [buyerEdit, setBuyer] = useState(null);
   const buyer = buyerEdit || buyerFromMember(buyerMember);
   const [fxCurrency, setFxCurrency] = useState("INR");
@@ -69,7 +70,6 @@ function BuyCreditsModal({ onClose, onSuccess }) {
     finally { setFxLoading(false); }
   };
   const { onCreditsPurchased } = useMemberAuth();
-  const { member: buyerMember } = useMemberAuth();
 
   useEffect(() => {
     getCreditBundles().then((r) => {
