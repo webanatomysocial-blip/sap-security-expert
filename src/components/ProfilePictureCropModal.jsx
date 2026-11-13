@@ -1,10 +1,8 @@
-import usePopupScrollLock from "../hooks/usePopupScrollLock";
 import { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import { getCroppedImg } from "../utils/getCroppedImg";
 
 export default function ProfilePictureCropModal({ imageSrc, onCancel, onConfirm }) {
-  usePopupScrollLock();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);

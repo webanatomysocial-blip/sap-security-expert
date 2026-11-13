@@ -1,4 +1,3 @@
-import usePopupScrollLock from "../hooks/usePopupScrollLock";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -6,7 +5,6 @@ import { searchSite } from "../services/api";
 import useScrollLock from "../hooks/useScrollLock";
 
 export default function HeaderSearchModal({ onClose }) {
-  usePopupScrollLock();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
