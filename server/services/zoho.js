@@ -98,7 +98,7 @@ async function getInvoicePdf(invoiceId, writable) {
 }
 
 // ── contact: find by email or create ──────────────────────────────────────────
-async function getOrCreateContact(token, { name, email, gstTreatment, placeOfSupply }) {
+async function getOrCreateContact(token, { name, email, gstTreatment, placeOfSupply, billingAddress }) {
   const search = await request(
     'GET',
     `${API_BASE}/contacts?organization_id=${ORG_ID()}&email=${encodeURIComponent(email)}`,
@@ -106,7 +106,7 @@ async function getOrCreateContact(token, { name, email, gstTreatment, placeOfSup
   );
   const existing = search?.contacts?.[0];
   // Keep the buyer's GST treatment and place of supply current on the contact.
-  const gst = { gst_treatment: gstTreatment, ...(placeOfSupply ? { place_of_supply: placeOfSupply } : {}) };
+  const gst = { gst_treatment: gstTreatment, ...(placeOfSupply ? { place_of_supply: placeOfSupply } : {}), ...(billingAddress ? { billing_address: billingAddress } : {}) };
   if (existing?.contact_id) {
     await request('PUT', `${API_BASE}/contacts/${existing.contact_id}?organization_id=${ORG_ID()}`, token, JSON.stringify(gst));
     return existing.contact_id;
@@ -146,6 +146,7 @@ async function createAndSendInvoice({ orderId, paymentId, member, bundle, amount
   const contactId = await getOrCreateContact(token, {
     name: member.name, email: member.email,
     gstTreatment: plan.gstTreatment, placeOfSupply: plan.placeOfSupply,
+    billingAddress: buyer?.billing_address ? { address: buyer.billing_address, street2: buyer.billing_address2 || undefined, city: buyer.billing_city || undefined, state: buyer.buyer_state || undefined, zip: buyer.billing_postal_code || undefined, country: buyer.buyer_country } : null,
   });
   const amountINR = (amountPaise / 100).toFixed(2);
 

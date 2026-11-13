@@ -18,7 +18,7 @@ export function buyerFromMember(member) {
   const country = (member?.country || "").trim();
   if (!country) return emptyBuyer;
   const state = country.toLowerCase() === "india" && INDIAN_STATES.includes(member?.state) ? member.state : "";
-  return { buyer_country: country, buyer_state: state };
+  return { buyer_country: country, buyer_state: state, billing_city: member?.location || "", billing_address: "", billing_address2: "", billing_postal_code: "" };
 }
 
 // Returns an error message, or null when the buyer details are complete.
@@ -87,21 +87,25 @@ export default function BuyerTaxFields({ value, onChange, profileBuyer, isCustom
         </div>
         {profileComplete && (isCustom
           ? <button type="button" className="checkout-link-button" onClick={onUseProfile}>Use saved location</button>
-          : <button type="button" className="checkout-link-button" onClick={() => onChange({ ...value })}>Use a different location</button>)}
+          : <button type="button" className="checkout-link-button" onClick={() => onChange({ ...value })}>Use different billing</button>)}
       </div>
       {showFields && <div className="checkout-billing-fields">
         <div className="checkout-location-choice">
-          <label><input type="radio" name="buyer-location" checked={isIndia} onChange={() => onChange({ buyer_country: "India", buyer_state: "" })} /> India</label>
-          <label><input type="radio" name="buyer-location" checked={!isIndia} onChange={() => onChange({ buyer_country: "", buyer_state: "" })} /> Outside India</label>
+          <label><input type="radio" name="buyer-location" checked={isIndia} onChange={() => onChange({ ...value, buyer_country: "India", buyer_state: "" })} /> India</label>
+          <label><input type="radio" name="buyer-location" checked={!isIndia} onChange={() => onChange({ ...value, buyer_country: "", buyer_state: "" })} /> Outside India</label>
         </div>
         {isIndia ? (
-        <select style={field} value={value?.buyer_state || ""} onChange={(e) => onChange({ buyer_country: "India", buyer_state: e.target.value })}>
+        <select style={field} value={value?.buyer_state || ""} onChange={(e) => onChange({ ...value, buyer_country: "India", buyer_state: e.target.value })}>
           <option value="">Select your state</option>
           {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       ) : (
-          <input style={field} placeholder="Your country" maxLength={60} value={value?.buyer_country || ""} onChange={(e) => onChange({ buyer_country: e.target.value, buyer_state: "" })} />
+          <input style={field} placeholder="Your country" maxLength={60} value={value?.buyer_country || ""} onChange={(e) => onChange({ ...value, buyer_country: e.target.value, buyer_state: "" })} />
         )}
+        <input style={field} placeholder="Address line 1" maxLength={500} value={value?.billing_address || ""} onChange={(e) => onChange({ ...value, billing_address: e.target.value })} />
+        <input style={field} placeholder="Address line 2 (optional)" maxLength={255} value={value?.billing_address2 || ""} onChange={(e) => onChange({ ...value, billing_address2: e.target.value })} />
+        <input style={field} placeholder="City" maxLength={100} value={value?.billing_city || ""} onChange={(e) => onChange({ ...value, billing_city: e.target.value })} />
+        <input style={field} placeholder="Postal / ZIP code" maxLength={50} value={value?.billing_postal_code || ""} onChange={(e) => onChange({ ...value, billing_postal_code: e.target.value })} />
       </div>}
     </section>
   );

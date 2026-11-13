@@ -214,7 +214,7 @@ async function fulfillPaidOrder(db, paymentOrder, paymentId, source) {
       amountPaise: paymentOrder.taxable_amount_paise != null
         ? paymentOrder.taxable_amount_paise
         : paymentOrder.final_price_paise,
-      buyer: { buyer_state: paymentOrder.buyer_state, buyer_country: paymentOrder.buyer_country },
+      buyer: { buyer_state: paymentOrder.buyer_state, buyer_country: paymentOrder.buyer_country, billing_address: paymentOrder.billing_address, billing_address2: paymentOrder.billing_address2, billing_city: paymentOrder.billing_city, billing_postal_code: paymentOrder.billing_postal_code },
     });
   }).then((r) => {
     if (r?.invoiceId) repo.saveZohoInvoiceId(db, orderId, r.invoiceId, r.invoiceUrl);
@@ -322,7 +322,7 @@ const createOrder = async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Please log in to purchase credits' });
   }
-  const { bundle_id, plan_id, coupon_code, preferred_currency, buyer_state, buyer_country } = req.body || {};
+  const { bundle_id, plan_id, coupon_code, preferred_currency, buyer_state, buyer_country, billing_address, billing_address2, billing_city, billing_postal_code } = req.body || {};
   if (!bundle_id && !plan_id) return res.status(400).json({ status: 'error', message: 'bundle_id or plan_id required' });
   // GST depends on where the buyer is. Use the billing details sent with the request, or the member's profile.
   let buyer;
@@ -330,10 +330,10 @@ const createOrder = async (req, res) => {
     const profile = (buyer_state === undefined && buyer_country === undefined)
       ? await membersRepo.findMemberProfileById(req.db, req.session.member_id)
       : null;
-    buyer = validateBuyer({
+    buyer = { ...validateBuyer({
       buyer_state: buyer_state !== undefined ? buyer_state : profile?.state,
       buyer_country: buyer_country !== undefined ? buyer_country : profile?.country,
-    });
+    }), billing_address: String(billing_address || '').trim().slice(0, 500), billing_address2: String(billing_address2 || '').trim().slice(0, 255), billing_city: String(billing_city !== undefined ? billing_city : profile?.location || '').trim().slice(0, 100), billing_postal_code: String(billing_postal_code || '').trim().slice(0, 50) };
   } catch (e) { return res.status(400).json({ status: 'error', message: e.message }); }
   const isMembership = !!plan_id;
 
@@ -411,6 +411,7 @@ const createOrder = async (req, res) => {
       orderType: isMembership ? 'membership' : 'credits',
       planId: isMembership ? bundle.id : null,
       buyerState: buyer.buyer_state, buyerCountry: buyer.buyer_country,
+      billingAddress: buyer.billing_address, billingAddress2: buyer.billing_address2, billingCity: buyer.billing_city, billingPostalCode: buyer.billing_postal_code,
     });
 
     return res.json({
