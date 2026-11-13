@@ -225,37 +225,6 @@ export default function MembershipPage() {
           </div>
         )}
 
-        <div className="mp-toolbar">
-          <div className="mp-toolbar-cur">
-            <CurrencySelect value={fxCurrency} onChange={handleCurrencyChange} loading={fxLoading} />
-          </div>
-          <div className="mp-coupon">
-            <div className="mp-coupon-row">
-              <input
-                type="text"
-                placeholder={selectedBundle ? `Coupon for ${selectedBundle.name}` : "Select a plan to use a coupon"}
-                value={couponCode}
-                disabled={!selectedBundle}
-                onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponData(null); setCouponError(""); }}
-                onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
-              />
-              <button onClick={handleApplyCoupon} disabled={validatingCoupon || !couponCode.trim() || !selectedBundle}>
-                {validatingCoupon ? "…" : "Apply"}
-              </button>
-            </div>
-            {couponError && <p className="mp-coupon-err">{couponError}</p>}
-            {couponData && <p className="mp-coupon-ok"><i className="bi bi-check-circle-fill" /> {fmt(couponData.discount_paise)} off {selectedBundle?.name}</p>}
-          </div>
-        </div>
-
-        <BuyerTaxFields value={buyer} onChange={setBuyer} profileBuyer={profileBuyer} isCustom={buyerEdit !== null} onUseProfile={() => setBuyer(null)} />
-        {selectedBundle && <CheckoutPriceSummary
-          itemLabel={selectedBundle.name}
-          listPricePaise={selectedBundle.price_paise}
-          discountPaise={couponData?.discount_paise || 0}
-          buyer={buyer}
-          format={fmt}
-        />}
         <div className="mp-grid">
           {items.length === 0 && <p className="mp-empty">{showPlans ? "No plans available right now." : "Loading bundles…"}</p>}
           {items.map((item) => {
@@ -299,18 +268,38 @@ export default function MembershipPage() {
 
                 <button
                   className="mp-buy"
-                  disabled={paying}
-                  onClick={(e) => { e.stopPropagation(); setSelectedBundle(item); handleBuy(item); }}
+                  onClick={(e) => { e.stopPropagation(); if (!isSelected) { setSelectedBundle(item); setCouponData(null); setCouponCode(""); setCouponError(""); } }}
                 >
-                  {paying && isSelected ? "Processing…"
-                    : !isLoggedIn ? "Log in to buy"
-                    : showPlans ? `${membership ? "Extend" : "Get"} ${item.name}`
-                    : `Buy ${item.credits} credits`}
+                  {isSelected ? "Selected" : showPlans ? `Select ${item.name}` : `Select ${item.credits} credits`}
                 </button>
               </div>
             );
           })}
         </div>
+        {selectedBundle && <section className="mp-checkout" aria-label="Checkout">
+          <div className="mp-checkout-title">
+            <div><span>Selected</span><strong>{selectedBundle.name}</strong></div>
+            <span>{showPlans ? `${selectedBundle.duration_days} days of full access` : `${selectedBundle.credits} credits`}</span>
+          </div>
+          <div className="mp-toolbar">
+            <div className="mp-toolbar-cur"><CurrencySelect value={fxCurrency} onChange={handleCurrencyChange} loading={fxLoading} /></div>
+            <div className="mp-coupon">
+              <div className="mp-coupon-row">
+                <input type="text" placeholder={`Coupon for ${selectedBundle.name} (optional)`} value={couponCode}
+                  onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponData(null); setCouponError(""); }}
+                  onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()} />
+                <button onClick={handleApplyCoupon} disabled={validatingCoupon || !couponCode.trim()}>{validatingCoupon ? "…" : "Apply"}</button>
+              </div>
+              {couponError && <p className="mp-coupon-err">{couponError}</p>}
+              {couponData && <p className="mp-coupon-ok"><i className="bi bi-check-circle-fill" /> {fmt(couponData.discount_paise)} off applied</p>}
+            </div>
+          </div>
+          <BuyerTaxFields value={buyer} onChange={setBuyer} profileBuyer={profileBuyer} isCustom={buyerEdit !== null} onUseProfile={() => setBuyer(null)} />
+          <CheckoutPriceSummary itemLabel={selectedBundle.name} listPricePaise={selectedBundle.price_paise} discountPaise={couponData?.discount_paise || 0} buyer={buyer} format={fmt} />
+          <button className="mp-checkout-pay" disabled={paying} onClick={() => handleBuy(selectedBundle)}>
+            {paying ? "Opening secure payment…" : `Pay ${fmt(taxEstimate(selectedBundle).totalPaise)}`}
+          </button>
+        </section>}
         <p className="mp-secure"><i className="bi bi-shield-lock-fill" /> Payments secured by Razorpay · GST invoice emailed after purchase</p>
 
         <section className="mp-compare">
@@ -412,7 +401,7 @@ const CSS = `
 .mp-price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
 .mp-price-now { font-size: 32px; font-weight: 900; color: #0f172a; letter-spacing: -.01em; }
 .mp-price-old { font-size: 16px; color: #94a3b8; text-decoration: line-through; }
-.mp-price-note { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #64748b; min-height: 22px; margin-top: 2px; }
+.mp-price-note { display: flex; align-content: flex-start; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #64748b; min-height: 48px; margin-top: 2px; }
 .mp-save { background: #dcfce7; color: #15803d; font-weight: 700; font-size: 11.5px; padding: 2px 8px; border-radius: 999px; }
 .mp-features { list-style: none; padding: 0; margin: 18px 0 22px; display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: #334155; flex: 1; }
 .mp-features i { color: #16a34a; margin-right: 6px; }
@@ -421,6 +410,16 @@ const CSS = `
 .mp-card.is-best .mp-buy { background: #15803d; }
 .mp-card.is-best .mp-buy:hover:not(:disabled) { background: #166534; }
 .mp-buy:disabled { opacity: .65; cursor: wait; }
+.mp-checkout { max-width: 720px; margin: 28px auto 0; padding: 22px; background: #fff; border: 1px solid #dbe5f1; border-radius: 18px; box-shadow: 0 12px 32px rgba(15,23,42,.07); }
+.mp-checkout-title { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 13px; }
+.mp-checkout-title div { display: flex; flex-direction: column; gap: 3px; }
+.mp-checkout-title strong { color: #0f172a; font-size: 20px; }
+.mp-checkout .mp-toolbar { margin: 16px 0 0; padding: 0 0 12px; border: 0; border-bottom: 1px solid #e2e8f0; border-radius: 0; }
+.mp-checkout .checkout-billing { margin-top: 16px; }
+.mp-checkout .checkout-summary { margin-bottom: 14px; }
+.mp-checkout-pay { width: 100%; padding: 14px 18px; border: 0; border-radius: 11px; background: #0f172a; color: #fff; font: inherit; font-weight: 800; font-size: 16px; cursor: pointer; }
+.mp-checkout-pay:hover:not(:disabled) { background: #1e293b; }
+.mp-checkout-pay:disabled { opacity: .65; cursor: wait; }
 .mp-secure { text-align: center; color: #94a3b8; font-size: 13px; margin: 20px 0 48px; }
 
 .mp-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 48px; }
@@ -442,6 +441,8 @@ const CSS = `
 
 @media (max-width: 720px) {
   .mp-toolbar { grid-template-columns: 1fr; gap: 0; }
+  .mp-checkout { padding: 16px; }
+  .mp-checkout-title { align-items: flex-start; flex-direction: column; gap: 5px; }
   .mp-compare { grid-template-columns: 1fr; }
   .mp-hero { padding: 48px 16px 64px; }
   .mp-container { padding: 0 16px 48px; }
