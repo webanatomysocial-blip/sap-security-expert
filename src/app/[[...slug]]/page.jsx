@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { robotsDirectives } from '../../utils/robots';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import ClientApp from './ClientApp';
@@ -294,10 +295,7 @@ function buildMeta(d) {
   return {
     title: d.title,
     description: d.description,
-    robots: {
-      index: true,
-      follow: true,
-    },
+    robots: robotsDirectives(),
     ...(d.keywords ? { keywords: d.keywords } : {}),
     alternates: { canonical },
     openGraph: {
@@ -326,10 +324,7 @@ function defaultMeta(path) {
   return {
     title,
     description,
-    robots: {
-      index: true,
-      follow: true,
-    },
+    robots: robotsDirectives(),
     alternates: { canonical: url },
     openGraph: {
       title,

@@ -5,6 +5,7 @@ const { grantBonus, getActivityCredits } = require('../services/CreditHelper');
 const repo = require('../repositories/paymentsRepository');
 const membersRepo = require('../repositories/membersRepository');
 const zoho = require('../services/zoho');
+const { validateBuyer, calculateTax } = require('../utils/gstTax');
 const currency = require('../services/currency');
 const MailService = require('../services/MailService');
 const { getOwner: getOwnerRecord } = require('../utils/fileOwnership');
@@ -205,7 +206,15 @@ async function fulfillPaidOrder(db, paymentOrder, paymentId, source) {
     if (!member) return;
     return zoho.createAndSendInvoice({
       orderId, paymentId, member: { name: member.name, email: member.email },
-      bundle: invoiceItem, amountPaise: paymentOrder.final_price_paise,
+      // Zoho receives the GST-exclusive line-item rate.  It applies the same
+      // tax plan recorded on the order, producing the Razorpay total exactly.
+      // Orders created before the GST snapshot migration retain their legacy
+      // final amount rather than fabricating historical tax values.
+      bundle: invoiceItem,
+      amountPaise: paymentOrder.taxable_amount_paise != null
+        ? paymentOrder.taxable_amount_paise
+        : paymentOrder.final_price_paise,
+      buyer: { buyer_state: paymentOrder.buyer_state, buyer_country: paymentOrder.buyer_country, billing_address: paymentOrder.billing_address, billing_address2: paymentOrder.billing_address2, billing_city: paymentOrder.billing_city, billing_postal_code: paymentOrder.billing_postal_code },
     });
   }).then((r) => {
     if (r?.invoiceId) repo.saveZohoInvoiceId(db, orderId, r.invoiceId, r.invoiceUrl);
@@ -313,8 +322,20 @@ const createOrder = async (req, res) => {
   if (!req.session.member_logged_in) {
     return res.status(401).json({ status: 'error', message: 'Please log in to purchase credits' });
   }
-  const { bundle_id, plan_id, coupon_code, preferred_currency } = req.body || {};
+  const { bundle_id, plan_id, coupon_code, preferred_currency, buyer_state, buyer_country, billing_address, billing_address2, billing_city, billing_postal_code } = req.body || {};
   if (!bundle_id && !plan_id) return res.status(400).json({ status: 'error', message: 'bundle_id or plan_id required' });
+  // GST depends on where the buyer is. Use the billing details sent with the request, or the member's profile.
+  let buyer;
+  try {
+    const profile = (buyer_state === undefined && buyer_country === undefined)
+      ? await membersRepo.findMemberProfileById(req.db, req.session.member_id)
+      : null;
+    buyer = { ...validateBuyer({
+      buyer_state: buyer_state !== undefined ? buyer_state : profile?.state,
+      buyer_country: buyer_country !== undefined ? buyer_country : profile?.country,
+    }), billing_address: String(billing_address || '').trim().slice(0, 500), billing_address2: String(billing_address2 || '').trim().slice(0, 255), billing_city: String(billing_city !== undefined ? billing_city : profile?.location || '').trim().slice(0, 100), billing_postal_code: String(billing_postal_code || '').trim().slice(0, 50) };
+    if (!buyer.billing_address || !buyer.billing_postal_code) throw new Error('Billing address and postal / ZIP code are required for the invoice.');
+  } catch (e) { return res.status(400).json({ status: 'error', message: e.message }); }
   const isMembership = !!plan_id;
 
   try {
@@ -323,7 +344,7 @@ const createOrder = async (req, res) => {
       : await repo.findActiveBundleById(req.db, bundle_id);
     if (!bundle) return res.status(404).json({ status: 'error', message: isMembership ? 'Plan not found' : 'Bundle not found' });
 
-    let finalPricePaise = bundle.price_paise;
+    let taxableAmountPaise = bundle.price_paise;
     let couponId = null;
     let discountPaise = 0;
 
@@ -332,13 +353,18 @@ const createOrder = async (req, res) => {
       if (coupon) {
         couponId = coupon.id;
         discountPaise = couponDiscountPaise(coupon, bundle.price_paise);
-        finalPricePaise = Math.max(bundle.price_paise - discountPaise, 100);
+        taxableAmountPaise = Math.max(bundle.price_paise - discountPaise, 100);
       }
     }
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return res.status(503).json({ status: 'error', message: 'Payment gateway not configured.' });
     }
+
+    // Prices are GST-exclusive. Calculate once on the server and use the
+    // resulting total for Razorpay, the order audit trail and the invoice.
+    const tax = calculateTax({ ...buyer, taxable_amount_paise: taxableAmountPaise });
+    const finalPricePaise = tax.total_price_paise;
 
     // Currency conversion — always store finalPricePaise in INR server-side (authoritative)
     // but charge the Razorpay order in the user's preferred currency
@@ -379,10 +405,14 @@ const createOrder = async (req, res) => {
       bundleId: isMembership ? 0 : bundle.id,
       bundleCredits: isMembership ? 0 : bundle.credits,
       bundlePricePaise: bundle.price_paise,
-      couponId, finalPricePaise,
+      couponId, finalPricePaise, discountPaise, taxableAmountPaise,
+      gstRateBps: tax.gst_rate_bps, cgstPaise: tax.cgst_paise, sgstPaise: tax.sgst_paise,
+      igstPaise: tax.igst_paise, gstPaise: tax.gst_paise, taxPlan: tax.key,
       orderCurrency, orderAmountForeign: orderAmount,
       orderType: isMembership ? 'membership' : 'credits',
       planId: isMembership ? bundle.id : null,
+      buyerState: buyer.buyer_state, buyerCountry: buyer.buyer_country,
+      billingAddress: buyer.billing_address, billingAddress2: buyer.billing_address2, billingCity: buyer.billing_city, billingPostalCode: buyer.billing_postal_code,
     });
 
     return res.json({
@@ -394,6 +424,9 @@ const createOrder = async (req, res) => {
       bundle,
       final_price_paise: finalPricePaise,
       discount_paise: discountPaise,
+      tax: { taxable_amount_paise: tax.taxable_amount_paise, cgst_paise: tax.cgst_paise,
+        sgst_paise: tax.sgst_paise, igst_paise: tax.igst_paise, gst_paise: tax.gst_paise,
+        total_price_paise: tax.total_price_paise, tax_plan: tax.key },
       fx_rate: fxRate,
     });
   } catch (err) {
@@ -449,7 +482,24 @@ const verify = async (req, res) => {
       return res.status(409).json({ status: 'error', message: 'This payment has already been processed.' });
     }
 
-    // 3. Fulfil from the server-side record (replay-safe on razorpay_order_id)
+    // 3. Reconcile with Razorpay before granting anything. HMAC proves the
+    // checkout response was issued by Razorpay; this also pins capture state,
+    // order, amount and currency to the immutable server-side order snapshot.
+    const payment = await getRazorpay().payments.fetch(razorpay_payment_id);
+    const expectedAmount = paymentOrder.order_amount_foreign != null
+      ? Number(paymentOrder.order_amount_foreign)
+      : Number(paymentOrder.final_price_paise);
+    const expectedCurrency = (paymentOrder.order_currency || 'INR').toUpperCase();
+    if (payment?.order_id !== razorpay_order_id || payment?.status !== 'captured'
+      || Number(payment?.amount) !== expectedAmount
+      || String(payment?.currency || '').toUpperCase() !== expectedCurrency) {
+      return res.status(409).json({
+        status: 'error',
+        message: 'Payment has not been captured for the expected amount. Please contact support if you were charged.',
+      });
+    }
+
+    // 4. Fulfil from the server-side record (replay-safe on razorpay_order_id)
     const result = await fulfillPaidOrder(req.db, paymentOrder, razorpay_payment_id, '');
     if (!result) {
       return res.status(409).json({ status: 'error', message: 'This payment has already been processed.' });

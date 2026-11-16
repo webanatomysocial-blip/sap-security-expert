@@ -33,7 +33,11 @@ export default function MemberInvoice() {
     return <div style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>Loading invoice…</div>;
   }
 
-  const discount = invoice.bundle_price_paise - invoice.final_price_paise;
+  // New GST-exclusive orders store a complete server-side tax snapshot. Keep
+  // legacy orders readable without inventing a retrospective tax breakdown.
+  const hasTaxSnapshot = invoice.taxable_amount_paise != null;
+  const discount = hasTaxSnapshot ? (invoice.discount_paise || 0) : Math.max(0, invoice.bundle_price_paise - invoice.final_price_paise);
+  const taxable = hasTaxSnapshot ? invoice.taxable_amount_paise : invoice.final_price_paise;
   const fmt = (paise) => paise > 0 ? `₹${(paise / 100).toFixed(2)}` : "₹0.00";
   const fmtDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
@@ -114,13 +118,23 @@ export default function MemberInvoice() {
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <div style={{ width: 240 }}>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: "#64748b" }}>
-              <span>Subtotal</span><span>{fmt(invoice.bundle_price_paise)}</span>
+              <span>List price</span><span>{fmt(invoice.bundle_price_paise)}</span>
             </div>
             {discount > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: "#16a34a" }}>
                 <span>Discount {invoice.coupon_code ? `(${invoice.coupon_code})` : ""}</span>
                 <span>- {fmt(discount)}</span>
               </div>
+            )}
+            {hasTaxSnapshot && (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: "#64748b" }}>
+                  <span>Taxable amount</span><span>{fmt(taxable)}</span>
+                </div>
+                {invoice.cgst_paise > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: "#64748b" }}><span>CGST</span><span>{fmt(invoice.cgst_paise)}</span></div>}
+                {invoice.sgst_paise > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: "#64748b" }}><span>SGST</span><span>{fmt(invoice.sgst_paise)}</span></div>}
+                {invoice.igst_paise > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14, color: "#64748b" }}><span>IGST</span><span>{fmt(invoice.igst_paise)}</span></div>}
+              </>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: "1rem", fontWeight: 800, color: "#1e293b", borderTop: "2px solid #e2e8f0", marginTop: 4 }}>
               <span>Total Paid</span><span>{fmt(invoice.final_price_paise)}</span>

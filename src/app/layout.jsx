@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { robotsDirectives } from '../utils/robots';
 import "./globals.css";
 import DeferredStyles from "../components/DeferredStyles";
 
@@ -61,10 +62,8 @@ const DEFAULT_IMAGE = `${SITE_URL}/assets/sapsecurityexpert-black.png`;
 export const metadata = {
   title: DEFAULT_TITLE,
   description: DEFAULT_DESC,
-  robots: {
-    index: true,
-    follow: true,
-  },
+  // DEV only: ROBOTS_NOINDEX=true keeps the site out of search results. Matches the X-Robots-Tag header in next.config.js.
+  robots: robotsDirectives(),
   alternates: { canonical: SITE_URL },
   openGraph: {
     title: DEFAULT_TITLE,

@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { formatPrice } from "../utils/fxPrice";
 import CurrencySelect from "../components/CurrencySelect";
 import SEO from "../components/SEO";
+import usePopupScrollLock from "../hooks/usePopupScrollLock";
+import BuyerTaxFields, { buyerFromMember, buyerError, CheckoutPriceSummary, estimateCheckoutTax } from "../components/BuyerTaxFields";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMemberAuth } from "../context/MemberAuthContext";
@@ -34,6 +36,21 @@ function BuyCreditsModal({ onClose, onSuccess }) {
   const [couponError, setCouponError] = useState("");
   const [validating, setValidating] = useState(false);
   const [paying, setPaying] = useState(false);
+  const { member: buyerMember } = useMemberAuth();
+  usePopupScrollLock();
+  const [buyerEdit, setBuyer] = useState(null);
+  const profileBuyer = buyerFromMember(buyerMember);
+  const buyer = buyerEdit || profileBuyer;
+  const panelRef = useRef(null);
+  // Wheel over the popup scrolls the popup panel directly. The event stops here, so the smooth
+  // scroller and the page behind never receive it.
+  const onPopupWheel = (e) => {
+    e.stopPropagation();
+    const panel = panelRef.current;
+    if (panel && panel.contains(e.target)) {
+      panel.scrollTop += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    }
+  };
   const [fxCurrency, setFxCurrency] = useState("INR");
   const [fxRate, setFxRate] = useState(1);
   const [fxDecimals, setFxDecimals] = useState(2);
@@ -75,9 +92,11 @@ function BuyCreditsModal({ onClose, onSuccess }) {
     }).catch(() => {});
   }, []);
 
-  const finalPaise = selected
+  const taxablePaise = selected
     ? Math.max(selected.price_paise - (couponData?.discount_paise || 0), 100)
     : 0;
+  const taxEstimate = estimateCheckoutTax(buyer, taxablePaise);
+  const finalPaise = taxEstimate.totalPaise;
 
   // Razorpay's checkout.js is only injected on the paywall/membership pages —
   // this modal can be opened directly (e.g. from the credits dashboard) without
@@ -106,6 +125,8 @@ function BuyCreditsModal({ onClose, onSuccess }) {
 
   const handlePay = async () => {
     if (!selected) return;
+    const bErr = buyerError(buyer);
+    if (bErr) { addToast(bErr, "error"); return; }
     setPaying(true);
     try {
       const loaded = await loadRazorpay();
@@ -115,7 +136,7 @@ function BuyCreditsModal({ onClose, onSuccess }) {
         return;
       }
 
-      const orderRes = await createCreditOrder(selected.id, couponData ? couponCode : undefined, fxCurrency !== "INR" ? fxCurrency : undefined);
+      const orderRes = await createCreditOrder(selected.id, couponData ? couponCode : undefined, fxCurrency !== "INR" ? fxCurrency : undefined, buyer);
       const { order_id: razorpay_order_id, amount, currency: orderCurrency, key_id } = orderRes.data;
 
       const options = {
@@ -151,10 +172,12 @@ function BuyCreditsModal({ onClose, onSuccess }) {
 
   return createPortal(
     <div
-      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", zIndex: 9999, padding: "20px 20px", overflowY: "auto" }}
+      data-lenis-prevent
+      onWheel={onPopupWheel}
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-start", justifyContent: "center", zIndex: 9999, padding: "20px 20px", overflowY: "auto", overscrollBehavior: "contain" }}
       onClick={onClose}
     >
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", maxWidth: 480, width: "100%", margin: "auto", flexShrink: 0 }}>
+      <div ref={panelRef} data-lenis-prevent onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, padding: "32px 28px", maxWidth: 480, width: "100%", margin: "auto", flexShrink: 0, maxHeight: "calc(100vh - 40px)", overflowY: "auto", overscrollBehavior: "contain" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#1e293b" }}>Buy Credits</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#94a3b8", lineHeight: 1 }}>✕</button>
@@ -214,28 +237,11 @@ function BuyCreditsModal({ onClose, onSuccess }) {
           </p>
         )}
 
-        {/* Summary */}
-        {selected && (
-          <div style={{ background: "#f8fafc", borderRadius: 10, padding: "14px 16px", marginBottom: 20, marginTop: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", color: "#64748b", marginBottom: 6 }}>
-              <span>{selected.name}</span><span>{fmtCurrency(selected.price_paise, fxCurrency, fxRate, fxDecimals)}</span>
-            </div>
-            {couponData && (
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", color: "#16a34a", marginBottom: 6 }}>
-                <span>Discount</span><span>−{fmtCurrency(couponData.discount_paise, fxCurrency, fxRate, fxDecimals)}</span>
-              </div>
-            )}
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: "1rem", color: "#1e293b", borderTop: "1px solid #e2e8f0", paddingTop: 8, marginTop: 4 }}>
-              <span>Total</span><span>{fmtCurrency(finalPaise, fxCurrency, fxRate, fxDecimals)}</span>
-            </div>
-            {fxCurrency !== "INR" && (
-              <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: 6, textAlign: "right" }}>
-                ≈ {fmtAmount(finalPaise)} INR · Rate: 1 INR = {fxRate.toFixed(4)} {fxCurrency}
-              </div>
-            )}
-          </div>
-        )}
-
+        <BuyerTaxFields value={buyer} onChange={setBuyer} profileBuyer={profileBuyer} isCustom={buyerEdit !== null} onUseProfile={() => setBuyer(null)} />
+        {selected && <>
+          <CheckoutPriceSummary itemLabel={selected.name} listPricePaise={selected.price_paise} discountPaise={couponData?.discount_paise || 0} buyer={buyer} format={(p) => fmtCurrency(p, fxCurrency, fxRate, fxDecimals)} />
+          {fxCurrency !== "INR" && <div style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "-10px 0 14px", textAlign: "right" }}>≈ {fmtAmount(finalPaise)} INR · Rate: 1 INR = {fxRate.toFixed(4)} {fxCurrency}</div>}
+        </>}
         <button
           onClick={handlePay}
           disabled={paying || !selected}

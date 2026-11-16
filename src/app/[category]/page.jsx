@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { robotsDirectives } from '../../utils/robots';
 import { notFound } from 'next/navigation';
 import ClientApp from '../[[...slug]]/ClientApp';
 
@@ -161,10 +162,7 @@ export async function generateMetadata({ params, searchParams }) {
     title,
     description,
     ...(d?.keywords ? { keywords: d.keywords } : {}),
-    robots: {
-      index: true,
-      follow: true,
-    },
+    robots: robotsDirectives(),
     alternates: { canonical },
     openGraph: {
       title,
