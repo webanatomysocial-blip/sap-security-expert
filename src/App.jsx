@@ -3,10 +3,10 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import Home from "./views/Home";
-import DynamicBlog from "./components/DynamicBlog";
 
 // ── Eagerly loaded (above-the-fold critical paths) ────────────────────────────
-import SapSecurity from "./views/categories/SapSecurity";
+const DynamicBlog = lazy(() => import("./components/DynamicBlog"));
+const SapSecurity = lazy(() => import("./views/categories/SapSecurity"));
 
 // ── Lazy-loaded category pages ────────────────────────────────────────────────
 const FundamentalsPage         = lazy(() => import("./views/FundamentalsPage"));
