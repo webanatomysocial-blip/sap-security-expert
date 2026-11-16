@@ -3,6 +3,7 @@ import { robotsDirectives } from '../../utils/robots';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import ClientApp from './ClientApp';
+import { responsiveImageProps } from '../../utils/responsiveImage';
 
 const INTERNAL_API = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://sapsecurityexpert.com').replace(/^http:\/\/(?!localhost(?::|\/)|127\.0\.0\.1(?::|\/))/, 'https://').replace(/\/$/, '');
@@ -188,6 +189,10 @@ export default async function CatchAll({ params }) {
 
   const nonce = homepageData ? (await headers()).get('x-nonce') || undefined : undefined;
 
+  // Preload the homepage hero (the LCP image) so the browser fetches it while the SPA bundle loads.
+  const heroSrc = isHomepage ? (() => { const a = homepageData?.heroArticles?.[0]; return a && (a.hero_image || a.homepage_featured_image || a.image); })() : null;
+  const heroProps = heroSrc ? responsiveImageProps(heroSrc, '100vw') : {};
+
   const pageTitle = isCategory
     ? `${CATEGORY_LABELS[firstSegment]}: Articles & Guides`
     : 'SAP Security, GRC & Cybersecurity Community';
@@ -200,6 +205,8 @@ export default async function CatchAll({ params }) {
 
   return (
     <>
+      {heroSrc && <link rel="preload" as="image" href={heroSrc} imageSrcSet={heroProps.srcSet} imageSizes={heroProps.sizes} fetchPriority="high" />}
+
       <div id="ssr-blog-content" suppressHydrationWarning>
         <div className="ssr-loading-overlay" aria-hidden="true">
           <div className="ssr-spinner" />
