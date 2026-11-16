@@ -217,7 +217,7 @@ async function fulfillPaidOrder(db, paymentOrder, paymentId, source) {
       buyer: { buyer_state: paymentOrder.buyer_state, buyer_country: paymentOrder.buyer_country, billing_address: paymentOrder.billing_address, billing_address2: paymentOrder.billing_address2, billing_city: paymentOrder.billing_city, billing_postal_code: paymentOrder.billing_postal_code },
     });
   }).then((r) => {
-    if (r?.invoiceId) repo.saveZohoInvoiceId(db, orderId, r.invoiceId, r.invoiceUrl);
+    if (r?.invoiceId) repo.saveZohoInvoiceId(db, orderId, r.invoiceId, r.invoiceUrl, r.paymentId);
   }).catch((err) => {
     console.error('[zoho] invoice error:', err.message);
   });

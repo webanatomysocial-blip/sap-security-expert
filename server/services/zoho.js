@@ -68,6 +68,52 @@ function apiPost(path, token, payload) {
   return request('POST', `${API_BASE}${path}?organization_id=${ORG_ID()}`, token, JSON.stringify(payload));
 }
 
+async function getInvoice(token, invoiceId) {
+  const body = await request('GET', `${API_BASE}/invoices/${encodeURIComponent(invoiceId)}?organization_id=${ORG_ID()}`, token);
+  if (!body?.invoice?.invoice_id) {
+    throw new Error(`Zoho invoice lookup failed: ${body?.code} ${body?.message}`);
+  }
+  return body.invoice;
+}
+
+// Record the already-captured Razorpay payment against the exact Zoho invoice.
+// The invoice is re-read first so a retry never records a second customer payment
+// after Zoho has already marked it paid.
+async function recordCapturedPayment({ token, invoiceId, customerId, razorpayPaymentId }) {
+  const invoice = await getInvoice(token, invoiceId);
+  const balance = Number(invoice.balance);
+  if (invoice.status === 'paid' || (Number.isFinite(balance) && balance <= 0)) {
+    return { paymentId: null, alreadyPaid: true };
+  }
+
+  const amount = Number(invoice.total);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error(`Zoho invoice ${invoiceId} has no payable total`);
+  }
+
+  const result = await apiPost('/customerpayments', token, {
+    customer_id: customerId,
+    payment_mode: 'others',
+    amount,
+    date: new Date().toISOString().slice(0, 10),
+    reference_number: razorpayPaymentId,
+    description: `Captured Razorpay payment ${razorpayPaymentId}`,
+    invoices: [{ invoice_id: invoiceId, amount_applied: amount }],
+  });
+  const paymentId = result?.payment?.payment_id;
+  if (!paymentId) {
+    throw new Error(`Zoho customer payment create failed: ${result?.code} ${result?.message || JSON.stringify(result)}`);
+  }
+  return { paymentId, alreadyPaid: false };
+}
+
+async function markInvoiceSent(token, invoiceId) {
+  const result = await apiPost(`/invoices/${encodeURIComponent(invoiceId)}/status/sent`, token, {});
+  if (result?.code !== 0) {
+    throw new Error(`Zoho invoice mark-sent failed: ${result?.code} ${result?.message || JSON.stringify(result)}`);
+  }
+}
+
 // Stream Zoho invoice PDF into a writable (e.g. res). Returns a Promise that resolves when done.
 function streamInvoicePdf(invoiceId, token, writable) {
   assertLive('PDF download');
@@ -172,6 +218,14 @@ async function createAndSendInvoice({ orderId, paymentId, member, bundle, amount
   const invoiceId  = invoice.invoice_id;
   const invoiceUrl = invoice.invoice_url || null;
 
+  // API-created invoices begin as drafts. Make the invoice open before applying
+  // the already-captured Razorpay payment; then apply it only to this invoice,
+  // so Zoho shows it as paid rather than merely sent.
+  await markInvoiceSent(token, invoiceId);
+  const payment = await recordCapturedPayment({
+    token, invoiceId, customerId: contactId, razorpayPaymentId: paymentId,
+  });
+
   // Email the invoice — non-fatal: invoice is already created so we always return result
   try {
     await apiPost(`/invoices/${invoiceId}/email`, token, {
@@ -180,12 +234,12 @@ async function createAndSendInvoice({ orderId, paymentId, member, bundle, amount
       subject:                `Your Invoice for ${bundle.name} — SAP Security Expert`,
       body:                   `Hi ${member.name || 'there'},\n\nPlease find your invoice for the purchase of ${bundle.description || `${bundle.name} (${bundle.credits} credits)`} attached.\n\nThank you for your support!\nSAP Security Expert`,
     });
-    console.log(`[zoho] invoice ${invoiceId} created and emailed to ${member.email} for order ${orderId}`);
+    console.log(`[zoho] invoice ${invoiceId} ${payment.alreadyPaid ? 'already paid' : `paid by ${payment.paymentId}`} and emailed to ${member.email} for order ${orderId}`);
   } catch (emailErr) {
     console.warn(`[zoho] invoice ${invoiceId} created but email failed:`, emailErr.message);
   }
 
-  return { invoiceId, invoiceUrl };
+  return { invoiceId, invoiceUrl, paymentId: payment.paymentId, alreadyPaid: payment.alreadyPaid };
 }
 
 // Read-only check of the OAuth connection. Gets a token (refresh grant) and lists

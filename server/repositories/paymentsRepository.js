@@ -199,7 +199,7 @@ async function insertPaymentOrder(db, f) {
        (razorpay_order_id, member_id, bundle_id, bundle_credits, bundle_price_paise, coupon_id, final_price_paise, discount_paise, taxable_amount_paise, gst_rate_bps, cgst_paise, sgst_paise, igst_paise, gst_paise, tax_plan, order_currency, order_amount_foreign, order_type, plan_id, buyer_state, buyer_country, billing_address, billing_address2, billing_city, billing_postal_code)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [f.orderId, f.memberId, f.bundleId, f.bundleCredits, f.bundlePricePaise, f.couponId, f.finalPricePaise,
-     f.discountPaise || 0, f.taxableAmountPaise, f.gstRateBps || 0, f.cgstPaise || 0, f.sgstPaise || 0,
+     f.discountPaise || 0, f.taxableAmountPaise != null ? f.taxableAmountPaise : f.finalPricePaise, f.gstRateBps || 0, f.cgstPaise || 0, f.sgstPaise || 0,
      f.igstPaise || 0, f.gstPaise || 0, f.taxPlan || null,
      f.orderCurrency || 'INR', f.orderAmountForeign != null ? f.orderAmountForeign : f.finalPricePaise,
      f.orderType || 'credits', f.planId || null, f.buyerState || null, f.buyerCountry || null, f.billingAddress || null, f.billingAddress2 || null, f.billingCity || null, f.billingPostalCode || null]
@@ -228,10 +228,10 @@ async function markOrderFulfilled(db, orderId, razorpayPaymentId) {
   );
 }
 
-async function saveZohoInvoiceId(db, orderId, zohoInvoiceId, zohoInvoiceUrl = null) {
+async function saveZohoInvoiceId(db, orderId, zohoInvoiceId, zohoInvoiceUrl = null, zohoPaymentId = null) {
   await db.execute(
-    'UPDATE payment_orders SET zoho_invoice_id = ?, zoho_invoice_url = ? WHERE razorpay_order_id = ?',
-    [zohoInvoiceId, zohoInvoiceUrl, orderId]
+    'UPDATE payment_orders SET zoho_invoice_id = ?, zoho_invoice_url = ?, zoho_payment_id = ? WHERE razorpay_order_id = ?',
+    [zohoInvoiceId, zohoInvoiceUrl, zohoPaymentId, orderId]
   ).catch(() => {});
 }
 
