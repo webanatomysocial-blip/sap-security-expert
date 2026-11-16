@@ -84,13 +84,17 @@ const nextConfig = {
   // Deliberately NOT done via robots.txt Disallow: crawlers that are blocked
   // from fetching a page never see the noindex, so already-indexed URLs stay.
   async headers() {
-    if (process.env.ROBOTS_NOINDEX !== 'true') return [];
-    return [
-      {
+    const rules = [
+      // Images and ad creatives in /public/assets were sent with max-age=0. Cache them for 7 days, as /uploads already is.
+      { source: '/assets/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }] },
+    ];
+    if (process.env.ROBOTS_NOINDEX === 'true') {
+      rules.push({
         source: '/:path*',
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }],
-      },
-    ];
+      });
+    }
+    return rules;
   },
 
   async rewrites() {
