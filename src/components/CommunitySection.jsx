@@ -232,7 +232,7 @@ export default function CommunitySection() {
             {/* Recent Topics */}
             <div className="widget">
               <div className="widget-header">
-                <h3><i className="bi bi-bookmark-fill" style={{ marginRight: 7, color: "#e84a3d" }}></i>Recent Topics</h3>
+                <h2><i className="bi bi-bookmark-fill" style={{ marginRight: 7, color: "#e84a3d" }}></i>Recent Topics</h2>
                 <a href="#featured-insights" className="widget-view-all" onClick={(e) => scrollToSection(e, "featured-insights")}>View all</a>
               </div>
               <div className="topics-list">

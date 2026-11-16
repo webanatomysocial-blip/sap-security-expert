@@ -178,7 +178,7 @@ export default function Home() {
                 <IoMdCheckmarkCircleOutline />
                 {/* <CircleCheckBig /> */}
               </div>
-              <h5>Real-World Experience</h5>
+              <h3>Real-World Experience</h3>
               <p>
                 Content authored by practitioners with hands-on SAP security
                 implementation experience across Fortune 500 companies.
@@ -236,7 +236,7 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <h6>Join the SAP Security Expert Community</h6>
+                  <h3>Join the SAP Security Expert Community</h3>
                   <p>Get exclusive access to premium articles, expert insights, and the latest SAP security updates, all in one place.</p>
                   <div className="newsletter-signup-actions">
                     <Link to="/member/signup" className="btn-newsletter-primary">
