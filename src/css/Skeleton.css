@@ -117,3 +117,17 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Server-rendered listing block (crawler content) */
+.ssr-wrap { padding: 20px; max-width: 900px; margin: 0 auto; font-family: system-ui, -apple-system, sans-serif; }
+.ssr-head { text-align: center; padding: 40px 0 30px; }
+.ssr-head h1 { font-size: 2.25rem; font-weight: 800; color: #0f172a; margin: 0 0 12px; }
+.ssr-sub { font-size: 1.1rem; color: #475569; max-width: 680px; margin: 0 auto; }
+.ssr-list { margin-top: 20px; }
+.ssr-list h2 { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-bottom: 20px; }
+.ssr-item { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
+.ssr-item h3 { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; }
+.ssr-item h3 a { color: #1e293b; text-decoration: none; }
+.ssr-meta { color: #64748b; font-size: 0.88rem; margin: 0 0 6px; }
+.ssr-meta a { color: #3b82f6; text-decoration: none; }
+.ssr-excerpt { margin: 0; color: #475569; font-size: 0.95rem; line-height: 1.6; }

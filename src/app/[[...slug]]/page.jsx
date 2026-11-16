@@ -121,10 +121,10 @@ export default async function CatchAll({ params }) {
           {article ? (
             <article style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
               <header style={{ padding: '40px 0 30px' }}>
-                <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>
+                <h1>
                   {article.title}
                 </h1>
-                <p style={{ fontSize: '1.1rem', color: '#475569', maxWidth: '680px', margin: '0 auto' }}>
+                <p className="ssr-sub">
                   {article.meta_description || article.excerpt || ''}
                 </p>
                 <div style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '12px' }}>
@@ -205,45 +205,45 @@ export default async function CatchAll({ params }) {
 
   return (
     <>
-      {heroSrc && <link rel="preload" as="image" href={heroSrc} imageSrcSet={heroProps.srcSet} imageSizes={heroProps.sizes} fetchPriority="high" />}
+      {heroSrc && <link rel="preload" as="image" href={heroProps.src || heroSrc} imageSrcSet={heroProps.srcSet} imageSizes={heroProps.sizes} fetchPriority="high" />}
 
       <div id="ssr-blog-content" suppressHydrationWarning>
         <div className="ssr-loading-overlay" aria-hidden="true">
           <div className="ssr-spinner" />
           <span className="ssr-loading-text">Loading…</span>
         </div>
-        <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
-          <header style={{ textAlign: 'center', padding: '40px 0 30px' }}>
-            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>
+        <div className="ssr-wrap">
+          <header className="ssr-head">
+            <h1>
               {pageTitle}
             </h1>
-            <p style={{ fontSize: '1.1rem', color: '#475569', maxWidth: '680px', margin: '0 auto' }}>
+            <p className="ssr-sub">
               {pageSubtitle}
             </p>
           </header>
 
           {recentArticles.length > 0 && (
-            <main style={{ marginTop: '20px' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginBottom: '20px' }}>
+            <main className="ssr-list">
+              <h2>
                 {listHeading}
               </h2>
               {recentArticles.map((article) => (
                 <div
                   key={article.id || article.slug}
-                  style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid #e2e8f0' }}
+                  className="ssr-item"
                 >
-                  <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem', fontWeight: 700 }}>
+                  <h3>
                     <Link
                       href={`/${article.category}/${article.slug}`}
-                      style={{ color: '#1e293b', textDecoration: 'none' }}
+                     
                     >
                       {article.title}
                     </Link>
                   </h3>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0 0 6px' }}>
+                  <p className="ssr-meta">
                     <Link
                       href={`/${article.category}`}
-                      style={{ color: '#3b82f6', textDecoration: 'none' }}
+                     
                     >
                       {CATEGORY_LABELS[article.category] || article.category}
                     </Link>
@@ -252,7 +252,7 @@ export default async function CatchAll({ params }) {
                     {article.date ? ` · ${new Date(article.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
                   </p>
                   {(article.excerpt || article.meta_description) && (
-                    <p style={{ margin: 0, color: '#475569', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                    <p className="ssr-excerpt">
                       {(article.excerpt || article.meta_description || '').substring(0, 160)}
                     </p>
                   )}

@@ -16,11 +16,16 @@ export function responsiveImageProps(src, sizes = '(max-width: 600px) 100vw, (ma
   return {
     srcSet: candidates.map(({ width, url }) => `${url} ${width}w`).join(', '),
     sizes,
+    // Default src is the 800w WebP so crawlers and non-srcset clients don't fetch the full-size original.
+    src: variantUrl(src, 800),
     onError: (event) => {
-      // A pre-backfill image may not have variants yet. Remove srcset once so
-      // the browser retries the unchanged original src.
-      event.currentTarget.removeAttribute('srcset');
-      event.currentTarget.removeAttribute('sizes');
+      // A pre-backfill image may not have variants yet. Drop srcset and fall
+      // back to the original once.
+      const img = event.currentTarget;
+      img.removeAttribute('srcset');
+      img.removeAttribute('sizes');
+      img.onerror = null;
+      img.src = src;
     },
   };
 }
