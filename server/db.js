@@ -635,6 +635,7 @@ if (isSQLite) {
   const poColsLite = sqliteDb.prepare('PRAGMA table_info(payment_orders)').all().map(r => r.name);
   if (!poColsLite.includes('order_type')) sqliteDb.prepare("ALTER TABLE payment_orders ADD COLUMN order_type TEXT NOT NULL DEFAULT 'credits'").run();
   if (!poColsLite.includes('plan_id')) sqliteDb.prepare('ALTER TABLE payment_orders ADD COLUMN plan_id INTEGER DEFAULT NULL').run();
+  if (!poColsLite.includes('zoho_payment_id')) sqliteDb.prepare('ALTER TABLE payment_orders ADD COLUMN zoho_payment_id TEXT DEFAULT NULL').run();
   for (const sql of MEMBERSHIP_PLAN_SEED_SQL) sqliteDb.prepare(sql).run();
 
   sqliteDb.prepare(`
@@ -1219,6 +1220,7 @@ if (isSQLite) {
       const poCols = await getColumns('payment_orders');
       if (!poCols.includes('razorpay_payment_id')) await addCol('payment_orders', 'razorpay_payment_id', "VARCHAR(255) DEFAULT NULL");
       if (!poCols.includes('zoho_invoice_id'))    await addCol('payment_orders', 'zoho_invoice_id',    "VARCHAR(255) DEFAULT NULL");
+      if (!poCols.includes('zoho_payment_id'))    await addCol('payment_orders', 'zoho_payment_id',    "VARCHAR(255) DEFAULT NULL");
       // ── payment_orders: international currency columns ────────────────────────
       if (!poCols.includes('order_currency'))       await addCol('payment_orders', 'order_currency',       "VARCHAR(10) NOT NULL DEFAULT 'INR'");
       if (!poCols.includes('order_amount_foreign')) await addCol('payment_orders', 'order_amount_foreign', "BIGINT DEFAULT NULL");
