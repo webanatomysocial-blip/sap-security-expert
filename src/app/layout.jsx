@@ -100,6 +100,7 @@ export default async function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+        <link rel="preload" as="font" type="font/woff2" crossOrigin="anonymous" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/fonts/bootstrap-icons.woff2?2820a3852bdb9a5832199cc61cec4e65" />
         {/* Site-wide structured data — Organization + WebSite (SearchAction) */}
         <script
           type="application/ld+json"
