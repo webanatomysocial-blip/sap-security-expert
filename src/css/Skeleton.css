@@ -131,3 +131,6 @@
 .ssr-meta { color: #64748b; font-size: 0.88rem; margin: 0 0 6px; }
 .ssr-meta a { color: #3b82f6; text-decoration: none; }
 .ssr-excerpt { margin: 0; color: #475569; font-size: 0.95rem; line-height: 1.6; }
+
+/* Reserve icon space before the Bootstrap Icons font loads (it is deferred) so icons popping in don't shift layout. */
+i.bi { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
