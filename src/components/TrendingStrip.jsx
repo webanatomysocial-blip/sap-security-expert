@@ -17,7 +17,9 @@ const TrendingStrip = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading || trending.length === 0) return null;
+  // Reserve the strip's height while loading so content below does not jump when it appears.
+  if (loading) return <div className="trending-strip-placeholder" aria-hidden="true"><style>{`.trending-strip-placeholder{min-height:53px;background:#0f172a}@media(max-width:768px){.trending-strip-placeholder{min-height:140px}}`}</style></div>;
+  if (trending.length === 0) return null;
 
   return (
     <div className="trending-strip-wrapper">
