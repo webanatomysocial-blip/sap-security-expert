@@ -86,7 +86,8 @@ const nextConfig = {
   async headers() {
     const rules = [
       // Images and ad creatives in /public/assets were sent with max-age=0. Cache them for 7 days, as /uploads already is.
-      { source: '/assets/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }] },
+      { source: '/assets/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000' }] },
+      { source: '/fav.png', headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000' }] },
     ];
     if (process.env.ROBOTS_NOINDEX === 'true') {
       rules.push({
