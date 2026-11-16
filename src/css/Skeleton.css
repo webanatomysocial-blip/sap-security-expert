@@ -106,3 +106,14 @@
 @keyframes ssr-spin {
   to { transform: rotate(360deg); }
 }
+
+/* The SEO text block stays in the DOM for crawlers but must not take layout
+   space: the SPA mounts beneath it and removing it later shifted the whole page. */
+#ssr-blog-content > div:not(.ssr-loading-overlay) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
