@@ -689,12 +689,12 @@ const BlogLayout = ({
                       {(author_linkedin || author_twitter || author_website) && (
                         <div className="bl-author-socials">
                           {author_linkedin && (
-                            <a href={safeUrl(author_linkedin)} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
+                            <a href={safeUrl(author_linkedin)} target="_blank" rel="ugc nofollow noopener noreferrer" title="LinkedIn" className="bl-social-link bl-social-link--linkedin">
                               <FaLinkedin size={15} />
                             </a>
                           )}
                           {author_twitter && (
-                            <a href={safeUrl(author_twitter)} target="_blank" rel="noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
+                            <a href={safeUrl(author_twitter)} target="_blank" rel="ugc nofollow noopener noreferrer" title="Twitter / X" className="bl-social-link bl-social-link--twitter">
                               <FaXTwitter size={15} />
                             </a>
                           )}

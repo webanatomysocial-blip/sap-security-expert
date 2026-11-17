@@ -62,7 +62,7 @@ const AuthorProfile = ({ authorId }) => {
             <a
               href={safeUrl(author.socials.linkedin)}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="ugc nofollow noopener noreferrer"
               style={{ color: "#0077b5" }}
             >
               <FaLinkedin size={20} />
@@ -72,7 +72,7 @@ const AuthorProfile = ({ authorId }) => {
             <a
               href={author.socials.twitter}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="ugc nofollow noopener noreferrer"
               style={{ color: "#1da1f2" }}
             >
               <FaTwitter size={20} />
@@ -82,7 +82,7 @@ const AuthorProfile = ({ authorId }) => {
             <a
               href={safeUrl(author.socials.website)}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="ugc nofollow noopener noreferrer"
               style={{ color: "#333" }}
             >
               <FaGlobe size={20} />

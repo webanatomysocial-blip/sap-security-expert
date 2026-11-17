@@ -311,7 +311,7 @@ const AmbassadorProfile = () => {
                 <a
                   href={safeUrl(ambassador.linkedin)}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="ugc nofollow noopener noreferrer"
                   style={{
                     marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     padding: "11px 16px", borderRadius: 10, background: "#0a66c2", color: "#ffffff",
