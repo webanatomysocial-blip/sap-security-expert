@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Image from "next/image";
+import { responsiveImageProps } from "../utils/responsiveImage";
 // Removed static metadata import
 // Removed static metadata import
 import { LuEye, LuMessageSquare } from "react-icons/lu";
@@ -134,7 +135,7 @@ export default function LatestBlogs() {
                 className="latest-blog-card"
               >
                 <div className="latest-blog-image">
-                  <Image src={blog.image} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: "cover" }} />
+                  <img src={blog.image} alt={blog.title} loading="lazy" decoding="async" {...responsiveImageProps(blog.image, "(max-width: 768px) 100vw, 400px")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
                   <span className="latest-blog-badge">
                     {getCategoryLabel(blog.category, blog.subCategory)}
                   </span>

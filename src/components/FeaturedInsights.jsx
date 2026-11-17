@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Image from "next/image";
+import { responsiveImageProps } from "../utils/responsiveImage";
 // blogMetadata import removed
 // Removed static metadata import
 import { LuEye, LuMessageSquare } from "react-icons/lu";
@@ -222,7 +223,7 @@ export default function FeaturedInsights({ id }) {
               className="latest-blog-card"
             >
               <div className="latest-blog-image">
-                <Image src={blog.image} alt={blog.title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
+                <img src={blog.image} alt={blog.title} loading="lazy" decoding="async" {...responsiveImageProps(blog.image, "(max-width: 768px) 100vw, 400px")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
                 {blog.is_premium == 1 ? (
                   <div className="exclusive-badge-overlay" style={{ background: "#d97706" }}>
                     <i className="bi bi-star-fill" /> PREMIUM

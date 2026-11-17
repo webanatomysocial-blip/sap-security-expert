@@ -148,3 +148,9 @@ body .rt-badge[style*="217, 119, 6"], body .exclusive-badge-overlay[style*="217,
 body .ann-date,body .latest-blog-date,body .rt-meta span,body .activity-meta span { color: #64748b; }
 body .tab-btn:not(.active) { color: #54657a; }
 body .footer-disclaimer, body .footer-bottom p { color: #94a3b8; }
+
+/* Touch targets: >=24px hit area without changing the visible size of the dots */
+.hero-dot { position: relative; }
+.hero-dot::after { content: ""; position: absolute; inset: -8px -4px; }
+.trending-link, body .trending-ambassador-btn { min-height: 24px; }
+body .btn-header-signup { background-color: #c0362b; }
