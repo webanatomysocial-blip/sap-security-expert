@@ -160,4 +160,6 @@ body .trust-section-new .section-header-centered p { color: #94a3b8; }
 body .hero-carousel-dots { gap: 0; }
 
 /* Homepage hero shown in the first-paint overlay so the largest image paints from server HTML, not after hydration */
-.ssr-loading-overlay .ssr-hero { width: min(100%, 900px); height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; }
+/* Sized larger than the real hero card (372x326 mobile, 650x460 desktop) so the browser keeps this early paint as the LCP element. */
+.ssr-loading-overlay .ssr-hero { width: 100%; height: 360px; object-fit: cover; }
+@media (min-width: 769px) { .ssr-loading-overlay .ssr-hero { width: 900px; height: 520px; border-radius: 12px; } }
