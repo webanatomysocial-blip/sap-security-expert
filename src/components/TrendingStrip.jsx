@@ -91,6 +91,7 @@ const TrendingStrip = () => {
           flex: 1;
           overflow: hidden;
           position: relative;
+          min-width: 0;
           mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
           -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
@@ -141,6 +142,8 @@ const TrendingStrip = () => {
           font-size: 0.8rem;
         }
         .trending-ambassador-btn {
+          position: relative;
+          z-index: 2;
           flex-shrink: 0;
           display: inline-flex;
           align-items: center;
