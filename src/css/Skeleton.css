@@ -140,11 +140,11 @@ i.bi { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em;
 .skip-link:focus { top: 8px; }
 
 /* Accessibility: raise text/background contrast to WCAG AA (4.5:1). Loaded last so it wins over page CSS. */
-.widget-view-all, .widget-leaderboard-link, .activity-link, .read-more, .article-count { color: #c0362b; }
-.jcw-btn-primary, .btn-newsletter-primary, .tab-btn.active, .rt-badge { background-color: #c0362b; }
-.rt-badge--paid, .exclusive-badge-overlay, .exclusive-mini-badge-inline { background: #b45309 !important; }
-.rt-badge[style*="22, 163, 74"], .exclusive-badge-overlay[style*="22, 163, 74"], .exclusive-mini-badge-inline[style*="22, 163, 74"] { background: #15803d !important; }
-.rt-badge[style*="217, 119, 6"], .exclusive-badge-overlay[style*="217, 119, 6"], .exclusive-mini-badge-inline[style*="217, 119, 6"] { background: #b45309 !important; }
-.ann-date, .latest-blog-date, .rt-meta span, .activity-meta span { color: #64748b; }
-.tab-btn:not(.active) { color: #54657a; }
-.footer-disclaimer { color: #94a3b8; }
+body .widget-view-all,body .widget-leaderboard-link,body .activity-link,body .read-more,body .article-count { color: #c0362b; }
+body .jcw-btn-primary,body .btn-newsletter-primary,body .tab-btn.active,body .rt-badge { background-color: #c0362b; }
+body .rt-badge--paid,body .exclusive-badge-overlay,body .exclusive-mini-badge-inline { background: #b45309 !important; }
+body .rt-badge[style*="22,body 163,body 74"],body .exclusive-badge-overlay[style*="22,body 163,body 74"],body .exclusive-mini-badge-inline[style*="22,body 163,body 74"] { background: #15803d !important; }
+body .rt-badge[style*="217,body 119,body 6"],body .exclusive-badge-overlay[style*="217,body 119,body 6"],body .exclusive-mini-badge-inline[style*="217,body 119,body 6"] { background: #b45309 !important; }
+body .ann-date,body .latest-blog-date,body .rt-meta span,body .activity-meta span { color: #64748b; }
+body .tab-btn:not(.active) { color: #54657a; }
+body .footer-disclaimer, body .footer-bottom p, body .section-header-centered p { color: #94a3b8; }
