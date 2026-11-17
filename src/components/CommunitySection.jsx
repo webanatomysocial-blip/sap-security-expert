@@ -802,14 +802,14 @@ export default function CommunitySection() {
                   <div className="cag-number">{memberCount !== null ? memberCount.toLocaleString() : "—"}</div>
                   <div className="cag-label">Members</div>
                 </div>
-                <div className="cag-stat" hidden={articleCount === 0}>
+                <div className="cag-stat" hidden={articleCount === 0 || (articleCount === null && memberCount !== null)}>
                   <div className="cag-icon" style={{ background: "#fef2f2", color: "#e84a3d" }}>
                     <i className="bi bi-file-earmark-text-fill"></i>
                   </div>
                   <div className="cag-number">{articleCount !== null ? articleCount.toLocaleString() : "—"}</div>
                   <div className="cag-label">Articles</div>
                 </div>
-                <div className="cag-stat" hidden={commentCount === 0}>
+                <div className="cag-stat" hidden={commentCount === 0 || (commentCount === null && memberCount !== null)}>
                   <div className="cag-icon" style={{ background: "#f0fdf4", color: "#16a34a" }}>
                     <i className="bi bi-chat-dots-fill"></i>
                   </div>
