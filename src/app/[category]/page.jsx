@@ -110,11 +110,11 @@ async function fetchPublicListing({ category, limit, offset = 0 }) {
   if (category) q.set('category', category);
   try {
     const res = await fetch(`${INTERNAL_API}/api/posts?${q.toString()}`, { next: { revalidate: 300 } });
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = await res.json();
     return Array.isArray(data) ? data : (data.posts || data.blogs || []);
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -359,7 +359,10 @@ export default async function CategoryPage({ params, searchParams }) {
   }
 
   if (category === 'blogs') {
-    const rows = await fetchPublicListing({ limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
+    const raw = await fetchPublicListing({ limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
+    const rows = raw || [];
+    // A page number past the end is a real 404, not an empty indexable page (only when the API answered).
+    if (page > 1 && raw && rows.length === 0) notFound();
     const hasNext = rows.length > PAGE_SIZE;
     const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, PAGE_SIZE);
     return (
@@ -376,7 +379,7 @@ export default async function CategoryPage({ params, searchParams }) {
   }
 
   if (category === 'downloads') {
-    const rows = await fetchPublicListing({ category: 'downloads', limit: 12 });
+    const rows = (await fetchPublicListing({ category: 'downloads', limit: 12 })) || [];
     const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, 12);
     const summary = SPA_PAGE_SUMMARIES.downloads;
     return (
@@ -405,7 +408,9 @@ export default async function CategoryPage({ params, searchParams }) {
   }
 
   if (category === 'expert-papers') {
-    const rows = await fetchPublicListing({ category: 'expert-papers', limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
+    const raw = await fetchPublicListing({ category: 'expert-papers', limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
+    const rows = raw || [];
+    if (page > 1 && raw && rows.length === 0) notFound();
     const hasNext = rows.length > PAGE_SIZE;
     const items = rows.filter((b) => !b.status || ['approved', 'published'].includes(b.status)).slice(0, PAGE_SIZE);
     const summary = SPA_PAGE_SUMMARIES['expert-papers'];
@@ -436,6 +441,9 @@ export default async function CategoryPage({ params, searchParams }) {
   if (!CATEGORY_LABELS[category]) {
     notFound();
   }
+
+  // Category hubs list everything on one page; ?page=N would only duplicate page 1.
+  if (page > 1) notFound();
 
   const categoryLabel = CATEGORY_LABELS[category] || category;
   const intro = CATEGORY_INTROS[category] || null;

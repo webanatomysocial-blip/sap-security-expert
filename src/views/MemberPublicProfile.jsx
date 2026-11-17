@@ -193,7 +193,7 @@ const MemberPublicProfile = () => {
                   <a
                     href={safeUrl(member.linkedin)}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="ugc nofollow noopener noreferrer"
                     className="auth-connect-btn"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="#0a66c2" style={{ flexShrink: 0 }}>
