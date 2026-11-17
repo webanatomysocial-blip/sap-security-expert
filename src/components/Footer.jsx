@@ -247,7 +247,7 @@ const Footer = () => {
           <span style={{
             display: "inline-flex", alignItems: "center", gap: "5px",
             background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)",
-            color: "#64748b", borderRadius: "20px", padding: "2px 10px",
+            color: "#94a3b8", borderRadius: "20px", padding: "2px 10px",
             fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em",
           }}>
             <i className="bi bi-layers-fill" style={{ fontSize: "0.7rem" }} /> Platform v{version}

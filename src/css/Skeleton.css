@@ -150,7 +150,11 @@ body .tab-btn:not(.active) { color: #54657a; }
 body .footer-disclaimer, body .footer-bottom p { color: #94a3b8; }
 
 /* Touch targets: >=24px hit area without changing the visible size of the dots */
-.hero-dot { position: relative; }
-.hero-dot::after { content: ""; position: absolute; inset: -8px -4px; }
+/* 24px hit area; the visible dot is the content box */
+body .hero-dot { width: 24px; height: 24px; padding: 7.5px; background-clip: content-box; }
+body .hero-dot.active { width: 39px; border-radius: 12px; }
 .trending-link, body .trending-ambassador-btn { min-height: 24px; }
 body .btn-header-signup { background-color: #c0362b; }
+
+body .trust-section-new .section-header-centered p { color: #94a3b8; }
+body .hero-carousel-dots { gap: 0; }
