@@ -104,7 +104,7 @@ export default function CookieConsent() {
             </button>
             <button
               onClick={acceptAll}
-              style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "#ee5e42", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", whiteSpace: "nowrap" }}
+              style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "#c0362b", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", whiteSpace: "nowrap" }}
             >
               Accept All
             </button>
@@ -133,7 +133,7 @@ export default function CookieConsent() {
               </button>
               <button
                 onClick={acceptAll}
-                style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: "#ee5e42", color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}
+                style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: "#c0362b", color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}
               >
                 Accept All
               </button>
@@ -194,7 +194,7 @@ export default function CookieConsent() {
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
               <button
                 onClick={saveCustom}
-                style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: "#ee5e42", color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}
+                style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: "#c0362b", color: "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}
               >
                 Save Preferences
               </button>
