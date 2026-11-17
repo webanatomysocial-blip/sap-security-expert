@@ -135,7 +135,7 @@ export default async function sitemap() {
   if (annData) {
     const items = Array.isArray(annData) ? annData : (annData.announcements || annData.data || []);
     announcementEntries = items
-      .filter((p) => p.slug || p.id)
+      .filter((p) => p.slug) // slugless announcements have no public detail page
       .map((p) => ({
         url: `${SITE_URL}/announcements/${p.slug || p.id}`,
         lastModified: toDate(p.updated_at || p.date, today),

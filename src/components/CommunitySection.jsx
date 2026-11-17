@@ -596,12 +596,12 @@ export default function CommunitySection() {
                   return (
                     <div className="ra-empty">
                       {activeTab === "news"
-                        ? "No news updates yet."
+                        ? "News updates are coming soon. Meanwhile, browse all articles."
                         : activeTab === "expert"
-                        ? "No expert recommendations yet. Admins can mark articles as Expert Picks from the blog list."
+                        ? "New expert picks are on the way. Meanwhile, browse all articles."
                         : activeTab === "premium"
-                        ? "No premium content available yet."
-                        : "No recent articles."}
+                        ? "Premium content is coming soon. Meanwhile, browse all articles."
+                        : "Fresh articles are on the way. Meanwhile, browse all articles."}
                     </div>
                   );
                 }
@@ -717,8 +717,8 @@ export default function CommunitySection() {
               </Link>
             </div>
 
-            {/* Announcements */}
-            <div className="widget">
+            {/* Announcements: hidden (not "No announcements yet") when there is nothing to show */}
+            <div className="widget" hidden={announcementsLoaded && (!Array.isArray(announcements) || announcements.length === 0)}>
               <div className="widget-header">
                 <h3><i className="bi bi-megaphone-fill" style={{ marginRight: 8, color: "#e84a3d" }}></i>Announcements</h3>
                 <Link to="/announcements" className="widget-view-all">View all</Link>
@@ -790,26 +790,26 @@ export default function CommunitySection() {
             </div>
 
             {/* Community at a Glance */}
-            <div className="widget">
+            <div className="widget" hidden={memberCount === 0 && articleCount === 0 && commentCount === 0}>
               <div className="widget-header">
                 <h3>Community at a Glance</h3>
               </div>
               <div className="cag-grid">
-                <div className="cag-stat">
+                <div className="cag-stat" hidden={memberCount === 0}>
                   <div className="cag-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>
                     <i className="bi bi-people-fill"></i>
                   </div>
                   <div className="cag-number">{memberCount !== null ? memberCount.toLocaleString() : "—"}</div>
                   <div className="cag-label">Members</div>
                 </div>
-                <div className="cag-stat">
+                <div className="cag-stat" hidden={articleCount === 0}>
                   <div className="cag-icon" style={{ background: "#fef2f2", color: "#e84a3d" }}>
                     <i className="bi bi-file-earmark-text-fill"></i>
                   </div>
                   <div className="cag-number">{articleCount !== null ? articleCount.toLocaleString() : "—"}</div>
                   <div className="cag-label">Articles</div>
                 </div>
-                <div className="cag-stat">
+                <div className="cag-stat" hidden={commentCount === 0}>
                   <div className="cag-icon" style={{ background: "#f0fdf4", color: "#16a34a" }}>
                     <i className="bi bi-chat-dots-fill"></i>
                   </div>

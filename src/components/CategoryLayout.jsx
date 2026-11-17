@@ -303,9 +303,12 @@ const CategoryLayout = ({ categorySlug, displayName }) => {
               </div>
             ) : error ? (
               <div className="error-state">
-                <p>Error loading blogs: {error}</p>
-                <Link to="/" className="btn-primary">
-                  Go Home
+                <p>We couldn't load the articles right now. Please try again in a moment.</p>
+                <button type="button" className="btn-primary" onClick={() => window.location.reload()}>
+                  Try again
+                </button>{" "}
+                <Link to="/blogs" className="btn-primary">
+                  Browse all articles
                 </Link>
               </div>
             ) : categoryBlogs.length === 0 ? (
