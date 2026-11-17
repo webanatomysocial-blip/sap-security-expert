@@ -68,7 +68,7 @@ function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const file = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(file, out);
-    else if (/\.(jpe?g|png)$/i.test(entry.name)) out.push(file);
+    else if (/\.(jpe?g|png|webp)$/i.test(entry.name) && !/-(400|800|1200)\.webp$|\.partial-/i.test(entry.name)) out.push(file);
   }
   return out;
 }

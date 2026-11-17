@@ -202,7 +202,7 @@ app.use('/uploads', (req, res, next) => {
   try { p = path.posix.normalize(decodeURIComponent(req.path)).toLowerCase(); } catch { p = null; }
   if (p === null || p.startsWith('/downloads')) return res.status(403).json({ status: 'error', message: 'Forbidden' });
   next();
-}, express.static(path.join(ROOT, 'public/uploads'), { maxAge: '7d' }));
+}, express.static(path.join(ROOT, 'public/uploads'), { maxAge: '30d' }));
 app.use('/assets', express.static(path.join(ROOT, 'public'), { maxAge: '1d' }));
 // In unified mode (Hostinger) start.cjs routes /api/* and /uploads/* directly to
 // this Express app before Next.js ever sees the request.
