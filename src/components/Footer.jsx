@@ -38,22 +38,22 @@ const Footer = () => {
           </p>
           <div className="footer-social-links">
             <a
-              href="https://www.linkedin.com/company/sapsecurityexpert/"
+              href="https://www.linkedin.com/company/sapsecurityexpert/" aria-label="LinkedIn"
               className="footer-social-icon"
             >
               <FaLinkedinIn />
             </a>
-            <a href="https://x.com/sapsecexpert" className="footer-social-icon">
+            <a href="https://x.com/sapsecexpert" aria-label="X (Twitter)" className="footer-social-icon">
               <FaTwitter />
             </a>
             <a
-              href="https://www.instagram.com/sapsecurityexpert/"
+              href="https://www.instagram.com/sapsecurityexpert/" aria-label="Instagram"
               className="footer-social-icon"
             >
               <FaInstagram />
             </a>
             <a
-              href="https://github.com/sapsecurityexpert"
+              href="https://github.com/sapsecurityexpert" aria-label="GitHub"
               className="footer-social-icon"
               target="_blank"
               rel="noopener noreferrer"
