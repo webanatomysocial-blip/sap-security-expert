@@ -374,6 +374,7 @@ const Header = () => {
           </div>
           <button
             className="mobile-menu-btn only-mobile"
+            aria-label="Open menu"
             onClick={() => setMenuOpen(true)}
           >
             <FiMenu size={26} />
@@ -385,7 +386,7 @@ const Header = () => {
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         <div className="mobile-menu-header">
           <Image src={logo} alt="Logo" width={140} height={35} style={{ maxWidth: "140px", height: "auto", objectFit: "contain" }} />
-          <button onClick={closeMenu}>
+          <button onClick={closeMenu} aria-label="Close menu">
             <FiX size={24} />
           </button>
         </div>
