@@ -628,7 +628,7 @@ export default function CommunitySection() {
                             alt={activity.title}
                             width="600"
                             height="400"
-                            {...responsiveImageProps(activity.image, "(max-width: 768px) 100vw, 33vw")}
+                            {...responsiveImageProps(activity.image, "(max-width: 768px) 140px, 140px")}
                             onError={(e) => {
                               e.currentTarget.removeAttribute('srcset');
                               e.currentTarget.removeAttribute('sizes');
