@@ -7,7 +7,7 @@ const Layout = () => {
   return (
     <div className="app-layout">
       <Header />
-      <main className="site-main">
+      <main className="site-main" id="main-content" tabIndex={-1}>
 
         <Outlet />
       </main>
