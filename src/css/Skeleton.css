@@ -158,3 +158,6 @@ body .btn-header-signup { background-color: #c0362b; }
 
 body .trust-section-new .section-header-centered p { color: #94a3b8; }
 body .hero-carousel-dots { gap: 0; }
+
+/* Homepage hero shown in the first-paint overlay so the largest image paints from server HTML, not after hydration */
+.ssr-loading-overlay .ssr-hero { width: min(100%, 900px); height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; }

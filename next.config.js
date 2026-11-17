@@ -7,6 +7,9 @@ const nextConfig = {
   // HTML-limited so Next waits for metadata and writes it into <head>.
   htmlLimitedBots: /.*/,
 
+  // Inline the CSS into the HTML so the first paint is not blocked by 6 stylesheet requests (CSP already allows inline styles).
+  experimental: { inlineCss: true },
+
   // Reduce the number of SSR pages Next.js keeps hot in memory.
   // Default is 50; 25 is plenty for this app and halves the page-cache footprint.
   onDemandEntries: {
