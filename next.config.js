@@ -89,6 +89,7 @@ const nextConfig = {
       { source: '/assets/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000' }] },
       { source: '/fav.png', headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000' }] },
     ];
+    rules.push({ source: '/:path*', headers: [{ key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' }] });
     if (process.env.ROBOTS_NOINDEX === 'true') {
       rules.push({
         source: '/:path*',

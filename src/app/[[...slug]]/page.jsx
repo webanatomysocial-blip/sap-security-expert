@@ -173,7 +173,7 @@ export default async function CatchAll({ params }) {
         // browser has to download before the page can even start rendering.
         // Strip to just the fields the homepage actually uses before this
         // goes into recentArticles or gets embedded for the client below.
-        const HERO_FIELDS = ['id', 'title', 'slug', 'category', 'excerpt', 'hero_image', 'homepage_featured_image', 'image'];
+        const HERO_FIELDS = ['id', 'title', 'slug', 'category', 'excerpt', 'hero_image', 'homepage_featured_image', 'image', 'date', 'created_at', 'author_name'];
         const CARD_FIELDS = ['id', 'title', 'slug', 'category', 'excerpt', 'date', 'created_at', 'author_name', 'author_image', 'is_premium', 'is_members_only'];
         const pick = (obj, fields) => Object.fromEntries(fields.map((f) => [f, obj[f]]).filter(([, v]) => v !== undefined));
         homepageData = {
@@ -228,7 +228,7 @@ export default async function CatchAll({ params }) {
                 {listHeading}
               </h2>
               {recentArticles.map((article) => (
-                <div
+                <article
                   key={article.id || article.slug}
                   className="ssr-item"
                 >
@@ -256,10 +256,26 @@ export default async function CatchAll({ params }) {
                       {(article.excerpt || article.meta_description || '').substring(0, 160)}
                     </p>
                   )}
-                </div>
+                </article>
               ))}
             </main>
           )}
+          <nav className="ssr-links" aria-label="About, contact and policies">
+            <Link href="/about">About SAP Security Expert</Link>{' '}
+            <Link href="/contact-us">Contact us</Link>{' '}
+            <Link href="/privacy-policy">Privacy policy</Link>{' '}
+            <Link href="/terms-conditions">Terms of service</Link>{' '}
+            <Link href="/disclaimer">Disclaimer</Link>{' '}
+            <Link href="/responsible-ai-automation-statement">Responsible AI statement</Link>{' '}
+            <Link href="/experts/raghu-boddu">Founder: Raghu Boddu, SAP Security and GRC expert</Link>
+          </nav>
+          <footer className="ssr-links">
+            <a href="https://www.linkedin.com/company/sapsecurityexpert/" rel="noopener">LinkedIn</a>{' '}
+            <a href="https://x.com/sapsecexpert" rel="noopener">X (Twitter)</a>{' '}
+            <a href="https://www.instagram.com/sapsecurityexpert/" rel="noopener">Instagram</a>{' '}
+            <a href="https://github.com/sapsecurityexpert" rel="noopener">GitHub</a>{' '}
+            <a href="/llms.txt">llms.txt</a>
+          </footer>
         </div>
       </div>
 

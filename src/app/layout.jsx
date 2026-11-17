@@ -33,6 +33,9 @@ const orgSchema = {
   description: 'The leading practitioner community for SAP Security, GRC, BTP, and Identity professionals.',
   sameAs: [
     'https://www.linkedin.com/company/sap-security-expert',
+    'https://x.com/sapsecexpert',
+    'https://www.instagram.com/sapsecurityexpert/',
+    'https://github.com/sapsecurityexpert',
   ],
   founder: { '@type': 'Person', '@id': FOUNDER_ID, name: 'Raghu Boddu' },
 };
@@ -88,12 +91,12 @@ export default async function RootLayout({ children }) {
       <head>
         {/* charset + viewport must come before any scripts per HTML spec */}
         <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         {/* Google Tag Manager — loaded 1.5s after window load so it never competes with first paint */}
         <script nonce={nonce} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: `window.addEventListener('load',function(){setTimeout(function(){(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-W8C8PFTK');},1500)});` }} />
         {/* End Google Tag Manager */}
 
+        <link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-readable site summary" />
         <link rel="icon" type="image/svg+xml" href="/fav.png" />
         <meta name="google-adsense-account" content="ca-pub-5501267075758433" />
         <meta name="google-site-verification" content="4HfxE-z5fk8PHUMJPDFDuOPPm73HtE8zpQZ_MHpfL5o" />
@@ -109,6 +112,7 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body>
+        <a className="skip-link" href="#main-content">Skip to main content</a>
         {/* Google Tag Manager (noscript) */}
         <noscript dangerouslySetInnerHTML={{ __html: `<iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W8C8PFTK" height="0" width="0" style="display:none;visibility:hidden"></iframe>` }} />
         {/* End Google Tag Manager (noscript) */}

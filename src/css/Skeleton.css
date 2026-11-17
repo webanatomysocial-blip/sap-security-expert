@@ -134,3 +134,7 @@
 
 /* Reserve icon space before the Bootstrap Icons font loads (it is deferred) so icons popping in don't shift layout. */
 i.bi { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
+
+/* Skip link: hidden until keyboard-focused */
+.skip-link { position: absolute; left: 8px; top: -48px; z-index: 10000; background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font: 600 14px system-ui, sans-serif; }
+.skip-link:focus { top: 8px; }
