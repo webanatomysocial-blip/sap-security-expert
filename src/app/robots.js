@@ -5,7 +5,9 @@ export default function robots() {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
+        // Public read-only endpoints the pages fetch while rendering; Googlebot must reach
+        // them or it sees empty pages (soft 404). Longest match wins over '/api/'.
+        allow: ['/', ...['announcements', 'announcements-public', 'ads', 'posts', 'stats', 'version', 'homepage', 'news', 'learnings', 'contributors', 'ambassadors', 'seo-meta'].map((e) => `/api/${e}`)],
         disallow: [
           '/admin/',
           '/member/',
