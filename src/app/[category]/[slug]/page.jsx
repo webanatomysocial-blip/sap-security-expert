@@ -119,6 +119,7 @@ function safeJsonLd(value) {
 }
 
 const CATEGORY_LABELS = {
+  'expert-papers': 'Expert Papers',
   'sap-security': 'SAP Security',
   'sap-s4hana-security': 'SAP S/4HANA Security',
   'sap-fiori-security': 'SAP Fiori Security',

@@ -19,7 +19,7 @@ const SPA_PAGES = new Set([
   'accessibility-statement', 'ambassadors', 'announcements', 'blog', 'blogs', 'community', 'downloads',
   'leaderboard', 'learning-hub', 'learnings', 'membership', 'news', 'paid-articles', 'privacy-policy',
   'responsible-ai-automation-statement', 'safety-movement', 'sap-security-fundamentals',
-  'security-compliance-overview', 'sitemap', 'terms-conditions', 'expert-papers', 'sap-licensing',
+  'security-compliance-overview', 'sitemap', 'terms-conditions', 'privacy-and-data-protection', 'cookie-policy', 'disclaimer', 'expert-papers', 'sap-licensing',
 ]);
 
 // These routes are interactive client pages. Keep a concise, meaningful

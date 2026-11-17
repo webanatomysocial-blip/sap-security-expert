@@ -163,3 +163,5 @@ body .hero-carousel-dots { gap: 0; }
 /* Sized larger than the real hero card (372x326 mobile, 650x460 desktop) so the browser keeps this early paint as the LCP element. */
 .ssr-loading-overlay .ssr-hero { width: 100%; height: 360px; object-fit: cover; }
 @media (min-width: 769px) { .ssr-loading-overlay .ssr-hero { width: 900px; height: 520px; border-radius: 12px; } }
+/* Elements hidden via the hidden attribute must stay hidden despite component display rules */
+.widget[hidden], .cag-stat[hidden] { display: none !important; }

@@ -212,7 +212,7 @@ export default function FeaturedInsights({ id }) {
           </div>
         ) : filteredBlogs.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8" }}>
-            No articles available in this section yet. Check back soon!
+            No articles in this section yet. <Link to="/blogs" style={{ color: "#c0362b" }}>Browse all articles →</Link>
           </div>
         ) : (
         <div className="latest-blogs-grid">
