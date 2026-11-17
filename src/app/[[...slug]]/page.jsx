@@ -209,6 +209,7 @@ export default async function CatchAll({ params }) {
 
       <div id="ssr-blog-content" suppressHydrationWarning>
         <div className="ssr-loading-overlay" aria-hidden="true">
+          {heroSrc && <img className="ssr-hero" src={heroProps.src || heroSrc} srcSet={heroProps.srcSet} sizes="100vw" width="1200" height="675" alt="" fetchPriority="high" decoding="async" />}
           <div className="ssr-spinner" />
           <span className="ssr-loading-text">Loading…</span>
         </div>
